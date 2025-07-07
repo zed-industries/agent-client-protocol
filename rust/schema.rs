@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -10,8 +9,10 @@ use serde_json::value::RawValue;
 #[derive(Serialize)]
 pub struct Method {
     pub name: &'static str,
-    pub request_type: &'static str,
-    pub response_type: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_type: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_type: Option<&'static str>,
 }
 
 pub trait AnyRequest: Serialize + Sized {
@@ -27,22 +28,52 @@ macro_rules! acp_peer {
         $request_enum_name:ident,
         $response_enum_name:ident,
         $method_map_name:ident,
-        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $response_name:ident)),*
+        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $request_params: tt, $response_name:ident, $response_type: tt)),*
         $(,)?
     ) => {
-        #[async_trait(?Send)]
+        macro_rules! handler_trait_call_req {
+            ($self: ident, $method: ident, (), $resp_name: ident, $resp_type: ident, $params: ident) => {
+                Ok($response_enum_name::$resp_name($self.$method().await?))
+            };
+            ($self: ident, $method: ident, (), $resp_name: ident, (), $params: ident) => {
+                {
+                    $self.$method().await?;
+                    Ok($response_enum_name::$resp_name($resp_name))
+                }
+            };
+            ($self: ident, $method: ident, $req: ident, $resp_name: ident, (), $params: ident) => {
+                {
+                    $self.$method($params).await?;
+                    Ok($response_enum_name::$resp_name($resp_name))
+                }
+            };
+            ($self: ident, $method: ident, $req: ident, $resp_name: ident, $resp_type: ident, $params: ident) => {
+                Ok($response_enum_name::$resp_name($self.$method($params).await?))
+            }
+        }
+
+        macro_rules! handler_trait_req_method {
+            ($method: ident, (), $resp: tt) => {
+                fn $method(&self) -> impl Future<Output = Result<$resp>>;
+            };
+            ($method: ident, $req: ident, $resp: tt) => {
+                fn $method(&self, request: $req) -> impl Future<Output = Result<$resp>>;
+            }
+        }
+
         pub trait $handler_trait_name {
-            async fn call(&self, params: $request_enum_name) -> Result<$response_enum_name> {
-                match params {
-                    $($request_enum_name::$request_name(params) => {
-                        let response = self.$request_method(params).await?;
-                        Ok($response_enum_name::$response_name(response))
-                    }),*
+            fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name>> {
+                async move {
+                    match params {
+                        $(#[allow(unused_variables)] $request_enum_name::$request_name(params) => {
+                            handler_trait_call_req!(self, $request_method, $request_params, $response_name, $response_type, params)
+                        }),*
+                    }
                 }
             }
 
             $(
-                async fn $request_method(&self, request: $request_name) -> Result<$response_name>;
+                handler_trait_req_method!($request_method, $request_params, $response_type);
             )*
         }
 
@@ -110,12 +141,30 @@ macro_rules! acp_peer {
             }
         }
 
+        macro_rules! request_type {
+            ($req_name: ident, ()) => {
+                None
+            };
+            ($req_name: ident, $req_type: ident) => {
+                Some(stringify!($req_type))
+            }
+        }
+
+        macro_rules! response_type {
+            ($resp_name: ident, ()) => {
+                None
+            };
+            ($resp_name: ident, $resp_type: ident) => {
+                Some(stringify!($resp_type))
+            }
+        }
+
         pub static $method_map_name: &[Method] = &[
             $(
                 Method {
                     name: $request_method_string,
-                    request_type: stringify!($request_name),
-                    response_type: stringify!($response_name),
+                    request_type: request_type!($request_name, $request_params),
+                    response_type: response_type!($response_name, $response_type),
                 },
             )*
         ];
@@ -149,25 +198,33 @@ acp_peer!(
         stream_assistant_message_chunk,
         "streamAssistantMessageChunk",
         StreamAssistantMessageChunkParams,
-        StreamAssistantMessageChunkResponse
+        StreamAssistantMessageChunkParams,
+        StreamAssistantMessageChunkResponse,
+        ()
     ),
     (
         request_tool_call_confirmation,
         "requestToolCallConfirmation",
         RequestToolCallConfirmationParams,
+        RequestToolCallConfirmationParams,
+        RequestToolCallConfirmationResponse,
         RequestToolCallConfirmationResponse
     ),
     (
         push_tool_call,
         "pushToolCall",
         PushToolCallParams,
+        PushToolCallParams,
+        PushToolCallResponse,
         PushToolCallResponse
     ),
     (
         update_tool_call,
         "updateToolCall",
         UpdateToolCallParams,
-        UpdateToolCallResponse
+        UpdateToolCallParams,
+        UpdateToolCallResponse,
+        ()
     ),
 );
 
@@ -181,25 +238,33 @@ acp_peer!(
         initialize,
         "initialize",
         InitializeParams,
+        (),
+        InitializeResponse,
         InitializeResponse
     ),
     (
         authenticate,
         "authenticate",
         AuthenticateParams,
-        AuthenticateResponse
+        (),
+        AuthenticateResponse,
+        ()
     ),
     (
         send_user_message,
         "sendUserMessage",
         SendUserMessageParams,
-        SendUserMessageResponse
+        SendUserMessageParams,
+        SendUserMessageResponse,
+        ()
     ),
     (
         cancel_send_message,
         "cancelSendMessage",
         CancelSendMessageParams,
-        CancelSendMessageResponse
+        (),
+        CancelSendMessageResponse,
+        ()
     )
 );
 

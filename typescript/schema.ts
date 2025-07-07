@@ -145,35 +145,39 @@ export interface InitializeResponse {
 export interface Client {
   streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
-  ): Promise<StreamAssistantMessageChunkResponse>;
+  ): Promise<void>;
   requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
   ): Promise<RequestToolCallConfirmationResponse>;
   pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
-  updateToolCall(params: UpdateToolCallParams): Promise<UpdateToolCallResponse>;
+  updateToolCall(params: UpdateToolCallParams): Promise<void>;
 }
 
-export const CLIENT_METHODS = new Set([
-  "streamAssistantMessageChunk",
-  "requestToolCallConfirmation",
-  "pushToolCall",
-  "updateToolCall",
-]);
+export const CLIENT_METHODS = [
+  {
+    name: "streamAssistantMessageChunk",
+    accepts_params: true,
+    returns_response: false,
+  },
+  {
+    name: "requestToolCallConfirmation",
+    accepts_params: true,
+    returns_response: true,
+  },
+  { name: "pushToolCall", accepts_params: true, returns_response: true },
+  { name: "updateToolCall", accepts_params: true, returns_response: false },
+];
 
 export interface Agent {
-  initialize(params: InitializeParams): Promise<InitializeResponse>;
-  authenticate(params: AuthenticateParams): Promise<AuthenticateResponse>;
-  sendUserMessage(
-    params: SendUserMessageParams,
-  ): Promise<SendUserMessageResponse>;
-  cancelSendMessage(
-    params: CancelSendMessageParams,
-  ): Promise<CancelSendMessageResponse>;
+  initialize(): Promise<InitializeResponse>;
+  authenticate(): Promise<void>;
+  sendUserMessage(params: SendUserMessageParams): Promise<void>;
+  cancelSendMessage(): Promise<void>;
 }
 
-export const AGENT_METHODS = new Set([
-  "initialize",
-  "authenticate",
-  "sendUserMessage",
-  "cancelSendMessage",
-]);
+export const AGENT_METHODS = [
+  { name: "initialize", accepts_params: false, returns_response: true },
+  { name: "authenticate", accepts_params: false, returns_response: false },
+  { name: "sendUserMessage", accepts_params: true, returns_response: false },
+  { name: "cancelSendMessage", accepts_params: false, returns_response: false },
+];

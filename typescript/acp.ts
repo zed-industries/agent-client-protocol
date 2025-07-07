@@ -28,23 +28,35 @@ type Result<T> =
       };
     };
 
+interface Method {
+  name: string;
+  accepts_params: boolean;
+  returns_response: boolean;
+}
+
 export class Connection<D, P> {
   #pendingResponses: Map<number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
   #delegate: D;
-  #delegateMethods: Set<string>;
+  #delegateMethods: Record<string, Method>;
   #peerInput: WritableStream<Uint8Array>;
   #writeQueue: Promise<void> = Promise.resolve();
   #textEncoder: TextEncoder;
 
   constructor(
     delegate: (peer: P) => D,
-    delegateMethods: Set<string>,
-    peerMethods: Set<string>,
+    delegateMethods: Method[],
+    peerMethods: Method[],
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
-    this.#delegateMethods = delegateMethods;
+    this.#delegateMethods = delegateMethods.reduce<Record<string, Method>>(
+      (acc, method) => {
+        acc[method.name] = method;
+        return acc;
+      },
+      {},
+    );
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
 
@@ -53,9 +65,13 @@ export class Connection<D, P> {
       (params: unknown) => Promise<unknown>
     >;
 
-    for (const methodName of peerMethods) {
-      peer[methodName] = (params: unknown) => {
-        return this.#sendRequest(methodName, params);
+    for (const { name, accepts_params, returns_response } of peerMethods) {
+      peer[name] = async (params: unknown) => {
+        const result = await this.#sendRequest(
+          name,
+          accepts_params ? params : null,
+        );
+        return returns_response ? result : undefined;
       };
     }
 
@@ -132,7 +148,7 @@ export class Connection<D, P> {
   ): Promise<Result<unknown>> {
     const methodName = method as keyof D;
     if (
-      !this.#delegateMethods.has(method) ||
+      !this.#delegateMethods[method] ||
       typeof this.#delegate[methodName] !== "function"
     ) {
       return {
@@ -141,8 +157,11 @@ export class Connection<D, P> {
     }
 
     try {
-      const result = await this.#delegate[methodName](params);
-      return { result };
+      let { accepts_params, returns_response } = this.#delegateMethods[method];
+      const result = await this.#delegate[methodName](
+        accepts_params ? params : undefined,
+      );
+      return { result: returns_response ? result : null };
     } catch (error: unknown) {
       let code = -32603;
       let errMessage = "Unknown Error";

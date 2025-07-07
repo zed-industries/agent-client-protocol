@@ -30,17 +30,31 @@ function requestMapToInterface(name, methods) {
   let code = `export interface ${name} {\n`;
 
   for (const { name, request_type, response_type } of methods) {
-    code += `  ${name}(params: ${request_type}): Promise<${response_type}>;\n`;
+    code += name;
+    if (request_type != null) {
+      code += `(params: ${request_type})`;
+    } else {
+      code += `()`;
+    }
+    if (response_type != null) {
+      code += `: Promise<${response_type}>;\n`;
+    } else {
+      code += `: Promise<void>;\n`;
+    }
   }
   code += "}\n\n";
 
-  code += `export const ${name.toUpperCase()}_METHODS = new Set([`;
+  code += `export const ${name.toUpperCase()}_METHODS = [`;
   code += "\n";
-  for (const { name } of methods) {
-    code += `  "${name}",`;
+  for (const { name, request_type, response_type } of methods) {
+    code += `  {`;
+    code += `    name: "${name}",`;
+    code += `    accepts_params: ${request_type != null},`;
+    code += `    returns_response: ${response_type != null},`;
+    code += `  },`;
     code += "\n";
   }
-  code += "]);";
+  code += "];";
 
   return code;
 }

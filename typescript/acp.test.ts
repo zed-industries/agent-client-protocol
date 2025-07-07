@@ -1,24 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   Agent,
-  AuthenticateParams,
-  AuthenticateResponse,
-  CancelSendMessageParams,
-  CancelSendMessageResponse,
   Client,
   Connection,
-  InitializeParams,
   InitializeResponse,
   PushToolCallParams,
   PushToolCallResponse,
   RequestToolCallConfirmationParams,
   RequestToolCallConfirmationResponse,
   SendUserMessageParams,
-  SendUserMessageResponse,
   StreamAssistantMessageChunkParams,
-  StreamAssistantMessageChunkResponse,
   UpdateToolCallParams,
-  UpdateToolCallResponse,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -67,7 +59,7 @@ describe("Connection", () => {
     ).rejects.toThrow();
 
     // Test error handling in agent->client direction
-    await expect(agentConnection.initialize(null)).rejects.toThrow();
+    await expect(agentConnection.initialize()).rejects.toThrow();
   });
 
   it("handles concurrent requests", async () => {
@@ -132,16 +124,13 @@ describe("Connection", () => {
         messageLog.push("pushToolCall called");
         return { id: 0 };
       }
-      async updateToolCall(
-        _: UpdateToolCallParams,
-      ): Promise<UpdateToolCallResponse> {
+      async updateToolCall(_: UpdateToolCallParams): Promise<void> {
         messageLog.push("updateToolCall called");
-        return null;
       }
     }
 
     class TestAgent extends StubAgent {
-      async initialize(_: InitializeParams): Promise<InitializeResponse> {
+      async initialize(): Promise<InitializeResponse> {
         messageLog.push("initialize called");
         return { isAuthenticated: true };
       }
@@ -161,7 +150,7 @@ describe("Connection", () => {
     );
 
     // Send requests in specific order
-    await agentConnection.initialize!(null);
+    await agentConnection.initialize();
     let { id } = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
@@ -186,18 +175,16 @@ describe("Connection", () => {
 
 class StubAgent implements Agent {
   constructor(private client: Client) {}
-  initialize(_: InitializeParams): Promise<InitializeResponse> {
+  initialize(): Promise<InitializeResponse> {
     throw new Error("Method not implemented.");
   }
-  authenticate(_: AuthenticateParams): Promise<AuthenticateResponse> {
+  authenticate(): Promise<void> {
     throw new Error("Method not implemented.");
   }
-  sendUserMessage(_: SendUserMessageParams): Promise<SendUserMessageResponse> {
+  sendUserMessage(_: SendUserMessageParams): Promise<void> {
     throw new Error("Method not implemented.");
   }
-  cancelSendMessage(
-    _: CancelSendMessageParams,
-  ): Promise<CancelSendMessageResponse> {
+  cancelSendMessage(): Promise<void> {
     throw new Error("Method not implemented.");
   }
 }
@@ -206,7 +193,7 @@ class StubClient implements Client {
   constructor(private agent: Agent) {}
   streamAssistantMessageChunk(
     _: StreamAssistantMessageChunkParams,
-  ): Promise<StreamAssistantMessageChunkResponse> {
+  ): Promise<void> {
     throw new Error("Method not implemented.");
   }
   requestToolCallConfirmation(
@@ -217,7 +204,7 @@ class StubClient implements Client {
   pushToolCall(_: PushToolCallParams): Promise<PushToolCallResponse> {
     throw new Error("Method not implemented.");
   }
-  updateToolCall(_: UpdateToolCallParams): Promise<UpdateToolCallResponse> {
+  updateToolCall(_: UpdateToolCallParams): Promise<void> {
     throw new Error("Method not implemented.");
   }
 }
