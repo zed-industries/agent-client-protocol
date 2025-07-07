@@ -196,19 +196,40 @@ macro_rules! acp_peer {
             };
         }
 
+        macro_rules! resp_type {
+            ($resp_name: ident, false) => {
+                ()
+            };
+            ($resp_name: ident, true) => {
+                $resp_name
+            };
+        }
+
+        macro_rules! resp_from_any {
+            ($any: ident, $resp_name: ident, false) => {
+                match $any {
+                    $response_enum_name::$resp_name(_) => Some(()),
+                    _ => None
+                }
+            };
+            ($any: ident, $resp_name: ident, true) => {
+                match $any {
+                    $response_enum_name::$resp_name(this) => Some(this),
+                    _ => None
+                }
+            };
+        }
+
         $(
             impl $request_trait_name for $request_name {
-                type Response = $response_name;
+                type Response = resp_type!($response_name, $response_payload);
 
                 fn into_any(self) -> $request_enum_name {
                     req_into_any!(self, $request_name, $param_payload)
                 }
 
                 fn response_from_any(any: $response_enum_name) -> Option<Self::Response> {
-                    match any {
-                        $response_enum_name::$response_name(this) => Some(this),
-                        _ => None
-                    }
+                    resp_from_any!(any, $response_name, $response_payload)
                 }
             }
         )*
