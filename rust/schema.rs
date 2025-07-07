@@ -28,27 +28,33 @@ macro_rules! acp_peer {
         $request_enum_name:ident,
         $response_enum_name:ident,
         $method_map_name:ident,
-        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $request_params: tt, $response_name:ident, $response_type: tt)),*
+        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $request_type: tt, $response_name:ident, $response_type: tt)),*
         $(,)?
     ) => {
         macro_rules! handler_trait_call_req {
-            ($self: ident, $method: ident, (), $resp_name: ident, $resp_type: ident, $params: ident) => {
-                Ok($response_enum_name::$resp_name($self.$method().await?))
-            };
             ($self: ident, $method: ident, (), $resp_name: ident, (), $params: ident) => {
                 {
                     $self.$method().await?;
-                    Ok($response_enum_name::$resp_name($resp_name))
+                    Ok($response_enum_name::$resp_name(()))
+                }
+            };
+            ($self: ident, $method: ident, (), $resp_name: ident, $resp_type: ident, $params: ident) => {
+                {
+                    let resp = $self.$method().await?;
+                    Ok($response_enum_name::$resp_name(resp))
                 }
             };
             ($self: ident, $method: ident, $req: ident, $resp_name: ident, (), $params: ident) => {
                 {
                     $self.$method($params).await?;
-                    Ok($response_enum_name::$resp_name($resp_name))
+                    Ok($response_enum_name::$resp_name(()))
                 }
             };
             ($self: ident, $method: ident, $req: ident, $resp_name: ident, $resp_type: ident, $params: ident) => {
-                Ok($response_enum_name::$resp_name($self.$method($params).await?))
+                {
+                    let resp = $self.$method($params).await?;
+                    Ok($response_enum_name::$resp_name(resp))
+                }
             }
         }
 
@@ -65,15 +71,16 @@ macro_rules! acp_peer {
             fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name>> {
                 async move {
                     match params {
-                        $(#[allow(unused_variables)] $request_enum_name::$request_name(params) => {
-                            handler_trait_call_req!(self, $request_method, $request_params, $response_name, $response_type, params)
+                        $(#[allow(unused_variables)]
+                        $request_enum_name::$request_name(params) => {
+                            handler_trait_call_req!(self, $request_method, $request_type, $response_name, $response_type, params)
                         }),*
                     }
                 }
             }
 
             $(
-                handler_trait_req_method!($request_method, $request_params, $response_type);
+                handler_trait_req_method!($request_method, $request_type, $response_type);
             )*
         }
 
@@ -87,7 +94,7 @@ macro_rules! acp_peer {
         #[serde(untagged)]
         pub enum $request_enum_name {
             $(
-                $request_name($request_name),
+                $request_name($request_type),
             )*
         }
 
@@ -95,8 +102,32 @@ macro_rules! acp_peer {
         #[serde(untagged)]
         pub enum $response_enum_name {
             $(
-                $response_name($response_name),
+                $response_name($response_type),
             )*
+        }
+
+        macro_rules! request_from_method_and_params {
+            ($req_name: ident, (), $params: tt) => {
+                Ok($request_enum_name::$req_name(()))
+            };
+            ($req_name: ident, $req_type: ident, $params: tt) => {
+                match serde_json::from_str($params.get()) {
+                    Ok(params) => Ok($request_enum_name::$req_name(params)),
+                    Err(e) => Err(anyhow!(e.to_string())),
+                }
+            };
+        }
+
+        macro_rules! response_from_method_and_result {
+            ($resp_name: ident, (), $result: tt) => {
+                Ok($response_enum_name::$resp_name(()))
+            };
+            ($resp_name: ident, $resp_type: ident, $result: tt) => {
+                match serde_json::from_str($result.get()) {
+                    Ok(result) => Ok($response_enum_name::$resp_name(result)),
+                    Err(e) => Err(anyhow!(e.to_string())),
+                }
+            };
         }
 
         impl AnyRequest for $request_enum_name {
@@ -106,10 +137,7 @@ macro_rules! acp_peer {
                 match method {
                     $(
                         $request_method_string => {
-                            match serde_json::from_str(params.get()) {
-                                Ok(params) => Ok($request_enum_name::$request_name(params)),
-                                Err(e) => Err(anyhow!(e.to_string())),
-                            }
+                            request_from_method_and_params!($request_name, $request_type, params)
                         }
                     )*
                     _ => Err(anyhow!("invalid method string {}", method)),
@@ -120,10 +148,7 @@ macro_rules! acp_peer {
                 match method {
                     $(
                         $request_method_string => {
-                            match serde_json::from_str(params.get()) {
-                                Ok(params) => Ok($response_enum_name::$response_name(params)),
-                                Err(e) => Err(anyhow!(e.to_string())),
-                            }
+                            response_from_method_and_result!($response_name, $response_type, params)
                         }
                     )*
                     _ => Err(anyhow!("invalid method string {}", method)),
@@ -163,18 +188,27 @@ macro_rules! acp_peer {
             $(
                 Method {
                     name: $request_method_string,
-                    request_type: request_type!($request_name, $request_params),
+                    request_type: request_type!($request_name, $request_type),
                     response_type: response_type!($response_name, $response_type),
                 },
             )*
         ];
 
+        macro_rules! req_into_any {
+            ($self: ident, $req_name: ident, ()) => {
+                $request_enum_name::$req_name(())
+            };
+            ($self: ident, $req_name: ident, $req_type: ident) => {
+                $request_enum_name::$req_name($self)
+            };
+        }
+
         $(
             impl $request_trait_name for $request_name {
-                type Response = $response_name;
+                type Response = $response_type;
 
                 fn into_any(self) -> $request_enum_name {
-                    $request_enum_name::$request_name(self)
+                    req_into_any!(self, $request_name, $request_type)
                 }
 
                 fn response_from_any(any: $response_enum_name) -> Option<Self::Response> {

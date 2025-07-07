@@ -67,11 +67,9 @@ export type Icon =
 export type ToolCallStatus = "running" | "finished" | "error";
 export type ToolCallId = number;
 export type AnyClientResult =
-  | StreamAssistantMessageChunkResponse
+  | null
   | RequestToolCallConfirmationResponse
-  | PushToolCallResponse
-  | UpdateToolCallResponse;
-export type StreamAssistantMessageChunkResponse = null;
+  | PushToolCallResponse;
 export type ToolCallConfirmationOutcome =
   | "allow"
   | "alwaysAllow"
@@ -79,14 +77,7 @@ export type ToolCallConfirmationOutcome =
   | "alwaysAllowTool"
   | "reject"
   | "cancel";
-export type UpdateToolCallResponse = null;
-export type AnyAgentRequest =
-  | InitializeParams
-  | AuthenticateParams
-  | SendUserMessageParams
-  | CancelSendMessageParams;
-export type InitializeParams = null;
-export type AuthenticateParams = null;
+export type AnyAgentRequest = null | SendUserMessageParams;
 export type UserMessageChunk =
   | {
       type: "text";
@@ -96,15 +87,7 @@ export type UserMessageChunk =
       type: "path";
       path: string;
     };
-export type CancelSendMessageParams = null;
-export type AnyAgentResult =
-  | InitializeResponse
-  | AuthenticateResponse
-  | SendUserMessageResponse
-  | CancelSendMessageResponse;
-export type AuthenticateResponse = null;
-export type SendUserMessageResponse = null;
-export type CancelSendMessageResponse = null;
+export type AnyAgentResult = InitializeResponse | null;
 
 export interface StreamAssistantMessageChunkParams {
   chunk: AssistantMessageChunk;
