@@ -6,13 +6,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Method {
     pub name: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub request_type: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub response_type: Option<&'static str>,
+    pub request_type: &'static str,
+    pub param_payload: bool,
+    pub response_type: &'static str,
+    pub response_payload: bool,
 }
 
 pub trait AnyRequest: Serialize + Sized {
@@ -28,29 +29,29 @@ macro_rules! acp_peer {
         $request_enum_name:ident,
         $response_enum_name:ident,
         $method_map_name:ident,
-        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $request_type: tt, $response_name:ident, $response_type: tt)),*
+        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $param_payload: tt, $response_name:ident, $response_payload: tt)),*
         $(,)?
     ) => {
         macro_rules! handler_trait_call_req {
-            ($self: ident, $method: ident, (), $resp_name: ident, (), $params: ident) => {
+            ($self: ident, $method: ident, false, $resp_name: ident, false, $params: ident) => {
                 {
                     $self.$method().await?;
-                    Ok($response_enum_name::$resp_name(()))
+                    Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
-            ($self: ident, $method: ident, (), $resp_name: ident, $resp_type: ident, $params: ident) => {
+            ($self: ident, $method: ident, false, $resp_name: ident, true, $params: ident) => {
                 {
                     let resp = $self.$method().await?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             };
-            ($self: ident, $method: ident, $req: ident, $resp_name: ident, (), $params: ident) => {
+            ($self: ident, $method: ident, true, $resp_name: ident, false, $params: ident) => {
                 {
                     $self.$method($params).await?;
-                    Ok($response_enum_name::$resp_name(()))
+                    Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
-            ($self: ident, $method: ident, $req: ident, $resp_name: ident, $resp_type: ident, $params: ident) => {
+            ($self: ident, $method: ident, true, $resp_name: ident, true, $params: ident) => {
                 {
                     let resp = $self.$method($params).await?;
                     Ok($response_enum_name::$resp_name(resp))
@@ -59,10 +60,16 @@ macro_rules! acp_peer {
         }
 
         macro_rules! handler_trait_req_method {
-            ($method: ident, (), $resp: tt) => {
+            ($method: ident, $req: ident, false, $resp: tt, false) => {
+                fn $method(&self) -> impl Future<Output = Result<()>>;
+            };
+            ($method: ident, $req: ident, false, $resp: tt, true) => {
                 fn $method(&self) -> impl Future<Output = Result<$resp>>;
             };
-            ($method: ident, $req: ident, $resp: tt) => {
+            ($method: ident, $req: ident, true, $resp: tt, false) => {
+                fn $method(&self, request: $req) -> impl Future<Output = Result<()>>;
+            };
+            ($method: ident, $req: ident, true, $resp: tt, true) => {
                 fn $method(&self, request: $req) -> impl Future<Output = Result<$resp>>;
             }
         }
@@ -73,14 +80,14 @@ macro_rules! acp_peer {
                     match params {
                         $(#[allow(unused_variables)]
                         $request_enum_name::$request_name(params) => {
-                            handler_trait_call_req!(self, $request_method, $request_type, $response_name, $response_type, params)
+                            handler_trait_call_req!(self, $request_method, $param_payload, $response_name, $response_payload, params)
                         }),*
                     }
                 }
             }
 
             $(
-                handler_trait_req_method!($request_method, $request_type, $response_type);
+                handler_trait_req_method!($request_method, $request_name, $param_payload, $response_name, $response_payload);
             )*
         }
 
@@ -94,7 +101,7 @@ macro_rules! acp_peer {
         #[serde(untagged)]
         pub enum $request_enum_name {
             $(
-                $request_name($request_type),
+                $request_name($request_name),
             )*
         }
 
@@ -102,15 +109,15 @@ macro_rules! acp_peer {
         #[serde(untagged)]
         pub enum $response_enum_name {
             $(
-                $response_name($response_type),
+                $response_name($response_name),
             )*
         }
 
         macro_rules! request_from_method_and_params {
-            ($req_name: ident, (), $params: tt) => {
-                Ok($request_enum_name::$req_name(()))
+            ($req_name: ident, false, $params: tt) => {
+                Ok($request_enum_name::$req_name($req_name))
             };
-            ($req_name: ident, $req_type: ident, $params: tt) => {
+            ($req_name: ident, true, $params: tt) => {
                 match serde_json::from_str($params.get()) {
                     Ok(params) => Ok($request_enum_name::$req_name(params)),
                     Err(e) => Err(anyhow!(e.to_string())),
@@ -119,10 +126,10 @@ macro_rules! acp_peer {
         }
 
         macro_rules! response_from_method_and_result {
-            ($resp_name: ident, (), $result: tt) => {
-                Ok($response_enum_name::$resp_name(()))
+            ($resp_name: ident, false, $result: tt) => {
+                Ok($response_enum_name::$resp_name($resp_name))
             };
-            ($resp_name: ident, $resp_type: ident, $result: tt) => {
+            ($resp_name: ident, true, $result: tt) => {
                 match serde_json::from_str($result.get()) {
                     Ok(result) => Ok($response_enum_name::$resp_name(result)),
                     Err(e) => Err(anyhow!(e.to_string())),
@@ -137,7 +144,7 @@ macro_rules! acp_peer {
                 match method {
                     $(
                         $request_method_string => {
-                            request_from_method_and_params!($request_name, $request_type, params)
+                            request_from_method_and_params!($request_name, $param_payload, params)
                         }
                     )*
                     _ => Err(anyhow!("invalid method string {}", method)),
@@ -148,7 +155,7 @@ macro_rules! acp_peer {
                 match method {
                     $(
                         $request_method_string => {
-                            response_from_method_and_result!($response_name, $response_type, params)
+                            response_from_method_and_result!($response_name, $response_payload, params)
                         }
                     )*
                     _ => Err(anyhow!("invalid method string {}", method)),
@@ -166,49 +173,35 @@ macro_rules! acp_peer {
             }
         }
 
-        macro_rules! request_type {
-            ($req_name: ident, ()) => {
-                None
-            };
-            ($req_name: ident, $req_type: ident) => {
-                Some(stringify!($req_type))
-            }
-        }
 
-        macro_rules! response_type {
-            ($resp_name: ident, ()) => {
-                None
-            };
-            ($resp_name: ident, $resp_type: ident) => {
-                Some(stringify!($resp_type))
-            }
-        }
 
         pub static $method_map_name: &[Method] = &[
             $(
                 Method {
                     name: $request_method_string,
-                    request_type: request_type!($request_name, $request_type),
-                    response_type: response_type!($response_name, $response_type),
+                    request_type: stringify!($request_name),
+                    param_payload: $param_payload,
+                    response_type: stringify!($response_name),
+                    response_payload: $response_payload,
                 },
             )*
         ];
 
         macro_rules! req_into_any {
-            ($self: ident, $req_name: ident, ()) => {
-                $request_enum_name::$req_name(())
+            ($self: ident, $req_name: ident, false) => {
+                $request_enum_name::$req_name($req_name)
             };
-            ($self: ident, $req_name: ident, $req_type: ident) => {
+            ($self: ident, $req_name: ident, true) => {
                 $request_enum_name::$req_name($self)
             };
         }
 
         $(
             impl $request_trait_name for $request_name {
-                type Response = $response_type;
+                type Response = $response_name;
 
                 fn into_any(self) -> $request_enum_name {
-                    req_into_any!(self, $request_name, $request_type)
+                    req_into_any!(self, $request_name, $param_payload)
                 }
 
                 fn response_from_any(any: $response_enum_name) -> Option<Self::Response> {
@@ -232,33 +225,33 @@ acp_peer!(
         stream_assistant_message_chunk,
         "streamAssistantMessageChunk",
         StreamAssistantMessageChunkParams,
-        StreamAssistantMessageChunkParams,
+        true,
         StreamAssistantMessageChunkResponse,
-        ()
+        false
     ),
     (
         request_tool_call_confirmation,
         "requestToolCallConfirmation",
         RequestToolCallConfirmationParams,
-        RequestToolCallConfirmationParams,
+        true,
         RequestToolCallConfirmationResponse,
-        RequestToolCallConfirmationResponse
+        true
     ),
     (
         push_tool_call,
         "pushToolCall",
         PushToolCallParams,
-        PushToolCallParams,
+        true,
         PushToolCallResponse,
-        PushToolCallResponse
+        true
     ),
     (
         update_tool_call,
         "updateToolCall",
         UpdateToolCallParams,
-        UpdateToolCallParams,
+        true,
         UpdateToolCallResponse,
-        ()
+        false
     ),
 );
 
@@ -272,33 +265,33 @@ acp_peer!(
         initialize,
         "initialize",
         InitializeParams,
-        (),
+        false,
         InitializeResponse,
-        InitializeResponse
+        true
     ),
     (
         authenticate,
         "authenticate",
         AuthenticateParams,
-        (),
+        false,
         AuthenticateResponse,
-        ()
+        false
     ),
     (
         send_user_message,
         "sendUserMessage",
         SendUserMessageParams,
-        SendUserMessageParams,
+        true,
         SendUserMessageResponse,
-        ()
+        false
     ),
     (
         cancel_send_message,
         "cancelSendMessage",
         CancelSendMessageParams,
-        (),
+        false,
         CancelSendMessageResponse,
-        ()
+        false
     )
 );
 

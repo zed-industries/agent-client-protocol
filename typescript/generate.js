@@ -22,6 +22,14 @@ let typescriptSource = await compile(jsonSchema, "Agent Coding Protocol", {
 const clientInterface = requestMapToInterface("Client", clientMethods);
 const agentInterface = requestMapToInterface("Agent", agentMethods);
 
+typescriptSource += "\n\nexport interface Method {\n";
+typescriptSource += "  name: string;\n";
+typescriptSource += "  requestType: string;\n";
+typescriptSource += "  paramPayload: boolean;\n";
+typescriptSource += "  responseType: string;\n";
+typescriptSource += "  responsePayload: boolean;\n";
+typescriptSource += "}\n";
+
 typescriptSource += "\n" + clientInterface + "\n\n" + agentInterface + "\n";
 
 fs.writeFileSync("typescript/schema.ts", typescriptSource, "utf8");
@@ -29,32 +37,28 @@ fs.writeFileSync("typescript/schema.ts", typescriptSource, "utf8");
 function requestMapToInterface(name, methods) {
   let code = `export interface ${name} {\n`;
 
-  for (const { name, request_type, response_type } of methods) {
+  for (const {
+    name,
+    requestType,
+    responseType,
+    paramPayload,
+    responsePayload,
+  } of methods) {
     code += name;
-    if (request_type != null) {
-      code += `(params: ${request_type})`;
+    if (paramPayload) {
+      code += `(params: ${requestType})`;
     } else {
       code += `()`;
     }
-    if (response_type != null) {
-      code += `: Promise<${response_type}>;\n`;
+    if (responsePayload) {
+      code += `: Promise<${responseType}>;\n`;
     } else {
       code += `: Promise<void>;\n`;
     }
   }
   code += "}\n\n";
 
-  code += `export const ${name.toUpperCase()}_METHODS = [`;
-  code += "\n";
-  for (const { name, request_type, response_type } of methods) {
-    code += `  {`;
-    code += `    name: "${name}",`;
-    code += `    accepts_params: ${request_type != null},`;
-    code += `    returns_response: ${response_type != null},`;
-    code += `  },`;
-    code += "\n";
-  }
-  code += "];";
+  code += `export const ${name.toUpperCase()}_METHODS: Method[] = ${JSON.stringify(methods, null, 2)};`;
 
   return code;
 }

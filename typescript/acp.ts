@@ -1,4 +1,10 @@
-import { Agent, AGENT_METHODS, Client, CLIENT_METHODS } from "./schema.js";
+import {
+  Agent,
+  AGENT_METHODS,
+  Client,
+  CLIENT_METHODS,
+  Method,
+} from "./schema.js";
 
 export * from "./schema.js";
 
@@ -27,12 +33,6 @@ type Result<T> =
         message: string;
       };
     };
-
-interface Method {
-  name: string;
-  accepts_params: boolean;
-  returns_response: boolean;
-}
 
 export class Connection<D, P> {
   #pendingResponses: Map<number, PendingResponse> = new Map();
@@ -65,13 +65,13 @@ export class Connection<D, P> {
       (params: unknown) => Promise<unknown>
     >;
 
-    for (const { name, accepts_params, returns_response } of peerMethods) {
+    for (const { name, paramPayload, responsePayload } of peerMethods) {
       peer[name] = async (params: unknown) => {
         const result = await this.#sendRequest(
           name,
-          accepts_params ? params : null,
+          paramPayload ? params : null,
         );
-        return returns_response ? result : undefined;
+        return responsePayload ? result : undefined;
       };
     }
 
@@ -157,11 +157,11 @@ export class Connection<D, P> {
     }
 
     try {
-      let { accepts_params, returns_response } = this.#delegateMethods[method];
+      let { paramPayload, responsePayload } = this.#delegateMethods[method];
       const result = await this.#delegate[methodName](
-        accepts_params ? params : undefined,
+        paramPayload ? params : undefined,
       );
-      return { result: returns_response ? result : null };
+      return { result: responsePayload ? result : null };
     } catch (error: unknown) {
       let code = -32603;
       let errMessage = "Unknown Error";

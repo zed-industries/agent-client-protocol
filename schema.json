@@ -18,16 +18,16 @@
     "AnyAgentRequest": {
       "anyOf": [
         {
-          "type": "null"
+          "$ref": "#/$defs/InitializeParams"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/AuthenticateParams"
         },
         {
           "$ref": "#/$defs/SendUserMessageParams"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/CancelSendMessageParams"
         }
       ]
     },
@@ -37,13 +37,13 @@
           "$ref": "#/$defs/InitializeResponse"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/AuthenticateResponse"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/SendUserMessageResponse"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/CancelSendMessageResponse"
         }
       ]
     },
@@ -66,7 +66,7 @@
     "AnyClientResult": {
       "anyOf": [
         {
-          "type": "null"
+          "$ref": "#/$defs/StreamAssistantMessageChunkResponse"
         },
         {
           "$ref": "#/$defs/RequestToolCallConfirmationResponse"
@@ -75,7 +75,7 @@
           "$ref": "#/$defs/PushToolCallResponse"
         },
         {
-          "type": "null"
+          "$ref": "#/$defs/UpdateToolCallResponse"
         }
       ]
     },
@@ -109,6 +109,18 @@
         }
       ]
     },
+    "AuthenticateParams": {
+      "type": "null"
+    },
+    "AuthenticateResponse": {
+      "type": "null"
+    },
+    "CancelSendMessageParams": {
+      "type": "null"
+    },
+    "CancelSendMessageResponse": {
+      "type": "null"
+    },
     "Icon": {
       "type": "string",
       "enum": [
@@ -121,6 +133,9 @@
         "regex",
         "terminal"
       ]
+    },
+    "InitializeParams": {
+      "type": "null"
     },
     "InitializeResponse": {
       "type": "object",
@@ -208,6 +223,9 @@
       },
       "required": ["message"]
     },
+    "SendUserMessageResponse": {
+      "type": "null"
+    },
     "StreamAssistantMessageChunkParams": {
       "type": "object",
       "properties": {
@@ -216,6 +234,9 @@
         }
       },
       "required": ["chunk"]
+    },
+    "StreamAssistantMessageChunkResponse": {
+      "type": "null"
     },
     "ToolCallConfirmation": {
       "oneOf": [
@@ -384,6 +405,9 @@
         }
       },
       "required": ["toolCallId", "status", "content"]
+    },
+    "UpdateToolCallResponse": {
+      "type": "null"
     },
     "UserMessage": {
       "type": "object",

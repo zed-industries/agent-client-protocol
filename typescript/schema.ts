@@ -67,9 +67,11 @@ export type Icon =
 export type ToolCallStatus = "running" | "finished" | "error";
 export type ToolCallId = number;
 export type AnyClientResult =
-  | null
+  | StreamAssistantMessageChunkResponse
   | RequestToolCallConfirmationResponse
-  | PushToolCallResponse;
+  | PushToolCallResponse
+  | UpdateToolCallResponse;
+export type StreamAssistantMessageChunkResponse = null;
 export type ToolCallConfirmationOutcome =
   | "allow"
   | "alwaysAllow"
@@ -77,7 +79,14 @@ export type ToolCallConfirmationOutcome =
   | "alwaysAllowTool"
   | "reject"
   | "cancel";
-export type AnyAgentRequest = null | SendUserMessageParams;
+export type UpdateToolCallResponse = null;
+export type AnyAgentRequest =
+  | InitializeParams
+  | AuthenticateParams
+  | SendUserMessageParams
+  | CancelSendMessageParams;
+export type InitializeParams = null;
+export type AuthenticateParams = null;
 export type UserMessageChunk =
   | {
       type: "text";
@@ -87,7 +96,15 @@ export type UserMessageChunk =
       type: "path";
       path: string;
     };
-export type AnyAgentResult = InitializeResponse | null;
+export type CancelSendMessageParams = null;
+export type AnyAgentResult =
+  | InitializeResponse
+  | AuthenticateResponse
+  | SendUserMessageResponse
+  | CancelSendMessageResponse;
+export type AuthenticateResponse = null;
+export type SendUserMessageResponse = null;
+export type CancelSendMessageResponse = null;
 
 export interface StreamAssistantMessageChunkParams {
   chunk: AssistantMessageChunk;
@@ -125,6 +142,14 @@ export interface InitializeResponse {
   isAuthenticated: boolean;
 }
 
+export interface Method {
+  name: string;
+  requestType: string;
+  paramPayload: boolean;
+  responseType: string;
+  responsePayload: boolean;
+}
+
 export interface Client {
   streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
@@ -136,19 +161,35 @@ export interface Client {
   updateToolCall(params: UpdateToolCallParams): Promise<void>;
 }
 
-export const CLIENT_METHODS = [
+export const CLIENT_METHODS: Method[] = [
   {
     name: "streamAssistantMessageChunk",
-    accepts_params: true,
-    returns_response: false,
+    requestType: "StreamAssistantMessageChunkParams",
+    paramPayload: true,
+    responseType: "StreamAssistantMessageChunkResponse",
+    responsePayload: false,
   },
   {
     name: "requestToolCallConfirmation",
-    accepts_params: true,
-    returns_response: true,
+    requestType: "RequestToolCallConfirmationParams",
+    paramPayload: true,
+    responseType: "RequestToolCallConfirmationResponse",
+    responsePayload: true,
   },
-  { name: "pushToolCall", accepts_params: true, returns_response: true },
-  { name: "updateToolCall", accepts_params: true, returns_response: false },
+  {
+    name: "pushToolCall",
+    requestType: "PushToolCallParams",
+    paramPayload: true,
+    responseType: "PushToolCallResponse",
+    responsePayload: true,
+  },
+  {
+    name: "updateToolCall",
+    requestType: "UpdateToolCallParams",
+    paramPayload: true,
+    responseType: "UpdateToolCallResponse",
+    responsePayload: false,
+  },
 ];
 
 export interface Agent {
@@ -158,9 +199,33 @@ export interface Agent {
   cancelSendMessage(): Promise<void>;
 }
 
-export const AGENT_METHODS = [
-  { name: "initialize", accepts_params: false, returns_response: true },
-  { name: "authenticate", accepts_params: false, returns_response: false },
-  { name: "sendUserMessage", accepts_params: true, returns_response: false },
-  { name: "cancelSendMessage", accepts_params: false, returns_response: false },
+export const AGENT_METHODS: Method[] = [
+  {
+    name: "initialize",
+    requestType: "InitializeParams",
+    paramPayload: false,
+    responseType: "InitializeResponse",
+    responsePayload: true,
+  },
+  {
+    name: "authenticate",
+    requestType: "AuthenticateParams",
+    paramPayload: false,
+    responseType: "AuthenticateResponse",
+    responsePayload: false,
+  },
+  {
+    name: "sendUserMessage",
+    requestType: "SendUserMessageParams",
+    paramPayload: true,
+    responseType: "SendUserMessageResponse",
+    responsePayload: false,
+  },
+  {
+    name: "cancelSendMessage",
+    requestType: "CancelSendMessageParams",
+    paramPayload: false,
+    responseType: "CancelSendMessageResponse",
+    responsePayload: false,
+  },
 ];
