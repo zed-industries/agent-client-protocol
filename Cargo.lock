@@ -23,7 +23,6 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-pipe",
- "async-trait",
  "chrono",
  "env_logger",
  "futures",
@@ -72,17 +71,6 @@ source = "git+https://github.com/zed-industries/async-pipe-rs?rev=82d00a04211cf4
 dependencies = [
  "futures",
  "log",
-]
-
-[[package]]
-name = "async-trait"
-version = "0.1.88"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

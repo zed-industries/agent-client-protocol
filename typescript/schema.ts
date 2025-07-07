@@ -142,38 +142,90 @@ export interface InitializeResponse {
   isAuthenticated: boolean;
 }
 
+export interface Method {
+  name: string;
+  requestType: string;
+  paramPayload: boolean;
+  responseType: string;
+  responsePayload: boolean;
+}
+
 export interface Client {
   streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
-  ): Promise<StreamAssistantMessageChunkResponse>;
+  ): Promise<void>;
   requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
   ): Promise<RequestToolCallConfirmationResponse>;
   pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
-  updateToolCall(params: UpdateToolCallParams): Promise<UpdateToolCallResponse>;
+  updateToolCall(params: UpdateToolCallParams): Promise<void>;
 }
 
-export const CLIENT_METHODS = new Set([
-  "streamAssistantMessageChunk",
-  "requestToolCallConfirmation",
-  "pushToolCall",
-  "updateToolCall",
-]);
+export const CLIENT_METHODS: Method[] = [
+  {
+    name: "streamAssistantMessageChunk",
+    requestType: "StreamAssistantMessageChunkParams",
+    paramPayload: true,
+    responseType: "StreamAssistantMessageChunkResponse",
+    responsePayload: false,
+  },
+  {
+    name: "requestToolCallConfirmation",
+    requestType: "RequestToolCallConfirmationParams",
+    paramPayload: true,
+    responseType: "RequestToolCallConfirmationResponse",
+    responsePayload: true,
+  },
+  {
+    name: "pushToolCall",
+    requestType: "PushToolCallParams",
+    paramPayload: true,
+    responseType: "PushToolCallResponse",
+    responsePayload: true,
+  },
+  {
+    name: "updateToolCall",
+    requestType: "UpdateToolCallParams",
+    paramPayload: true,
+    responseType: "UpdateToolCallResponse",
+    responsePayload: false,
+  },
+];
 
 export interface Agent {
-  initialize(params: InitializeParams): Promise<InitializeResponse>;
-  authenticate(params: AuthenticateParams): Promise<AuthenticateResponse>;
-  sendUserMessage(
-    params: SendUserMessageParams,
-  ): Promise<SendUserMessageResponse>;
-  cancelSendMessage(
-    params: CancelSendMessageParams,
-  ): Promise<CancelSendMessageResponse>;
+  initialize(): Promise<InitializeResponse>;
+  authenticate(): Promise<void>;
+  sendUserMessage(params: SendUserMessageParams): Promise<void>;
+  cancelSendMessage(): Promise<void>;
 }
 
-export const AGENT_METHODS = new Set([
-  "initialize",
-  "authenticate",
-  "sendUserMessage",
-  "cancelSendMessage",
-]);
+export const AGENT_METHODS: Method[] = [
+  {
+    name: "initialize",
+    requestType: "InitializeParams",
+    paramPayload: false,
+    responseType: "InitializeResponse",
+    responsePayload: true,
+  },
+  {
+    name: "authenticate",
+    requestType: "AuthenticateParams",
+    paramPayload: false,
+    responseType: "AuthenticateResponse",
+    responsePayload: false,
+  },
+  {
+    name: "sendUserMessage",
+    requestType: "SendUserMessageParams",
+    paramPayload: true,
+    responseType: "SendUserMessageResponse",
+    responsePayload: false,
+  },
+  {
+    name: "cancelSendMessage",
+    requestType: "CancelSendMessageParams",
+    paramPayload: false,
+    responseType: "CancelSendMessageResponse",
+    responsePayload: false,
+  },
+];

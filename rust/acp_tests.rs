@@ -1,46 +1,37 @@
 use super::*;
 use anyhow::Result;
-use async_trait::async_trait;
 use tokio::task::LocalSet;
 use tokio::time::{Duration, timeout};
 
 pub struct TestClient;
 pub struct TestAgent;
 
-#[async_trait(?Send)]
 impl Agent for TestAgent {
-    async fn initialize(&self, _request: InitializeParams) -> Result<InitializeResponse> {
+    async fn initialize(&self) -> Result<InitializeResponse> {
         Ok(InitializeResponse {
             is_authenticated: true,
         })
     }
 
-    async fn authenticate(&self, _request: AuthenticateParams) -> Result<AuthenticateResponse> {
-        Ok(AuthenticateResponse)
+    async fn authenticate(&self) -> Result<()> {
+        Ok(())
     }
 
-    async fn send_user_message(
-        &self,
-        _request: SendUserMessageParams,
-    ) -> Result<SendUserMessageResponse> {
-        Ok(SendUserMessageResponse)
+    async fn send_user_message(&self, _request: SendUserMessageParams) -> Result<()> {
+        Ok(())
     }
 
-    async fn cancel_send_message(
-        &self,
-        _request: CancelSendMessageParams,
-    ) -> Result<CancelSendMessageResponse> {
-        Ok(CancelSendMessageResponse)
+    async fn cancel_send_message(&self) -> Result<()> {
+        Ok(())
     }
 }
 
-#[async_trait(?Send)]
 impl Client for TestClient {
     async fn stream_assistant_message_chunk(
         &self,
         _request: StreamAssistantMessageChunkParams,
-    ) -> Result<StreamAssistantMessageChunkResponse> {
-        Ok(StreamAssistantMessageChunkResponse {})
+    ) -> Result<()> {
+        Ok(())
     }
 
     async fn request_tool_call_confirmation(
@@ -57,11 +48,8 @@ impl Client for TestClient {
         Ok(PushToolCallResponse { id: ToolCallId(0) })
     }
 
-    async fn update_tool_call(
-        &self,
-        _request: UpdateToolCallParams,
-    ) -> Result<UpdateToolCallResponse> {
-        Ok(UpdateToolCallResponse)
+    async fn update_tool_call(&self, _request: UpdateToolCallParams) -> Result<()> {
+        Ok(())
     }
 }
 
