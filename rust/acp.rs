@@ -40,6 +40,7 @@ impl AgentConnection {
         handler: H,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>),
     ) -> (
         Self,
         impl Future<Output = ()>,
@@ -53,6 +54,7 @@ impl AgentConnection {
             }),
             outgoing_bytes,
             incoming_bytes,
+            spawn,
         );
         (Self(connection), handler_task, io_task)
     }
@@ -81,6 +83,7 @@ impl ClientConnection {
         handler: H,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>),
     ) -> (
         Self,
         impl Future<Output = ()>,
@@ -94,6 +97,7 @@ impl ClientConnection {
             }),
             outgoing_bytes,
             incoming_bytes,
+            spawn,
         );
         (Self(connection), handler_task, io_task)
     }
@@ -189,6 +193,7 @@ where
         request_handler: Box<dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>>,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>),
     ) -> (
         Self,
         impl Future<Output = ()>,
@@ -201,7 +206,7 @@ where
             outgoing_tx: outgoing_tx.clone(),
             next_id: AtomicI32::new(0),
         };
-        let handler_task = Self::handle_incoming(outgoing_tx, incoming_rx, request_handler);
+        let handler_task = Self::handle_incoming(outgoing_tx, incoming_rx, request_handler, spawn);
         let io_task = Self::handle_io(
             outgoing_rx,
             incoming_tx,
@@ -309,27 +314,35 @@ where
         incoming_handler: Box<
             dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>,
         >,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>),
     ) {
         while let Some((id, params)) = incoming_rx.next().await {
-            let result = incoming_handler(params).await;
-            match result {
-                Ok(result) => {
-                    outgoing_tx
-                        .unbounded_send(OutgoingMessage::OkResponse { id, result })
-                        .ok();
+            let result = incoming_handler(params);
+            let outgoing_tx = outgoing_tx.clone();
+            spawn(
+                async move {
+                    let result = result.await;
+                    match result {
+                        Ok(result) => {
+                            outgoing_tx
+                                .unbounded_send(OutgoingMessage::OkResponse { id, result })
+                                .ok();
+                        }
+                        Err(error) => {
+                            outgoing_tx
+                                .unbounded_send(OutgoingMessage::ErrorResponse {
+                                    id,
+                                    error: Error {
+                                        code: -32603,
+                                        message: error.to_string(),
+                                    },
+                                })
+                                .ok();
+                        }
+                    }
                 }
-                Err(error) => {
-                    outgoing_tx
-                        .unbounded_send(OutgoingMessage::ErrorResponse {
-                            id,
-                            error: Error {
-                                code: -32603,
-                                message: error.to_string(),
-                            },
-                        })
-                        .ok();
-                }
-            }
+                .boxed_local(),
+            )
         }
     }
 }

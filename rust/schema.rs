@@ -16,8 +16,8 @@ pub struct Method {
     pub response_payload: bool,
 }
 
-pub trait AnyRequest: Serialize + Sized {
-    type Response: Serialize;
+pub trait AnyRequest: Serialize + Sized + 'static {
+    type Response: Serialize + 'static;
     fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self>;
     fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response>;
 }
