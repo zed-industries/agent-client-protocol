@@ -92,7 +92,7 @@ async fn test_client_agent_communication() {
                 .await
                 .unwrap()
                 .unwrap();
-            assert_eq!(response.is_authenticated, true);
+            assert!(response.is_authenticated);
         })
         .await
 }
