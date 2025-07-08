@@ -165,7 +165,11 @@ pub struct Error {
 impl std::error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.code, self.message)
+        if self.message.is_empty() {
+            write!(f, "{}", self.code)
+        } else {
+            write!(f, "{}", self.message)
+        }
     }
 }
 
