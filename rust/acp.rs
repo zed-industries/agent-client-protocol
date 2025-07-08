@@ -220,14 +220,14 @@ where
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, SeqCst);
         self.response_senders.lock().insert(id, (method, tx));
-        if !self
+        if self
             .outgoing_tx
             .unbounded_send(OutgoingMessage::Request {
                 id,
                 method: method.into(),
                 params,
             })
-            .is_ok()
+            .is_err()
         {
             self.response_senders.lock().remove(&id);
         }
