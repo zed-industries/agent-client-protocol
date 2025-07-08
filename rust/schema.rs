@@ -515,7 +515,7 @@ pub struct PushToolCallResponse {
     pub id: ToolCallId,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallId(pub u64);
 

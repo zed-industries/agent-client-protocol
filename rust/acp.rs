@@ -284,8 +284,6 @@ where
                                             log::error!("failed to parse {method} message result: {error}. Raw: {result}");
                                         }
                                     }
-                                } else {
-                                    dbg!(&message.id, response_senders.lock().keys().collect::<Vec<_>>());
                                 }
                             }
                         }
