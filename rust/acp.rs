@@ -2,7 +2,7 @@
 mod acp_tests;
 mod schema;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use futures::{
     AsyncBufReadExt as _, AsyncRead, AsyncWrite, AsyncWriteExt as _, FutureExt as _,
     StreamExt as _,
@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::{
     collections::HashMap,
+    fmt::Display,
     sync::{
         Arc,
         atomic::{AtomicI32, Ordering::SeqCst},
@@ -60,14 +61,16 @@ impl AgentConnection {
     pub fn request<R: AgentRequest + 'static>(
         &self,
         params: R,
-    ) -> impl Future<Output = Result<R::Response, crate::Error>> {
+    ) -> impl Future<Output = Result<R::Response>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
             let result = result.await?;
-            R::response_from_any(result).ok_or_else(|| crate::Error {
-                code: -32700,
-                message: "Unexpected Response".to_string(),
+            R::response_from_any(result).ok_or_else(|| {
+                anyhow!(crate::Error {
+                    code: -32700,
+                    message: "Unexpected Response".to_string(),
+                })
             })
         }
     }
@@ -98,14 +101,16 @@ impl ClientConnection {
     pub fn request<R: ClientRequest>(
         &self,
         params: R,
-    ) -> impl use<R> + Future<Output = Result<R::Response, crate::Error>> {
+    ) -> impl use<R> + Future<Output = Result<R::Response>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
             let result = result.await?;
-            R::response_from_any(result).ok_or_else(|| Error {
-                code: -32700,
-                message: "Could not parse".to_string(),
+            R::response_from_any(result).ok_or_else(|| {
+                anyhow!(Error {
+                    code: -32700,
+                    message: "Could not parse".to_string(),
+                })
             })
         }
     }
@@ -157,6 +162,20 @@ pub struct Error {
     pub message: String,
 }
 
+impl std::error::Error for Error {}
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.code, self.message)
+    }
+}
+
+#[derive(Serialize)]
+pub struct JsonRpcMessage<Req, Resp> {
+    pub jsonrpc: &'static str,
+    #[serde(flatten)]
+    message: OutgoingMessage<Req, Resp>,
+}
+
 impl<In, Out> Connection<In, Out>
 where
     In: AnyRequest,
@@ -193,10 +212,11 @@ where
         &self,
         method: &'static str,
         params: Out,
-    ) -> impl use<In, Out> + Future<Output = Result<Out::Response, crate::Error>> {
+    ) -> impl use<In, Out> + Future<Output = Result<Out::Response>> {
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, SeqCst);
-        if self
+        self.response_senders.lock().insert(id, (method, tx));
+        if !self
             .outgoing_tx
             .unbounded_send(OutgoingMessage::Request {
                 id,
@@ -205,15 +225,9 @@ where
             })
             .is_ok()
         {
-            // if the io thread has aborted, immediately drop tx.
-            self.response_senders.lock().insert(id, (method, tx));
+            self.response_senders.lock().remove(&id);
         }
-        async move {
-            rx.await.map_err(|_| Error {
-                code: -9,
-                message: "acp connection lost".to_string(),
-            })?
-        }
+        async move { rx.await?.map_err(|e| anyhow!(e)) }
     }
 
     async fn handle_io(
