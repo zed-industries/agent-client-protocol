@@ -66,27 +66,23 @@ async fn test_client_agent_communication() {
             let (client_to_agent_tx, client_to_agent_rx) = async_pipe::pipe();
             let (agent_to_client_tx, agent_to_client_rx) = async_pipe::pipe();
 
-            let (client_connection, client_handle_task, client_io_task) =
-                AgentConnection::connect_to_agent(
-                    client,
-                    client_to_agent_tx,
-                    agent_to_client_rx,
-                    |fut| {
-                        tokio::task::spawn_local(fut);
-                    },
-                );
-            let (agent_connection, agent_handle_task, agent_io_task) =
-                ClientConnection::connect_to_client(
-                    agent,
-                    agent_to_client_tx,
-                    client_to_agent_rx,
-                    |fut| {
-                        tokio::task::spawn_local(fut);
-                    },
-                );
+            let (client_connection, client_io_task) = AgentConnection::connect_to_agent(
+                client,
+                client_to_agent_tx,
+                agent_to_client_rx,
+                |fut| {
+                    tokio::task::spawn_local(fut);
+                },
+            );
+            let (agent_connection, agent_io_task) = ClientConnection::connect_to_client(
+                agent,
+                agent_to_client_tx,
+                client_to_agent_rx,
+                |fut| {
+                    tokio::task::spawn_local(fut);
+                },
+            );
 
-            let _task = tokio::task::spawn_local(client_handle_task);
-            let _task = tokio::task::spawn_local(agent_handle_task);
             let _task = tokio::spawn(client_io_task);
             let _task = tokio::spawn(agent_io_task);
 

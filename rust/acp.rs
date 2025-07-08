@@ -21,6 +21,7 @@ use serde_json::value::RawValue;
 use std::{
     collections::HashMap,
     fmt::Display,
+    rc::Rc,
     sync::{
         Arc,
         atomic::{AtomicI32, Ordering::SeqCst},
@@ -40,14 +41,10 @@ impl AgentConnection {
         handler: H,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>),
-    ) -> (
-        Self,
-        impl Future<Output = ()>,
-        impl Future<Output = Result<()>>,
-    ) {
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
+    ) -> (Self, impl Future<Output = Result<()>>) {
         let handler = Arc::new(handler);
-        let (connection, handler_task, io_task) = Connection::new(
+        let (connection, io_task) = Connection::new(
             Box::new(move |request| {
                 let handler = handler.clone();
                 async move { handler.call(request).await }.boxed_local()
@@ -56,7 +53,7 @@ impl AgentConnection {
             incoming_bytes,
             spawn,
         );
-        (Self(connection), handler_task, io_task)
+        (Self(connection), io_task)
     }
 
     /// Send a request to the agent and wait for a response.
@@ -83,14 +80,10 @@ impl ClientConnection {
         handler: H,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>),
-    ) -> (
-        Self,
-        impl Future<Output = ()>,
-        impl Future<Output = Result<()>>,
-    ) {
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
+    ) -> (Self, impl Future<Output = Result<()>>) {
         let handler = Arc::new(handler);
-        let (connection, handler_task, io_task) = Connection::new(
+        let (connection, io_task) = Connection::new(
             Box::new(move |request| {
                 let handler = handler.clone();
                 async move { handler.call(request).await }.boxed_local()
@@ -99,7 +92,7 @@ impl ClientConnection {
             incoming_bytes,
             spawn,
         );
-        (Self(connection), handler_task, io_task)
+        (Self(connection), io_task)
     }
 
     pub fn request<R: ClientRequest>(
@@ -193,12 +186,8 @@ where
         request_handler: Box<dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>>,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>),
-    ) -> (
-        Self,
-        impl Future<Output = ()>,
-        impl Future<Output = Result<()>>,
-    ) {
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
+    ) -> (Self, impl Future<Output = Result<()>>) {
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
         let (incoming_tx, incoming_rx) = mpsc::unbounded();
         let this = Self {
@@ -206,7 +195,7 @@ where
             outgoing_tx: outgoing_tx.clone(),
             next_id: AtomicI32::new(0),
         };
-        let handler_task = Self::handle_incoming(outgoing_tx, incoming_rx, request_handler, spawn);
+        Self::handle_incoming(outgoing_tx, incoming_rx, request_handler, spawn);
         let io_task = Self::handle_io(
             outgoing_rx,
             incoming_tx,
@@ -214,7 +203,7 @@ where
             outgoing_bytes,
             incoming_bytes,
         );
-        (this, handler_task, io_task)
+        (this, io_task)
     }
 
     fn request(
@@ -308,41 +297,48 @@ where
         Ok(())
     }
 
-    async fn handle_incoming(
+    fn handle_incoming(
         outgoing_tx: UnboundedSender<OutgoingMessage<Out, In::Response>>,
         mut incoming_rx: UnboundedReceiver<(i32, In)>,
         incoming_handler: Box<
             dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>,
         >,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>),
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) {
-        while let Some((id, params)) = incoming_rx.next().await {
-            let result = incoming_handler(params);
-            let outgoing_tx = outgoing_tx.clone();
-            spawn(
-                async move {
-                    let result = result.await;
-                    match result {
-                        Ok(result) => {
-                            outgoing_tx
-                                .unbounded_send(OutgoingMessage::OkResponse { id, result })
-                                .ok();
+        let spawn = Rc::new(spawn);
+        let spawn2 = spawn.clone();
+        spawn(
+            async move {
+                while let Some((id, params)) = incoming_rx.next().await {
+                    let result = incoming_handler(params);
+                    let outgoing_tx = outgoing_tx.clone();
+                    spawn2(
+                        async move {
+                            let result = result.await;
+                            match result {
+                                Ok(result) => {
+                                    outgoing_tx
+                                        .unbounded_send(OutgoingMessage::OkResponse { id, result })
+                                        .ok();
+                                }
+                                Err(error) => {
+                                    outgoing_tx
+                                        .unbounded_send(OutgoingMessage::ErrorResponse {
+                                            id,
+                                            error: Error {
+                                                code: -32603,
+                                                message: error.to_string(),
+                                            },
+                                        })
+                                        .ok();
+                                }
+                            }
                         }
-                        Err(error) => {
-                            outgoing_tx
-                                .unbounded_send(OutgoingMessage::ErrorResponse {
-                                    id,
-                                    error: Error {
-                                        code: -32603,
-                                        message: error.to_string(),
-                                    },
-                                })
-                                .ok();
-                        }
-                    }
+                        .boxed_local(),
+                    )
                 }
-                .boxed_local(),
-            )
-        }
+            }
+            .boxed_local(),
+        )
     }
 }
