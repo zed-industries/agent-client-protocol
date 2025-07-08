@@ -219,3 +219,13 @@ export class Connection<D, P> {
     return this.#writeQueue;
   }
 }
+
+export class RequestError extends Error {
+  constructor(
+    public code: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "RequestError";
+  }
+}
