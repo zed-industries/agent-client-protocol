@@ -66,10 +66,7 @@ impl AgentConnection {
         async move {
             let result = result.await?;
             R::response_from_any(result).ok_or_else(|| {
-                anyhow!(crate::Error {
-                    code: -32700,
-                    message: "Unexpected Response".to_string(),
-                })
+                anyhow!(ErrorCode::INTERNAL_ERROR.into_error_with_details("Unexpected Response"))
             })
         }
     }
@@ -104,10 +101,7 @@ impl ClientConnection {
         async move {
             let result = result.await?;
             R::response_from_any(result).ok_or_else(|| {
-                anyhow!(Error {
-                    code: -32700,
-                    message: "Could not parse".to_string(),
-                })
+                anyhow!(ErrorCode::INTERNAL_ERROR.into_error_with_details("Unexpected Response"))
             })
         }
     }
@@ -157,16 +151,93 @@ enum OutgoingMessage<Req, Resp> {
 pub struct Error {
     pub code: i32,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<ErrorData>,
+}
+
+impl Error {
+    pub fn new(code: i32, message: impl Into<String>) -> Self {
+        Error {
+            code,
+            message: message.into(),
+            data: None,
+        }
+    }
+
+    pub fn with_details(mut self, details: impl Into<String>) -> Self {
+        self.data = Some(ErrorData::new(details));
+        self
+    }
 }
 
 impl std::error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.message.is_empty() {
-            write!(f, "{}", self.code)
+            write!(f, "{}", self.code)?;
         } else {
-            write!(f, "{}", self.message)
+            write!(f, "{}", self.message)?;
         }
+
+        if let Some(data) = &self.data {
+            write!(f, ": {}", data.details)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorData {
+    pub details: String,
+}
+
+impl ErrorData {
+    pub fn new(details: impl Into<String>) -> Self {
+        ErrorData {
+            details: details.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ErrorCode {
+    code: i32,
+    message: &'static str,
+}
+
+impl ErrorCode {
+    pub const PARSE_ERROR: ErrorCode = ErrorCode {
+        code: -32700,
+        message: "Parse error",
+    };
+    pub const INVALID_REQUEST: ErrorCode = ErrorCode {
+        code: -32600,
+        message: "Invalid Request",
+    };
+    pub const METHOD_NOT_FOUND: ErrorCode = ErrorCode {
+        code: -32601,
+        message: "Method not found",
+    };
+    pub const INVALID_PARAMS: ErrorCode = ErrorCode {
+        code: -32602,
+        message: "Invalid params",
+    };
+    pub const INTERNAL_ERROR: ErrorCode = ErrorCode {
+        code: -32603,
+        message: "Internal error",
+    };
+}
+
+impl ErrorCode {
+    pub fn into_error_with_details(self, details: impl Into<String>) -> Error {
+        Error::new(self.code, self.message).with_details(details)
+    }
+}
+
+impl From<ErrorCode> for Error {
+    fn from(error_code: ErrorCode) -> Self {
+        Error::new(error_code.code, error_code.message)
     }
 }
 
@@ -325,10 +396,8 @@ where
                                     outgoing_tx
                                         .unbounded_send(OutgoingMessage::ErrorResponse {
                                             id,
-                                            error: Error {
-                                                code: -32603,
-                                                message: error.to_string(),
-                                            },
+                                            error: ErrorCode::INTERNAL_ERROR
+                                                .into_error_with_details(error.to_string()),
                                         })
                                         .ok();
                                 }
