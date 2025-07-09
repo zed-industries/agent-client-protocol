@@ -2,7 +2,6 @@
 mod acp_tests;
 mod schema;
 
-use anyhow::{Result, anyhow};
 use futures::{
     AsyncBufReadExt as _, AsyncRead, AsyncWrite, AsyncWriteExt as _, FutureExt as _,
     StreamExt as _,
@@ -42,7 +41,7 @@ impl AgentConnection {
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
+    ) -> (Self, impl Future<Output = Result<(), Error>>) {
         let handler = Arc::new(handler);
         let (connection, io_task) = Connection::new(
             Box::new(move |request| {
@@ -60,17 +59,12 @@ impl AgentConnection {
     pub fn request<R: AgentRequest + 'static>(
         &self,
         params: R,
-    ) -> impl Future<Output = Result<R::Response>> {
+    ) -> impl Future<Output = Result<R::Response, Error>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
             let result = result.await?;
-            R::response_from_any(result).ok_or_else(|| {
-                anyhow!(crate::Error {
-                    code: -32700,
-                    message: "Unexpected Response".to_string(),
-                })
-            })
+            R::response_from_any(result)
         }
     }
 }
@@ -81,7 +75,7 @@ impl ClientConnection {
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
+    ) -> (Self, impl Future<Output = Result<(), Error>>) {
         let handler = Arc::new(handler);
         let (connection, io_task) = Connection::new(
             Box::new(move |request| {
@@ -98,17 +92,12 @@ impl ClientConnection {
     pub fn request<R: ClientRequest>(
         &self,
         params: R,
-    ) -> impl use<R> + Future<Output = Result<R::Response>> {
+    ) -> impl use<R> + Future<Output = Result<R::Response, Error>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
             let result = result.await?;
-            R::response_from_any(result).ok_or_else(|| {
-                anyhow!(Error {
-                    code: -32700,
-                    message: "Could not parse".to_string(),
-                })
-            })
+            R::response_from_any(result)
         }
     }
 }
@@ -124,7 +113,7 @@ where
 }
 
 type ResponseSenders<T> =
-    Arc<Mutex<HashMap<i32, (&'static str, oneshot::Sender<Result<T, crate::Error>>)>>>;
+    Arc<Mutex<HashMap<i32, (&'static str, oneshot::Sender<Result<T, Error>>)>>>;
 
 #[derive(Debug, Deserialize)]
 struct IncomingMessage<'a> {
@@ -157,15 +146,76 @@ enum OutgoingMessage<Req, Resp> {
 pub struct Error {
     pub code: i32,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<ErrorData>,
+}
+
+impl Error {
+    pub fn new(code: i32, message: impl Into<String>) -> Self {
+        Error {
+            code,
+            message: message.into(),
+            data: None,
+        }
+    }
+
+    pub fn with_details(mut self, details: impl Into<String>) -> Self {
+        self.data = Some(ErrorData::new(details));
+        self
+    }
+
+    /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+    pub fn parse_error() -> Self {
+        Error::new(-32700, "Parse error")
+    }
+
+    /// The JSON sent is not a valid Request object.
+    pub fn invalid_request() -> Self {
+        Error::new(-32600, "Invalid Request")
+    }
+
+    /// The method does not exist / is not available.
+    pub fn method_not_found() -> Self {
+        Error::new(-32601, "Method not found")
+    }
+
+    /// Invalid method parameter(s).
+    pub fn invalid_params() -> Self {
+        Error::new(-32602, "Invalid params")
+    }
+
+    /// Internal JSON-RPC error.
+    pub fn internal_error() -> Self {
+        Error::new(-32603, "Internal error")
+    }
 }
 
 impl std::error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.message.is_empty() {
-            write!(f, "{}", self.code)
+            write!(f, "{}", self.code)?;
         } else {
-            write!(f, "{}", self.message)
+            write!(f, "{}", self.message)?;
+        }
+
+        if let Some(data) = &self.data {
+            write!(f, ": {}", data.details)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorData {
+    pub details: String,
+}
+
+impl ErrorData {
+    pub fn new(details: impl Into<String>) -> Self {
+        ErrorData {
+            details: details.into(),
         }
     }
 }
@@ -177,17 +227,20 @@ pub struct JsonRpcMessage<Req, Resp> {
     message: OutgoingMessage<Req, Resp>,
 }
 
+type ResponseHandler<In, Resp> =
+    Box<dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<Resp, Error>>>;
+
 impl<In, Out> Connection<In, Out>
 where
     In: AnyRequest,
     Out: AnyRequest,
 {
     fn new(
-        request_handler: Box<dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>>,
+        request_handler: ResponseHandler<In, In::Response>,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
+    ) -> (Self, impl Future<Output = Result<(), Error>>) {
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
         let (incoming_tx, incoming_rx) = mpsc::unbounded();
         let this = Self {
@@ -210,7 +263,7 @@ where
         &self,
         method: &'static str,
         params: Out,
-    ) -> impl use<In, Out> + Future<Output = Result<Out::Response>> {
+    ) -> impl use<In, Out> + Future<Output = Result<Out::Response, Error>> {
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, SeqCst);
         self.response_senders.lock().insert(id, (method, tx));
@@ -225,7 +278,10 @@ where
         {
             self.response_senders.lock().remove(&id);
         }
-        async move { rx.await?.map_err(|e| anyhow!(e)) }
+        async move {
+            rx.await
+                .map_err(|e| Error::internal_error().with_details(e.to_string()))?
+        }
     }
 
     async fn handle_io(
@@ -234,7 +290,7 @@ where
         response_senders: ResponseSenders<Out::Response>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-    ) -> Result<()> {
+    ) -> Result<(), Error> {
         let mut output_reader = BufReader::new(incoming_bytes);
         let mut outgoing_line = Vec::new();
         let mut incoming_line = String::new();
@@ -243,7 +299,8 @@ where
                 message = outgoing_rx.next() => {
                     if let Some(message) = message {
                         outgoing_line.clear();
-                        serde_json::to_writer(&mut outgoing_line, &message)?;
+                        serde_json::to_writer(&mut outgoing_line, &message).map_err(|e| Error::internal_error()
+                            .with_details(e.to_string()))?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
@@ -252,7 +309,7 @@ where
                     }
                 }
                 bytes_read = output_reader.read_line(&mut incoming_line).fuse() => {
-                    if bytes_read? == 0 {
+                    if bytes_read.map_err(|e| Error::internal_error().with_details(e.to_string()))? == 0 {
                         break
                     }
                     log::trace!("recv: {}", &incoming_line);
@@ -300,9 +357,7 @@ where
     fn handle_incoming(
         outgoing_tx: UnboundedSender<OutgoingMessage<Out, In::Response>>,
         mut incoming_rx: UnboundedReceiver<(i32, In)>,
-        incoming_handler: Box<
-            dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<In::Response>>,
-        >,
+        incoming_handler: ResponseHandler<In, In::Response>,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) {
         let spawn = Rc::new(spawn);
@@ -325,10 +380,8 @@ where
                                     outgoing_tx
                                         .unbounded_send(OutgoingMessage::ErrorResponse {
                                             id,
-                                            error: Error {
-                                                code: -32603,
-                                                message: error.to_string(),
-                                            },
+                                            error: Error::internal_error()
+                                                .with_details(error.to_string()),
                                         })
                                         .ok();
                                 }

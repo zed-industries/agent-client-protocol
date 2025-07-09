@@ -28,11 +28,14 @@ type Result<T> =
       result: T;
     }
   | {
-      error: {
-        code: number;
-        message: string;
-      };
+      error: ErrorResponse;
     };
+
+type ErrorResponse = {
+  code: number;
+  message: string;
+  data?: { details?: string };
+};
 
 export class Connection<D, P> {
   #pendingResponses: Map<number, PendingResponse> = new Map();
@@ -163,21 +166,24 @@ export class Connection<D, P> {
       );
       return { result: responsePayload ? result : null };
     } catch (error: unknown) {
-      let code = -32603;
-      let errMessage = "Unknown Error";
-
-      if (error && typeof error === "object") {
-        if ("code" in error && typeof error.code === "number") {
-          code = error.code;
-        }
-        if ("message" in error && typeof error.message === "string") {
-          errMessage = error.message;
-        }
+      if (error instanceof RequestError) {
+        return error.toResult();
       }
 
-      return {
-        error: { code, message: errMessage },
-      };
+      let details;
+
+      if (error instanceof Error) {
+        details = error.message;
+      } else if (
+        typeof error === "object" &&
+        error != null &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        details = error.message;
+      }
+
+      return RequestError.internalError(details).toResult();
     }
   }
 
@@ -221,11 +227,47 @@ export class Connection<D, P> {
 }
 
 export class RequestError extends Error {
+  data?: { details?: string };
+
   constructor(
     public code: number,
     message: string,
+    details?: string,
   ) {
     super(message);
     this.name = "RequestError";
+    if (details) {
+      this.data = { details };
+    }
+  }
+
+  static parseError(details?: string): RequestError {
+    return new RequestError(-32700, "Parse error", details);
+  }
+
+  static invalidRequest(details?: string): RequestError {
+    return new RequestError(-32600, "Invalid request", details);
+  }
+
+  static methodNotFound(details?: string): RequestError {
+    return new RequestError(-32601, "Method not found", details);
+  }
+
+  static invalidParams(details?: string): RequestError {
+    return new RequestError(-32602, "Invalid params", details);
+  }
+
+  static internalError(details?: string): RequestError {
+    return new RequestError(-32603, "Internal error", details);
+  }
+
+  toResult<T>(): Result<T> {
+    return {
+      error: {
+        code: this.code,
+        message: this.message,
+        data: this.data,
+      },
+    };
   }
 }
