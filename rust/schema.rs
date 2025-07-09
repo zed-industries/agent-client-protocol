@@ -18,11 +18,12 @@ pub struct Method {
 
 pub trait AnyRequest: Serialize + Sized + 'static {
     type Response: Serialize + 'static;
-    fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Error>;
+    type Error: std::fmt::Display + From<Error>;
+    fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Self::Error>;
     fn response_from_method_and_result(
         method: &str,
         params: &RawValue,
-    ) -> Result<Self::Response, Error>;
+    ) -> Result<Self::Response, Self::Error>;
 }
 
 macro_rules! acp_peer {
@@ -31,40 +32,73 @@ macro_rules! acp_peer {
         $request_trait_name:ident,
         $request_enum_name:ident,
         $response_enum_name:ident,
+        $error_name:ident,
         $method_map_name:ident,
-        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $param_payload: tt, $response_name:ident, $response_payload: tt)),*
+        $(($request_method:ident, $request_method_string:expr, $request_name:ident, $param_payload: tt, $response_name:ident, $response_payload: tt, $request_error_name:ident)),*
         $(,)?
     ) => {
+        #[derive(Debug, thiserror::Error)]
+        pub enum $error_name {
+            $(
+                #[error(transparent)]
+                $request_error_name($request_error_name),
+            )*
+            #[error(transparent)]
+            Other(Error),
+        }
+
+        impl From<Error> for $error_name {
+            fn from(err: Error) -> Self {
+                $(
+                   if let Ok(err) = $request_error_name::try_from(&err) {
+                       return Self::$request_error_name(err);
+                   }
+                )*
+                Self::Other(err)
+            }
+        }
+
+        $(
+            impl From<$request_error_name> for $error_name {
+                fn from(err: $request_error_name) -> Self {
+                    Self::$request_error_name(err)
+                }
+            }
+        )*
+
+        impl From<$error_name> for Error {
+            fn from(err: $error_name) -> Self {
+                match err {
+                    $(
+                        $error_name::$request_error_name(err) => err.into(),
+                    )*
+                    $error_name::Other(err) => err,
+                }
+            }
+        }
+
         macro_rules! handler_trait_call_req {
             ($self: ident, $method: ident, false, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method()
-                        .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                    $self.$method().await?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, false, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method()
-                        .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                    let resp = $self.$method().await?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method($params)
-                        .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                    $self.$method($params).await?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method($params)
-                        .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                    let resp = $self.$method($params).await?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             }
@@ -72,21 +106,21 @@ macro_rules! acp_peer {
 
         macro_rules! handler_trait_req_method {
             ($method: ident, $req: ident, false, $resp: tt, false) => {
-                fn $method(&self) -> impl Future<Output = anyhow::Result<()>>;
+                fn $method(&self) -> impl Future<Output = Result<(), <$req as $request_trait_name>::Error>>;
             };
             ($method: ident, $req: ident, false, $resp: tt, true) => {
-                fn $method(&self) -> impl Future<Output = anyhow::Result<$resp>>;
+                fn $method(&self) -> impl Future<Output = Result<$resp, <$req as $request_trait_name>::Error>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, false) => {
-                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<()>>;
+                fn $method(&self, request: $req) -> impl Future<Output = Result<(), <$req as $request_trait_name>::Error>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, true) => {
-                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<$resp>>;
+                fn $method(&self, request: $req) -> impl Future<Output = Result<$resp, <$req as $request_trait_name>::Error>>;
             }
         }
 
         pub trait $handler_trait_name {
-            fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name, Error>> {
+            fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name, $error_name>> {
                 async move {
                     match params {
                         $(#[allow(unused_variables)]
@@ -104,8 +138,10 @@ macro_rules! acp_peer {
 
         pub trait $request_trait_name {
             type Response;
+            type Error: Into<Error> + for<'a> TryFrom<&'a Error>;
             fn into_any(self) -> $request_enum_name;
-            fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Error>;
+            fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Self::Error>;
+            fn error_from_any(any: $error_name) -> Self::Error;
         }
 
         #[derive(Serialize, JsonSchema)]
@@ -131,7 +167,7 @@ macro_rules! acp_peer {
             ($req_name: ident, true, $params: tt) => {
                 match serde_json::from_str($params.get()) {
                     Ok(params) => Ok($request_enum_name::$req_name(params)),
-                    Err(e) => Err(Error::parse_error().with_details(e.to_string())),
+                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_details(e.to_string()))),
                 }
             };
         }
@@ -143,33 +179,34 @@ macro_rules! acp_peer {
             ($resp_name: ident, true, $result: tt) => {
                 match serde_json::from_str($result.get()) {
                     Ok(result) => Ok($response_enum_name::$resp_name(result)),
-                    Err(e) => Err(Error::parse_error().with_details(e.to_string())),
+                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_details(e.to_string()))),
                 }
             };
         }
 
         impl AnyRequest for $request_enum_name {
             type Response = $response_enum_name;
+            type Error = $error_name;
 
-            fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Error> {
+            fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Self::Error> {
                 match method {
                     $(
                         $request_method_string => {
                             request_from_method_and_params!($request_name, $param_payload, params)
                         }
                     )*
-                    _ => Err(Error::method_not_found()),
+                    _ => Err(Self::Error::Other(Error::method_not_found())),
                 }
             }
 
-            fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response, Error> {
+            fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response, Self::Error> {
                 match method {
                     $(
                         $request_method_string => {
                             response_from_method_and_result!($response_name, $response_payload, params)
                         }
                     )*
-                    _ => Err(Error::method_not_found()),
+                    _ => Err(Self::Error::Other(Error::method_not_found())),
                 }
             }
         }
@@ -217,16 +254,16 @@ macro_rules! acp_peer {
         }
 
         macro_rules! resp_from_any {
-            ($any: ident, $resp_name: ident, false) => {
+            ($any: ident, $resp_name: ident, false, $error: ident) => {
                 match $any {
                     $response_enum_name::$resp_name(_) => Ok(()),
-                    _ => Err(Error::internal_error().with_details("Unexpected Response"))
+                    _ => Err($error::Other(Error::internal_error().with_details("Unexpected Response")))
                 }
             };
-            ($any: ident, $resp_name: ident, true) => {
+            ($any: ident, $resp_name: ident, true, $error: ident) => {
                 match $any {
                     $response_enum_name::$resp_name(this) => Ok(this),
-                    _ => Err(Error::internal_error().with_details("Unexpected Response"))
+                    _ => Err($error::Other(Error::internal_error().with_details("Unexpected Response")))
                 }
             };
         }
@@ -234,16 +271,58 @@ macro_rules! acp_peer {
         $(
             impl $request_trait_name for $request_name {
                 type Response = resp_type!($response_name, $response_payload);
+                type Error = $request_error_name;
 
                 fn into_any(self) -> $request_enum_name {
                     req_into_any!(self, $request_name, $param_payload)
                 }
 
-                fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Error> {
-                    resp_from_any!(any, $response_name, $response_payload)
+                fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Self::Error> {
+                    resp_from_any!(any, $response_name, $response_payload, $request_error_name)
+                }
+
+                fn error_from_any(any: $error_name) -> Self::Error {
+                    match any {
+                        $error_name::$request_error_name(err) => err,
+                        any => $request_error_name::Other(Error::from(any)),
+                    }
                 }
             }
         )*
+    };
+}
+
+macro_rules! request_error {
+    ($error_name:ident $(,)? $(($variant:ident, $code:literal, $message:literal)),* $(,)?) => {
+        #[derive(Debug, thiserror::Error)]
+        pub enum $error_name {
+            $(
+                #[error($message)]
+                $variant,
+            )*
+            #[error(transparent)]
+            Other(Error),
+        }
+
+        impl From<$error_name> for Error {
+            fn from(err: $error_name) -> Self {
+                match err {
+                    $($error_name::$variant => Self::new($code, err.to_string()),)*
+                    $error_name::Other(err) => err,
+                }
+            }
+        }
+
+        impl TryFrom<&Error> for $error_name {
+            type Error = ();
+
+            fn try_from(value: &Error) -> Result<Self, Self::Error> {
+                match value.code {
+                    $($code => Ok(Self::$variant),)*
+                    _ => Err(()),
+                }
+            }
+        }
     };
 }
 
@@ -253,6 +332,7 @@ acp_peer!(
     ClientRequest,
     AnyClientRequest,
     AnyClientResult,
+    AnyClientError,
     CLIENT_METHODS,
     (
         stream_assistant_message_chunk,
@@ -260,7 +340,8 @@ acp_peer!(
         StreamAssistantMessageChunkParams,
         true,
         StreamAssistantMessageChunkResponse,
-        false
+        false,
+        StreamAssistantMessageChunkError
     ),
     (
         request_tool_call_confirmation,
@@ -268,7 +349,8 @@ acp_peer!(
         RequestToolCallConfirmationParams,
         true,
         RequestToolCallConfirmationResponse,
-        true
+        true,
+        RequestToolCallConfirmationError
     ),
     (
         push_tool_call,
@@ -276,7 +358,8 @@ acp_peer!(
         PushToolCallParams,
         true,
         PushToolCallResponse,
-        true
+        true,
+        PushToolCallError
     ),
     (
         update_tool_call,
@@ -284,7 +367,8 @@ acp_peer!(
         UpdateToolCallParams,
         true,
         UpdateToolCallResponse,
-        false
+        false,
+        UpdateToolCallError
     ),
 );
 
@@ -294,6 +378,7 @@ acp_peer!(
     AgentRequest,
     AnyAgentRequest,
     AnyAgentResult,
+    AnyAgentError,
     AGENT_METHODS,
     (
         initialize,
@@ -301,7 +386,8 @@ acp_peer!(
         InitializeParams,
         false,
         InitializeResponse,
-        true
+        true,
+        InitializeError
     ),
     (
         authenticate,
@@ -309,7 +395,8 @@ acp_peer!(
         AuthenticateParams,
         false,
         AuthenticateResponse,
-        false
+        false,
+        AuthenticateError
     ),
     (
         send_user_message,
@@ -317,7 +404,8 @@ acp_peer!(
         SendUserMessageParams,
         true,
         SendUserMessageResponse,
-        false
+        false,
+        SendUserMessageError
     ),
     (
         cancel_send_message,
@@ -325,7 +413,8 @@ acp_peer!(
         CancelSendMessageParams,
         false,
         CancelSendMessageResponse,
-        false
+        false,
+        CancelSendMessageError
     )
 );
 
@@ -349,6 +438,8 @@ pub struct InitializeResponse {
     pub is_authenticated: bool,
 }
 
+request_error!(InitializeError);
+
 /// Triggers authentication on the agent side.
 ///
 /// This method should only be called if the initialize response indicates the user isn't already authenticated.
@@ -365,6 +456,8 @@ pub struct AuthenticateParams;
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateResponse;
 
+request_error!(AuthenticateError);
+
 /// sendUserMessage allows the user to send a message to the agent.
 /// This method should complete after the agent is finished, during
 /// which time the agent may update the client by calling
@@ -378,6 +471,11 @@ pub struct SendUserMessageParams {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SendUserMessageResponse;
+
+request_error!(
+    SendUserMessageError,
+    (RateLimitExceeded, 429, "Rate limit exceeded"),
+);
 
 /// A part in a user message
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -399,6 +497,8 @@ pub struct CancelSendMessageParams;
 #[serde(rename_all = "camelCase")]
 pub struct CancelSendMessageResponse;
 
+request_error!(CancelSendMessageError);
+
 // --- Messages sent from the agent to the client --- \\
 
 /// Streams part of an assistant response to the client
@@ -411,6 +511,8 @@ pub struct StreamAssistantMessageChunkParams {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamAssistantMessageChunkResponse;
+
+request_error!(StreamAssistantMessageChunkError);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
@@ -488,6 +590,8 @@ pub struct RequestToolCallConfirmationResponse {
     pub outcome: ToolCallConfirmationOutcome,
 }
 
+request_error!(RequestToolCallConfirmationError);
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallConfirmationOutcome {
@@ -525,6 +629,8 @@ pub struct PushToolCallResponse {
     pub id: ToolCallId,
 }
 
+request_error!(PushToolCallError);
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallId(pub u64);
@@ -545,6 +651,8 @@ pub struct UpdateToolCallParams {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct UpdateToolCallResponse;
+
+request_error!(UpdateToolCallError);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

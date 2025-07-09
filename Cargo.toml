@@ -21,16 +21,16 @@ name = "generate"
 path = "rust/generate.rs"
 
 [dependencies]
-anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+log = "0.4"
+parking_lot = "0.12"
 schemars = { version = "1.0", features = ["chrono04"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
-futures = "0.3"
-parking_lot = "0.12"
-chrono = { version = "0.4", features = ["serde"] }
-log = "0.4"
+thiserror = "2.0"
 
 [dev-dependencies]
-tokio = { version = "1.0", features = ["rt", "macros", "time"] }
 async-pipe = { git = "https://github.com/zed-industries/async-pipe-rs", rev = "82d00a04211cf4e1236029aa03e6b6ce2a74c553" }
 env_logger = "0.10"
+tokio = { version = "1.0", features = ["rt", "macros", "time"] }

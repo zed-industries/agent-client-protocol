@@ -59,11 +59,11 @@ impl AgentConnection {
     pub fn request<R: AgentRequest + 'static>(
         &self,
         params: R,
-    ) -> impl Future<Output = Result<R::Response, Error>> {
+    ) -> impl Future<Output = Result<R::Response, R::Error>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
-            let result = result.await?;
+            let result = result.await.map_err(|err| R::error_from_any(err))?;
             R::response_from_any(result)
         }
     }
@@ -92,11 +92,11 @@ impl ClientConnection {
     pub fn request<R: ClientRequest>(
         &self,
         params: R,
-    ) -> impl use<R> + Future<Output = Result<R::Response, Error>> {
+    ) -> impl use<R> + Future<Output = Result<R::Response, R::Error>> {
         let params = params.into_any();
         let result = self.0.request(params.method_name(), params);
         async move {
-            let result = result.await?;
+            let result = result.await.map_err(|err| R::error_from_any(err))?;
             R::response_from_any(result)
         }
     }
@@ -108,12 +108,12 @@ where
     Out: AnyRequest,
 {
     outgoing_tx: UnboundedSender<OutgoingMessage<Out, In::Response>>,
-    response_senders: ResponseSenders<Out::Response>,
+    response_senders: ResponseSenders<Out::Response, Out::Error>,
     next_id: AtomicI32,
 }
 
-type ResponseSenders<T> =
-    Arc<Mutex<HashMap<i32, (&'static str, oneshot::Sender<Result<T, Error>>)>>>;
+type ResponseSenders<T, E> =
+    Arc<Mutex<HashMap<i32, (&'static str, oneshot::Sender<Result<T, E>>)>>>;
 
 #[derive(Debug, Deserialize)]
 struct IncomingMessage<'a> {
@@ -227,8 +227,8 @@ pub struct JsonRpcMessage<Req, Resp> {
     message: OutgoingMessage<Req, Resp>,
 }
 
-type ResponseHandler<In, Resp> =
-    Box<dyn 'static + Fn(In) -> LocalBoxFuture<'static, Result<Resp, Error>>>;
+type ResponseHandler<Req, Resp, Err> =
+    Box<dyn 'static + Fn(Req) -> LocalBoxFuture<'static, Result<Resp, Err>>>;
 
 impl<In, Out> Connection<In, Out>
 where
@@ -236,7 +236,7 @@ where
     Out: AnyRequest,
 {
     fn new(
-        request_handler: ResponseHandler<In, In::Response>,
+        request_handler: ResponseHandler<In, In::Response, In::Error>,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
@@ -263,7 +263,7 @@ where
         &self,
         method: &'static str,
         params: Out,
-    ) -> impl use<In, Out> + Future<Output = Result<Out::Response, Error>> {
+    ) -> impl use<In, Out> + Future<Output = Result<Out::Response, Out::Error>> {
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, SeqCst);
         self.response_senders.lock().insert(id, (method, tx));
@@ -287,7 +287,7 @@ where
     async fn handle_io(
         mut outgoing_rx: UnboundedReceiver<OutgoingMessage<Out, In::Response>>,
         incoming_tx: UnboundedSender<(i32, In)>,
-        response_senders: ResponseSenders<Out::Response>,
+        response_senders: ResponseSenders<Out::Response, Out::Error>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
     ) -> Result<(), Error> {
@@ -326,7 +326,7 @@ where
                                 }
                             } else if let Some(error) = message.error {
                                 if let Some((_, tx)) = response_senders.lock().remove(&message.id) {
-                                    tx.send(Err(error)).ok();
+                                    tx.send(Err(error.into())).ok();
                                 }
                             } else {
                                 let result = message.result.unwrap_or(RawValue::NULL);
@@ -357,7 +357,7 @@ where
     fn handle_incoming(
         outgoing_tx: UnboundedSender<OutgoingMessage<Out, In::Response>>,
         mut incoming_rx: UnboundedReceiver<(i32, In)>,
-        incoming_handler: ResponseHandler<In, In::Response>,
+        incoming_handler: ResponseHandler<In, In::Response, In::Error>,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) {
         let spawn = Rc::new(spawn);
