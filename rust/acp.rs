@@ -163,6 +163,31 @@ impl Error {
         self.data = Some(ErrorData::new(details));
         self
     }
+
+    /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+    pub fn parse_error() -> Self {
+        Error::new(-32700, "Parse error")
+    }
+
+    /// The JSON sent is not a valid Request object.
+    pub fn invalid_request() -> Self {
+        Error::new(-32600, "Invalid Request")
+    }
+
+    /// The method does not exist / is not available.
+    pub fn method_not_found() -> Self {
+        Error::new(-32601, "Method not found")
+    }
+
+    /// Invalid method parameter(s).
+    pub fn invalid_params() -> Self {
+        Error::new(-32602, "Invalid params")
+    }
+
+    /// Internal JSON-RPC error.
+    pub fn internal_error() -> Self {
+        Error::new(-32603, "Internal error")
+    }
 }
 
 impl std::error::Error for Error {}
@@ -192,47 +217,6 @@ impl ErrorData {
         ErrorData {
             details: details.into(),
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ErrorCode {
-    code: i32,
-    message: &'static str,
-}
-
-impl ErrorCode {
-    pub const PARSE_ERROR: ErrorCode = ErrorCode {
-        code: -32700,
-        message: "Parse error",
-    };
-    pub const INVALID_REQUEST: ErrorCode = ErrorCode {
-        code: -32600,
-        message: "Invalid Request",
-    };
-    pub const METHOD_NOT_FOUND: ErrorCode = ErrorCode {
-        code: -32601,
-        message: "Method not found",
-    };
-    pub const INVALID_PARAMS: ErrorCode = ErrorCode {
-        code: -32602,
-        message: "Invalid params",
-    };
-    pub const INTERNAL_ERROR: ErrorCode = ErrorCode {
-        code: -32603,
-        message: "Internal error",
-    };
-}
-
-impl ErrorCode {
-    pub fn into_error_with_details(self, details: impl Into<String>) -> Error {
-        Error::new(self.code, self.message).with_details(details)
-    }
-}
-
-impl From<ErrorCode> for Error {
-    fn from(error_code: ErrorCode) -> Self {
-        Error::new(error_code.code, error_code.message)
     }
 }
 
@@ -296,7 +280,7 @@ where
         }
         async move {
             rx.await
-                .map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))?
+                .map_err(|e| Error::internal_error().with_details(e.to_string()))?
         }
     }
 
@@ -315,8 +299,8 @@ where
                 message = outgoing_rx.next() => {
                     if let Some(message) = message {
                         outgoing_line.clear();
-                        serde_json::to_writer(&mut outgoing_line, &message).map_err(|e| ErrorCode::INTERNAL_ERROR
-                            .into_error_with_details(e.to_string()))?;
+                        serde_json::to_writer(&mut outgoing_line, &message).map_err(|e| Error::internal_error()
+                            .with_details(e.to_string()))?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
@@ -325,7 +309,7 @@ where
                     }
                 }
                 bytes_read = output_reader.read_line(&mut incoming_line).fuse() => {
-                    if bytes_read.map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))? == 0 {
+                    if bytes_read.map_err(|e| Error::internal_error().with_details(e.to_string()))? == 0 {
                         break
                     }
                     log::trace!("recv: {}", &incoming_line);
@@ -396,8 +380,8 @@ where
                                     outgoing_tx
                                         .unbounded_send(OutgoingMessage::ErrorResponse {
                                             id,
-                                            error: ErrorCode::INTERNAL_ERROR
-                                                .into_error_with_details(error.to_string()),
+                                            error: Error::internal_error()
+                                                .with_details(error.to_string()),
                                         })
                                         .ok();
                                 }
