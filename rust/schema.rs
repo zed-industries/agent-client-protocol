@@ -1,4 +1,4 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -389,7 +389,6 @@ pub enum UserMessageChunk {
     Path { path: PathBuf },
 }
 
-
 /// cancelSendMessage allows the client to request that the agent
 /// stop running. The agent should resolve or reject the current sendUserMessage call.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -399,7 +398,6 @@ pub struct CancelSendMessageParams;
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelSendMessageResponse;
-
 
 // --- Messages sent from the agent to the client --- \\
 
@@ -480,9 +478,7 @@ pub enum ToolCallConfirmation {
         description: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
-    Other {
-        description: String
-    },
+    Other { description: String },
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
