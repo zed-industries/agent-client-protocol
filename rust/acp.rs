@@ -304,6 +304,7 @@ where
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
+                        outgoing_bytes.flush().await.ok();
                     } else {
                         break;
                     }
