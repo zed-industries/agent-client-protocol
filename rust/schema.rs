@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
+
+use crate::{Error, ErrorCode};
 
 #[derive(Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -18,8 +19,11 @@ pub struct Method {
 
 pub trait AnyRequest: Serialize + Sized + 'static {
     type Response: Serialize + 'static;
-    fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self>;
-    fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response>;
+    fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Error>;
+    fn response_from_method_and_result(
+        method: &str,
+        params: &RawValue,
+    ) -> Result<Self::Response, Error>;
 }
 
 macro_rules! acp_peer {
@@ -35,25 +39,33 @@ macro_rules! acp_peer {
         macro_rules! handler_trait_call_req {
             ($self: ident, $method: ident, false, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method().await?;
+                    $self.$method()
+                        .await
+                        .map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, false, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method().await?;
+                    let resp = $self.$method()
+                        .await
+                        .map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method($params).await?;
+                    $self.$method($params)
+                        .await
+                        .map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method($params).await?;
+                    let resp = $self.$method($params)
+                        .await
+                        .map_err(|e| ErrorCode::INTERNAL_ERROR.into_error_with_details(e.to_string()))?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             }
@@ -61,21 +73,21 @@ macro_rules! acp_peer {
 
         macro_rules! handler_trait_req_method {
             ($method: ident, $req: ident, false, $resp: tt, false) => {
-                fn $method(&self) -> impl Future<Output = Result<()>>;
+                fn $method(&self) -> impl Future<Output = anyhow::Result<()>>;
             };
             ($method: ident, $req: ident, false, $resp: tt, true) => {
-                fn $method(&self) -> impl Future<Output = Result<$resp>>;
+                fn $method(&self) -> impl Future<Output = anyhow::Result<$resp>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, false) => {
-                fn $method(&self, request: $req) -> impl Future<Output = Result<()>>;
+                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<()>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, true) => {
-                fn $method(&self, request: $req) -> impl Future<Output = Result<$resp>>;
+                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<$resp>>;
             }
         }
 
         pub trait $handler_trait_name {
-            fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name>> {
+            fn call(&self, params: $request_enum_name) -> impl Future<Output = Result<$response_enum_name, Error>> {
                 async move {
                     match params {
                         $(#[allow(unused_variables)]
@@ -94,7 +106,7 @@ macro_rules! acp_peer {
         pub trait $request_trait_name {
             type Response;
             fn into_any(self) -> $request_enum_name;
-            fn response_from_any(any: $response_enum_name) -> Option<Self::Response>;
+            fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Error>;
         }
 
         #[derive(Serialize, JsonSchema)]
@@ -120,7 +132,7 @@ macro_rules! acp_peer {
             ($req_name: ident, true, $params: tt) => {
                 match serde_json::from_str($params.get()) {
                     Ok(params) => Ok($request_enum_name::$req_name(params)),
-                    Err(e) => Err(anyhow!(e.to_string())),
+                    Err(e) => Err(ErrorCode::PARSE_ERROR.into_error_with_details(e.to_string())),
                 }
             };
         }
@@ -132,7 +144,7 @@ macro_rules! acp_peer {
             ($resp_name: ident, true, $result: tt) => {
                 match serde_json::from_str($result.get()) {
                     Ok(result) => Ok($response_enum_name::$resp_name(result)),
-                    Err(e) => Err(anyhow!(e.to_string())),
+                    Err(e) => Err(ErrorCode::PARSE_ERROR.into_error_with_details(e.to_string())),
                 }
             };
         }
@@ -140,25 +152,25 @@ macro_rules! acp_peer {
         impl AnyRequest for $request_enum_name {
             type Response = $response_enum_name;
 
-            fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self> {
+            fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Error> {
                 match method {
                     $(
                         $request_method_string => {
                             request_from_method_and_params!($request_name, $param_payload, params)
                         }
                     )*
-                    _ => Err(anyhow!("invalid method string {}", method)),
+                    _ => Err(ErrorCode::METHOD_NOT_FOUND.into()),
                 }
             }
 
-            fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response> {
+            fn response_from_method_and_result(method: &str, params: &RawValue) -> Result<Self::Response, Error> {
                 match method {
                     $(
                         $request_method_string => {
                             response_from_method_and_result!($response_name, $response_payload, params)
                         }
                     )*
-                    _ => Err(anyhow!("invalid method string {}", method)),
+                    _ => Err(ErrorCode::METHOD_NOT_FOUND.into()),
                 }
             }
         }
@@ -208,14 +220,14 @@ macro_rules! acp_peer {
         macro_rules! resp_from_any {
             ($any: ident, $resp_name: ident, false) => {
                 match $any {
-                    $response_enum_name::$resp_name(_) => Some(()),
-                    _ => None
+                    $response_enum_name::$resp_name(_) => Ok(()),
+                    _ => Err(ErrorCode::INTERNAL_ERROR.into_error_with_details("Unexpected Response"))
                 }
             };
             ($any: ident, $resp_name: ident, true) => {
                 match $any {
-                    $response_enum_name::$resp_name(this) => Some(this),
-                    _ => None
+                    $response_enum_name::$resp_name(this) => Ok(this),
+                    _ => Err(ErrorCode::INTERNAL_ERROR.into_error_with_details("Unexpected Response"))
                 }
             };
         }
@@ -228,7 +240,7 @@ macro_rules! acp_peer {
                     req_into_any!(self, $request_name, $param_payload)
                 }
 
-                fn response_from_any(any: $response_enum_name) -> Option<Self::Response> {
+                fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Error> {
                     resp_from_any!(any, $response_name, $response_payload)
                 }
             }
