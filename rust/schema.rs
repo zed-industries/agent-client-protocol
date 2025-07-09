@@ -1,6 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
-use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
@@ -248,6 +247,7 @@ macro_rules! acp_peer {
     };
 }
 
+// requests sent from the client (the IDE) to the agent
 acp_peer!(
     Client,
     ClientRequest,
@@ -288,6 +288,7 @@ acp_peer!(
     ),
 );
 
+// requests sent from the agent to the client (the IDE)
 acp_peer!(
     Agent,
     AgentRequest,
@@ -328,6 +329,14 @@ acp_peer!(
     )
 );
 
+// --- Messages sent from the client to the agent --- \\
+
+/// Initialize sets up the agent's state. It should be called before any other method,
+/// and no other methods should be called until it has completed.
+///
+/// If the agent is not authenticated, then the client should prompt the user to authenticate,
+/// and then call the `authenticate` method.
+/// Otherwise the client can send other messages to the agent.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeParams;
@@ -335,9 +344,19 @@ pub struct InitializeParams;
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
+    /// Indicates whether the agent is authenticated and
+    /// ready to handle requests.
     pub is_authenticated: bool,
 }
 
+/// Triggers authentication on the agent side.
+///
+/// This method should only be called if the initialize response indicates the user isn't already authenticated.
+/// If this succceeds then the client can send other messasges to the agent,
+/// If it fails then the error message should be shown and the user prompted to authenticate.
+///
+/// The implementation of authentication is left up to the agent, typically an oauth
+/// flow is run by opening a browser window in the background.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateParams;
@@ -346,88 +365,45 @@ pub struct AuthenticateParams;
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateResponse;
 
+/// sendUserMessage allows the user to send a message to the agent.
+/// This method should complete after the agent is finished, during
+/// which time the agent may update the client by calling
+/// streamAssistantMessageChunk and other methods.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct UserMessage {
-    pub chunks: Vec<UserMessageChunk>,
-}
-
-impl<T> From<T> for UserMessage
-where
-    T: Into<UserMessageChunk>,
-{
-    fn from(value: T) -> Self {
-        Self {
-            chunks: vec![value.into()],
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum UserMessageChunk {
-    Text { chunk: String },
-    Path { path: PathBuf },
-}
-
-impl From<&str> for UserMessageChunk {
-    fn from(value: &str) -> Self {
-        Self::Text {
-            chunk: value.into(),
-        }
-    }
-}
-
-impl From<&String> for UserMessageChunk {
-    fn from(value: &String) -> Self {
-        Self::Text {
-            chunk: value.clone(),
-        }
-    }
-}
-
-impl From<String> for UserMessageChunk {
-    fn from(value: String) -> Self {
-        Self::Text { chunk: value }
-    }
-}
-
-impl From<PathBuf> for UserMessageChunk {
-    fn from(value: PathBuf) -> Self {
-        Self::Path { path: value }
-    }
-}
-
-impl From<&Path> for UserMessageChunk {
-    fn from(value: &Path) -> Self {
-        Self::Path { path: value.into() }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum AssistantMessageChunk {
-    Text { chunk: String },
-    Thought { chunk: String },
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ThreadMetadata {
-    pub title: String,
-    pub modified_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SendUserMessageParams {
-    pub message: UserMessage,
+    pub chunks: Vec<UserMessageChunk>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SendUserMessageResponse;
 
+/// A part in a user message
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum UserMessageChunk {
+    /// A chunk of text in user message
+    Text { text: String },
+    /// A file path mention in a user message
+    Path { path: PathBuf },
+}
+
+
+/// cancelSendMessage allows the client to request that the agent
+/// stop running. The agent should resolve or reject the current sendUserMessage call.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelSendMessageParams;
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelSendMessageResponse;
+
+
+// --- Messages sent from the agent to the client --- \\
+
+/// Streams part of an assistant response to the client
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamAssistantMessageChunkParams {
@@ -438,6 +414,17 @@ pub struct StreamAssistantMessageChunkParams {
 #[serde(rename_all = "camelCase")]
 pub struct StreamAssistantMessageChunkResponse;
 
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum AssistantMessageChunk {
+    Text { text: String },
+    Thought { thought: String },
+}
+
+/// Request confirmation before running a tool
+///
+/// When allowed, the client returns a [`ToolCallId`] which can be used
+/// to update the tool call's `status` and `content` as it runs.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestToolCallConfirmationParams {
@@ -450,6 +437,8 @@ pub struct RequestToolCallConfirmationParams {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+// todo? make this `pub enum ToolKind { Edit, Search, Read, Fetch, ...}?`
+// avoids being to UI centric.
 pub enum Icon {
     FileSearch,
     Folder,
@@ -491,7 +480,9 @@ pub enum ToolCallConfirmation {
         description: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
-    Other { description: String },
+    Other {
+        description: String
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -504,14 +495,25 @@ pub struct RequestToolCallConfirmationResponse {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallConfirmationOutcome {
+    /// Allow this one call
     Allow,
+    /// Always allow this kind of operation
     AlwaysAllow,
+    /// Always allow any tool from this MCP server
     AlwaysAllowMcpServer,
+    /// Always allow this tool from this MCP server
     AlwaysAllowTool,
+    /// Reject this tool call
     Reject,
+    /// The generation was canceled before a confirming
     Cancel,
 }
 
+/// pushToolCall allows the agent to start a tool call
+/// when it does not need to request permission to do so.
+///
+/// The returned id can be used to update the UI for the tool
+/// call as needed.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PushToolCallParams {
@@ -531,6 +533,12 @@ pub struct PushToolCallResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallId(pub u64);
 
+/// updateToolCall allows the agent to update the content and status of the tool call.
+///
+/// The new content replaces what is currently displayed in the UI.
+///
+/// The [`ToolCallId`] is included in the response of
+/// `pushToolCall` or `requestToolCallConfirmation` respectively.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateToolCallParams {
@@ -545,8 +553,11 @@ pub struct UpdateToolCallResponse;
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallStatus {
+    /// The tool call is currently running
     Running,
+    /// The tool call completed successfully
     Finished,
+    /// The tool call failed
     Error,
 }
 
@@ -569,11 +580,3 @@ pub struct Diff {
     pub old_text: Option<String>,
     pub new_text: String,
 }
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CancelSendMessageParams;
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CancelSendMessageResponse;

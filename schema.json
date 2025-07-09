@@ -80,42 +80,36 @@
       ]
     },
     "AssistantMessageChunk": {
-      "oneOf": [
+      "anyOf": [
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "text"
-            },
-            "chunk": {
+            "text": {
               "type": "string"
             }
           },
-          "required": ["type", "chunk"]
+          "required": ["text"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "thought"
-            },
-            "chunk": {
+            "thought": {
               "type": "string"
             }
           },
-          "required": ["type", "chunk"]
+          "required": ["thought"]
         }
       ]
     },
     "AuthenticateParams": {
+      "description": "Triggers authentication on the agent side.\n\nThis method should only be called if the initialize response indicates the user isn't already authenticated.\nIf this succceeds then the client can send other messasges to the agent,\nIf it fails then the error message should be shown and the user prompted to authenticate.\n\nThe implementation of authentication is left up to the agent, typically an oauth\nflow is run by opening a browser window in the background.",
       "type": "null"
     },
     "AuthenticateResponse": {
       "type": "null"
     },
     "CancelSendMessageParams": {
+      "description": "cancelSendMessage allows the client to request that the agent\nstop running. The agent should resolve or reject the current sendUserMessage call.",
       "type": "null"
     },
     "CancelSendMessageResponse": {
@@ -135,18 +129,21 @@
       ]
     },
     "InitializeParams": {
+      "description": "Initialize sets up the agent's state. It should be called before any other method,\nand no other methods should be called until it has completed.\n\nIf the agent is not authenticated, then the client should prompt the user to authenticate,\nand then call the `authenticate` method.\nOtherwise the client can send other messages to the agent.",
       "type": "null"
     },
     "InitializeResponse": {
       "type": "object",
       "properties": {
         "isAuthenticated": {
+          "description": "Indicates whether the agent is authenticated and\nready to handle requests.",
           "type": "boolean"
         }
       },
       "required": ["isAuthenticated"]
     },
     "PushToolCallParams": {
+      "description": "pushToolCall allows the agent to start a tool call\nwhen it does not need to request permission to do so.\n\nThe returned id can be used to update the UI for the tool\ncall as needed.",
       "type": "object",
       "properties": {
         "content": {
@@ -178,6 +175,7 @@
       "required": ["id"]
     },
     "RequestToolCallConfirmationParams": {
+      "description": "Request confirmation before running a tool\n\nWhen allowed, the client returns a [`ToolCallId`] which can be used\nto update the tool call's `status` and `content` as it runs.",
       "type": "object",
       "properties": {
         "confirmation": {
@@ -215,18 +213,23 @@
       "required": ["id", "outcome"]
     },
     "SendUserMessageParams": {
+      "description": "sendUserMessage allows the user to send a message to the agent.\nThis method should complete after the agent is finished, during\nwhich time the agent may update the client by calling\nstreamAssistantMessageChunk and other methods.",
       "type": "object",
       "properties": {
-        "message": {
-          "$ref": "#/$defs/UserMessage"
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserMessageChunk"
+          }
         }
       },
-      "required": ["message"]
+      "required": ["chunks"]
     },
     "SendUserMessageResponse": {
       "type": "null"
     },
     "StreamAssistantMessageChunkParams": {
+      "description": "Streams part of an assistant response to the client",
       "type": "object",
       "properties": {
         "chunk": {
@@ -329,14 +332,37 @@
       ]
     },
     "ToolCallConfirmationOutcome": {
-      "type": "string",
-      "enum": [
-        "allow",
-        "alwaysAllow",
-        "alwaysAllowMcpServer",
-        "alwaysAllowTool",
-        "reject",
-        "cancel"
+      "oneOf": [
+        {
+          "description": "Allow this one call",
+          "type": "string",
+          "const": "allow"
+        },
+        {
+          "description": "Always allow this kind of operation",
+          "type": "string",
+          "const": "alwaysAllow"
+        },
+        {
+          "description": "Always allow any tool from this MCP server",
+          "type": "string",
+          "const": "alwaysAllowMcpServer"
+        },
+        {
+          "description": "Always allow this tool from this MCP server",
+          "type": "string",
+          "const": "alwaysAllowTool"
+        },
+        {
+          "description": "Reject this tool call",
+          "type": "string",
+          "const": "reject"
+        },
+        {
+          "description": "The generation was canceled before a confirming",
+          "type": "string",
+          "const": "cancel"
+        }
       ]
     },
     "ToolCallContent": {
@@ -381,10 +407,26 @@
       "minimum": 0
     },
     "ToolCallStatus": {
-      "type": "string",
-      "enum": ["running", "finished", "error"]
+      "oneOf": [
+        {
+          "description": "The tool call is currently running",
+          "type": "string",
+          "const": "running"
+        },
+        {
+          "description": "The tool call completed successfully",
+          "type": "string",
+          "const": "finished"
+        },
+        {
+          "description": "The tool call failed",
+          "type": "string",
+          "const": "error"
+        }
+      ]
     },
     "UpdateToolCallParams": {
+      "description": "updateToolCall allows the agent to update the content and status of the tool call.\n\nThe new content replaces what is currently displayed in the UI.\n\nThe [`ToolCallId`] is included in the response of\n`pushToolCall` or `requestToolCallConfirmation` respectively.",
       "type": "object",
       "properties": {
         "content": {
@@ -409,45 +451,28 @@
     "UpdateToolCallResponse": {
       "type": "null"
     },
-    "UserMessage": {
-      "type": "object",
-      "properties": {
-        "chunks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/UserMessageChunk"
-          }
-        }
-      },
-      "required": ["chunks"]
-    },
     "UserMessageChunk": {
-      "oneOf": [
+      "description": "A part in a user message",
+      "anyOf": [
         {
+          "description": "A chunk of text in user message",
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "text"
-            },
-            "chunk": {
+            "text": {
               "type": "string"
             }
           },
-          "required": ["type", "chunk"]
+          "required": ["text"]
         },
         {
+          "description": "A file path mention in a user message",
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "path"
-            },
             "path": {
               "type": "string"
             }
           },
-          "required": ["type", "path"]
+          "required": ["path"]
         }
       ]
     }
