@@ -38,6 +38,7 @@ macro_rules! acp_peer {
         $(($request_method:ident, $request_method_string:expr, $request_name:ident, $param_payload: tt, $response_name:ident, $response_payload: tt, $request_error_name:ident)),*
         $(,)?
     ) => {
+        #[non_exhaustive]
         #[derive(Clone, Debug, thiserror::Error, Serialize, JsonSchema)]
         #[serde(untagged)]
         pub enum $error_name {
@@ -296,6 +297,7 @@ macro_rules! acp_peer {
 macro_rules! request_error {
     ($error_name:ident $(,)? $(($variant:ident, $code:literal, $message:literal)),* $(,)?) => {
         paste::paste! {
+            #[non_exhaustive]
             #[derive(Clone, Debug, thiserror::Error, Serialize, JsonSchema)]
             #[serde(into = "Error")]
             #[schemars(!into, tag = "message")]
