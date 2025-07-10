@@ -34,7 +34,7 @@ type Result<T> =
 type ErrorResponse = {
   code: number;
   message: string;
-  data?: { details?: string };
+  data?: unknown;
 };
 
 export class Connection<D, P> {
@@ -227,17 +227,17 @@ export class Connection<D, P> {
 }
 
 export class RequestError extends Error {
-  data?: { details?: string };
+  data?: unknown;
 
   constructor(
     public code: number,
     message: string,
-    details?: string,
+    data?: unknown,
   ) {
     super(message);
     this.name = "RequestError";
-    if (details) {
-      this.data = { details };
+    if (data) {
+      this.data = data;
     }
   }
 
