@@ -4,6 +4,7 @@ import {
   Client,
   CLIENT_METHODS,
   Method,
+  Result,
 } from "./schema.js";
 
 export * from "./schema.js";
@@ -22,20 +23,6 @@ type AnyRequest = {
 };
 
 type AnyResponse = { id: number } & Result<unknown>;
-
-type Result<T> =
-  | {
-      result: T;
-    }
-  | {
-      error: ErrorResponse;
-    };
-
-type ErrorResponse = {
-  code: number;
-  message: string;
-  data?: unknown;
-};
 
 export class Connection<D, P> {
   #pendingResponses: Map<number, PendingResponse> = new Map();

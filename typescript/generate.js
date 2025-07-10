@@ -28,7 +28,11 @@ typescriptSource += "  requestType: string;\n";
 typescriptSource += "  paramPayload: boolean;\n";
 typescriptSource += "  responseType: string;\n";
 typescriptSource += "  responsePayload: boolean;\n";
+typescriptSource += "  errorType: string;\n";
 typescriptSource += "}\n";
+
+typescriptSource +=
+  "\nexport type Result<T, E = Error> = { result: T } | { error: E };\n";
 
 typescriptSource += "\n" + clientInterface + "\n\n" + agentInterface + "\n";
 
@@ -50,11 +54,13 @@ function requestMapToInterface(name, methods) {
     } else {
       code += `()`;
     }
+    code += `: Promise<`;
     if (responsePayload) {
-      code += `: Promise<${responseType}>;\n`;
+      code += responseType;
     } else {
-      code += `: Promise<void>;\n`;
+      code += "void";
     }
+    code += `>;\n`;
   }
   code += "}\n\n";
 

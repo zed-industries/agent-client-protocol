@@ -14,6 +14,7 @@ pub struct Method {
     pub param_payload: bool,
     pub response_type: &'static str,
     pub response_payload: bool,
+    pub error_type: &'static str,
 }
 
 pub trait AnyRequest: Serialize + Sized + 'static {
@@ -230,6 +231,7 @@ macro_rules! acp_peer {
                     param_payload: $param_payload,
                     response_type: stringify!($response_name),
                     response_payload: $response_payload,
+                    error_type: stringify!($request_error_name),
                 },
             )*
         ];

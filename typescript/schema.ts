@@ -244,7 +244,10 @@ export interface Method {
   paramPayload: boolean;
   responseType: string;
   responsePayload: boolean;
+  errorType: string;
 }
+
+export type Result<T, E = Error> = { result: T } | { error: E };
 
 export interface Client {
   streamAssistantMessageChunk(
@@ -264,6 +267,7 @@ export const CLIENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "StreamAssistantMessageChunkResponse",
     responsePayload: false,
+    errorType: "StreamAssistantMessageChunkError",
   },
   {
     name: "requestToolCallConfirmation",
@@ -271,6 +275,7 @@ export const CLIENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "RequestToolCallConfirmationResponse",
     responsePayload: true,
+    errorType: "RequestToolCallConfirmationError",
   },
   {
     name: "pushToolCall",
@@ -278,6 +283,7 @@ export const CLIENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "PushToolCallResponse",
     responsePayload: true,
+    errorType: "PushToolCallError",
   },
   {
     name: "updateToolCall",
@@ -285,6 +291,7 @@ export const CLIENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "UpdateToolCallResponse",
     responsePayload: false,
+    errorType: "UpdateToolCallError",
   },
 ];
 
@@ -302,6 +309,7 @@ export const AGENT_METHODS: Method[] = [
     paramPayload: false,
     responseType: "InitializeResponse",
     responsePayload: true,
+    errorType: "InitializeError",
   },
   {
     name: "authenticate",
@@ -309,6 +317,7 @@ export const AGENT_METHODS: Method[] = [
     paramPayload: false,
     responseType: "AuthenticateResponse",
     responsePayload: false,
+    errorType: "AuthenticateError",
   },
   {
     name: "sendUserMessage",
@@ -316,6 +325,7 @@ export const AGENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "SendUserMessageResponse",
     responsePayload: false,
+    errorType: "SendUserMessageError",
   },
   {
     name: "cancelSendMessage",
@@ -323,5 +333,6 @@ export const AGENT_METHODS: Method[] = [
     paramPayload: false,
     responseType: "CancelSendMessageResponse",
     responsePayload: false,
+    errorType: "CancelSendMessageError",
   },
 ];
