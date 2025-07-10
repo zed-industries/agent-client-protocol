@@ -180,30 +180,12 @@
           "type": "integer",
           "format": "int32"
         },
-        "data": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ErrorData"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
+        "data": true,
         "message": {
           "type": "string"
         }
       },
       "required": ["code", "message"]
-    },
-    "ErrorData": {
-      "type": "object",
-      "properties": {
-        "details": {
-          "type": "string"
-        }
-      },
-      "required": ["details"]
     },
     "Icon": {
       "type": "string",
@@ -333,16 +315,7 @@
               "format": "int32",
               "const": 429
             },
-            "data": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ErrorData"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
+            "data": true,
             "message": {
               "type": "string",
               "const": "Rate limit exceeded"
@@ -583,18 +556,9 @@
             "code": {
               "type": "integer",
               "format": "int32",
-              "const": 0
+              "const": 1000
             },
-            "data": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ErrorData"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
+            "data": true,
             "message": {
               "type": "string",
               "const": "Tool call waiting for confirmation"
@@ -608,18 +572,9 @@
             "code": {
               "type": "integer",
               "format": "int32",
-              "const": 1
+              "const": 1001
             },
-            "data": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ErrorData"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
+            "data": true,
             "message": {
               "type": "string",
               "const": "Tool call was rejected by the user"

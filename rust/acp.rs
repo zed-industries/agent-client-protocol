@@ -148,7 +148,7 @@ pub struct Error {
     pub code: i32,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<ErrorData>,
+    pub data: Option<serde_json::Value>,
 }
 
 impl Error {
@@ -160,7 +160,7 @@ impl Error {
         }
     }
 
-    pub fn with_data(mut self, data: impl Into<ErrorData>) -> Self {
+    pub fn with_data(mut self, data: impl Into<serde_json::Value>) -> Self {
         self.data = Some(data.into());
         self
     }
@@ -201,34 +201,10 @@ impl Display for Error {
         }
 
         if let Some(data) = &self.data {
-            write!(f, ": {}", data.details)?;
+            write!(f, ": {data}")?;
         }
 
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ErrorData {
-    pub details: String,
-}
-
-impl ErrorData {
-    pub fn new(details: impl Into<String>) -> Self {
-        ErrorData {
-            details: details.into(),
-        }
-    }
-}
-
-impl<T> From<T> for ErrorData
-where
-    T: Into<String>,
-{
-    fn from(details: T) -> Self {
-        ErrorData {
-            details: details.into(),
-        }
     }
 }
 

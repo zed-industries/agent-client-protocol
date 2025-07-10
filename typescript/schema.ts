@@ -91,13 +91,13 @@ export type RequestToolCallConfirmationError = Error;
 export type PushToolCallError = Error;
 export type UpdateToolCallError =
   | {
-      code: 0;
-      data?: ErrorData | null;
+      code: 1000;
+      data?: unknown;
       message: "Tool call waiting for confirmation";
     }
   | {
-      code: 1;
-      data?: ErrorData | null;
+      code: 1001;
+      data?: unknown;
       message: "Tool call was rejected by the user";
     }
   | Error;
@@ -160,7 +160,7 @@ export type AuthenticateError = Error;
 export type SendUserMessageError =
   | {
       code: 429;
-      data?: ErrorData | null;
+      data?: unknown;
       message: "Rate limit exceeded";
     }
   | Error;
@@ -218,11 +218,8 @@ export interface PushToolCallResponse {
 }
 export interface Error {
   code: number;
-  data?: ErrorData | null;
+  data?: unknown;
   message: string;
-}
-export interface ErrorData {
-  details: string;
 }
 /**
  * sendUserMessage allows the user to send a message to the agent.

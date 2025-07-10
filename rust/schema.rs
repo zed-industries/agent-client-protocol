@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::{Error, ErrorData};
+use crate::Error;
 
 #[derive(Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -301,7 +301,7 @@ macro_rules! request_error {
                 $(
                     #[schemars(with = "Error", rename = $message, transform = Self::[<transform_code_ $code>])]
                         #[error($message)]
-                        $variant { data: Option<ErrorData> },
+                        $variant { data: Option<serde_json::Value> },
                 )*
                 #[schemars(with = "Error", untagged)]
                 #[error(transparent)]
@@ -345,15 +345,9 @@ macro_rules! request_error {
             type Error = ();
 
             fn try_from(value: &Error) -> Result<Self, Self::Error> {
-                match value.code {
-                    $($code => {
-                        let data = match (value.message == $message, &value.data) {
-                            (true, Some(data)) => Some(data.clone()),
-                            (false, Some(data)) => Some(ErrorData::new(format!("{}: {}", value.message, data.details))),
-                            (false, None) => Some(ErrorData::new(value.message.clone())),
-                            _ => None,
-                        };
-                        Ok(Self::$variant { data })
+                match (value.code, value.message.as_str()) {
+                    $(($code, $message) => {
+                        Ok(Self::$variant { data: value.data.clone() })
                     })*
                     _ => Err(()),
                 }
