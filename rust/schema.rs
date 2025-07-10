@@ -301,7 +301,7 @@ macro_rules! request_error {
                 $(
                     #[schemars(with = "Error", rename = $message, transform = Self::[<transform_code_ $code>])]
                         #[error($message)]
-                        $variant { data: Option<serde_json::Value> },
+                        $variant,
                 )*
                 #[schemars(with = "Error", untagged)]
                 #[error(transparent)]
@@ -335,7 +335,7 @@ macro_rules! request_error {
         impl From<$error_name> for Error {
             fn from(err: $error_name) -> Self {
                 match err {
-                    $($error_name::$variant { data } => Self { code: $code, message: $message.into(), data },)*
+                    $($error_name::$variant => Self::new($code, $message),)*
                     $error_name::Other(err) => err,
                 }
             }
@@ -347,7 +347,7 @@ macro_rules! request_error {
             fn try_from(value: &Error) -> Result<Self, Self::Error> {
                 match (value.code, value.message.as_str()) {
                     $(($code, $message) => {
-                        Ok(Self::$variant { data: value.data.clone() })
+                        Ok(Self::$variant)
                     })*
                     _ => Err(()),
                 }
