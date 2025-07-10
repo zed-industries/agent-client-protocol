@@ -286,6 +286,22 @@ acp_peer!(
         UpdateToolCallResponse,
         false
     ),
+    (
+        write_text_file,
+        "writeTextFile",
+        WriteTextFileParams,
+        true,
+        WriteTextFileResponse,
+        false
+    ),
+    (
+        read_text_file,
+        "readTextFile",
+        ReadTextFileParams,
+        true,
+        ReadTextFileResponse,
+        true
+    )
 );
 
 // requests sent from the agent to the client (the IDE)
@@ -583,4 +599,29 @@ pub struct Diff {
     pub path: PathBuf,
     pub old_text: Option<String>,
     pub new_text: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteTextFileParams {
+    pub path: PathBuf,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct WriteTextFileResponse;
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadTextFileParams {
+    pub path: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ReadTextFileResponse {
+    pub content: String,
 }

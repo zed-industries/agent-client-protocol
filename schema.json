@@ -60,6 +60,12 @@
         },
         {
           "$ref": "#/$defs/UpdateToolCallParams"
+        },
+        {
+          "$ref": "#/$defs/WriteTextFileParams"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileParams"
         }
       ]
     },
@@ -76,6 +82,12 @@
         },
         {
           "$ref": "#/$defs/UpdateToolCallResponse"
+        },
+        {
+          "$ref": "#/$defs/WriteTextFileResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileResponse"
         }
       ]
     },
@@ -179,6 +191,34 @@
         }
       },
       "required": ["id"]
+    },
+    "ReadTextFileParams": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": ["integer", "null"],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": ["path"]
+    },
+    "ReadTextFileResponse": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": ["content"]
     },
     "RequestToolCallConfirmationParams": {
       "description": "Request confirmation before running a tool\n\nWhen allowed, the client returns a [`ToolCallId`] which can be used\nto update the tool call's `status` and `content` as it runs.",
@@ -501,6 +541,21 @@
           "required": ["path"]
         }
       ]
+    },
+    "WriteTextFileParams": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": ["path", "content"]
+    },
+    "WriteTextFileResponse": {
+      "type": "null"
     }
   }
 }

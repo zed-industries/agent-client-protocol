@@ -7,7 +7,9 @@ export type AnyClientRequest =
   | StreamAssistantMessageChunkParams
   | RequestToolCallConfirmationParams
   | PushToolCallParams
-  | UpdateToolCallParams;
+  | UpdateToolCallParams
+  | WriteTextFileParams
+  | ReadTextFileParams;
 export type AssistantMessageChunk =
   | {
       text: string;
@@ -68,7 +70,9 @@ export type AnyClientResult =
   | StreamAssistantMessageChunkResponse
   | RequestToolCallConfirmationResponse
   | PushToolCallResponse
-  | UpdateToolCallResponse;
+  | UpdateToolCallResponse
+  | WriteTextFileResponse
+  | ReadTextFileResponse;
 export type StreamAssistantMessageChunkResponse = null;
 export type ToolCallConfirmationOutcome =
   | "allow"
@@ -78,6 +82,7 @@ export type ToolCallConfirmationOutcome =
   | "reject"
   | "cancel";
 export type UpdateToolCallResponse = null;
+export type WriteTextFileResponse = null;
 export type AnyAgentRequest =
   | InitializeParams
   | AuthenticateParams
@@ -176,12 +181,24 @@ export interface UpdateToolCallParams {
   status: ToolCallStatus;
   toolCallId: ToolCallId;
 }
+export interface WriteTextFileParams {
+  content: string;
+  path: string;
+}
+export interface ReadTextFileParams {
+  limit?: number | null;
+  line?: number | null;
+  path: string;
+}
 export interface RequestToolCallConfirmationResponse {
   id: ToolCallId;
   outcome: ToolCallConfirmationOutcome;
 }
 export interface PushToolCallResponse {
   id: ToolCallId;
+}
+export interface ReadTextFileResponse {
+  content: string;
 }
 /**
  * sendUserMessage allows the user to send a message to the agent.
@@ -217,6 +234,8 @@ export interface Client {
   ): Promise<RequestToolCallConfirmationResponse>;
   pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
   updateToolCall(params: UpdateToolCallParams): Promise<void>;
+  writeTextFile(params: WriteTextFileParams): Promise<void>;
+  readTextFile(params: ReadTextFileParams): Promise<ReadTextFileResponse>;
 }
 
 export const CLIENT_METHODS: Method[] = [
@@ -247,6 +266,20 @@ export const CLIENT_METHODS: Method[] = [
     paramPayload: true,
     responseType: "UpdateToolCallResponse",
     responsePayload: false,
+  },
+  {
+    name: "writeTextFile",
+    requestType: "WriteTextFileParams",
+    paramPayload: true,
+    responseType: "WriteTextFileResponse",
+    responsePayload: false,
+  },
+  {
+    name: "readTextFile",
+    requestType: "ReadTextFileParams",
+    paramPayload: true,
+    responseType: "ReadTextFileResponse",
+    responsePayload: true,
   },
 ];
 

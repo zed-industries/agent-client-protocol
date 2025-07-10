@@ -6,11 +6,14 @@ import {
   InitializeResponse,
   PushToolCallParams,
   PushToolCallResponse,
+  ReadTextFileParams,
+  ReadTextFileResponse,
   RequestToolCallConfirmationParams,
   RequestToolCallConfirmationResponse,
   SendUserMessageParams,
   StreamAssistantMessageChunkParams,
   UpdateToolCallParams,
+  WriteTextFileParams,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -205,6 +208,12 @@ class StubClient implements Client {
     throw new Error("Method not implemented.");
   }
   updateToolCall(_: UpdateToolCallParams): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  readTextFile(_: ReadTextFileParams): Promise<ReadTextFileResponse> {
+    throw new Error("Method not implemented.");
+  }
+  writeTextFile(_: WriteTextFileParams): Promise<void> {
     throw new Error("Method not implemented.");
   }
 }
