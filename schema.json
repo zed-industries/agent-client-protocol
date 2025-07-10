@@ -161,6 +161,12 @@
         },
         "label": {
           "type": "string"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          }
         }
       },
       "required": ["label", "icon"]
@@ -196,6 +202,12 @@
         },
         "label": {
           "type": "string"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          }
         }
       },
       "required": ["label", "icon", "confirmation"]
@@ -405,6 +417,20 @@
       "type": "integer",
       "format": "uint64",
       "minimum": 0
+    },
+    "ToolCallLocation": {
+      "type": "object",
+      "properties": {
+        "line": {
+          "type": ["integer", "null"],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": ["path"]
     },
     "ToolCallStatus": {
       "oneOf": [

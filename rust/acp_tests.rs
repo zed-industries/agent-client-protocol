@@ -90,6 +90,7 @@ async fn test_client_agent_communication() {
                 label: "test".into(),
                 icon: Icon::FileSearch,
                 content: None,
+                locations: Vec::default(),
             });
             let response = timeout(Duration::from_secs(2), response)
                 .await
