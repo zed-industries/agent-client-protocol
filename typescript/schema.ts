@@ -144,6 +144,11 @@ export interface RequestToolCallConfirmationParams {
   content?: ToolCallContent | null;
   icon: Icon;
   label: string;
+  locations?: ToolCallLocation[];
+}
+export interface ToolCallLocation {
+  line?: number | null;
+  path: string;
 }
 /**
  * pushToolCall allows the agent to start a tool call
@@ -156,6 +161,7 @@ export interface PushToolCallParams {
   content?: ToolCallContent | null;
   icon: Icon;
   label: string;
+  locations?: ToolCallLocation[];
 }
 /**
  * updateToolCall allows the agent to update the content and status of the tool call.

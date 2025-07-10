@@ -426,11 +426,9 @@ pub enum AssistantMessageChunk {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestToolCallConfirmationParams {
-    pub label: String,
-    pub icon: Icon,
+    #[serde(flatten)]
+    pub tool_call: PushToolCallParams,
     pub confirmation: ToolCallConfirmation,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content: Option<ToolCallContent>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -517,6 +515,16 @@ pub struct PushToolCallParams {
     pub icon: Icon,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<ToolCallContent>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<ToolCallLocation>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub struct ToolCallLocation {
+    pub path: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
