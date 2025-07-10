@@ -5,6 +5,7 @@ import {
   CLIENT_METHODS,
   Method,
   Result,
+  VoidResult,
 } from "./schema.js";
 
 export * from "./schema.js";
@@ -141,17 +142,21 @@ export class Connection<D, P> {
       !this.#delegateMethods[method] ||
       typeof this.#delegate[methodName] !== "function"
     ) {
-      return {
-        error: { code: -32601, message: `Method not found - '${method}'` },
-      };
+      return RequestError.methodNotFound(method).toResult();
     }
 
     try {
       let { paramPayload, responsePayload } = this.#delegateMethods[method];
-      const result = await this.#delegate[methodName](
+      const result = (await this.#delegate[methodName](
         paramPayload ? params : undefined,
-      );
-      return { result: responsePayload ? result : null };
+      )) as VoidResult | Result<unknown>;
+      if (result != null && "error" in result) {
+        return result;
+      } else if (responsePayload && result != null && "ok" in result) {
+        return result;
+      } else {
+        return { ok: null };
+      }
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();
@@ -177,10 +182,10 @@ export class Connection<D, P> {
   #handleResponse(response: AnyResponse) {
     const pendingResponse = this.#pendingResponses.get(response.id);
     if (pendingResponse) {
-      if ("result" in response) {
-        pendingResponse.resolve(response.result);
+      if ("ok" in response) {
+        pendingResponse.resolve(response);
       } else if ("error" in response) {
-        pendingResponse.reject(response.error);
+        pendingResponse.reject(response);
       }
       this.#pendingResponses.delete(response.id);
     }

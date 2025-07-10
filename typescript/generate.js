@@ -32,7 +32,10 @@ typescriptSource += "  errorType: string;\n";
 typescriptSource += "}\n";
 
 typescriptSource +=
-  "\nexport type Result<T, E = Error> = { result: T } | { error: E };\n";
+  "\nexport type Result<T, E = Error> = { ok: T } | { error: E };\n";
+
+typescriptSource +=
+  "\nexport type VoidResult<E = Error> = void | { error: E };\n";
 
 typescriptSource += "\n" + clientInterface + "\n\n" + agentInterface + "\n";
 
@@ -47,6 +50,7 @@ function requestMapToInterface(name, methods) {
     responseType,
     paramPayload,
     responsePayload,
+    errorType,
   } of methods) {
     code += name;
     if (paramPayload) {
@@ -56,9 +60,9 @@ function requestMapToInterface(name, methods) {
     }
     code += `: Promise<`;
     if (responsePayload) {
-      code += responseType;
+      code += `Result<${responseType}, ${errorType}>`;
     } else {
-      code += "void";
+      code += `VoidResult<${errorType}>`;
     }
     code += `>;\n`;
   }

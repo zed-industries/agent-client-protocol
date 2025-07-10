@@ -247,17 +247,28 @@ export interface Method {
   errorType: string;
 }
 
-export type Result<T, E = Error> = { result: T } | { error: E };
+export type Result<T, E = Error> = { ok: T } | { error: E };
+
+export type VoidResult<E = Error> = void | { error: E };
 
 export interface Client {
   streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
-  ): Promise<void>;
+  ): Promise<VoidResult<StreamAssistantMessageChunkError>>;
   requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
-  ): Promise<RequestToolCallConfirmationResponse>;
-  pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
-  updateToolCall(params: UpdateToolCallParams): Promise<void>;
+  ): Promise<
+    Result<
+      RequestToolCallConfirmationResponse,
+      RequestToolCallConfirmationError
+    >
+  >;
+  pushToolCall(
+    params: PushToolCallParams,
+  ): Promise<Result<PushToolCallResponse, PushToolCallError>>;
+  updateToolCall(
+    params: UpdateToolCallParams,
+  ): Promise<VoidResult<UpdateToolCallError>>;
 }
 
 export const CLIENT_METHODS: Method[] = [
@@ -296,10 +307,12 @@ export const CLIENT_METHODS: Method[] = [
 ];
 
 export interface Agent {
-  initialize(): Promise<InitializeResponse>;
-  authenticate(): Promise<void>;
-  sendUserMessage(params: SendUserMessageParams): Promise<void>;
-  cancelSendMessage(): Promise<void>;
+  initialize(): Promise<Result<InitializeResponse, InitializeError>>;
+  authenticate(): Promise<VoidResult<AuthenticateError>>;
+  sendUserMessage(
+    params: SendUserMessageParams,
+  ): Promise<VoidResult<SendUserMessageError>>;
+  cancelSendMessage(): Promise<VoidResult<CancelSendMessageError>>;
 }
 
 export const AGENT_METHODS: Method[] = [

@@ -1,16 +1,25 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   Agent,
+  AuthenticateError,
+  CancelSendMessageError,
   Client,
   Connection,
+  InitializeError,
   InitializeResponse,
+  PushToolCallError,
   PushToolCallParams,
   PushToolCallResponse,
+  RequestToolCallConfirmationError,
   RequestToolCallConfirmationParams,
   RequestToolCallConfirmationResponse,
+  Result,
+  SendUserMessageError,
   SendUserMessageParams,
   StreamAssistantMessageChunkParams,
+  UpdateToolCallError,
   UpdateToolCallParams,
+  VoidResult,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -25,14 +34,16 @@ describe("Connection", () => {
   it("handles errors in bidirectional communication", async () => {
     // Create client that throws errors
     class TestClient extends StubClient {
-      async pushToolCall(_: PushToolCallParams): Promise<PushToolCallResponse> {
+      async pushToolCall(
+        _: PushToolCallParams,
+      ): Promise<Result<PushToolCallResponse, PushToolCallError>> {
         throw new Error("Tool call failed");
       }
     }
 
     // Create agent that throws errors
     class TestAgent extends StubAgent {
-      async initialize(): Promise<InitializeResponse> {
+      async initialize(): Promise<Result<InitializeResponse, InitializeError>> {
         throw new Error("Failed to create thread");
       }
     }
@@ -67,13 +78,15 @@ describe("Connection", () => {
     class TestClient extends StubClient {
       toolCall: number = 0;
 
-      async pushToolCall(_: PushToolCallParams): Promise<PushToolCallResponse> {
+      async pushToolCall(
+        _: PushToolCallParams,
+      ): Promise<Result<PushToolCallResponse, PushToolCallError>> {
         this.toolCall++;
         const id = this.toolCall;
         console.log(id);
         await new Promise((resolve) => setTimeout(resolve, 40));
         console.log(id);
-        return { id };
+        return { ok: { id } };
       }
     }
 
@@ -111,28 +124,32 @@ describe("Connection", () => {
     const results = await Promise.all(promises);
 
     // Verify all requests completed successfully
-    expect(results[0]).toHaveProperty("id", 1);
-    expect(results[1]).toHaveProperty("id", 2);
-    expect(results[2]).toHaveProperty("id", 3);
+    expect(results[0]).toMatchObject({ ok: { id: 1 } });
+    expect(results[1]).toMatchObject({ ok: { id: 2 } });
+    expect(results[2]).toMatchObject({ ok: { id: 3 } });
   });
 
   it("handles message ordering correctly", async () => {
     const messageLog: string[] = [];
 
     class TestClient extends StubClient {
-      async pushToolCall(_: PushToolCallParams): Promise<PushToolCallResponse> {
+      async pushToolCall(
+        _: PushToolCallParams,
+      ): Promise<Result<PushToolCallResponse, PushToolCallError>> {
         messageLog.push("pushToolCall called");
-        return { id: 0 };
+        return { ok: { id: 0 } };
       }
-      async updateToolCall(_: UpdateToolCallParams): Promise<void> {
+      async updateToolCall(
+        _: UpdateToolCallParams,
+      ): Promise<VoidResult<UpdateToolCallError>> {
         messageLog.push("updateToolCall called");
       }
     }
 
     class TestAgent extends StubAgent {
-      async initialize(): Promise<InitializeResponse> {
+      async initialize(): Promise<Result<InitializeResponse, InitializeError>> {
         messageLog.push("initialize called");
-        return { isAuthenticated: true };
+        return { ok: { isAuthenticated: true } };
       }
     }
 
@@ -151,10 +168,14 @@ describe("Connection", () => {
 
     // Send requests in specific order
     await agentConnection.initialize();
-    let { id } = await clientConnection.pushToolCall({
+    let result = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
     });
+    if ("error" in result) {
+      throw new Error(`Failed to push tool call: ${result.error.message}`);
+    }
+    const { id } = result.ok;
     await clientConnection.updateToolCall({
       content: {
         type: "markdown",
@@ -175,16 +196,18 @@ describe("Connection", () => {
 
 class StubAgent implements Agent {
   constructor(private client: Client) {}
-  initialize(): Promise<InitializeResponse> {
+  initialize(): Promise<Result<InitializeResponse, InitializeError>> {
     throw new Error("Method not implemented.");
   }
-  authenticate(): Promise<void> {
+  authenticate(): Promise<VoidResult<AuthenticateError>> {
     throw new Error("Method not implemented.");
   }
-  sendUserMessage(_: SendUserMessageParams): Promise<void> {
+  sendUserMessage(
+    _: SendUserMessageParams,
+  ): Promise<VoidResult<SendUserMessageError>> {
     throw new Error("Method not implemented.");
   }
-  cancelSendMessage(): Promise<void> {
+  cancelSendMessage(): Promise<VoidResult<CancelSendMessageError>> {
     throw new Error("Method not implemented.");
   }
 }
@@ -198,13 +221,22 @@ class StubClient implements Client {
   }
   requestToolCallConfirmation(
     _: RequestToolCallConfirmationParams,
-  ): Promise<RequestToolCallConfirmationResponse> {
+  ): Promise<
+    Result<
+      RequestToolCallConfirmationResponse,
+      RequestToolCallConfirmationError
+    >
+  > {
     throw new Error("Method not implemented.");
   }
-  pushToolCall(_: PushToolCallParams): Promise<PushToolCallResponse> {
+  pushToolCall(
+    _: PushToolCallParams,
+  ): Promise<Result<PushToolCallResponse, PushToolCallError>> {
     throw new Error("Method not implemented.");
   }
-  updateToolCall(_: UpdateToolCallParams): Promise<void> {
+  updateToolCall(
+    _: UpdateToolCallParams,
+  ): Promise<VoidResult<UpdateToolCallError>> {
     throw new Error("Method not implemented.");
   }
 }
