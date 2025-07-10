@@ -347,8 +347,8 @@ macro_rules! request_error {
             type Error = ();
 
             fn try_from(value: &Error) -> Result<Self, Self::Error> {
-                match (value.code, value.message.as_str()) {
-                    $(($code, $message) => {
+                match value.code {
+                    $($code => {
                         Ok(Self::$variant)
                     })*
                     _ => Err(()),
