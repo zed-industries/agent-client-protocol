@@ -248,6 +248,18 @@ export class RequestError extends Error {
     return new RequestError(-32603, "Internal error", details);
   }
 
+  static rateLimitExceeded(): RequestError {
+    return new RequestError(429, "Rate limit exceeded");
+  }
+
+  static toolCallWaitingForConfirmation(): RequestError {
+    return new RequestError(1000, "Tool call waiting for confirmation");
+  }
+
+  static toolCallRejected(): RequestError {
+    return new RequestError(1001, "Tool call was rejected by the user");
+  }
+
   toResult<T>(): Result<T> {
     return {
       error: {
