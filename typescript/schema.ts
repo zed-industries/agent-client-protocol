@@ -1,8 +1,10 @@
 export type AgentCodingProtocol =
   | AnyClientRequest
   | AnyClientResult
+  | AnyClientError
   | AnyAgentRequest
-  | AnyAgentResult;
+  | AnyAgentResult
+  | AnyAgentError;
 export type AnyClientRequest =
   | StreamAssistantMessageChunkParams
   | RequestToolCallConfirmationParams
@@ -78,6 +80,27 @@ export type ToolCallConfirmationOutcome =
   | "reject"
   | "cancel";
 export type UpdateToolCallResponse = null;
+export type AnyClientError =
+  | StreamAssistantMessageChunkError
+  | RequestToolCallConfirmationError
+  | PushToolCallError
+  | UpdateToolCallError
+  | Error;
+export type StreamAssistantMessageChunkError = Error;
+export type RequestToolCallConfirmationError = Error;
+export type PushToolCallError = Error;
+export type UpdateToolCallError =
+  | {
+      code: 0;
+      data?: ErrorData | null;
+      message: "Tool call waiting for confirmation";
+    }
+  | {
+      code: 1;
+      data?: ErrorData | null;
+      message: "Tool call was rejected by the user";
+    }
+  | Error;
 export type AnyAgentRequest =
   | InitializeParams
   | AuthenticateParams
@@ -126,6 +149,22 @@ export type AnyAgentResult =
 export type AuthenticateResponse = null;
 export type SendUserMessageResponse = null;
 export type CancelSendMessageResponse = null;
+export type AnyAgentError =
+  | InitializeError
+  | AuthenticateError
+  | SendUserMessageError
+  | CancelSendMessageError
+  | Error;
+export type InitializeError = Error;
+export type AuthenticateError = Error;
+export type SendUserMessageError =
+  | {
+      code: 429;
+      data?: ErrorData | null;
+      message: "Rate limit exceeded";
+    }
+  | Error;
+export type CancelSendMessageError = Error;
 
 /**
  * Streams part of an assistant response to the client
@@ -176,6 +215,14 @@ export interface RequestToolCallConfirmationResponse {
 }
 export interface PushToolCallResponse {
   id: ToolCallId;
+}
+export interface Error {
+  code: number;
+  data?: ErrorData | null;
+  message: string;
+}
+export interface ErrorData {
+  details: string;
 }
 /**
  * sendUserMessage allows the user to send a message to the agent.

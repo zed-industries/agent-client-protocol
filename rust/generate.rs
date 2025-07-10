@@ -8,8 +8,10 @@ use std::fs;
 enum Message {
     ClientRequest(acp::AnyClientRequest),
     ClientResult(acp::AnyClientResult),
+    ClientError(acp::AnyClientError),
     AgentRequest(acp::AnyAgentRequest),
     AgentResult(acp::AnyAgentResult),
+    AgentError(acp::AnyAgentError),
 }
 
 fn main() {

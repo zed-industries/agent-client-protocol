@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::Error;
+use crate::{Error, ErrorData};
 
 #[derive(Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -18,7 +18,7 @@ pub struct Method {
 
 pub trait AnyRequest: Serialize + Sized + 'static {
     type Response: Serialize + 'static;
-    type Error: std::fmt::Display + From<Error>;
+    type Error: std::error::Error + std::fmt::Display + From<Error>;
     fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Self::Error>;
     fn response_from_method_and_result(
         method: &str,
@@ -37,7 +37,8 @@ macro_rules! acp_peer {
         $(($request_method:ident, $request_method_string:expr, $request_name:ident, $param_payload: tt, $response_name:ident, $response_payload: tt, $request_error_name:ident)),*
         $(,)?
     ) => {
-        #[derive(Debug, thiserror::Error)]
+        #[derive(Clone, Debug, thiserror::Error, Serialize, JsonSchema)]
+        #[serde(untagged)]
         pub enum $error_name {
             $(
                 #[error(transparent)]
@@ -138,7 +139,7 @@ macro_rules! acp_peer {
 
         pub trait $request_trait_name {
             type Response;
-            type Error: Into<Error> + for<'a> TryFrom<&'a Error>;
+            type Error: std::error::Error + Into<Error> + for<'a> TryFrom<&'a Error>;
             fn into_any(self) -> $request_enum_name;
             fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Self::Error>;
             fn error_from_any(any: $error_name) -> Self::Error;
@@ -167,7 +168,7 @@ macro_rules! acp_peer {
             ($req_name: ident, true, $params: tt) => {
                 match serde_json::from_str($params.get()) {
                     Ok(params) => Ok($request_enum_name::$req_name(params)),
-                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_details(e.to_string()))),
+                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_data(e.to_string()))),
                 }
             };
         }
@@ -179,7 +180,7 @@ macro_rules! acp_peer {
             ($resp_name: ident, true, $result: tt) => {
                 match serde_json::from_str($result.get()) {
                     Ok(result) => Ok($response_enum_name::$resp_name(result)),
-                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_details(e.to_string()))),
+                    Err(e) => Err(Self::Error::Other(Error::parse_error().with_data(e.to_string()))),
                 }
             };
         }
@@ -221,8 +222,6 @@ macro_rules! acp_peer {
             }
         }
 
-
-
         pub static $method_map_name: &[Method] = &[
             $(
                 Method {
@@ -257,13 +256,13 @@ macro_rules! acp_peer {
             ($any: ident, $resp_name: ident, false, $error: ident) => {
                 match $any {
                     $response_enum_name::$resp_name(_) => Ok(()),
-                    _ => Err($error::Other(Error::internal_error().with_details("Unexpected Response")))
+                    _ => Err($error::Other(Error::internal_error().with_data("Unexpected Response")))
                 }
             };
             ($any: ident, $resp_name: ident, true, $error: ident) => {
                 match $any {
                     $response_enum_name::$resp_name(this) => Ok(this),
-                    _ => Err($error::Other(Error::internal_error().with_details("Unexpected Response")))
+                    _ => Err($error::Other(Error::internal_error().with_data("Unexpected Response")))
                 }
             };
         }
@@ -294,20 +293,49 @@ macro_rules! acp_peer {
 
 macro_rules! request_error {
     ($error_name:ident $(,)? $(($variant:ident, $code:literal, $message:literal)),* $(,)?) => {
-        #[derive(Debug, thiserror::Error)]
-        pub enum $error_name {
+        paste::paste! {
+            #[derive(Clone, Debug, thiserror::Error, Serialize, JsonSchema)]
+            #[serde(into = "Error")]
+            #[schemars(!into, tag = "message")]
+            pub enum $error_name {
+                $(
+                    #[schemars(with = "Error", rename = $message, transform = Self::[<transform_code_ $code>])]
+                        #[error($message)]
+                        $variant { data: Option<ErrorData> },
+                )*
+                #[schemars(with = "Error", untagged)]
+                #[error(transparent)]
+                Other(Error),
+            }
+        }
+
+        impl $error_name {
+            pub fn other(err: impl std::error::Error) -> Self {
+                Self::Other(Error::internal_error().with_data(err.to_string()))
+            }
+
             $(
-                #[error($message)]
-                $variant,
+                paste::paste! {
+                    fn [<transform_code_ $code>](schema: &mut schemars::Schema) {
+                        let Some(schema) = schema.pointer_mut("/properties/code") else {
+                            return;
+                        };
+                        schema["const"] = serde_json::json!($code);
+                    }
+                }
             )*
-            #[error(transparent)]
-            Other(Error),
+        }
+
+        impl<E> From<E> for $error_name where E: AsRef<dyn std::error::Error> {
+            fn from(err: E) -> Self {
+                Self::other(err.as_ref())
+            }
         }
 
         impl From<$error_name> for Error {
             fn from(err: $error_name) -> Self {
                 match err {
-                    $($error_name::$variant => Self::new($code, err.to_string()),)*
+                    $($error_name::$variant { data } => Self { code: $code, message: $message.into(), data },)*
                     $error_name::Other(err) => err,
                 }
             }
@@ -318,7 +346,15 @@ macro_rules! request_error {
 
             fn try_from(value: &Error) -> Result<Self, Self::Error> {
                 match value.code {
-                    $($code => Ok(Self::$variant),)*
+                    $($code => {
+                        let data = match (value.message == $message, &value.data) {
+                            (true, Some(data)) => Some(data.clone()),
+                            (false, Some(data)) => Some(ErrorData::new(format!("{}: {}", value.message, data.details))),
+                            (false, None) => Some(ErrorData::new(value.message.clone())),
+                            _ => None,
+                        };
+                        Ok(Self::$variant { data })
+                    })*
                     _ => Err(()),
                 }
             }
@@ -652,7 +688,15 @@ pub struct UpdateToolCallParams {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct UpdateToolCallResponse;
 
-request_error!(UpdateToolCallError);
+request_error!(
+    UpdateToolCallError,
+    (
+        WaitingForConfirmation,
+        1000,
+        "Tool call waiting for confirmation"
+    ),
+    (Rejected, 1001, "Tool call was rejected by the user")
+);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

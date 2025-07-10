@@ -15,6 +15,7 @@ use futures::{
 };
 use parking_lot::Mutex;
 pub use schema::*;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::{
@@ -142,7 +143,7 @@ enum OutgoingMessage<Req, Resp> {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Error {
     pub code: i32,
     pub message: String,
@@ -159,8 +160,8 @@ impl Error {
         }
     }
 
-    pub fn with_details(mut self, details: impl Into<String>) -> Self {
-        self.data = Some(ErrorData::new(details));
+    pub fn with_data(mut self, data: impl Into<ErrorData>) -> Self {
+        self.data = Some(data.into());
         self
     }
 
@@ -207,13 +208,24 @@ impl Display for Error {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ErrorData {
     pub details: String,
 }
 
 impl ErrorData {
     pub fn new(details: impl Into<String>) -> Self {
+        ErrorData {
+            details: details.into(),
+        }
+    }
+}
+
+impl<T> From<T> for ErrorData
+where
+    T: Into<String>,
+{
+    fn from(details: T) -> Self {
         ErrorData {
             details: details.into(),
         }
@@ -280,7 +292,7 @@ where
         }
         async move {
             rx.await
-                .map_err(|e| Error::internal_error().with_details(e.to_string()))?
+                .map_err(|e| Error::internal_error().with_data(e.to_string()))?
         }
     }
 
@@ -300,7 +312,7 @@ where
                     if let Some(message) = message {
                         outgoing_line.clear();
                         serde_json::to_writer(&mut outgoing_line, &message).map_err(|e| Error::internal_error()
-                            .with_details(e.to_string()))?;
+                            .with_data(e.to_string()))?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
@@ -309,7 +321,7 @@ where
                     }
                 }
                 bytes_read = output_reader.read_line(&mut incoming_line).fuse() => {
-                    if bytes_read.map_err(|e| Error::internal_error().with_details(e.to_string()))? == 0 {
+                    if bytes_read.map_err(|e| Error::internal_error().with_data(e.to_string()))? == 0 {
                         break
                     }
                     log::trace!("recv: {}", &incoming_line);
@@ -381,7 +393,7 @@ where
                                         .unbounded_send(OutgoingMessage::ErrorResponse {
                                             id,
                                             error: Error::internal_error()
-                                                .with_details(error.to_string()),
+                                                .with_data(error.to_string()),
                                         })
                                         .ok();
                                 }

@@ -8,13 +8,38 @@
       "$ref": "#/$defs/AnyClientResult"
     },
     {
+      "$ref": "#/$defs/AnyClientError"
+    },
+    {
       "$ref": "#/$defs/AnyAgentRequest"
     },
     {
       "$ref": "#/$defs/AnyAgentResult"
+    },
+    {
+      "$ref": "#/$defs/AnyAgentError"
     }
   ],
   "$defs": {
+    "AnyAgentError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InitializeError"
+        },
+        {
+          "$ref": "#/$defs/AuthenticateError"
+        },
+        {
+          "$ref": "#/$defs/SendUserMessageError"
+        },
+        {
+          "$ref": "#/$defs/CancelSendMessageError"
+        },
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
+    },
     "AnyAgentRequest": {
       "anyOf": [
         {
@@ -44,6 +69,25 @@
         },
         {
           "$ref": "#/$defs/CancelSendMessageResponse"
+        }
+      ]
+    },
+    "AnyClientError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamAssistantMessageChunkError"
+        },
+        {
+          "$ref": "#/$defs/RequestToolCallConfirmationError"
+        },
+        {
+          "$ref": "#/$defs/PushToolCallError"
+        },
+        {
+          "$ref": "#/$defs/UpdateToolCallError"
+        },
+        {
+          "$ref": "#/$defs/Error"
         }
       ]
     },
@@ -101,6 +145,13 @@
         }
       ]
     },
+    "AuthenticateError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
+    },
     "AuthenticateParams": {
       "description": "Triggers authentication on the agent side.\n\nThis method should only be called if the initialize response indicates the user isn't already authenticated.\nIf this succceeds then the client can send other messasges to the agent,\nIf it fails then the error message should be shown and the user prompted to authenticate.\n\nThe implementation of authentication is left up to the agent, typically an oauth\nflow is run by opening a browser window in the background.",
       "type": "null"
@@ -108,12 +159,51 @@
     "AuthenticateResponse": {
       "type": "null"
     },
+    "CancelSendMessageError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
+    },
     "CancelSendMessageParams": {
       "description": "cancelSendMessage allows the client to request that the agent\nstop running. The agent should resolve or reject the current sendUserMessage call.",
       "type": "null"
     },
     "CancelSendMessageResponse": {
       "type": "null"
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "ErrorData": {
+      "type": "object",
+      "properties": {
+        "details": {
+          "type": "string"
+        }
+      },
+      "required": ["details"]
     },
     "Icon": {
       "type": "string",
@@ -126,6 +216,13 @@
         "pencil",
         "regex",
         "terminal"
+      ]
+    },
+    "InitializeError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
       ]
     },
     "InitializeParams": {
@@ -141,6 +238,13 @@
         }
       },
       "required": ["isAuthenticated"]
+    },
+    "PushToolCallError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
     },
     "PushToolCallParams": {
       "description": "pushToolCall allows the agent to start a tool call\nwhen it does not need to request permission to do so.\n\nThe returned id can be used to update the UI for the tool\ncall as needed.",
@@ -173,6 +277,13 @@
         }
       },
       "required": ["id"]
+    },
+    "RequestToolCallConfirmationError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
     },
     "RequestToolCallConfirmationParams": {
       "description": "Request confirmation before running a tool\n\nWhen allowed, the client returns a [`ToolCallId`] which can be used\nto update the tool call's `status` and `content` as it runs.",
@@ -212,6 +323,38 @@
       },
       "required": ["id", "outcome"]
     },
+    "SendUserMessageError": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "format": "int32",
+              "const": 429
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ErrorData"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "type": "string",
+              "const": "Rate limit exceeded"
+            }
+          },
+          "required": ["message", "code", "message"]
+        },
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
+    },
     "SendUserMessageParams": {
       "description": "sendUserMessage allows the user to send a message to the agent.\nThis method should complete after the agent is finished, during\nwhich time the agent may update the client by calling\nstreamAssistantMessageChunk and other methods.",
       "type": "object",
@@ -227,6 +370,13 @@
     },
     "SendUserMessageResponse": {
       "type": "null"
+    },
+    "StreamAssistantMessageChunkError": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
     },
     "StreamAssistantMessageChunkParams": {
       "description": "Streams part of an assistant response to the client",
@@ -422,6 +572,63 @@
           "description": "The tool call failed",
           "type": "string",
           "const": "error"
+        }
+      ]
+    },
+    "UpdateToolCallError": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "format": "int32",
+              "const": 0
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ErrorData"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "type": "string",
+              "const": "Tool call waiting for confirmation"
+            }
+          },
+          "required": ["message", "code", "message"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "format": "int32",
+              "const": 1
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ErrorData"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "type": "string",
+              "const": "Tool call was rejected by the user"
+            }
+          },
+          "required": ["message", "code", "message"]
+        },
+        {
+          "$ref": "#/$defs/Error"
         }
       ]
     },
