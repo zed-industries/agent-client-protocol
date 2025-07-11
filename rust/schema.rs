@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, ops::Deref, path::PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -50,9 +50,14 @@ impl Error {
     pub fn internal_error() -> Self {
         Error::new(-32603, "Internal error")
     }
+
+    pub fn into_internal_error(err: impl std::error::Error) -> Self {
+        Error::internal_error().with_data(err.to_string())
+    }
 }
 
 impl std::error::Error for Error {}
+
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.message.is_empty() {
@@ -66,6 +71,12 @@ impl Display for Error {
         }
 
         Ok(())
+    }
+}
+
+impl From<anyhow::Error> for Error {
+    fn from(error: anyhow::Error) -> Self {
+        Error::into_internal_error(error.deref())
     }
 }
 
@@ -135,16 +146,16 @@ macro_rules! acp_peer {
 
         macro_rules! handler_trait_req_method {
             ($method: ident, $req: ident, false, $resp: tt, false) => {
-                fn $method(&self) -> impl Future<Output = anyhow::Result<()>>;
+                fn $method(&self) -> impl Future<Output = Result<(), Error>>;
             };
             ($method: ident, $req: ident, false, $resp: tt, true) => {
-                fn $method(&self) -> impl Future<Output = anyhow::Result<$resp>>;
+                fn $method(&self) -> impl Future<Output = Result<$resp, Error>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, false) => {
-                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<()>>;
+                fn $method(&self, request: $req) -> impl Future<Output = Result<(), Error>>;
             };
             ($method: ident, $req: ident, true, $resp: tt, true) => {
-                fn $method(&self, request: $req) -> impl Future<Output = anyhow::Result<$resp>>;
+                fn $method(&self, request: $req) -> impl Future<Output = Result<$resp, Error>>;
             }
         }
 

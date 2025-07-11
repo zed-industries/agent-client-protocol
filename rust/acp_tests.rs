@@ -1,5 +1,4 @@
 use super::*;
-use anyhow::Result;
 use tokio::task::LocalSet;
 use tokio::time::{Duration, timeout};
 
@@ -7,21 +6,21 @@ pub struct TestClient;
 pub struct TestAgent;
 
 impl Agent for TestAgent {
-    async fn initialize(&self) -> Result<InitializeResponse> {
+    async fn initialize(&self) -> Result<InitializeResponse, Error> {
         Ok(InitializeResponse {
             is_authenticated: true,
         })
     }
 
-    async fn authenticate(&self) -> Result<()> {
+    async fn authenticate(&self) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn send_user_message(&self, _request: SendUserMessageParams) -> Result<()> {
+    async fn send_user_message(&self, _request: SendUserMessageParams) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn cancel_send_message(&self) -> Result<()> {
+    async fn cancel_send_message(&self) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -30,33 +29,39 @@ impl Client for TestClient {
     async fn stream_assistant_message_chunk(
         &self,
         _request: StreamAssistantMessageChunkParams,
-    ) -> Result<()> {
+    ) -> Result<(), Error> {
         Ok(())
     }
 
     async fn request_tool_call_confirmation(
         &self,
         _request: RequestToolCallConfirmationParams,
-    ) -> Result<RequestToolCallConfirmationResponse> {
+    ) -> Result<RequestToolCallConfirmationResponse, Error> {
         Ok(RequestToolCallConfirmationResponse {
             id: ToolCallId(0),
             outcome: ToolCallConfirmationOutcome::Allow,
         })
     }
 
-    async fn push_tool_call(&self, _request: PushToolCallParams) -> Result<PushToolCallResponse> {
+    async fn push_tool_call(
+        &self,
+        _request: PushToolCallParams,
+    ) -> Result<PushToolCallResponse, Error> {
         Ok(PushToolCallResponse { id: ToolCallId(0) })
     }
 
-    async fn update_tool_call(&self, _request: UpdateToolCallParams) -> Result<()> {
+    async fn update_tool_call(&self, _request: UpdateToolCallParams) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn write_text_file(&self, _request: WriteTextFileParams) -> Result<()> {
+    async fn write_text_file(&self, _request: WriteTextFileParams) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn read_text_file(&self, _request: ReadTextFileParams) -> Result<ReadTextFileResponse> {
+    async fn read_text_file(
+        &self,
+        _request: ReadTextFileParams,
+    ) -> Result<ReadTextFileResponse, Error> {
         Ok(ReadTextFileResponse {
             content: String::new(),
         })
