@@ -40,7 +40,7 @@ macro_rules! acp_peer {
                 {
                     $self.$method()
                         .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
@@ -48,7 +48,7 @@ macro_rules! acp_peer {
                 {
                     let resp = $self.$method()
                         .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             };
@@ -56,7 +56,7 @@ macro_rules! acp_peer {
                 {
                     $self.$method($params)
                         .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
@@ -64,7 +64,7 @@ macro_rules! acp_peer {
                 {
                     let resp = $self.$method($params)
                         .await
-                        .map_err(|e| Error::internal_error().with_details(e.to_string()))?;
+                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             }
@@ -131,7 +131,7 @@ macro_rules! acp_peer {
             ($req_name: ident, true, $params: tt) => {
                 match serde_json::from_str($params.get()) {
                     Ok(params) => Ok($request_enum_name::$req_name(params)),
-                    Err(e) => Err(Error::parse_error().with_details(e.to_string())),
+                    Err(e) => Err(Error::parse_error().with_data(e.to_string())),
                 }
             };
         }
@@ -143,7 +143,7 @@ macro_rules! acp_peer {
             ($resp_name: ident, true, $result: tt) => {
                 match serde_json::from_str($result.get()) {
                     Ok(result) => Ok($response_enum_name::$resp_name(result)),
-                    Err(e) => Err(Error::parse_error().with_details(e.to_string())),
+                    Err(e) => Err(Error::parse_error().with_data(e.to_string())),
                 }
             };
         }
@@ -220,13 +220,13 @@ macro_rules! acp_peer {
             ($any: ident, $resp_name: ident, false) => {
                 match $any {
                     $response_enum_name::$resp_name(_) => Ok(()),
-                    _ => Err(Error::internal_error().with_details("Unexpected Response"))
+                    _ => Err(Error::internal_error().with_data("Unexpected Response"))
                 }
             };
             ($any: ident, $resp_name: ident, true) => {
                 match $any {
                     $response_enum_name::$resp_name(this) => Ok(this),
-                    _ => Err(Error::internal_error().with_details("Unexpected Response"))
+                    _ => Err(Error::internal_error().with_data("Unexpected Response"))
                 }
             };
         }
