@@ -220,8 +220,7 @@ where
                 message = outgoing_rx.next() => {
                     if let Some(message) = message {
                         outgoing_line.clear();
-                        serde_json::to_writer(&mut outgoing_line, &message).map_err(|e| Error::internal_error()
-                            .with_data(e.to_string()))?;
+                        serde_json::to_writer(&mut outgoing_line, &message).map_err(Error::into_internal_error)?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
@@ -230,7 +229,7 @@ where
                     }
                 }
                 bytes_read = output_reader.read_line(&mut incoming_line).fuse() => {
-                    if bytes_read.map_err(|e| Error::internal_error().with_data(e.to_string()))? == 0 {
+                    if bytes_read.map_err(Error::into_internal_error)? == 0 {
                         break
                     }
                     log::trace!("recv: {}", &incoming_line);
@@ -301,8 +300,7 @@ where
                                     outgoing_tx
                                         .unbounded_send(OutgoingMessage::ErrorResponse {
                                             id,
-                                            error: Error::internal_error()
-                                                .with_data(error.to_string()),
+                                            error: Error::into_internal_error(error),
                                         })
                                         .ok();
                                 }

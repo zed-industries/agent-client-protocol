@@ -13,10 +13,11 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn new(code: i32, message: impl Into<String>) -> Self {
+    pub fn new(code: impl Into<(i32, String)>) -> Self {
+        let (code, message) = code.into();
         Error {
             code,
-            message: message.into(),
+            message,
             data: None,
         }
     }
@@ -28,31 +29,76 @@ impl Error {
 
     /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
     pub fn parse_error() -> Self {
-        Error::new(-32700, "Parse error")
+        Error::new(ErrorCode::PARSE_ERROR)
     }
 
     /// The JSON sent is not a valid Request object.
     pub fn invalid_request() -> Self {
-        Error::new(-32600, "Invalid Request")
+        Error::new(ErrorCode::INVALID_REQUEST)
     }
 
     /// The method does not exist / is not available.
     pub fn method_not_found() -> Self {
-        Error::new(-32601, "Method not found")
+        Error::new(ErrorCode::METHOD_NOT_FOUND)
     }
 
     /// Invalid method parameter(s).
     pub fn invalid_params() -> Self {
-        Error::new(-32602, "Invalid params")
+        Error::new(ErrorCode::INVALID_PARAMS)
     }
 
     /// Internal JSON-RPC error.
     pub fn internal_error() -> Self {
-        Error::new(-32603, "Internal error")
+        Error::new(ErrorCode::INTERNAL_ERROR)
     }
 
     pub fn into_internal_error(err: impl std::error::Error) -> Self {
         Error::internal_error().with_data(err.to_string())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ErrorCode {
+    code: i32,
+    message: &'static str,
+}
+
+impl ErrorCode {
+    pub const PARSE_ERROR: ErrorCode = ErrorCode {
+        code: -32700,
+        message: "Parse error",
+    };
+
+    pub const INVALID_REQUEST: ErrorCode = ErrorCode {
+        code: -32600,
+        message: "Invalid Request",
+    };
+
+    pub const METHOD_NOT_FOUND: ErrorCode = ErrorCode {
+        code: -32601,
+        message: "Method not found",
+    };
+
+    pub const INVALID_PARAMS: ErrorCode = ErrorCode {
+        code: -32602,
+        message: "Invalid params",
+    };
+
+    pub const INTERNAL_ERROR: ErrorCode = ErrorCode {
+        code: -32603,
+        message: "Internal error",
+    };
+}
+
+impl From<ErrorCode> for (i32, String) {
+    fn from(error_code: ErrorCode) -> Self {
+        (error_code.code, error_code.message.to_string())
+    }
+}
+
+impl From<ErrorCode> for Error {
+    fn from(error_code: ErrorCode) -> Self {
+        Error::new(error_code)
     }
 }
 
@@ -112,33 +158,25 @@ macro_rules! acp_peer {
         macro_rules! handler_trait_call_req {
             ($self: ident, $method: ident, false, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method()
-                        .await
-                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
+                    $self.$method().await?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, false, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method()
-                        .await
-                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
+                    let resp = $self.$method().await?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, false, $params: ident) => {
                 {
-                    $self.$method($params)
-                        .await
-                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
+                    $self.$method($params).await?;
                     Ok($response_enum_name::$resp_name($resp_name))
                 }
             };
             ($self: ident, $method: ident, true, $resp_name: ident, true, $params: ident) => {
                 {
-                    let resp = $self.$method($params)
-                        .await
-                        .map_err(|e| Error::internal_error().with_data(e.to_string()))?;
+                    let resp = $self.$method($params).await?;
                     Ok($response_enum_name::$resp_name(resp))
                 }
             }
