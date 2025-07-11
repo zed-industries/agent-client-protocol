@@ -2,7 +2,8 @@ export type AgentCodingProtocol =
   | AnyClientRequest
   | AnyClientResult
   | AnyAgentRequest
-  | AnyAgentResult;
+  | AnyAgentResult
+  | Error;
 export type AnyClientRequest =
   | StreamAssistantMessageChunkParams
   | RequestToolCallConfirmationParams
@@ -215,6 +216,11 @@ export interface InitializeResponse {
    * ready to handle requests.
    */
   isAuthenticated: boolean;
+}
+export interface Error {
+  code: number;
+  data?: unknown;
+  message: string;
 }
 
 export interface Method {

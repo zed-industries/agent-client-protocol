@@ -12,6 +12,9 @@
     },
     {
       "$ref": "#/$defs/AnyAgentResult"
+    },
+    {
+      "$ref": "#/$defs/Error"
     }
   ],
   "$defs": {
@@ -126,6 +129,20 @@
     },
     "CancelSendMessageResponse": {
       "type": "null"
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": true,
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": ["code", "message"]
     },
     "Icon": {
       "type": "string",

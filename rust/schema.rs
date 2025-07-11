@@ -1,10 +1,73 @@
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::Error;
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct Error {
+    pub code: i32,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+}
+
+impl Error {
+    pub fn new(code: i32, message: impl Into<String>) -> Self {
+        Error {
+            code,
+            message: message.into(),
+            data: None,
+        }
+    }
+
+    pub fn with_data(mut self, data: impl Into<serde_json::Value>) -> Self {
+        self.data = Some(data.into());
+        self
+    }
+
+    /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+    pub fn parse_error() -> Self {
+        Error::new(-32700, "Parse error")
+    }
+
+    /// The JSON sent is not a valid Request object.
+    pub fn invalid_request() -> Self {
+        Error::new(-32600, "Invalid Request")
+    }
+
+    /// The method does not exist / is not available.
+    pub fn method_not_found() -> Self {
+        Error::new(-32601, "Method not found")
+    }
+
+    /// Invalid method parameter(s).
+    pub fn invalid_params() -> Self {
+        Error::new(-32602, "Invalid params")
+    }
+
+    /// Internal JSON-RPC error.
+    pub fn internal_error() -> Self {
+        Error::new(-32603, "Internal error")
+    }
+}
+
+impl std::error::Error for Error {}
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.message.is_empty() {
+            write!(f, "{}", self.code)?;
+        } else {
+            write!(f, "{}", self.message)?;
+        }
+
+        if let Some(data) = &self.data {
+            write!(f, ": {data}")?;
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

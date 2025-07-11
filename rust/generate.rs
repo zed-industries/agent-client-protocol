@@ -10,6 +10,7 @@ enum Message {
     ClientResult(acp::AnyClientResult),
     AgentRequest(acp::AnyAgentRequest),
     AgentResult(acp::AnyAgentResult),
+    Error(acp::Error),
 }
 
 fn main() {
