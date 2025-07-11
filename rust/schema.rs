@@ -531,7 +531,7 @@ pub struct PushToolCallParams {
     pub icon: Icon,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<ToolCallContent>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locations: Vec<ToolCallLocation>,
 }
 

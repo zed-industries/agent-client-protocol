@@ -51,6 +51,16 @@ impl Client for TestClient {
     async fn update_tool_call(&self, _request: UpdateToolCallParams) -> Result<()> {
         Ok(())
     }
+
+    async fn write_text_file(&self, _request: WriteTextFileParams) -> Result<()> {
+        Ok(())
+    }
+
+    async fn read_text_file(&self, _request: ReadTextFileParams) -> Result<ReadTextFileResponse> {
+        Ok(ReadTextFileResponse {
+            content: String::new(),
+        })
+    }
 }
 
 #[tokio::test]
