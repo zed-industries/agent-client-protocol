@@ -6,8 +6,9 @@ pub struct TestClient;
 pub struct TestAgent;
 
 impl Agent for TestAgent {
-    async fn initialize(&self) -> Result<InitializeResponse, Error> {
+    async fn initialize(&self, request: InitializeParams) -> Result<InitializeResponse, Error> {
         Ok(InitializeResponse {
+            protocol_version: request.protocol_version,
             is_authenticated: true,
         })
     }
@@ -113,7 +114,9 @@ async fn test_client_agent_communication() {
                 .unwrap();
             assert_eq!(response.id, ToolCallId(0));
 
-            let response = client_connection.request(InitializeParams);
+            let response = client_connection.request(InitializeParams {
+                protocol_version: ProtocolVersion::latest(),
+            });
             let response = timeout(Duration::from_secs(2), response)
                 .await
                 .unwrap()

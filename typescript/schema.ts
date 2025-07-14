@@ -90,15 +90,6 @@ export type AnyAgentRequest =
   | SendUserMessageParams
   | CancelSendMessageParams;
 /**
- * Initialize sets up the agent's state. It should be called before any other method,
- * and no other methods should be called until it has completed.
- *
- * If the agent is not authenticated, then the client should prompt the user to authenticate,
- * and then call the `authenticate` method.
- * Otherwise the client can send other messages to the agent.
- */
-export type InitializeParams = null;
-/**
  * Triggers authentication on the agent side.
  *
  * This method should only be called if the initialize response indicates the user isn't already authenticated.
@@ -202,6 +193,21 @@ export interface ReadTextFileResponse {
   content: string;
 }
 /**
+ * Initialize sets up the agent's state. It should be called before any other method,
+ * and no other methods should be called until it has completed.
+ *
+ * If the agent is not authenticated, then the client should prompt the user to authenticate,
+ * and then call the `authenticate` method.
+ * Otherwise the client can send other messages to the agent.
+ */
+export interface InitializeParams {
+  /**
+   * The version of the protocol that the client supports.
+   * This should be the latest version supported by the client.
+   */
+  protocolVersion: string;
+}
+/**
  * sendUserMessage allows the user to send a message to the agent.
  * This method should complete after the agent is finished, during
  * which time the agent may update the client by calling
@@ -216,6 +222,12 @@ export interface InitializeResponse {
    * ready to handle requests.
    */
   isAuthenticated: boolean;
+  /**
+   * The version of the protocol that the agent supports.
+   * If the agent supports the requested version, it should respond with the same version.
+   * Otherwise, the agent should respond with the latest version it supports.
+   */
+  protocolVersion: string;
 }
 export interface Error {
   code: number;
@@ -290,7 +302,7 @@ export const CLIENT_METHODS: Method[] = [
 ];
 
 export interface Agent {
-  initialize(): Promise<InitializeResponse>;
+  initialize(params: InitializeParams): Promise<InitializeResponse>;
   authenticate(): Promise<void>;
   sendUserMessage(params: SendUserMessageParams): Promise<void>;
   cancelSendMessage(): Promise<void>;
@@ -300,7 +312,7 @@ export const AGENT_METHODS: Method[] = [
   {
     name: "initialize",
     requestType: "InitializeParams",
-    paramPayload: false,
+    paramPayload: true,
     responseType: "InitializeResponse",
     responsePayload: true,
   },

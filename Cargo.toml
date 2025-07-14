@@ -26,7 +26,8 @@ chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 log = "0.4"
 parking_lot = "0.12"
-schemars = { version = "1.0", features = ["chrono04"] }
+schemars = { version = "1.0", features = ["chrono04", "semver1"] }
+semver = { version = "1.0.26", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 

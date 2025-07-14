@@ -1,6 +1,7 @@
 use std::{fmt::Display, ops::Deref, path::PathBuf};
 
 use schemars::JsonSchema;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
@@ -427,7 +428,7 @@ acp_peer!(
         initialize,
         "initialize",
         InitializeParams,
-        false,
+        true,
         InitializeResponse,
         true
     ),
@@ -467,11 +468,29 @@ acp_peer!(
 /// Otherwise the client can send other messages to the agent.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct InitializeParams;
+pub struct InitializeParams {
+    /// The version of the protocol that the client supports.
+    /// This should be the latest version supported by the client.
+    pub protocol_version: ProtocolVersion,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct ProtocolVersion(Version);
+
+impl ProtocolVersion {
+    pub fn latest() -> Self {
+        Self(env!("CARGO_PKG_VERSION").parse().expect("Invalid version"))
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
+    /// The version of the protocol that the agent supports.
+    /// If the agent supports the requested version, it should respond with the same version.
+    /// Otherwise, the agent should respond with the latest version it supports.
+    pub protocol_version: ProtocolVersion,
     /// Indicates whether the agent is authenticated and
     /// ready to handle requests.
     pub is_authenticated: bool,

@@ -159,7 +159,14 @@
     },
     "InitializeParams": {
       "description": "Initialize sets up the agent's state. It should be called before any other method,\nand no other methods should be called until it has completed.\n\nIf the agent is not authenticated, then the client should prompt the user to authenticate,\nand then call the `authenticate` method.\nOtherwise the client can send other messages to the agent.",
-      "type": "null"
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "description": "The version of the protocol that the client supports.\nThis should be the latest version supported by the client.",
+          "$ref": "#/$defs/SemVer"
+        }
+      },
+      "required": ["protocolVersion"]
     },
     "InitializeResponse": {
       "type": "object",
@@ -167,9 +174,13 @@
         "isAuthenticated": {
           "description": "Indicates whether the agent is authenticated and\nready to handle requests.",
           "type": "boolean"
+        },
+        "protocolVersion": {
+          "description": "The version of the protocol that the agent supports.\nIf the agent supports the requested version, it should respond with the same version.\nOtherwise, the agent should respond with the latest version it supports.",
+          "$ref": "#/$defs/SemVer"
         }
       },
-      "required": ["isAuthenticated"]
+      "required": ["protocolVersion", "isAuthenticated"]
     },
     "PushToolCallParams": {
       "description": "pushToolCall allows the agent to start a tool call\nwhen it does not need to request permission to do so.\n\nThe returned id can be used to update the UI for the tool\ncall as needed.",
@@ -280,6 +291,10 @@
         }
       },
       "required": ["id", "outcome"]
+    },
+    "SemVer": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
     },
     "SendUserMessageParams": {
       "description": "sendUserMessage allows the user to send a message to the agent.\nThis method should complete after the agent is finished, during\nwhich time the agent may update the client by calling\nstreamAssistantMessageChunk and other methods.",

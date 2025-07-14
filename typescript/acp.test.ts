@@ -3,7 +3,9 @@ import {
   Agent,
   Client,
   Connection,
+  InitializeParams,
   InitializeResponse,
+  LATEST_PROTOCOL_VERSION,
   PushToolCallParams,
   PushToolCallResponse,
   ReadTextFileParams,
@@ -35,7 +37,7 @@ describe("Connection", () => {
 
     // Create agent that throws errors
     class TestAgent extends StubAgent {
-      async initialize(): Promise<InitializeResponse> {
+      async initialize(_: InitializeParams): Promise<InitializeResponse> {
         throw new Error("Failed to create thread");
       }
     }
@@ -62,7 +64,9 @@ describe("Connection", () => {
     ).rejects.toThrow();
 
     // Test error handling in agent->client direction
-    await expect(agentConnection.initialize()).rejects.toThrow();
+    await expect(
+      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
+    ).rejects.toThrow();
   });
 
   it("handles concurrent requests", async () => {
@@ -133,9 +137,12 @@ describe("Connection", () => {
     }
 
     class TestAgent extends StubAgent {
-      async initialize(): Promise<InitializeResponse> {
+      async initialize(request: InitializeParams): Promise<InitializeResponse> {
         messageLog.push("initialize called");
-        return { isAuthenticated: true };
+        return {
+          protocolVersion: request.protocolVersion,
+          isAuthenticated: true,
+        };
       }
     }
 
@@ -153,7 +160,9 @@ describe("Connection", () => {
     );
 
     // Send requests in specific order
-    await agentConnection.initialize();
+    await agentConnection.initialize({
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+    });
     let { id } = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
@@ -178,7 +187,7 @@ describe("Connection", () => {
 
 class StubAgent implements Agent {
   constructor(private client: Client) {}
-  initialize(): Promise<InitializeResponse> {
+  initialize(_: InitializeParams): Promise<InitializeResponse> {
     throw new Error("Method not implemented.");
   }
   authenticate(): Promise<void> {
