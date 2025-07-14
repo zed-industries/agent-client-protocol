@@ -129,7 +129,8 @@ enum OutgoingMessage<Req, Resp> {
     Request {
         id: i32,
         method: Box<str>,
-        params: Req,
+        #[serde(skip_serializing_if = "is_none_or_null")]
+        params: Option<Req>,
     },
     OkResponse {
         id: i32,
@@ -139,6 +140,15 @@ enum OutgoingMessage<Req, Resp> {
         id: i32,
         error: Error,
     },
+}
+
+fn is_none_or_null<T: Serialize>(opt: &Option<T>) -> bool {
+    match opt {
+        None => true,
+        Some(value) => {
+            matches!(serde_json::to_value(value), Ok(serde_json::Value::Null))
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -193,7 +203,7 @@ where
             .unbounded_send(OutgoingMessage::Request {
                 id,
                 method: method.into(),
-                params,
+                params: Some(params),
             })
             .is_err()
         {

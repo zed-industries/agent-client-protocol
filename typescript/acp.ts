@@ -18,7 +18,7 @@ type AnyMessage = AnyRequest | AnyResponse;
 type AnyRequest = {
   id: number;
   method: string;
-  params: unknown;
+  params?: unknown;
 };
 
 type AnyResponse = { id: number } & Result<unknown>;
@@ -72,7 +72,7 @@ export class Connection<D, P> {
       peer[name] = async (params: unknown) => {
         const result = await this.#sendRequest(
           name,
-          paramPayload ? params : null,
+          paramPayload ? params : undefined,
         );
         return responsePayload ? result : undefined;
       };
@@ -147,7 +147,7 @@ export class Connection<D, P> {
 
   async #tryCallDelegateMethod(
     method: string,
-    params: unknown,
+    params?: unknown,
   ): Promise<Result<unknown>> {
     const methodName = method as keyof D;
     if (
@@ -199,7 +199,7 @@ export class Connection<D, P> {
     }
   }
 
-  async #sendRequest(method: string, params: unknown): Promise<unknown> {
+  async #sendRequest(method: string, params?: unknown): Promise<unknown> {
     const id = this.#nextRequestId++;
     const responsePromise = new Promise((resolve, reject) => {
       this.#pendingResponses.set(id, { resolve, reject });
