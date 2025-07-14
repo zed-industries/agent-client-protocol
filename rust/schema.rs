@@ -1,5 +1,6 @@
 use std::{fmt::Display, ops::Deref, path::PathBuf};
 
+use derive_more::{Deref, Display, FromStr};
 use schemars::JsonSchema;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -474,7 +475,7 @@ pub struct InitializeParams {
     pub protocol_version: ProtocolVersion,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Deref, Display, FromStr, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct ProtocolVersion(Version);
 

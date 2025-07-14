@@ -23,6 +23,7 @@ path = "rust/generate.rs"
 [dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
+derive_more = { version = "2.0.1", features = ["display", "deref", "from_str"] }
 futures = "0.3"
 log = "0.4"
 parking_lot = "0.12"
