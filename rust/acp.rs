@@ -125,7 +125,10 @@ struct IncomingMessage<'a> {
 
 #[derive(Serialize)]
 #[serde(untagged)]
-enum OutgoingMessage<Req, Resp> {
+enum OutgoingMessage<Req, Resp>
+where
+    Req: for<'de> Deserialize<'de>,
+{
     Request {
         id: i32,
         method: Box<str>,
@@ -142,17 +145,18 @@ enum OutgoingMessage<Req, Resp> {
     },
 }
 
-fn is_none_or_null<T: Serialize>(opt: &Option<T>) -> bool {
+fn is_none_or_null<T: Serialize + for<'de> Deserialize<'de>>(opt: &Option<T>) -> bool {
     match opt {
         None => true,
-        Some(value) => {
-            matches!(serde_json::to_value(value), Ok(serde_json::Value::Null))
-        }
+        Some(_) => serde_json::from_value::<T>(serde_json::Value::Null).is_ok(),
     }
 }
 
 #[derive(Serialize)]
-pub struct JsonRpcMessage<Req, Resp> {
+pub struct JsonRpcMessage<Req, Resp>
+where
+    Req: for<'de> Deserialize<'de>,
+{
     pub jsonrpc: &'static str,
     #[serde(flatten)]
     message: OutgoingMessage<Req, Resp>,
