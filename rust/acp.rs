@@ -66,6 +66,14 @@ impl AgentConnection {
             R::response_from_any(result)
         }
     }
+
+    /// Send an untyped request to the agent and wait for a response.
+    pub fn request_any(
+        &self,
+        params: AnyAgentRequest,
+    ) -> impl use<> + Future<Output = Result<AnyAgentResult, Error>> {
+        self.0.request(params.method_name(), params)
+    }
 }
 
 impl ClientConnection {
@@ -98,6 +106,15 @@ impl ClientConnection {
             let result = result.await?;
             R::response_from_any(result)
         }
+    }
+
+    /// Send an untyped request to the client and wait for a response.
+    pub fn request_any(
+        &self,
+        method: &'static str,
+        params: AnyClientRequest,
+    ) -> impl Future<Output = Result<AnyClientResult, Error>> {
+        self.0.request(method, params)
     }
 }
 
