@@ -168,9 +168,15 @@ fn is_none_or_null<T: Serialize>(opt: &Option<T>) -> bool {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+enum JsonSchemaVersion {
+    #[serde(rename = "2.0")]
+    V2,
+}
+
 #[derive(Serialize)]
-pub struct JsonRpcMessage<Req, Resp> {
-    pub jsonrpc: &'static str,
+struct OutJsonRpcMessage<Req, Resp> {
+    jsonrpc: JsonSchemaVersion,
     #[serde(flatten)]
     message: OutgoingMessage<Req, Resp>,
 }
@@ -246,6 +252,10 @@ where
             select_biased! {
                 message = outgoing_rx.next() => {
                     if let Some(message) = message {
+                        let message = OutJsonRpcMessage {
+                            jsonrpc: JsonSchemaVersion::V2,
+                            message,
+                        };
                         outgoing_line.clear();
                         serde_json::to_writer(&mut outgoing_line, &message).map_err(Error::into_internal_error)?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
@@ -261,23 +271,23 @@ where
                     }
                     log::trace!("recv: {}", &incoming_line);
                     match serde_json::from_str::<IncomingMessage>(&incoming_line) {
-                        Ok(message) => {
-                            if let Some(method) = message.method {
-                                match In::from_method_and_params(method, message.params.unwrap_or(RawValue::NULL)) {
+                        Ok(IncomingMessage { id, method, params, result, error }) => {
+                            if let Some(method) = method {
+                                match In::from_method_and_params(method, params.unwrap_or(RawValue::NULL)) {
                                     Ok(params) => {
-                                        incoming_tx.unbounded_send((message.id, params)).ok();
+                                        incoming_tx.unbounded_send((id, params)).ok();
                                     }
                                     Err(error) => {
                                         log::error!("failed to parse incoming {method} message params: {error}. Raw: {incoming_line}");
                                     }
                                 }
-                            } else if let Some(error) = message.error {
-                                if let Some((_, tx)) = response_senders.lock().remove(&message.id) {
+                            } else if let Some(error) = error {
+                                if let Some((_, tx)) = response_senders.lock().remove(&id) {
                                     tx.send(Err(error)).ok();
                                 }
                             } else {
-                                let result = message.result.unwrap_or(RawValue::NULL);
-                                if let Some((method, tx)) = response_senders.lock().remove(&message.id) {
+                                let result = result.unwrap_or(RawValue::NULL);
+                                if let Some((method, tx)) = response_senders.lock().remove(&id) {
                                     match Out::response_from_method_and_result(method, result) {
                                         Ok(result) => {
                                             tx.send(Ok(result)).ok();
