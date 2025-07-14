@@ -21,7 +21,7 @@ type AnyRequest = {
   params?: unknown;
 };
 
-type AnyResponse = { id: number } & Result<unknown>;
+type AnyResponse = { jsonrpc: "2.0"; id: number } & Result<unknown>;
 
 type Result<T> =
   | {
@@ -137,6 +137,7 @@ export class Connection<D, P> {
       );
 
       await this.#sendMessage({
+        jsonrpc: "2.0",
         id: message.id,
         ...response,
       });
@@ -204,7 +205,7 @@ export class Connection<D, P> {
     const responsePromise = new Promise((resolve, reject) => {
       this.#pendingResponses.set(id, { resolve, reject });
     });
-    await this.#sendMessage({ id, method, params });
+    await this.#sendMessage({ jsonrpc: "2.0", id, method, params });
     return responsePromise;
   }
 
