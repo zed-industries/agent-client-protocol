@@ -239,14 +239,6 @@ export interface Error {
   message: string;
 }
 
-export interface Method {
-  name: string;
-  requestType: string;
-  paramPayload: boolean;
-  responseType: string;
-  responsePayload: boolean;
-}
-
 export abstract class Client {
   abstract streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
@@ -269,50 +261,14 @@ export abstract class Client {
   ): Promise<ReadTextFileResponse>;
 }
 
-export const CLIENT_METHODS: Method[] = [
-  {
-    name: "streamAssistantMessageChunk",
-    requestType: "StreamAssistantMessageChunkParams",
-    paramPayload: true,
-    responseType: "StreamAssistantMessageChunkResponse",
-    responsePayload: false,
-  },
-  {
-    name: "requestToolCallConfirmation",
-    requestType: "RequestToolCallConfirmationParams",
-    paramPayload: true,
-    responseType: "RequestToolCallConfirmationResponse",
-    responsePayload: true,
-  },
-  {
-    name: "pushToolCall",
-    requestType: "PushToolCallParams",
-    paramPayload: true,
-    responseType: "PushToolCallResponse",
-    responsePayload: true,
-  },
-  {
-    name: "updateToolCall",
-    requestType: "UpdateToolCallParams",
-    paramPayload: true,
-    responseType: "UpdateToolCallResponse",
-    responsePayload: false,
-  },
-  {
-    name: "writeTextFile",
-    requestType: "WriteTextFileParams",
-    paramPayload: true,
-    responseType: "WriteTextFileResponse",
-    responsePayload: false,
-  },
-  {
-    name: "readTextFile",
-    requestType: "ReadTextFileParams",
-    paramPayload: true,
-    responseType: "ReadTextFileResponse",
-    responsePayload: true,
-  },
-];
+export const CLIENT_METHODS = {
+  STREAM_ASSISTANT_MESSAGE_CHUNK: "streamAssistantMessageChunk",
+  REQUEST_TOOL_CALL_CONFIRMATION: "requestToolCallConfirmation",
+  PUSH_TOOL_CALL: "pushToolCall",
+  UPDATE_TOOL_CALL: "updateToolCall",
+  WRITE_TEXT_FILE: "writeTextFile",
+  READ_TEXT_FILE: "readTextFile",
+};
 
 export abstract class Agent {
   abstract initialize(params: InitializeParams): Promise<InitializeResponse>;
@@ -324,33 +280,9 @@ export abstract class Agent {
   abstract cancelSendMessage(): Promise<void>;
 }
 
-export const AGENT_METHODS: Method[] = [
-  {
-    name: "initialize",
-    requestType: "InitializeParams",
-    paramPayload: true,
-    responseType: "InitializeResponse",
-    responsePayload: true,
-  },
-  {
-    name: "authenticate",
-    requestType: "AuthenticateParams",
-    paramPayload: false,
-    responseType: "AuthenticateResponse",
-    responsePayload: false,
-  },
-  {
-    name: "sendUserMessage",
-    requestType: "SendUserMessageParams",
-    paramPayload: true,
-    responseType: "SendUserMessageResponse",
-    responsePayload: false,
-  },
-  {
-    name: "cancelSendMessage",
-    requestType: "CancelSendMessageParams",
-    paramPayload: false,
-    responseType: "CancelSendMessageResponse",
-    responsePayload: false,
-  },
-];
+export const AGENT_METHODS = {
+  INITIALIZE: "initialize",
+  AUTHENTICATE: "authenticate",
+  SEND_USER_MESSAGE: "sendUserMessage",
+  CANCEL_SEND_MESSAGE: "cancelSendMessage",
+};

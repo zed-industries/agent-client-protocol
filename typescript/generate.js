@@ -23,14 +23,6 @@ ${await compile(jsonSchema, "Agent Coding Protocol", {
   bannerComment: false,
 })}
 
-export interface Method {
-  name: string;
-  requestType: string;
-  paramPayload: boolean;
-  responseType: string;
-  responsePayload: boolean;
-}
-
 ${requestMapToInterface("Client", clientMethods)}
 
 ${requestMapToInterface("Agent", agentMethods)}
@@ -62,7 +54,11 @@ function requestMapToInterface(name, methods) {
   }
   code += "}\n\n";
 
-  code += `export const ${name.toUpperCase()}_METHODS: Method[] = ${JSON.stringify(methods, null, 2)};`;
+  code += `export const ${name.toUpperCase()}_METHODS = {\n`;
+  for (const { name } of methods) {
+    code += `  ${name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}: "${name}",\n`;
+  }
+  code += `};\n`;
 
   return code;
 }

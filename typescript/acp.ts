@@ -7,7 +7,6 @@ import {
   InitializeParams,
   InitializeResponse,
   LATEST_PROTOCOL_VERSION,
-  Method,
   PushToolCallParams,
   PushToolCallResponse,
   ReadTextFileParams,
@@ -51,61 +50,24 @@ type PendingResponse = {
   reject: (error: ErrorResponse) => void;
 };
 
-export class Connection<D, P> {
+class Connection<D> {
   #pendingResponses: Map<number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
   #delegate: D;
-  #delegateMethods: Record<string, Method>;
   #peerInput: WritableStream<Uint8Array>;
   #writeQueue: Promise<void> = Promise.resolve();
   #textEncoder: TextEncoder;
 
   constructor(
-    delegate: (peer: P) => D,
-    delegateMethods: Method[],
+    delegate: D,
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
-    this.#delegateMethods = delegateMethods.reduce<Record<string, Method>>(
-      (acc, method) => {
-        acc[method.name] = method;
-        return acc;
-      },
-      {},
-    );
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
 
-    this.#delegate = delegate(this as unknown as P);
+    this.#delegate = delegate;
     this.#receive(peerOutput);
-  }
-
-  static clientToAgent(
-    client: (agent: Agent) => Client,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
-  ): AgentConnection {
-    const connection = new Connection<Client, Agent>(
-      client,
-      CLIENT_METHODS,
-      input,
-      output,
-    );
-    return new AgentConnection(connection);
-  }
-
-  static agentToClient(
-    agent: (client: Client) => Agent,
-    input: WritableStream,
-    output: ReadableStream,
-  ): ClientConnection {
-    const connection = new Connection<Agent, Client>(
-      agent,
-      AGENT_METHODS,
-      input,
-      output,
-    );
-    return new ClientConnection(connection);
   }
 
   async #receive(output: ReadableStream<Uint8Array>) {
@@ -149,21 +111,15 @@ export class Connection<D, P> {
     params?: unknown,
   ): Promise<Result<unknown>> {
     const methodName = method as keyof D;
-    if (
-      !this.#delegateMethods[method] ||
-      typeof this.#delegate[methodName] !== "function"
-    ) {
+    if (typeof this.#delegate[methodName] !== "function") {
       return {
         error: { code: -32601, message: `Method not found - '${method}'` },
       };
     }
 
     try {
-      let { paramPayload, responsePayload } = this.#delegateMethods[method];
-      const result = await this.#delegate[methodName](
-        paramPayload ? params : undefined,
-      );
-      return { result: responsePayload ? result : null };
+      const result = await this.#delegate[methodName](params);
+      return { result: result ?? null };
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();
@@ -226,15 +182,22 @@ export class Connection<D, P> {
 }
 
 export class AgentConnection extends Agent {
-  constructor(private connection: Connection<Client, Agent>) {
+  #connection: Connection<Client>;
+
+  constructor(
+    client: (agent: Agent) => Client,
+    input: WritableStream<Uint8Array>,
+    output: ReadableStream<Uint8Array>,
+  ) {
     super();
+    this.#connection = new Connection(client(this), input, output);
   }
 
   async initialize(): Promise<InitializeResponse> {
-    const result = await this.connection.sendRequest<
+    const result = await this.#connection.sendRequest<
       InitializeParams,
       InitializeResponse
-    >("initialize", {
+    >(AGENT_METHODS.INITIALIZE, {
       protocolVersion: LATEST_PROTOCOL_VERSION,
     });
 
@@ -250,51 +213,64 @@ export class AgentConnection extends Agent {
   }
 
   async authenticate(): Promise<void> {
-    await this.connection.sendRequest("authenticate");
+    await this.#connection.sendRequest(AGENT_METHODS.AUTHENTICATE);
   }
 
   async sendUserMessage(params: SendUserMessageParams): Promise<void> {
-    await this.connection.sendRequest("sendUserMessage", params);
+    await this.#connection.sendRequest(AGENT_METHODS.SEND_USER_MESSAGE, params);
   }
 
   async cancelSendMessage(): Promise<void> {
-    await this.connection.sendRequest("cancelSendMessage");
+    await this.#connection.sendRequest(AGENT_METHODS.CANCEL_SEND_MESSAGE);
   }
 }
 
 export class ClientConnection extends Client {
-  constructor(private connection: Connection<Agent, Client>) {
+  #connection: Connection<Agent>;
+
+  constructor(
+    agent: (client: Client) => Agent,
+    input: WritableStream<Uint8Array>,
+    output: ReadableStream<Uint8Array>,
+  ) {
     super();
+    this.#connection = new Connection(agent(this), input, output);
   }
 
   async streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
   ): Promise<void> {
-    await this.connection.sendRequest("streamAssistantMessageChunk", params);
+    await this.#connection.sendRequest(
+      CLIENT_METHODS.STREAM_ASSISTANT_MESSAGE_CHUNK,
+      params,
+    );
   }
 
   requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
   ): Promise<RequestToolCallConfirmationResponse> {
-    return this.connection.sendRequest("requestToolCallConfirmation", params);
+    return this.#connection.sendRequest(
+      CLIENT_METHODS.REQUEST_TOOL_CALL_CONFIRMATION,
+      params,
+    );
   }
 
   pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse> {
-    return this.connection.sendRequest("pushToolCall", params);
+    return this.#connection.sendRequest(CLIENT_METHODS.PUSH_TOOL_CALL, params);
   }
 
   async updateToolCall(params: UpdateToolCallParams): Promise<void> {
-    await this.connection.sendRequest("updateToolCall", params);
+    await this.#connection.sendRequest(CLIENT_METHODS.UPDATE_TOOL_CALL, params);
   }
 
   async writeTextFile(params: WriteTextFileParams): Promise<void> {
-    await this.connection.sendRequest("writeTextFile", params);
+    await this.#connection.sendRequest(CLIENT_METHODS.WRITE_TEXT_FILE, params);
   }
 
   async readTextFile(
     params: ReadTextFileParams,
   ): Promise<ReadTextFileResponse> {
-    return this.connection.sendRequest("readTextFile", params);
+    return this.#connection.sendRequest("readTextFile", params);
   }
 }
 

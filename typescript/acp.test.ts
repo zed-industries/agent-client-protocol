@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   Agent,
+  AgentConnection,
   Client,
-  Connection,
+  ClientConnection,
   InitializeParams,
   InitializeResponse,
-  LATEST_PROTOCOL_VERSION,
   PushToolCallParams,
   PushToolCallResponse,
   ReadTextFileParams,
@@ -43,13 +43,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (agent) => new TestClient(agent),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
@@ -85,13 +85,13 @@ describe("Connection", () => {
     // Create agent with delayed responses
     class TestAgent extends StubAgent {}
 
-    Connection.clientToAgent(
+    new AgentConnection(
       (a) => new TestClient(a),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
@@ -145,13 +145,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (client) => new TestClient(client),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
@@ -193,13 +193,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (agent) => new TestClient(agent),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    Connection.agentToClient(
+    new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
