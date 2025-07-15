@@ -14,28 +14,33 @@ const agentMethods = JSON.parse(
   fs.readFileSync("./target/agent_requests.json", "utf8"),
 );
 
-let typescriptSource = await compile(jsonSchema, "Agent Coding Protocol", {
+let typescriptSource = `import semver from 'semver';
+import { version } from "../package.json";
+
+export const LATEST_PROTOCOL_VERSION = version;
+
+${await compile(jsonSchema, "Agent Coding Protocol", {
   additionalProperties: false,
   bannerComment: false,
-});
+})}
 
-const clientInterface = requestMapToInterface("Client", clientMethods);
-const agentInterface = requestMapToInterface("Agent", agentMethods);
+export interface Method {
+  name: string;
+  requestType: string;
+  paramPayload: boolean;
+  responseType: string;
+  responsePayload: boolean;
+}
 
-typescriptSource += "\n\nexport interface Method {\n";
-typescriptSource += "  name: string;\n";
-typescriptSource += "  requestType: string;\n";
-typescriptSource += "  paramPayload: boolean;\n";
-typescriptSource += "  responseType: string;\n";
-typescriptSource += "  responsePayload: boolean;\n";
-typescriptSource += "}\n";
+${requestMapToInterface("Client", clientMethods)}
 
-typescriptSource += "\n" + clientInterface + "\n\n" + agentInterface + "\n";
+${requestMapToInterface("Agent", agentMethods)}
+`;
 
 fs.writeFileSync("typescript/schema.ts", typescriptSource, "utf8");
 
 function requestMapToInterface(name, methods) {
-  let code = `export interface ${name} {\n`;
+  let code = `export abstract class ${name} {\n`;
 
   for (const {
     name,
@@ -44,18 +49,30 @@ function requestMapToInterface(name, methods) {
     paramPayload,
     responsePayload,
   } of methods) {
-    code += name;
+    code += `abstract ${name}`;
     if (paramPayload) {
       code += `(params: ${requestType})`;
     } else {
       code += `()`;
     }
     if (responsePayload) {
-      code += `: Promise<${responseType}>;\n`;
+      code += `: Promise<${responseType}>;\n\n`;
     } else {
-      code += `: Promise<void>;\n`;
+      code += `: Promise<void>;\n\n`;
     }
   }
+  code += `
+  /**
+   * Validates that the provided version is compatible with the current protocol version.
+   *
+   * @param version - The version string to validate
+   * @throws {Error} If the version is not compatible with the current protocol version
+   */
+  validateVersion(version: string) {
+    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, \`^\${version}\`)) {
+      throw new Error(\`Incompatible versions: Requested \${version} / Supported: ^\${LATEST_PROTOCOL_VERSION}\`);
+    }
+  }\n`;
   code += "}\n\n";
 
   code += `export const ${name.toUpperCase()}_METHODS: Method[] = ${JSON.stringify(methods, null, 2)};`;

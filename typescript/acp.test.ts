@@ -139,6 +139,7 @@ describe("Connection", () => {
     class TestAgent extends StubAgent {
       async initialize(request: InitializeParams): Promise<InitializeResponse> {
         messageLog.push("initialize called");
+        this.validateVersion(request.protocolVersion);
         return {
           protocolVersion: request.protocolVersion,
           isAuthenticated: true,
@@ -183,10 +184,46 @@ describe("Connection", () => {
       "updateToolCall called",
     ]);
   });
+
+  it("can validate version numbers", async () => {
+    class TestClient extends StubClient {}
+
+    class TestAgent extends StubAgent {
+      async initialize(params: InitializeParams): Promise<InitializeResponse> {
+        this.validateVersion(params.protocolVersion);
+        return {
+          protocolVersion: params.protocolVersion,
+          isAuthenticated: true,
+        };
+      }
+    }
+
+    // Set up connections
+    const agentConnection = Connection.clientToAgent(
+      (agent) => new TestClient(agent),
+      clientToAgent.writable,
+      agentToClient.readable,
+    );
+
+    Connection.agentToClient(
+      (client) => new TestAgent(client),
+      agentToClient.writable,
+      clientToAgent.readable,
+    );
+
+    await expect(
+      agentConnection.initialize({ protocolVersion: "0.0.1" }),
+    ).rejects.toThrow();
+    await expect(
+      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
+    ).resolves.toBeDefined();
+  });
 });
 
-class StubAgent implements Agent {
-  constructor(private client: Client) {}
+class StubAgent extends Agent {
+  constructor(private client: Client) {
+    super();
+  }
   initialize(_: InitializeParams): Promise<InitializeResponse> {
     throw new Error("Method not implemented.");
   }
@@ -201,8 +238,10 @@ class StubAgent implements Agent {
   }
 }
 
-class StubClient implements Client {
-  constructor(private agent: Agent) {}
+class StubClient extends Client {
+  constructor(private agent: Agent) {
+    super();
+  }
   streamAssistantMessageChunk(
     _: StreamAssistantMessageChunkParams,
   ): Promise<void> {
