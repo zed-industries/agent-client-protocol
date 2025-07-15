@@ -1,7 +1,7 @@
 import semver from "semver";
-import { version } from "../package.json";
+import pkg from "../package.json" with { type: "json" };
 
-export const LATEST_PROTOCOL_VERSION = version;
+export const LATEST_PROTOCOL_VERSION = pkg.version;
 
 export type AgentCodingProtocol =
   | AnyClientRequest
