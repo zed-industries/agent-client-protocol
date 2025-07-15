@@ -209,10 +209,8 @@ describe("Connection", () => {
   });
 });
 
-class StubAgent extends Agent {
-  constructor(private client: Client) {
-    super();
-  }
+class StubAgent implements Agent {
+  constructor(private client: Client) {}
   initialize(_: InitializeParams): Promise<InitializeResponse> {
     throw new Error("Method not implemented.");
   }
@@ -227,10 +225,8 @@ class StubAgent extends Agent {
   }
 }
 
-class StubClient extends Client {
-  constructor(private agent: Agent) {
-    super();
-  }
+class StubClient implements Client {
+  constructor(private agent: Agent) {}
   streamAssistantMessageChunk(
     _: StreamAssistantMessageChunkParams,
   ): Promise<void> {

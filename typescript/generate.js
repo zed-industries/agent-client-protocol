@@ -31,7 +31,7 @@ ${requestMapToInterface("Agent", agentMethods)}
 fs.writeFileSync("typescript/schema.ts", typescriptSource, "utf8");
 
 function requestMapToInterface(name, methods) {
-  let code = `export abstract class ${name} {\n`;
+  let code = `export interface ${name} {\n`;
 
   for (const {
     name,
@@ -40,7 +40,7 @@ function requestMapToInterface(name, methods) {
     paramPayload,
     responsePayload,
   } of methods) {
-    code += `abstract ${name}`;
+    code += `${name}`;
     if (paramPayload) {
       code += `(params: ${requestType})`;
     } else {

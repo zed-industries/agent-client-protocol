@@ -181,7 +181,7 @@ class Connection<D> {
   }
 }
 
-export class AgentConnection extends Agent {
+export class AgentConnection implements Agent {
   #connection: Connection<Client>;
 
   constructor(
@@ -189,7 +189,6 @@ export class AgentConnection extends Agent {
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
-    super();
     this.#connection = new Connection(client(this), input, output);
   }
 
@@ -225,7 +224,7 @@ export class AgentConnection extends Agent {
   }
 }
 
-export class ClientConnection extends Client {
+export class ClientConnection implements Client {
   #connection: Connection<Agent>;
 
   constructor(
@@ -233,7 +232,6 @@ export class ClientConnection extends Client {
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
-    super();
     this.#connection = new Connection(agent(this), input, output);
   }
 
