@@ -106,7 +106,7 @@ async fn test_client_agent_communication() {
             let _task = tokio::spawn(client_io_task);
             let _task = tokio::spawn(agent_io_task);
 
-            let response = client_connection.initialize();
+            let response = client_connection.initialize(Default::default());
             let response = timeout(Duration::from_secs(2), response)
                 .await
                 .unwrap()
@@ -184,7 +184,7 @@ async fn test_invalid_protocol_versions() {
             let _task = tokio::spawn(client_io_task);
             let _task = tokio::spawn(agent_io_task);
 
-            let response = client_connection.initialize();
+            let response = client_connection.initialize(Default::default());
             let response = timeout(Duration::from_secs(2), response).await.unwrap();
             assert!(response.is_err());
         })

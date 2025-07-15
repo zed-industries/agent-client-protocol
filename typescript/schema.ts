@@ -205,11 +205,29 @@ export interface ReadTextFileResponse {
  * Otherwise the client can send other messages to the agent.
  */
 export interface InitializeParams {
+  clientCapabilities: ClientCapabilities;
   /**
    * The version of the protocol that the client supports.
    * This should be the latest version supported by the client.
    */
   protocolVersion: string;
+}
+/**
+ * The capabilities of the client.
+ */
+export interface ClientCapabilities {
+  fileSystem: FileSystemCapability;
+}
+/**
+ * The capabilities of the file system.
+ */
+export interface FileSystemCapability {
+  /**
+   * Baseline filesystem capability, including:
+   * - readTextFile
+   * - writeTextFile
+   */
+  baseline: boolean;
 }
 /**
  * sendUserMessage allows the user to send a message to the agent.

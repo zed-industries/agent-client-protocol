@@ -192,13 +192,11 @@ export class AgentConnection implements Agent {
     this.#connection = new Connection(client(this), input, output);
   }
 
-  async initialize(): Promise<InitializeResponse> {
+  async initialize(params: InitializeParams): Promise<InitializeResponse> {
     const result = await this.#connection.sendRequest<
       InitializeParams,
       InitializeResponse
-    >(AGENT_METHODS.INITIALIZE, {
-      protocolVersion: LATEST_PROTOCOL_VERSION,
-    });
+    >(AGENT_METHODS.INITIALIZE, params);
 
     if (
       !semver.satisfies(result.protocolVersion, `^${LATEST_PROTOCOL_VERSION}`)

@@ -6,6 +6,7 @@ import {
   ClientConnection,
   InitializeParams,
   InitializeResponse,
+  LATEST_PROTOCOL_VERSION,
   PushToolCallParams,
   PushToolCallResponse,
   ReadTextFileParams,
@@ -64,7 +65,16 @@ describe("Connection", () => {
     ).rejects.toThrow();
 
     // Test error handling in agent->client direction
-    await expect(agentConnection.initialize()).rejects.toThrow();
+    await expect(
+      agentConnection.initialize({
+        protocolVersion: LATEST_PROTOCOL_VERSION,
+        clientCapabilities: {
+          fileSystem: {
+            baseline: true,
+          },
+        },
+      }),
+    ).rejects.toThrow();
   });
 
   it("handles concurrent requests", async () => {
@@ -158,7 +168,14 @@ describe("Connection", () => {
     );
 
     // Send requests in specific order
-    await agentConnection.initialize();
+    await agentConnection.initialize({
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      clientCapabilities: {
+        fileSystem: {
+          baseline: true,
+        },
+      },
+    });
     let { id } = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
@@ -205,7 +222,16 @@ describe("Connection", () => {
       clientToAgent.readable,
     );
 
-    await expect(agentConnection.initialize()).rejects.toThrow();
+    await expect(
+      agentConnection.initialize({
+        protocolVersion: LATEST_PROTOCOL_VERSION,
+        clientCapabilities: {
+          fileSystem: {
+            baseline: true,
+          },
+        },
+      }),
+    ).rejects.toThrow();
   });
 });
 

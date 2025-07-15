@@ -130,6 +130,19 @@
     "CancelSendMessageResponse": {
       "type": "null"
     },
+    "ClientCapabilities": {
+      "type": "object",
+      "properties": {
+        "fileSystem": {
+          "description": "The capabilities of the file system.",
+          "$ref": "#/$defs/FileSystemCapability",
+          "default": {
+            "baseline": false
+          }
+        }
+      },
+      "required": ["fileSystem"]
+    },
     "Error": {
       "type": "object",
       "properties": {
@@ -143,6 +156,17 @@
         }
       },
       "required": ["code", "message"]
+    },
+    "FileSystemCapability": {
+      "description": "The capabilities of the file system.",
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "description": "Baseline filesystem capability, including:\n- readTextFile\n- writeTextFile",
+          "type": "boolean"
+        }
+      },
+      "required": ["baseline"]
     },
     "Icon": {
       "type": "string",
@@ -161,12 +185,16 @@
       "description": "Initialize sets up the agent's state. It should be called before any other method,\nand no other methods should be called until it has completed.\n\nIf the agent is not authenticated, then the client should prompt the user to authenticate,\nand then call the `authenticate` method.\nOtherwise the client can send other messages to the agent.",
       "type": "object",
       "properties": {
+        "clientCapabilities": {
+          "description": "The capabilities of the client.",
+          "$ref": "#/$defs/ClientCapabilities"
+        },
         "protocolVersion": {
           "description": "The version of the protocol that the client supports.\nThis should be the latest version supported by the client.",
           "$ref": "#/$defs/SemVer"
         }
       },
-      "required": ["protocolVersion"]
+      "required": ["protocolVersion", "clientCapabilities"]
     },
     "InitializeResponse": {
       "type": "object",

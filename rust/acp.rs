@@ -78,7 +78,10 @@ impl AgentConnection {
 
     /// Sends an initialization request to the Agent.
     /// This will error if the server version is incompatible with the client version.
-    pub async fn initialize(&self) -> Result<InitializeResponse, Error> {
+    pub async fn initialize(
+        &self,
+        client_capabilities: ClientCapabilities,
+    ) -> Result<InitializeResponse, Error> {
         let protocol_version = ProtocolVersion::latest();
         let version_requirement = Comparator {
             op: semver::Op::Caret,
@@ -87,7 +90,12 @@ impl AgentConnection {
             patch: Some(protocol_version.patch),
             pre: protocol_version.pre.clone(),
         };
-        let response = self.request(InitializeParams { protocol_version }).await?;
+        let response = self
+            .request(InitializeParams {
+                protocol_version,
+                client_capabilities,
+            })
+            .await?;
 
         let server_version = &response.protocol_version;
 

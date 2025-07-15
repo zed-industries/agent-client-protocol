@@ -400,6 +400,8 @@ acp_peer!(
         UpdateToolCallResponse,
         false
     ),
+    // FileSystem capabilities
+    // Make sure to update `FileSystemCapability` docs!
     (
         write_text_file,
         "writeTextFile",
@@ -473,6 +475,27 @@ pub struct InitializeParams {
     /// The version of the protocol that the client supports.
     /// This should be the latest version supported by the client.
     pub protocol_version: ProtocolVersion,
+
+    /// The capabilities of the client.
+    pub client_capabilities: ClientCapabilities,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientCapabilities {
+    /// The capabilities of the file system.
+    #[serde(default)]
+    pub file_system: FileSystemCapability,
+}
+
+/// The capabilities of the file system.
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FileSystemCapability {
+    /// Baseline filesystem capability, including:
+    /// - readTextFile
+    /// - writeTextFile
+    baseline: bool,
 }
 
 #[derive(Clone, Debug, Deref, Display, FromStr, Serialize, Deserialize, JsonSchema)]
