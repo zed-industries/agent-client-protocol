@@ -15,9 +15,9 @@ const agentMethods = JSON.parse(
 );
 
 let typescriptSource = `import semver from 'semver';
-import { version } from "../package.json";
+import pkg from "../package.json" with { type: "json" };
 
-export const LATEST_PROTOCOL_VERSION = version;
+export const LATEST_PROTOCOL_VERSION = pkg.version;
 
 ${await compile(jsonSchema, "Agent Coding Protocol", {
   additionalProperties: false,
