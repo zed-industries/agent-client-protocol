@@ -1,4 +1,3 @@
-import semver from "semver";
 import pkg from "../package.json" with { type: "json" };
 
 export const LATEST_PROTOCOL_VERSION = pkg.version;
@@ -240,146 +239,46 @@ export interface Error {
   message: string;
 }
 
-export interface Method {
-  name: string;
-  requestType: string;
-  paramPayload: boolean;
-  responseType: string;
-  responsePayload: boolean;
-}
-
-export abstract class Client {
-  abstract streamAssistantMessageChunk(
+export interface Client {
+  streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
   ): Promise<void>;
 
-  abstract requestToolCallConfirmation(
+  requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
   ): Promise<RequestToolCallConfirmationResponse>;
 
-  abstract pushToolCall(
-    params: PushToolCallParams,
-  ): Promise<PushToolCallResponse>;
+  pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
 
-  abstract updateToolCall(params: UpdateToolCallParams): Promise<void>;
+  updateToolCall(params: UpdateToolCallParams): Promise<void>;
 
-  abstract writeTextFile(params: WriteTextFileParams): Promise<void>;
+  writeTextFile(params: WriteTextFileParams): Promise<void>;
 
-  abstract readTextFile(
-    params: ReadTextFileParams,
-  ): Promise<ReadTextFileResponse>;
-
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
-      throw new Error(
-        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
-      );
-    }
-  }
+  readTextFile(params: ReadTextFileParams): Promise<ReadTextFileResponse>;
 }
 
-export const CLIENT_METHODS: Method[] = [
-  {
-    name: "streamAssistantMessageChunk",
-    requestType: "StreamAssistantMessageChunkParams",
-    paramPayload: true,
-    responseType: "StreamAssistantMessageChunkResponse",
-    responsePayload: false,
-  },
-  {
-    name: "requestToolCallConfirmation",
-    requestType: "RequestToolCallConfirmationParams",
-    paramPayload: true,
-    responseType: "RequestToolCallConfirmationResponse",
-    responsePayload: true,
-  },
-  {
-    name: "pushToolCall",
-    requestType: "PushToolCallParams",
-    paramPayload: true,
-    responseType: "PushToolCallResponse",
-    responsePayload: true,
-  },
-  {
-    name: "updateToolCall",
-    requestType: "UpdateToolCallParams",
-    paramPayload: true,
-    responseType: "UpdateToolCallResponse",
-    responsePayload: false,
-  },
-  {
-    name: "writeTextFile",
-    requestType: "WriteTextFileParams",
-    paramPayload: true,
-    responseType: "WriteTextFileResponse",
-    responsePayload: false,
-  },
-  {
-    name: "readTextFile",
-    requestType: "ReadTextFileParams",
-    paramPayload: true,
-    responseType: "ReadTextFileResponse",
-    responsePayload: true,
-  },
-];
+export const CLIENT_METHODS = {
+  STREAM_ASSISTANT_MESSAGE_CHUNK: "streamAssistantMessageChunk",
+  REQUEST_TOOL_CALL_CONFIRMATION: "requestToolCallConfirmation",
+  PUSH_TOOL_CALL: "pushToolCall",
+  UPDATE_TOOL_CALL: "updateToolCall",
+  WRITE_TEXT_FILE: "writeTextFile",
+  READ_TEXT_FILE: "readTextFile",
+};
 
-export abstract class Agent {
-  abstract initialize(params: InitializeParams): Promise<InitializeResponse>;
+export interface Agent {
+  initialize(params: InitializeParams): Promise<InitializeResponse>;
 
-  abstract authenticate(): Promise<void>;
+  authenticate(): Promise<void>;
 
-  abstract sendUserMessage(params: SendUserMessageParams): Promise<void>;
+  sendUserMessage(params: SendUserMessageParams): Promise<void>;
 
-  abstract cancelSendMessage(): Promise<void>;
-
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
-      throw new Error(
-        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
-      );
-    }
-  }
+  cancelSendMessage(): Promise<void>;
 }
 
-export const AGENT_METHODS: Method[] = [
-  {
-    name: "initialize",
-    requestType: "InitializeParams",
-    paramPayload: true,
-    responseType: "InitializeResponse",
-    responsePayload: true,
-  },
-  {
-    name: "authenticate",
-    requestType: "AuthenticateParams",
-    paramPayload: false,
-    responseType: "AuthenticateResponse",
-    responsePayload: false,
-  },
-  {
-    name: "sendUserMessage",
-    requestType: "SendUserMessageParams",
-    paramPayload: true,
-    responseType: "SendUserMessageResponse",
-    responsePayload: false,
-  },
-  {
-    name: "cancelSendMessage",
-    requestType: "CancelSendMessageParams",
-    paramPayload: false,
-    responseType: "CancelSendMessageResponse",
-    responsePayload: false,
-  },
-];
+export const AGENT_METHODS = {
+  INITIALIZE: "initialize",
+  AUTHENTICATE: "authenticate",
+  SEND_USER_MESSAGE: "sendUserMessage",
+  CANCEL_SEND_MESSAGE: "cancelSendMessage",
+};

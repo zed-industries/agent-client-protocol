@@ -14,8 +14,7 @@ const agentMethods = JSON.parse(
   fs.readFileSync("./target/agent_requests.json", "utf8"),
 );
 
-let typescriptSource = `import semver from 'semver';
-import pkg from "../package.json" with { type: "json" };
+let typescriptSource = `import pkg from "../package.json" with { type: "json" };
 
 export const LATEST_PROTOCOL_VERSION = pkg.version;
 
@@ -23,14 +22,6 @@ ${await compile(jsonSchema, "Agent Coding Protocol", {
   additionalProperties: false,
   bannerComment: false,
 })}
-
-export interface Method {
-  name: string;
-  requestType: string;
-  paramPayload: boolean;
-  responseType: string;
-  responsePayload: boolean;
-}
 
 ${requestMapToInterface("Client", clientMethods)}
 
@@ -40,7 +31,7 @@ ${requestMapToInterface("Agent", agentMethods)}
 fs.writeFileSync("typescript/schema.ts", typescriptSource, "utf8");
 
 function requestMapToInterface(name, methods) {
-  let code = `export abstract class ${name} {\n`;
+  let code = `export interface ${name} {\n`;
 
   for (const {
     name,
@@ -49,7 +40,7 @@ function requestMapToInterface(name, methods) {
     paramPayload,
     responsePayload,
   } of methods) {
-    code += `abstract ${name}`;
+    code += `${name}`;
     if (paramPayload) {
       code += `(params: ${requestType})`;
     } else {
@@ -61,21 +52,13 @@ function requestMapToInterface(name, methods) {
       code += `: Promise<void>;\n\n`;
     }
   }
-  code += `
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, \`^\${version}\`)) {
-      throw new Error(\`Incompatible versions: Requested \${version} / Supported: ^\${LATEST_PROTOCOL_VERSION}\`);
-    }
-  }\n`;
   code += "}\n\n";
 
-  code += `export const ${name.toUpperCase()}_METHODS: Method[] = ${JSON.stringify(methods, null, 2)};`;
+  code += `export const ${name.toUpperCase()}_METHODS = {\n`;
+  for (const { name } of methods) {
+    code += `  ${name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}: "${name}",\n`;
+  }
+  code += `};\n`;
 
   return code;
 }

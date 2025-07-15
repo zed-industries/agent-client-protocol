@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   Agent,
+  AgentConnection,
   Client,
-  Connection,
+  ClientConnection,
   InitializeParams,
   InitializeResponse,
-  LATEST_PROTOCOL_VERSION,
   PushToolCallParams,
   PushToolCallResponse,
   ReadTextFileParams,
@@ -43,13 +43,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (agent) => new TestClient(agent),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
@@ -64,9 +64,7 @@ describe("Connection", () => {
     ).rejects.toThrow();
 
     // Test error handling in agent->client direction
-    await expect(
-      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
-    ).rejects.toThrow();
+    await expect(agentConnection.initialize()).rejects.toThrow();
   });
 
   it("handles concurrent requests", async () => {
@@ -87,13 +85,13 @@ describe("Connection", () => {
     // Create agent with delayed responses
     class TestAgent extends StubAgent {}
 
-    Connection.clientToAgent(
+    new AgentConnection(
       (a) => new TestClient(a),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
@@ -139,7 +137,6 @@ describe("Connection", () => {
     class TestAgent extends StubAgent {
       async initialize(request: InitializeParams): Promise<InitializeResponse> {
         messageLog.push("initialize called");
-        this.validateVersion(request.protocolVersion);
         return {
           protocolVersion: request.protocolVersion,
           isAuthenticated: true,
@@ -148,22 +145,20 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (client) => new TestClient(client),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = Connection.agentToClient(
+    const clientConnection = new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
     );
 
     // Send requests in specific order
-    await agentConnection.initialize({
-      protocolVersion: LATEST_PROTOCOL_VERSION,
-    });
+    await agentConnection.initialize();
     let { id } = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
@@ -185,45 +180,37 @@ describe("Connection", () => {
     ]);
   });
 
-  it("can validate version numbers", async () => {
+  it("rejects old versions", async () => {
     class TestClient extends StubClient {}
 
     class TestAgent extends StubAgent {
-      async initialize(params: InitializeParams): Promise<InitializeResponse> {
-        this.validateVersion(params.protocolVersion);
+      async initialize(_: InitializeParams): Promise<InitializeResponse> {
         return {
-          protocolVersion: params.protocolVersion,
+          protocolVersion: "0.0.1",
           isAuthenticated: true,
         };
       }
     }
 
     // Set up connections
-    const agentConnection = Connection.clientToAgent(
+    const agentConnection = new AgentConnection(
       (agent) => new TestClient(agent),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    Connection.agentToClient(
+    new ClientConnection(
       (client) => new TestAgent(client),
       agentToClient.writable,
       clientToAgent.readable,
     );
 
-    await expect(
-      agentConnection.initialize({ protocolVersion: "0.0.1" }),
-    ).rejects.toThrow();
-    await expect(
-      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
-    ).resolves.toBeDefined();
+    await expect(agentConnection.initialize()).rejects.toThrow();
   });
 });
 
-class StubAgent extends Agent {
-  constructor(private client: Client) {
-    super();
-  }
+class StubAgent implements Agent {
+  constructor(private client: Client) {}
   initialize(_: InitializeParams): Promise<InitializeResponse> {
     throw new Error("Method not implemented.");
   }
@@ -238,10 +225,8 @@ class StubAgent extends Agent {
   }
 }
 
-class StubClient extends Client {
-  constructor(private agent: Agent) {
-    super();
-  }
+class StubClient implements Client {
+  constructor(private agent: Agent) {}
   streamAssistantMessageChunk(
     _: StreamAssistantMessageChunkParams,
   ): Promise<void> {
