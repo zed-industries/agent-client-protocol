@@ -15,6 +15,7 @@ use futures::{
 };
 use parking_lot::Mutex;
 pub use schema::*;
+use semver::Comparator;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::{
@@ -73,6 +74,30 @@ impl AgentConnection {
         params: AnyAgentRequest,
     ) -> impl use<> + Future<Output = Result<AnyAgentResult, Error>> {
         self.0.request(params.method_name(), params)
+    }
+
+    /// Sends an initialization request to the Agent.
+    /// This will error if the server version is incompatible with the client version.
+    pub async fn initialize(&self) -> Result<InitializeResponse, Error> {
+        let protocol_version = ProtocolVersion::latest();
+        let version_requirement = Comparator {
+            op: semver::Op::Caret,
+            major: protocol_version.major,
+            minor: Some(protocol_version.minor),
+            patch: Some(protocol_version.patch),
+            pre: protocol_version.pre.clone(),
+        };
+        let response = self.request(InitializeParams { protocol_version }).await?;
+
+        let server_version = &response.protocol_version;
+
+        if version_requirement.matches(server_version) {
+            Ok(response)
+        } else {
+            Err(Error::invalid_request().with_data(format!(
+                "Incompatible versions: Server {server_version} / Client: {version_requirement}"
+            )))
+        }
     }
 }
 

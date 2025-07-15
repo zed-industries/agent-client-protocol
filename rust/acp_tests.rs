@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use super::*;
 use tokio::task::LocalSet;
 use tokio::time::{Duration, timeout};
@@ -6,8 +8,9 @@ pub struct TestClient;
 pub struct TestAgent;
 
 impl Agent for TestAgent {
-    async fn initialize(&self) -> Result<InitializeResponse, Error> {
+    async fn initialize(&self, request: InitializeParams) -> Result<InitializeResponse, Error> {
         Ok(InitializeResponse {
+            protocol_version: request.protocol_version,
             is_authenticated: true,
         })
     }
@@ -68,9 +71,11 @@ impl Client for TestClient {
     }
 }
 
+static ENV_LOGGER: LazyLock<()> = LazyLock::new(env_logger::init);
+
 #[tokio::test]
 async fn test_client_agent_communication() {
-    env_logger::init();
+    *ENV_LOGGER;
 
     let local = LocalSet::new();
     local
@@ -101,6 +106,13 @@ async fn test_client_agent_communication() {
             let _task = tokio::spawn(client_io_task);
             let _task = tokio::spawn(agent_io_task);
 
+            let response = client_connection.initialize();
+            let response = timeout(Duration::from_secs(2), response)
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(response.is_authenticated);
+
             let response = agent_connection.request(PushToolCallParams {
                 label: "test".into(),
                 icon: Icon::FileSearch,
@@ -112,13 +124,69 @@ async fn test_client_agent_communication() {
                 .unwrap()
                 .unwrap();
             assert_eq!(response.id, ToolCallId(0));
+        })
+        .await
+}
 
-            let response = client_connection.request(InitializeParams);
-            let response = timeout(Duration::from_secs(2), response)
-                .await
-                .unwrap()
-                .unwrap();
-            assert!(response.is_authenticated);
+#[tokio::test]
+async fn test_invalid_protocol_versions() {
+    struct OldTestAgent;
+
+    impl Agent for OldTestAgent {
+        async fn initialize(&self, _: InitializeParams) -> Result<InitializeResponse, Error> {
+            Ok(InitializeResponse {
+                protocol_version: "0.0.0".parse().unwrap(),
+                is_authenticated: true,
+            })
+        }
+
+        async fn authenticate(&self) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn send_user_message(&self, _request: SendUserMessageParams) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn cancel_send_message(&self) -> Result<(), Error> {
+            Ok(())
+        }
+    }
+
+    *ENV_LOGGER;
+
+    let local = LocalSet::new();
+    local
+        .run_until(async move {
+            let client = TestClient;
+            let agent = OldTestAgent;
+
+            let (client_to_agent_tx, client_to_agent_rx) = async_pipe::pipe();
+            let (agent_to_client_tx, agent_to_client_rx) = async_pipe::pipe();
+
+            let (client_connection, client_io_task) = AgentConnection::connect_to_agent(
+                client,
+                client_to_agent_tx,
+                agent_to_client_rx,
+                |fut| {
+                    tokio::task::spawn_local(fut);
+                },
+            );
+            let (_, agent_io_task) = ClientConnection::connect_to_client(
+                agent,
+                agent_to_client_tx,
+                client_to_agent_rx,
+                |fut| {
+                    tokio::task::spawn_local(fut);
+                },
+            );
+
+            let _task = tokio::spawn(client_io_task);
+            let _task = tokio::spawn(agent_io_task);
+
+            let response = client_connection.initialize();
+            let response = timeout(Duration::from_secs(2), response).await.unwrap();
+            assert!(response.is_err());
         })
         .await
 }

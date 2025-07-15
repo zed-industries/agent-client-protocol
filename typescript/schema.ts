@@ -1,3 +1,8 @@
+import semver from "semver";
+import { version } from "../package.json";
+
+export const LATEST_PROTOCOL_VERSION = version;
+
 export type AgentCodingProtocol =
   | AnyClientRequest
   | AnyClientResult
@@ -89,15 +94,6 @@ export type AnyAgentRequest =
   | AuthenticateParams
   | SendUserMessageParams
   | CancelSendMessageParams;
-/**
- * Initialize sets up the agent's state. It should be called before any other method,
- * and no other methods should be called until it has completed.
- *
- * If the agent is not authenticated, then the client should prompt the user to authenticate,
- * and then call the `authenticate` method.
- * Otherwise the client can send other messages to the agent.
- */
-export type InitializeParams = null;
 /**
  * Triggers authentication on the agent side.
  *
@@ -202,6 +198,21 @@ export interface ReadTextFileResponse {
   content: string;
 }
 /**
+ * Initialize sets up the agent's state. It should be called before any other method,
+ * and no other methods should be called until it has completed.
+ *
+ * If the agent is not authenticated, then the client should prompt the user to authenticate,
+ * and then call the `authenticate` method.
+ * Otherwise the client can send other messages to the agent.
+ */
+export interface InitializeParams {
+  /**
+   * The version of the protocol that the client supports.
+   * This should be the latest version supported by the client.
+   */
+  protocolVersion: string;
+}
+/**
  * sendUserMessage allows the user to send a message to the agent.
  * This method should complete after the agent is finished, during
  * which time the agent may update the client by calling
@@ -216,6 +227,12 @@ export interface InitializeResponse {
    * ready to handle requests.
    */
   isAuthenticated: boolean;
+  /**
+   * The version of the protocol that the agent supports.
+   * If the agent supports the requested version, it should respond with the same version.
+   * Otherwise, the agent should respond with the latest version it supports.
+   */
+  protocolVersion: string;
 }
 export interface Error {
   code: number;
@@ -231,17 +248,40 @@ export interface Method {
   responsePayload: boolean;
 }
 
-export interface Client {
-  streamAssistantMessageChunk(
+export abstract class Client {
+  abstract streamAssistantMessageChunk(
     params: StreamAssistantMessageChunkParams,
   ): Promise<void>;
-  requestToolCallConfirmation(
+
+  abstract requestToolCallConfirmation(
     params: RequestToolCallConfirmationParams,
   ): Promise<RequestToolCallConfirmationResponse>;
-  pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse>;
-  updateToolCall(params: UpdateToolCallParams): Promise<void>;
-  writeTextFile(params: WriteTextFileParams): Promise<void>;
-  readTextFile(params: ReadTextFileParams): Promise<ReadTextFileResponse>;
+
+  abstract pushToolCall(
+    params: PushToolCallParams,
+  ): Promise<PushToolCallResponse>;
+
+  abstract updateToolCall(params: UpdateToolCallParams): Promise<void>;
+
+  abstract writeTextFile(params: WriteTextFileParams): Promise<void>;
+
+  abstract readTextFile(
+    params: ReadTextFileParams,
+  ): Promise<ReadTextFileResponse>;
+
+  /**
+   * Validates that the provided version is compatible with the current protocol version.
+   *
+   * @param version - The version string to validate
+   * @throws {Error} If the version is not compatible with the current protocol version
+   */
+  validateVersion(version: string) {
+    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
+      throw new Error(
+        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
+      );
+    }
+  }
 }
 
 export const CLIENT_METHODS: Method[] = [
@@ -289,18 +329,35 @@ export const CLIENT_METHODS: Method[] = [
   },
 ];
 
-export interface Agent {
-  initialize(): Promise<InitializeResponse>;
-  authenticate(): Promise<void>;
-  sendUserMessage(params: SendUserMessageParams): Promise<void>;
-  cancelSendMessage(): Promise<void>;
+export abstract class Agent {
+  abstract initialize(params: InitializeParams): Promise<InitializeResponse>;
+
+  abstract authenticate(): Promise<void>;
+
+  abstract sendUserMessage(params: SendUserMessageParams): Promise<void>;
+
+  abstract cancelSendMessage(): Promise<void>;
+
+  /**
+   * Validates that the provided version is compatible with the current protocol version.
+   *
+   * @param version - The version string to validate
+   * @throws {Error} If the version is not compatible with the current protocol version
+   */
+  validateVersion(version: string) {
+    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
+      throw new Error(
+        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
+      );
+    }
+  }
 }
 
 export const AGENT_METHODS: Method[] = [
   {
     name: "initialize",
     requestType: "InitializeParams",
-    paramPayload: false,
+    paramPayload: true,
     responseType: "InitializeResponse",
     responsePayload: true,
   },

@@ -42,6 +42,7 @@
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@types/node": "^24.0.3",
+    "@types/semver": "^7.7.0",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
     "@vitest/ui": "^3.2.4",
@@ -51,5 +52,8 @@
     "prettier": "^3.3.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "semver": "^7.7.2"
   }
 }
