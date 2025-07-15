@@ -5,11 +5,8 @@ import {
   CLIENT_METHODS,
   Method,
 } from "./schema.js";
-import { version } from "../package.json";
 
 export * from "./schema.js";
-
-export const LATEST_PROTOCOL_VERSION = version;
 
 type PendingResponse = {
   resolve: (response: unknown) => void;
