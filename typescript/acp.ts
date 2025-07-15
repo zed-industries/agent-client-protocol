@@ -1,17 +1,26 @@
+import semver from "semver";
 import {
   Agent,
   AGENT_METHODS,
   Client,
   CLIENT_METHODS,
+  InitializeParams,
+  InitializeResponse,
+  LATEST_PROTOCOL_VERSION,
   Method,
+  PushToolCallParams,
+  PushToolCallResponse,
+  ReadTextFileParams,
+  ReadTextFileResponse,
+  RequestToolCallConfirmationParams,
+  RequestToolCallConfirmationResponse,
+  SendUserMessageParams,
+  StreamAssistantMessageChunkParams,
+  UpdateToolCallParams,
+  WriteTextFileParams,
 } from "./schema.js";
 
 export * from "./schema.js";
-
-type PendingResponse = {
-  resolve: (response: unknown) => void;
-  reject: (error: unknown) => void;
-};
 
 type AnyMessage = AnyRequest | AnyResponse;
 
@@ -37,6 +46,11 @@ type ErrorResponse = {
   data?: { details?: string };
 };
 
+type PendingResponse = {
+  resolve: (response: unknown) => void;
+  reject: (error: ErrorResponse) => void;
+};
+
 export class Connection<D, P> {
   #pendingResponses: Map<number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
@@ -49,7 +63,6 @@ export class Connection<D, P> {
   constructor(
     delegate: (peer: P) => D,
     delegateMethods: Method[],
-    peerMethods: Method[],
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
@@ -63,21 +76,6 @@ export class Connection<D, P> {
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
 
-    const peer = this as unknown as Record<
-      string,
-      (params: unknown) => Promise<unknown>
-    >;
-
-    for (const { name, paramPayload, responsePayload } of peerMethods) {
-      peer[name] = async (params: unknown) => {
-        const result = await this.#sendRequest(
-          name,
-          paramPayload ? params : undefined,
-        );
-        return responsePayload ? result : undefined;
-      };
-    }
-
     this.#delegate = delegate(this as unknown as P);
     this.#receive(peerOutput);
   }
@@ -86,28 +84,28 @@ export class Connection<D, P> {
     client: (agent: Agent) => Client,
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
-  ): Agent {
-    return new Connection<Client, Agent>(
+  ): AgentConnection {
+    const connection = new Connection<Client, Agent>(
       client,
       CLIENT_METHODS,
-      AGENT_METHODS,
       input,
       output,
-    ) as unknown as Agent;
+    );
+    return new AgentConnection(connection);
   }
 
   static agentToClient(
     agent: (client: Client) => Agent,
     input: WritableStream,
     output: ReadableStream,
-  ): Client {
-    return new Connection<Agent, Client>(
+  ): ClientConnection {
+    const connection = new Connection<Agent, Client>(
       agent,
       AGENT_METHODS,
-      CLIENT_METHODS,
       input,
       output,
-    ) as unknown as Client;
+    );
+    return new ClientConnection(connection);
   }
 
   async #receive(output: ReadableStream<Uint8Array>) {
@@ -200,13 +198,13 @@ export class Connection<D, P> {
     }
   }
 
-  async #sendRequest(method: string, params?: unknown): Promise<unknown> {
+  async sendRequest<Req, Resp>(method: string, params?: Req): Promise<Resp> {
     const id = this.#nextRequestId++;
     const responsePromise = new Promise((resolve, reject) => {
       this.#pendingResponses.set(id, { resolve, reject });
     });
     await this.#sendMessage({ jsonrpc: "2.0", id, method, params });
-    return responsePromise;
+    return responsePromise as Promise<Resp>;
   }
 
   async #sendMessage(json: AnyMessage) {
@@ -224,6 +222,79 @@ export class Connection<D, P> {
         // Continue processing writes on error
       });
     return this.#writeQueue;
+  }
+}
+
+export class AgentConnection extends Agent {
+  constructor(private connection: Connection<Client, Agent>) {
+    super();
+  }
+
+  async initialize(): Promise<InitializeResponse> {
+    const result = await this.connection.sendRequest<
+      InitializeParams,
+      InitializeResponse
+    >("initialize", {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+    });
+
+    if (
+      !semver.satisfies(result.protocolVersion, `^${LATEST_PROTOCOL_VERSION}`)
+    ) {
+      throw RequestError.invalidRequest(
+        `Incompatible versions: Server ^${result.protocolVersion} / Client: ^${LATEST_PROTOCOL_VERSION}`,
+      );
+    }
+
+    return result;
+  }
+
+  async authenticate(): Promise<void> {
+    await this.connection.sendRequest("authenticate");
+  }
+
+  async sendUserMessage(params: SendUserMessageParams): Promise<void> {
+    await this.connection.sendRequest("sendUserMessage", params);
+  }
+
+  async cancelSendMessage(): Promise<void> {
+    await this.connection.sendRequest("cancelSendMessage");
+  }
+}
+
+export class ClientConnection extends Client {
+  constructor(private connection: Connection<Agent, Client>) {
+    super();
+  }
+
+  async streamAssistantMessageChunk(
+    params: StreamAssistantMessageChunkParams,
+  ): Promise<void> {
+    await this.connection.sendRequest("streamAssistantMessageChunk", params);
+  }
+
+  requestToolCallConfirmation(
+    params: RequestToolCallConfirmationParams,
+  ): Promise<RequestToolCallConfirmationResponse> {
+    return this.connection.sendRequest("requestToolCallConfirmation", params);
+  }
+
+  pushToolCall(params: PushToolCallParams): Promise<PushToolCallResponse> {
+    return this.connection.sendRequest("pushToolCall", params);
+  }
+
+  async updateToolCall(params: UpdateToolCallParams): Promise<void> {
+    await this.connection.sendRequest("updateToolCall", params);
+  }
+
+  async writeTextFile(params: WriteTextFileParams): Promise<void> {
+    await this.connection.sendRequest("writeTextFile", params);
+  }
+
+  async readTextFile(
+    params: ReadTextFileParams,
+  ): Promise<ReadTextFileResponse> {
+    return this.connection.sendRequest("readTextFile", params);
   }
 }
 

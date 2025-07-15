@@ -14,8 +14,7 @@ const agentMethods = JSON.parse(
   fs.readFileSync("./target/agent_requests.json", "utf8"),
 );
 
-let typescriptSource = `import semver from 'semver';
-import pkg from "../package.json" with { type: "json" };
+let typescriptSource = `import pkg from "../package.json" with { type: "json" };
 
 export const LATEST_PROTOCOL_VERSION = pkg.version;
 
@@ -61,18 +60,6 @@ function requestMapToInterface(name, methods) {
       code += `: Promise<void>;\n\n`;
     }
   }
-  code += `
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, \`^\${version}\`)) {
-      throw new Error(\`Incompatible versions: Requested \${version} / Supported: ^\${LATEST_PROTOCOL_VERSION}\`);
-    }
-  }\n`;
   code += "}\n\n";
 
   code += `export const ${name.toUpperCase()}_METHODS: Method[] = ${JSON.stringify(methods, null, 2)};`;

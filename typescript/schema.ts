@@ -1,4 +1,3 @@
-import semver from "semver";
 import pkg from "../package.json" with { type: "json" };
 
 export const LATEST_PROTOCOL_VERSION = pkg.version;
@@ -268,20 +267,6 @@ export abstract class Client {
   abstract readTextFile(
     params: ReadTextFileParams,
   ): Promise<ReadTextFileResponse>;
-
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
-      throw new Error(
-        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
-      );
-    }
-  }
 }
 
 export const CLIENT_METHODS: Method[] = [
@@ -337,20 +322,6 @@ export abstract class Agent {
   abstract sendUserMessage(params: SendUserMessageParams): Promise<void>;
 
   abstract cancelSendMessage(): Promise<void>;
-
-  /**
-   * Validates that the provided version is compatible with the current protocol version.
-   *
-   * @param version - The version string to validate
-   * @throws {Error} If the version is not compatible with the current protocol version
-   */
-  validateVersion(version: string) {
-    if (!semver.satisfies(LATEST_PROTOCOL_VERSION, `^${version}`)) {
-      throw new Error(
-        `Incompatible versions: Requested ${version} / Supported: ^${LATEST_PROTOCOL_VERSION}`,
-      );
-    }
-  }
 }
 
 export const AGENT_METHODS: Method[] = [

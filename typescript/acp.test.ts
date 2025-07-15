@@ -64,9 +64,7 @@ describe("Connection", () => {
     ).rejects.toThrow();
 
     // Test error handling in agent->client direction
-    await expect(
-      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
-    ).rejects.toThrow();
+    await expect(agentConnection.initialize()).rejects.toThrow();
   });
 
   it("handles concurrent requests", async () => {
@@ -139,7 +137,6 @@ describe("Connection", () => {
     class TestAgent extends StubAgent {
       async initialize(request: InitializeParams): Promise<InitializeResponse> {
         messageLog.push("initialize called");
-        this.validateVersion(request.protocolVersion);
         return {
           protocolVersion: request.protocolVersion,
           isAuthenticated: true,
@@ -161,9 +158,7 @@ describe("Connection", () => {
     );
 
     // Send requests in specific order
-    await agentConnection.initialize({
-      protocolVersion: LATEST_PROTOCOL_VERSION,
-    });
+    await agentConnection.initialize();
     let { id } = await clientConnection.pushToolCall({
       icon: "folder",
       label: "Folder",
@@ -185,14 +180,13 @@ describe("Connection", () => {
     ]);
   });
 
-  it("can validate version numbers", async () => {
+  it("rejects old versions", async () => {
     class TestClient extends StubClient {}
 
     class TestAgent extends StubAgent {
-      async initialize(params: InitializeParams): Promise<InitializeResponse> {
-        this.validateVersion(params.protocolVersion);
+      async initialize(_: InitializeParams): Promise<InitializeResponse> {
         return {
-          protocolVersion: params.protocolVersion,
+          protocolVersion: "0.0.1",
           isAuthenticated: true,
         };
       }
@@ -211,12 +205,7 @@ describe("Connection", () => {
       clientToAgent.readable,
     );
 
-    await expect(
-      agentConnection.initialize({ protocolVersion: "0.0.1" }),
-    ).rejects.toThrow();
-    await expect(
-      agentConnection.initialize({ protocolVersion: LATEST_PROTOCOL_VERSION }),
-    ).resolves.toBeDefined();
+    await expect(agentConnection.initialize()).rejects.toThrow();
   });
 });
 
