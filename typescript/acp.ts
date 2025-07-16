@@ -174,8 +174,9 @@ class Connection<D> {
           writer.releaseLock();
         }
       })
-      .catch(() => {
+      .catch((error) => {
         // Continue processing writes on error
+        console.error("ACP write error:", error);
       });
     return this.#writeQueue;
   }
