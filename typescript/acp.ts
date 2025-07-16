@@ -201,9 +201,17 @@ export class AgentConnection implements Agent {
       protocolVersion: LATEST_PROTOCOL_VERSION,
     });
 
-    if (
-      !semver.satisfies(result.protocolVersion, `^${LATEST_PROTOCOL_VERSION}`)
-    ) {
+    // Check that we are valid with the latest major protocol version
+    const version = semver.parse(LATEST_PROTOCOL_VERSION)!;
+    let versionRequirement = `^${version.major}`;
+    if (version.major == 0) {
+      versionRequirement += `.${version.minor}`;
+      if (version.minor == 0) {
+        versionRequirement += `.${version.patch}`;
+      }
+    }
+
+    if (!semver.satisfies(result.protocolVersion, versionRequirement)) {
       throw RequestError.invalidRequest(
         `Incompatible versions: Server ^${result.protocolVersion} / Client: ^${LATEST_PROTOCOL_VERSION}`,
       );
