@@ -138,7 +138,7 @@ pub struct Method {
     pub response_payload: bool,
 }
 
-pub trait AnyRequest: Serialize + Sized + 'static {
+pub trait AnyRequest: Serialize + Sized + std::fmt::Debug + 'static {
     type Response: Serialize + 'static;
     fn from_method_and_params(method: &str, params: &RawValue) -> Result<Self, Error>;
     fn response_from_method_and_result(
@@ -222,7 +222,7 @@ macro_rules! acp_peer {
             fn response_from_any(any: $response_enum_name) -> Result<Self::Response, Error>;
         }
 
-        #[derive(Serialize, JsonSchema)]
+        #[derive(Serialize, JsonSchema, Debug)]
         #[serde(untagged)]
         pub enum $request_enum_name {
             $(
