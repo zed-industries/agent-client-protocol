@@ -78,7 +78,10 @@ impl AgentConnection {
 
     /// Sends an initialization request to the Agent.
     /// This will error if the server version is incompatible with the client version.
-    pub async fn initialize(&self) -> Result<InitializeResponse, Error> {
+    pub async fn initialize(
+        &self,
+        context_servers: HashMap<String, ContextServer>,
+    ) -> Result<InitializeResponse, Error> {
         let protocol_version = ProtocolVersion::latest();
         // Check that we are on the same major version of the protocol
         let version_requirement = Comparator {
@@ -89,7 +92,12 @@ impl AgentConnection {
                 .then_some(protocol_version.patch),
             pre: protocol_version.pre.clone(),
         };
-        let response = self.request(InitializeParams { protocol_version }).await?;
+        let response = self
+            .request(InitializeParams {
+                protocol_version,
+                context_servers,
+            })
+            .await?;
 
         let server_version = &response.protocol_version;
 

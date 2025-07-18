@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Deref, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, ops::Deref, path::PathBuf};
 
 use derive_more::{Deref, Display, FromStr};
 use schemars::JsonSchema;
@@ -481,6 +481,24 @@ pub struct InitializeParams {
     /// The version of the protocol that the client supports.
     /// This should be the latest version supported by the client.
     pub protocol_version: ProtocolVersion,
+    /// The version of the protocol that the client supports.
+    /// This should be the latest version supported by the client.
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub context_servers: HashMap<String, ContextServer>,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum ContextServer {
+    Stdio {
+        command: String,
+        args: Vec<String>,
+        env: HashMap<String, String>,
+    },
+    Http {
+        url: String,
+        headers: HashMap<String, String>,
+    },
 }
 
 #[derive(Clone, Debug, Deref, Display, FromStr, Serialize, Deserialize, JsonSchema)]
