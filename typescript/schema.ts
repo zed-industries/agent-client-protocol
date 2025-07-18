@@ -13,6 +13,7 @@ export type AnyClientRequest =
   | RequestToolCallConfirmationParams
   | PushToolCallParams
   | UpdateToolCallParams
+  | UpdatePlanParams
   | WriteTextFileParams
   | ReadTextFileParams;
 export type AssistantMessageChunk =
@@ -76,6 +77,7 @@ export type AnyClientResult =
   | RequestToolCallConfirmationResponse
   | PushToolCallResponse
   | UpdateToolCallResponse
+  | UpdatePlanResponse
   | WriteTextFileResponse
   | ReadTextFileResponse;
 export type StreamAssistantMessageChunkResponse = null;
@@ -87,6 +89,7 @@ export type ToolCallConfirmationOutcome =
   | "reject"
   | "cancel";
 export type UpdateToolCallResponse = null;
+export type UpdatePlanResponse = null;
 export type WriteTextFileResponse = null;
 export type AnyAgentRequest =
   | InitializeParams
@@ -177,6 +180,38 @@ export interface UpdateToolCallParams {
   status: ToolCallStatus;
   toolCallId: ToolCallId;
 }
+/**
+ * Parameters for updating the current execution plan.
+ *
+ * This allows the assistant to communicate its high-level plan
+ * for completing the user's request.
+ */
+export interface UpdatePlanParams {
+  /**
+   * The list of plan entries representing the current execution plan.
+   */
+  entries: PlanEntry[];
+}
+/**
+ * A single entry in the execution plan.
+ *
+ * Represents a task or goal that the assistant intends to accomplish
+ * as part of fulfilling the user's request.
+ */
+export interface PlanEntry {
+  /**
+   * Description of what this task aims to accomplish
+   */
+  content: string;
+  /**
+   * Relative importance of this task
+   */
+  priority: "high" | "medium" | "low";
+  /**
+   * Current progress of this task
+   */
+  status: "pending" | "in_progress" | "completed";
+}
 export interface WriteTextFileParams {
   content: string;
   path: string;
@@ -252,6 +287,8 @@ export interface Client {
 
   updateToolCall(params: UpdateToolCallParams): Promise<void>;
 
+  updatePlan(params: UpdatePlanParams): Promise<void>;
+
   writeTextFile(params: WriteTextFileParams): Promise<void>;
 
   readTextFile(params: ReadTextFileParams): Promise<ReadTextFileResponse>;
@@ -262,6 +299,7 @@ export const CLIENT_METHODS = {
   REQUEST_TOOL_CALL_CONFIRMATION: "requestToolCallConfirmation",
   PUSH_TOOL_CALL: "pushToolCall",
   UPDATE_TOOL_CALL: "updateToolCall",
+  UPDATE_PLAN: "updatePlan",
   WRITE_TEXT_FILE: "writeTextFile",
   READ_TEXT_FILE: "readTextFile",
 };

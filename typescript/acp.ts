@@ -16,6 +16,7 @@ import {
   SendUserMessageParams,
   StreamAssistantMessageChunkParams,
   UpdateToolCallParams,
+  UpdatePlanParams,
   WriteTextFileParams,
 } from "./schema.js";
 
@@ -278,6 +279,10 @@ export class ClientConnection implements Client {
     params: ReadTextFileParams,
   ): Promise<ReadTextFileResponse> {
     return this.#connection.sendRequest("readTextFile", params);
+  }
+
+  async updatePlan(params: UpdatePlanParams): Promise<void> {
+    await this.#connection.sendRequest(CLIENT_METHODS.UPDATE_PLAN, params);
   }
 }
 

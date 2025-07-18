@@ -14,6 +14,7 @@ import {
   RequestToolCallConfirmationResponse,
   SendUserMessageParams,
   StreamAssistantMessageChunkParams,
+  UpdatePlanParams,
   UpdateToolCallParams,
   WriteTextFileParams,
 } from "./acp.js";
@@ -241,6 +242,9 @@ class StubClient implements Client {
     throw new Error("Method not implemented.");
   }
   updateToolCall(_: UpdateToolCallParams): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  updatePlan(_: UpdatePlanParams): Promise<void> {
     throw new Error("Method not implemented.");
   }
   readTextFile(_: ReadTextFileParams): Promise<ReadTextFileResponse> {

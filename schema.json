@@ -65,6 +65,9 @@
           "$ref": "#/$defs/UpdateToolCallParams"
         },
         {
+          "$ref": "#/$defs/UpdatePlanParams"
+        },
+        {
           "$ref": "#/$defs/WriteTextFileParams"
         },
         {
@@ -85,6 +88,9 @@
         },
         {
           "$ref": "#/$defs/UpdateToolCallResponse"
+        },
+        {
+          "$ref": "#/$defs/UpdatePlanResponse"
         },
         {
           "$ref": "#/$defs/WriteTextFileResponse"
@@ -181,6 +187,35 @@
         }
       },
       "required": ["protocolVersion", "isAuthenticated"]
+    },
+    "PlanEntry": {
+      "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.",
+      "type": "object",
+      "properties": {
+        "content": {
+          "description": "Description of what this task aims to accomplish",
+          "type": "string"
+        },
+        "priority": {
+          "description": "Relative importance of this task",
+          "$ref": "#/$defs/PlanEntryPriority"
+        },
+        "status": {
+          "description": "Current progress of this task",
+          "$ref": "#/$defs/PlanEntryStatus"
+        }
+      },
+      "required": ["content", "priority", "status"]
+    },
+    "PlanEntryPriority": {
+      "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.",
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "PlanEntryStatus": {
+      "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.",
+      "type": "string",
+      "enum": ["pending", "in_progress", "completed"]
     },
     "PushToolCallParams": {
       "description": "pushToolCall allows the agent to start a tool call\nwhen it does not need to request permission to do so.\n\nThe returned id can be used to update the UI for the tool\ncall as needed.",
@@ -522,6 +557,23 @@
           "const": "error"
         }
       ]
+    },
+    "UpdatePlanParams": {
+      "description": "Parameters for updating the current execution plan.\n\nThis allows the assistant to communicate its high-level plan\nfor completing the user's request.",
+      "type": "object",
+      "properties": {
+        "entries": {
+          "description": "The list of plan entries representing the current execution plan.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanEntry"
+          }
+        }
+      },
+      "required": ["entries"]
+    },
+    "UpdatePlanResponse": {
+      "type": "null"
     },
     "UpdateToolCallParams": {
       "description": "updateToolCall allows the agent to update the content and status of the tool call.\n\nThe new content replaces what is currently displayed in the UI.\n\nThe [`ToolCallId`] is included in the response of\n`pushToolCall` or `requestToolCallConfirmation` respectively.",
