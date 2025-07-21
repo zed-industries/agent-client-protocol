@@ -1,0 +1,12 @@
+:root {
+  --sl-content-width: 50rem;
+  --sl-text-5xl: 3.5rem;
+}
+
+header {
+  border-bottom: 1px solid !important;
+}
+
+.right-sidebar-container {
+  background-color: red;
+}
