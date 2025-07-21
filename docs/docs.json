@@ -1,0 +1,85 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "Container Use",
+  "description": "Sandboxed dev environments for agents to work safely in parallel. Powered by Dagger.",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373"
+  },
+  "favicon": "/images/dagger-icon.png",
+  "redirects": [
+    {
+      "source": "/discord",
+      "destination": "https://discord.gg/NQDJTBC6Qk"
+    },
+    {
+      "source": "/installation",
+      "destination": "/quickstart"
+    }
+  ],
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "environment-workflow",
+          "environment-configuration",
+          "secrets"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "cli-reference",
+          "agent-integrations"
+        ]
+      }
+    ]
+  },
+  "global": {
+    "anchors": [
+      {
+        "anchor": "GitHub",
+        "href": "https://github.com/dagger/container-use",
+        "icon": "github"
+      },
+      {
+        "anchor": "Discord",
+        "href": "https://container-use.com/discord",
+        "icon": "discord"
+      }
+    ]
+  },
+  "logo": {
+    "light": "/images/dagger-icon.png",
+    "dark": "/images/dagger-icon.png"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "https://container-use.com/discord"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/dagger/container-use"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/dagger/container-use",
+      "discord": "https://container-use.com/discord"
+    }
+  }
+}
