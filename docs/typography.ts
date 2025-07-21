@@ -7,7 +7,7 @@ export default {
         css: {
           '--tw-prose-body': theme('colors.neutral.700'),
           '--tw-prose-headings': theme('colors.neutral.900'),
-          '--tw-prose-links': theme('colors.teal.500'),
+          '--tw-prose-links': theme('colors.teal.700'),
           '--tw-prose-links-hover': theme('colors.teal.600'),
           '--tw-prose-links-underline': theme('colors.teal.500 / 0.3'),
           '--tw-prose-bold': theme('colors.neutral.900'),
@@ -270,7 +270,7 @@ export default {
           // Inline elements
           a: {
             color: 'var(--tw-prose-links)',
-            textDecoration: 'underline transparent',
+            textDecoration: 'underline var(--tw-prose-links-underline)',
             fontWeight: '500',
             transitionProperty: 'color, text-decoration-color',
             transitionDuration: theme('transitionDuration.DEFAULT'),

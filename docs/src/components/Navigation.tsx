@@ -109,7 +109,7 @@ function VisibleSectionHighlight({
 
   return (
     <div
-      className="absolute inset-x-0 top-0 bg-neutral-800/2.5 transition-opacity will-change-transform dark:bg-white/2.5"
+      className="absolute inset-x-0 top-0 bg-neutral-800/2.5 transition-opacity will-change-transform dark:bg-neutral-600/12"
       style={{ borderRadius: 6, height, top }}
     />
   )
@@ -163,7 +163,7 @@ function NavigationGroup({
         {isActiveGroup && (
           <VisibleSectionHighlight group={group} pathname={pathname} />
         )}
-        <div className="absolute inset-y-0 left-2 w-px bg-neutral-900/10 dark:bg-white/5" />
+        <div className="absolute inset-y-0 left-2 w-px bg-neutral-900/10 dark:bg-neutral-600/12" />
         {isActiveGroup && (
           <ActivePageMarker group={group} pathname={pathname} />
         )}
