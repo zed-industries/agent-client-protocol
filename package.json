@@ -33,8 +33,8 @@
     "test": "cargo test && vitest run",
     "generate": "cargo run && typescript/generate.js && prettier --write typescript/schema.ts schema.json",
     "build": "npm run generate && tsc",
-    "lint": "eslint && cargo clippy",
-    "lint:fix": "eslint --fix && cargo clippy --fix",
+    "lint": "eslint typescript/ && cargo clippy",
+    "lint:fix": "eslint --fix typescript/ && cargo clippy --fix",
     "format": "prettier --write . && cargo fmt",
     "format:check": "prettier --check . && cargo fmt -- --check",
     "check": "npm run lint && npm run format:check && npm run build && npm run test"
