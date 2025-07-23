@@ -219,7 +219,7 @@ pub struct Grant {
     pub label: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct GrantId(pub String);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
