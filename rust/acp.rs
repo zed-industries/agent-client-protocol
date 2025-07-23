@@ -1,7 +1,7 @@
 pub mod mcp_types;
 pub use mcp_types::*;
 
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -31,9 +31,15 @@ pub struct LoadSessionToolArguments {
     pub session_id: SessionId,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
+
+impl Display for SessionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -99,7 +105,7 @@ pub struct ToolCall {
     pub locations: Vec<ToolCallLocation>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
@@ -132,6 +138,20 @@ pub enum ToolCallStatus {
 pub enum ToolCallContent {
     ContentBlock { content: ContentBlock },
     Diff { diff: Diff },
+}
+
+impl<T: Into<ContentBlock>> From<T> for ToolCallContent {
+    fn from(content: T) -> Self {
+        ToolCallContent::ContentBlock {
+            content: content.into(),
+        }
+    }
+}
+
+impl From<Diff> for ToolCallContent {
+    fn from(diff: Diff) -> Self {
+        ToolCallContent::Diff { diff }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -209,8 +229,9 @@ pub struct ClientTools {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PermissionToolArguments {
-    tool_call: ToolCall,
-    options: Vec<PermissionOption>,
+    pub session_id: SessionId,
+    pub tool_call: ToolCall,
+    pub options: Vec<PermissionOption>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -220,7 +241,7 @@ pub struct PermissionOption {
     pub kind: PermissionOptionKind,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
 
@@ -248,6 +269,7 @@ pub enum PermissionOutcome {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileToolArguments {
+    pub session_id: SessionId,
     pub path: PathBuf,
     pub content: String,
 }
@@ -257,6 +279,7 @@ pub struct WriteTextFileToolArguments {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileArguments {
+    pub session_id: SessionId,
     pub path: PathBuf,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
