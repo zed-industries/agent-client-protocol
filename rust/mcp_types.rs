@@ -2,13 +2,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[serde(untagged)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
-    TextContent(TextContent),
-    ImageContent(ImageContent),
-    AudioContent(AudioContent),
+    Text(TextContent),
+    Image(ImageContent),
+    Audio(AudioContent),
     ResourceLink(ResourceLink),
-    EmbeddedResource(EmbeddedResource),
+    Resource(EmbeddedResource),
 }
 
 /// Text provided to or from an LLM.
@@ -17,7 +17,6 @@ pub struct TextContent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
     pub text: String,
-    pub r#type: String, // &'static str = "text"
 }
 
 /// An image provided to or from an LLM.
@@ -28,7 +27,6 @@ pub struct ImageContent {
     pub data: String,
     #[serde(rename = "mimeType")]
     pub mime_type: String,
-    pub r#type: String, // &'static str = "image"
 }
 
 /// Audio provided to or from an LLM.
@@ -39,7 +37,6 @@ pub struct AudioContent {
     pub data: String,
     #[serde(rename = "mimeType")]
     pub mime_type: String,
-    pub r#type: String, // &'static str = "audio"
 }
 
 /// The contents of a resource, embedded into a prompt or tool call result.
@@ -51,7 +48,6 @@ pub struct EmbeddedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
     pub resource: EmbeddedResourceResource,
-    pub r#type: String, // &'static str = "resource"
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
@@ -93,7 +89,6 @@ pub struct ResourceLink {
     pub size: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    pub r#type: String, // &'static str = "resource_link"
     pub uri: String,
 }
 

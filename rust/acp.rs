@@ -127,6 +127,7 @@ pub enum ToolCallStatus {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
+// todo: should we just add "diff" to the ContentBlock type?
 pub enum ToolCallContent {
     ContentBlock { content: ContentBlock },
     Diff { diff: Diff },
@@ -214,6 +215,7 @@ pub struct PermissionToolArguments {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Grant {
     pub id: GrantId,
+    pub is_allowed: bool,
     pub label: String,
 }
 
