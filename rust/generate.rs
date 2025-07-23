@@ -1,7 +1,6 @@
 use agent_client_protocol::{
-    LoadSessionToolArguments, NewSessionToolArguments, PermissionToolArguments,
-    PermissionToolResponse, PromptToolArguments, ReadTextFileArguments, SessionUpdate,
-    WriteTextFileToolArguments,
+    LoadSessionToolArguments, NewSessionToolArguments, PermissionOutcome, PermissionToolArguments,
+    PromptToolArguments, ReadTextFileArguments, SessionUpdate, WriteTextFileToolArguments,
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
 use std::fs;
@@ -14,7 +13,7 @@ enum Acp {
     LoadSession(LoadSessionToolArguments),
     Prompt(PromptToolArguments),
     SessionUpdate(SessionUpdate),
-    PermissionTool(PermissionToolArguments, PermissionToolResponse),
+    PermissionTool(PermissionToolArguments, PermissionOutcome),
     WriteTextFile(WriteTextFileToolArguments),
     ReadTextFile(ReadTextFileArguments),
 }

@@ -1,7 +1,7 @@
 pub mod mcp_types;
 pub use mcp_types::*;
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -31,8 +31,9 @@ pub struct LoadSessionToolArguments {
     pub session_id: SessionId,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct SessionId(pub String);
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct SessionId(pub Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -99,8 +100,8 @@ pub struct ToolCall {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
-#[serde(rename_all = "camelCase")]
-pub struct ToolCallId(pub String);
+#[serde(transparent)]
+pub struct ToolCallId(pub Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -209,23 +210,37 @@ pub struct ClientTools {
 #[serde(rename_all = "camelCase")]
 pub struct PermissionToolArguments {
     tool_call: ToolCall,
-    possible_grants: Vec<Grant>,
+    options: Vec<PermissionOption>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct Grant {
-    pub id: GrantId,
-    pub is_allowed: bool,
+pub struct PermissionOption {
+    pub id: PermissionOptionId,
     pub label: String,
+    pub kind: PermissionOptionKind,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-pub struct GrantId(pub String);
+#[serde(transparent)]
+pub struct PermissionOptionId(pub Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PermissionToolResponse {
-    selected_grant: GrantId,
+pub enum PermissionOptionKind {
+    AllowOnce,
+    AllowAlways,
+    RejectOnce,
+    RejectAlways,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "outcome", rename_all = "camelCase")]
+pub enum PermissionOutcome {
+    Canceled,
+    #[serde(rename_all = "camelCase")]
+    Selected {
+        option_id: PermissionOptionId,
+    },
 }
 
 // Write text file

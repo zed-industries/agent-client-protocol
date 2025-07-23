@@ -22,5 +22,5 @@ path = "rust/generate.rs"
 
 [dependencies]
 schemars = { version = "1.0" }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = { version = "1.0" }
