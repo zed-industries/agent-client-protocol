@@ -114,7 +114,7 @@ pub enum ToolKind {
     Other,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallStatus {
     /// The tool call is currently running
