@@ -19,6 +19,15 @@ pub struct TextContent {
     pub text: String,
 }
 
+impl<T: Into<String>> From<T> for ContentBlock {
+    fn from(value: T) -> Self {
+        Self::Text(TextContent {
+            annotations: None,
+            text: value.into(),
+        })
+    }
+}
+
 /// An image provided to or from an LLM.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 pub struct ImageContent {
