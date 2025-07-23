@@ -1,11 +1,10 @@
 pub mod mcp_types;
+pub use mcp_types::*;
 
 use std::{collections::HashMap, path::PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::mcp_types::ContentBlock;
 
 // New session
 
@@ -81,6 +80,7 @@ pub enum SessionUpdate {
     Started,
     UserMessage(ContentBlock),
     AgentMessage(ContentBlock),
+    AgentThought(ContentBlock),
     ToolCall(ToolCall),
     Plan(Plan),
 }
@@ -92,8 +92,8 @@ pub struct ToolCall {
     pub label: String,
     pub kind: ToolKind,
     pub status: ToolCallStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content: Option<ToolCallContent>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub content: Vec<ToolCallContent>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locations: Vec<ToolCallLocation>,
 }
@@ -212,7 +212,7 @@ pub struct PermissionToolArguments {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-struct Grant {
+pub struct Grant {
     pub id: GrantId,
     pub label: String,
 }
