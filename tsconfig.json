@@ -10,9 +10,7 @@
     "incremental": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
-    "lib": [
-      "ESNext",
-    ],
+    "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "es2022",
@@ -21,7 +19,5 @@
     "outDir": "dist",
     "paths": {}
   },
-  "exclude": [
-    "**/dist/**"
-  ]
+  "exclude": ["**/dist/**"]
 }
