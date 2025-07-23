@@ -10,16 +10,18 @@
     "incremental": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
-    "lib": ["ESNext", "DOM", "DOM.AsyncIterable"],
+    "lib": [
+      "ESNext",
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "es2022",
-    "types": ["node", "vitest/globals"],
+    "types": [],
     "rootDir": "typescript",
     "outDir": "dist",
-    "paths": {
-      "vitest": ["./node_modules/vitest"]
-    }
+    "paths": {}
   },
-  "exclude": ["**/dist/**"]
+  "exclude": [
+    "**/dist/**"
+  ]
 }

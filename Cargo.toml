@@ -1,15 +1,15 @@
 [package]
-name = "agentic-coding-protocol"
+name = "agent-client-protocol"
 authors = ["Zed <hi@zed.dev>"]
 version = "0.0.10"
 edition = "2024"
 license = "MIT"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
-repository = "https://github.com/zed-industries/agentic-coding-protocol"
-homepage = "https://github.com/zed-industries/agentic-coding-protocol"
-documentation = "https://docs.rs/agentic-coding-protocol"
+repository = "https://github.com/zed-industries/agent-client-protocol"
+homepage = "https://github.com/zed-industries/agent-client-protocol"
+documentation = "https://docs.rs/agent-client-protocol"
 readme = "README.md"
-keywords = ["agentic", "coding", "protocol", "ai", "editor"]
+keywords = ["agent", "client", "protocol", "ai", "editor"]
 categories = ["development-tools", "api-bindings"]
 
 [lib]
@@ -21,18 +21,6 @@ name = "generate"
 path = "rust/generate.rs"
 
 [dependencies]
-anyhow = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
-derive_more = { version = "2.0.1", features = ["display", "deref", "from_str"] }
-futures = "0.3"
-log = "0.4"
-parking_lot = "0.12"
-schemars = { version = "1.0", features = ["chrono04", "semver1"] }
-semver = { version = "1.0.26", features = ["serde"] }
+schemars = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["raw_value"] }
-
-[dev-dependencies]
-async-pipe = { git = "https://github.com/zed-industries/async-pipe-rs", rev = "82d00a04211cf4e1236029aa03e6b6ce2a74c553" }
-env_logger = "0.10"
-tokio = { version = "1.0", features = ["rt", "macros", "time"] }
+serde_json = { version = "1.0" }
