@@ -57,9 +57,6 @@
       "description": "Audio provided to or from an LLM.",
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
         "annotations": {
           "anyOf": [
             {
@@ -77,7 +74,7 @@
           "type": "string"
         }
       },
-      "required": ["data", "mimeType", "type"]
+      "required": ["data", "mimeType"]
     },
     "BlobResourceContents": {
       "type": "object",
@@ -131,21 +128,61 @@
       "required": ["confirmPermission", "writeTextFile", "readTextFile"]
     },
     "ContentBlock": {
-      "anyOf": [
+      "oneOf": [
         {
-          "$ref": "#/$defs/TextContent"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "$ref": "#/$defs/TextContent",
+          "required": ["type"]
         },
         {
-          "$ref": "#/$defs/ImageContent"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            }
+          },
+          "$ref": "#/$defs/ImageContent",
+          "required": ["type"]
         },
         {
-          "$ref": "#/$defs/AudioContent"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "audio"
+            }
+          },
+          "$ref": "#/$defs/AudioContent",
+          "required": ["type"]
         },
         {
-          "$ref": "#/$defs/ResourceLink"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "resource_link"
+            }
+          },
+          "$ref": "#/$defs/ResourceLink",
+          "required": ["type"]
         },
         {
-          "$ref": "#/$defs/EmbeddedResource"
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "resource"
+            }
+          },
+          "$ref": "#/$defs/EmbeddedResource",
+          "required": ["type"]
         }
       ]
     },
@@ -168,9 +205,6 @@
       "description": "The contents of a resource, embedded into a prompt or tool call result.\n\nIt is up to the client how best to render embedded resources for the benefit\nof the LLM and/or the user.",
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
         "annotations": {
           "anyOf": [
             {
@@ -185,7 +219,7 @@
           "$ref": "#/$defs/EmbeddedResourceResource"
         }
       },
-      "required": ["resource", "type"]
+      "required": ["resource"]
     },
     "EmbeddedResourceResource": {
       "anyOf": [
@@ -203,11 +237,14 @@
         "id": {
           "$ref": "#/$defs/GrantId"
         },
+        "is_allowed": {
+          "type": "boolean"
+        },
         "label": {
           "type": "string"
         }
       },
-      "required": ["id", "label"]
+      "required": ["id", "is_allowed", "label"]
     },
     "GrantId": {
       "type": "string"
@@ -216,9 +253,6 @@
       "description": "An image provided to or from an LLM.",
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
         "annotations": {
           "anyOf": [
             {
@@ -236,7 +270,7 @@
           "type": "string"
         }
       },
-      "required": ["data", "mimeType", "type"]
+      "required": ["data", "mimeType"]
     },
     "LoadSessionToolArguments": {
       "type": "object",
@@ -427,9 +461,6 @@
         "description": {
           "type": ["string", "null"]
         },
-        "type": {
-          "type": "string"
-        },
         "annotations": {
           "anyOf": [
             {
@@ -454,7 +485,7 @@
           "type": "string"
         }
       },
-      "required": ["name", "type", "uri"]
+      "required": ["name", "uri"]
     },
     "Role": {
       "description": "The sender or recipient of messages and data in a conversation.",
@@ -503,6 +534,17 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "agentThought"
+            }
+          },
+          "$ref": "#/$defs/ContentBlock",
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "toolCall"
             }
           },
@@ -526,9 +568,6 @@
       "description": "Text provided to or from an LLM.",
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
         "annotations": {
           "anyOf": [
             {
@@ -543,7 +582,7 @@
           "type": "string"
         }
       },
-      "required": ["text", "type"]
+      "required": ["text"]
     },
     "TextResourceContents": {
       "type": "object",
@@ -564,14 +603,10 @@
       "type": "object",
       "properties": {
         "content": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ToolCallContent"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          }
         },
         "id": {
           "$ref": "#/$defs/ToolCallId"

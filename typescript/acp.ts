@@ -17,39 +17,42 @@ export type ContentBlock =
   | AudioContent
   | ResourceLink
   | EmbeddedResource;
-/**
- * The sender or recipient of messages and data in a conversation.
- */
-export type Role = "assistant" | "user";
-export type EmbeddedResourceResource =
-  | TextResourceContents
-  | BlobResourceContents;
 export type SessionUpdate =
   | {
       type: "started";
     }
   | ContentBlock1
   | ContentBlock2
+  | ContentBlock3
   | ToolCall
   | Plan;
-export type ContentBlock1 = (
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource
-) & {
+export type ContentBlock1 = {
   type: "userMessage";
-};
-export type ContentBlock2 = (
+} & (
   | TextContent
   | ImageContent
   | AudioContent
   | ResourceLink
   | EmbeddedResource
-) & {
+);
+export type ContentBlock2 = {
   type: "agentMessage";
-};
+} & (
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | ResourceLink
+  | EmbeddedResource
+);
+export type ContentBlock3 = {
+  type: "agentThought";
+} & (
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | ResourceLink
+  | EmbeddedResource
+);
 
 export interface NewSessionToolArguments {
   clientTools: ClientTools;
@@ -94,35 +97,19 @@ export interface PromptToolArguments {
  * Text provided to or from an LLM.
  */
 export interface TextContent {
-  type: string;
-  annotations?: Annotations | null;
-  text: string;
-}
-/**
- * Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
- */
-export interface Annotations {
-  audience?: Role[] | null;
-  lastModified?: string | null;
-  priority?: number | null;
+  type: "text";
 }
 /**
  * An image provided to or from an LLM.
  */
 export interface ImageContent {
-  type: string;
-  annotations?: Annotations | null;
-  data: string;
-  mimeType: string;
+  type: "image";
 }
 /**
  * Audio provided to or from an LLM.
  */
 export interface AudioContent {
-  type: string;
-  annotations?: Annotations | null;
-  data: string;
-  mimeType: string;
+  type: "audio";
 }
 /**
  * A resource that the server is capable of reading, included in a prompt or tool call result.
@@ -130,14 +117,7 @@ export interface AudioContent {
  * Note: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.
  */
 export interface ResourceLink {
-  title?: string | null;
-  description?: string | null;
-  type: string;
-  annotations?: Annotations | null;
-  mimeType?: string | null;
-  name: string;
-  size?: number | null;
-  uri: string;
+  type: "resource_link";
 }
 /**
  * The contents of a resource, embedded into a prompt or tool call result.
@@ -146,19 +126,7 @@ export interface ResourceLink {
  * of the LLM and/or the user.
  */
 export interface EmbeddedResource {
-  type: string;
-  annotations?: Annotations | null;
-  resource: EmbeddedResourceResource;
-}
-export interface TextResourceContents {
-  mimeType?: string | null;
-  text: string;
-  uri: string;
-}
-export interface BlobResourceContents {
-  blob: string;
-  mimeType?: string | null;
-  uri: string;
+  type: "resource";
 }
 export interface ToolCall {
   type: "toolCall";
