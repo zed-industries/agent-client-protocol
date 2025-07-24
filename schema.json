@@ -356,17 +356,17 @@
     "PermissionOption": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string"
-        },
         "kind": {
           "$ref": "#/$defs/PermissionOptionKind"
         },
         "label": {
           "type": "string"
+        },
+        "optionId": {
+          "type": "string"
         }
       },
-      "required": ["id", "label", "kind"]
+      "required": ["optionId", "label", "kind"]
     },
     "PermissionOptionKind": {
       "type": "string",
@@ -660,9 +660,6 @@
             "$ref": "#/$defs/ToolCallContent"
           }
         },
-        "id": {
-          "type": "string"
-        },
         "kind": {
           "$ref": "#/$defs/ToolKind"
         },
@@ -678,9 +675,12 @@
         "status": {
           "$ref": "#/$defs/ToolCallStatus"
         },
-        "structuredContent": true
+        "structuredContent": true,
+        "toolCallId": {
+          "type": "string"
+        }
       },
-      "required": ["id", "label", "kind", "status"]
+      "required": ["toolCallId", "label", "kind", "status"]
     },
     "ToolCallContent": {
       "anyOf": [
@@ -740,9 +740,6 @@
             "$ref": "#/$defs/ToolCallContent"
           }
         },
-        "id": {
-          "type": "string"
-        },
         "kind": {
           "anyOf": [
             {
@@ -772,9 +769,12 @@
             }
           ]
         },
-        "structuredContent": true
+        "structuredContent": true,
+        "toolCallId": {
+          "type": "string"
+        }
       },
-      "required": ["id"]
+      "required": ["toolCallId"]
     },
     "ToolKind": {
       "type": "string",

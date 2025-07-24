@@ -104,6 +104,7 @@ pub enum SessionUpdate {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCall {
+    #[serde(rename = "toolCallId")]
     pub id: ToolCallId,
     pub label: String,
     pub kind: ToolKind,
@@ -119,6 +120,7 @@ pub struct ToolCall {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
+    #[serde(rename = "toolCallId")]
     pub id: ToolCallId,
     #[serde(flatten)]
     pub fields: ToolCallUpdateFields,
@@ -269,6 +271,7 @@ pub struct PermissionToolArguments {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PermissionOption {
+    #[serde(rename = "optionId")]
     pub id: PermissionOptionId,
     pub label: String,
     pub kind: PermissionOptionKind,
