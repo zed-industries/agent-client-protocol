@@ -17,7 +17,7 @@ export type ContentBlock =
   | EmbeddedResource;
 export type SessionUpdate =
   | {
-      session_update: "started";
+      sessionUpdate: "started";
     }
   | ContentBlock1
   | ContentBlock2
@@ -26,7 +26,7 @@ export type SessionUpdate =
   | ToolCallUpdate
   | Plan;
 export type ContentBlock1 = {
-  session_update: "userMessage";
+  sessionUpdate: "userMessage";
 } & (
   | TextContent
   | ImageContent
@@ -35,7 +35,7 @@ export type ContentBlock1 = {
   | EmbeddedResource
 );
 export type ContentBlock2 = {
-  session_update: "agentMessageChunk";
+  sessionUpdate: "agentMessageChunk";
 } & (
   | TextContent
   | ImageContent
@@ -44,7 +44,7 @@ export type ContentBlock2 = {
   | EmbeddedResource
 );
 export type ContentBlock3 = {
-  session_update: "agentThoughtChunk";
+  sessionUpdate: "agentThoughtChunk";
 } & (
   | TextContent
   | ImageContent
@@ -121,13 +121,13 @@ export interface EmbeddedResource {
   type: "resource";
 }
 export interface ToolCall {
-  session_update: "toolCall";
+  sessionUpdate: "toolCall";
 }
 export interface ToolCallUpdate {
-  session_update: "toolCallUpdate";
+  sessionUpdate: "toolCallUpdate";
 }
 export interface Plan {
-  session_update: "plan";
+  sessionUpdate: "plan";
 }
 export interface WriteTextFileToolArguments {
   content: string;

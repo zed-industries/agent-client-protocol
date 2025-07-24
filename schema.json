@@ -541,78 +541,78 @@
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "started"
             }
           },
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "userMessage"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "agentMessageChunk"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "agentThoughtChunk"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "toolCall"
             }
           },
           "$ref": "#/$defs/ToolCall",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "toolCallUpdate"
             }
           },
           "$ref": "#/$defs/ToolCallUpdate",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         },
         {
           "type": "object",
           "properties": {
-            "session_update": {
+            "sessionUpdate": {
               "type": "string",
               "const": "plan"
             }
           },
           "$ref": "#/$defs/Plan",
-          "required": ["session_update"]
+          "required": ["sessionUpdate"]
         }
       ]
     },

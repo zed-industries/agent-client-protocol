@@ -90,7 +90,7 @@ pub struct SessionNotification {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "session_update", rename_all = "camelCase")]
+#[serde(tag = "sessionUpdate", rename_all = "camelCase")]
 pub enum SessionUpdate {
     Started,
     UserMessage(ContentBlock),
