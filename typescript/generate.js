@@ -12,7 +12,7 @@ export const NEW_SESSION_TOOL_NAME = "acp__new_session";
 export const LOAD_SESSION_TOOL_NAME = "acp__load_session";
 export const PROMPT_TOOL_NAME = "acp__prompt";
 
-${await compile(jsonSchema, "Agent Coding Protocol", {
+${await compile(jsonSchema, "Agent Client Protocol", {
   additionalProperties: false,
   bannerComment: false,
 })}

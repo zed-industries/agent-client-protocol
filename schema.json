@@ -22,7 +22,7 @@
           "$ref": "#/$defs/PermissionToolArguments"
         },
         {
-          "$ref": "#/$defs/PermissionToolResponse"
+          "$ref": "#/$defs/PermissionOutcome"
         }
       ]
     },
@@ -231,24 +231,6 @@
         }
       ]
     },
-    "Grant": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "$ref": "#/$defs/GrantId"
-        },
-        "is_allowed": {
-          "type": "boolean"
-        },
-        "label": {
-          "type": "string"
-        }
-      },
-      "required": ["id", "is_allowed", "label"]
-    },
-    "GrantId": {
-      "type": "string"
-    },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "type": "object",
@@ -288,7 +270,7 @@
           }
         },
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "type": "string"
         }
       },
       "required": ["mcpServers", "clientTools", "cwd", "sessionId"]
@@ -352,29 +334,69 @@
       },
       "required": ["mcpServers", "clientTools", "cwd"]
     },
+    "PermissionOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PermissionOptionKind"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "label", "kind"]
+    },
+    "PermissionOptionKind": {
+      "type": "string",
+      "enum": ["allowOnce", "allowAlways", "rejectOnce", "rejectAlways"]
+    },
+    "PermissionOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "canceled"
+            }
+          },
+          "required": ["outcome"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "optionId": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string",
+              "const": "selected"
+            }
+          },
+          "required": ["outcome", "optionId"]
+        }
+      ]
+    },
     "PermissionToolArguments": {
       "type": "object",
       "properties": {
-        "possibleGrants": {
+        "options": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Grant"
+            "$ref": "#/$defs/PermissionOption"
           }
+        },
+        "sessionId": {
+          "type": "string"
         },
         "toolCall": {
           "$ref": "#/$defs/ToolCall"
         }
       },
-      "required": ["toolCall", "possibleGrants"]
-    },
-    "PermissionToolResponse": {
-      "type": "object",
-      "properties": {
-        "selectedGrant": {
-          "$ref": "#/$defs/GrantId"
-        }
-      },
-      "required": ["selectedGrant"]
+      "required": ["sessionId", "toolCall", "options"]
     },
     "Plan": {
       "type": "object",
@@ -427,7 +449,7 @@
           }
         },
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "type": "string"
         }
       },
       "required": ["sessionId", "prompt"]
@@ -447,9 +469,12 @@
         },
         "path": {
           "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
         }
       },
-      "required": ["path"]
+      "required": ["sessionId", "path"]
     },
     "ResourceLink": {
       "description": "A resource that the server is capable of reading, included in a prompt or tool call result.\n\nNote: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.",
@@ -491,9 +516,6 @@
       "description": "The sender or recipient of messages and data in a conversation.",
       "type": "string",
       "enum": ["assistant", "user"]
-    },
-    "SessionId": {
-      "type": "string"
     },
     "SessionUpdate": {
       "oneOf": [
@@ -609,7 +631,7 @@
           }
         },
         "id": {
-          "$ref": "#/$defs/ToolCallId"
+          "type": "string"
         },
         "kind": {
           "$ref": "#/$defs/ToolKind"
@@ -650,9 +672,6 @@
           "required": ["diff"]
         }
       ]
-    },
-    "ToolCallId": {
-      "type": "string"
     },
     "ToolCallLocation": {
       "type": "object",
@@ -699,9 +718,12 @@
         },
         "path": {
           "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
         }
       },
-      "required": ["path", "content"]
+      "required": ["sessionId", "path", "content"]
     }
   }
 }

@@ -2,7 +2,7 @@ export const NEW_SESSION_TOOL_NAME = "acp__new_session";
 export const LOAD_SESSION_TOOL_NAME = "acp__load_session";
 export const PROMPT_TOOL_NAME = "acp__prompt";
 
-export type AgentCodingProtocol =
+export type AgentClientProtocol =
   | NewSessionToolArguments
   | LoadSessionToolArguments
   | PromptToolArguments
@@ -10,7 +10,6 @@ export type AgentCodingProtocol =
   | [unknown, unknown]
   | WriteTextFileToolArguments
   | ReadTextFileArguments;
-export type SessionId = string;
 export type ContentBlock =
   | TextContent
   | ImageContent
@@ -87,11 +86,11 @@ export interface LoadSessionToolArguments {
   mcpServers: {
     [k: string]: McpServerConfig;
   };
-  sessionId: SessionId;
+  sessionId: string;
 }
 export interface PromptToolArguments {
   prompt: ContentBlock[];
-  sessionId: SessionId;
+  sessionId: string;
 }
 /**
  * Text provided to or from an LLM.
@@ -137,9 +136,11 @@ export interface Plan {
 export interface WriteTextFileToolArguments {
   content: string;
   path: string;
+  sessionId: string;
 }
 export interface ReadTextFileArguments {
   limit?: number | null;
   line?: number | null;
   path: string;
+  sessionId: string;
 }
