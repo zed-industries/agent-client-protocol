@@ -18,6 +18,12 @@ pub struct NewSessionToolArguments {
     pub cwd: PathBuf,
 }
 
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NewSessionToolResult {
+    pub session_id: SessionId,
+}
+
 // Load session
 
 pub const LOAD_SESSION_TOOL_NAME: &str = "acp__load_session";
