@@ -1,20 +1,11 @@
 ---
 title: "Introduction"
-description: "Description of your new file."
+description: "Get started with the Agent Client Protocol (ACP)"
 ---
 
 The Agent Client Protocol (ACP) is a protocol that standardizes communication between code editors (interactive programs for viewing and editing source code) and coding agents (programs that use generative AI to autonomously modify code).
 
 The protocol is still under heavy development, and we aim to standardize it as we get confidence in the design by implementing it in various settings.
-
-```
-┌─────────────┐                   ┌─────────────┐
-│             │     stdin/out     │             │
-│   Client    │ ←───────────────→ │    Agent    │
-│    (IDE)    │   JSON-RPC 2.0    │  (AI Tool)  │
-│             │                   │             │
-└─────────────┘                   └─────────────┘
-```
 
 ## Why ACP?
 
@@ -37,7 +28,11 @@ Once the agent is ready, the client can send sendUserMessage requests with conte
 
 ### Architecture
 
-[nice visual]
-
-# Quickstart: For Agent developers
-# Quickstart: For Client developers
+```
+┌─────────────┐                   ┌─────────────┐
+│             │     stdin/out     │             │
+│   Client    │ ←───────────────→ │    Agent    │
+│    (IDE)    │   JSON-RPC 2.0    │  (AI Tool)  │
+│             │                   │             │
+└─────────────┘                   └─────────────┘
+```

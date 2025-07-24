@@ -3,20 +3,20 @@
   "theme": "maple",
   "name": "Agent Client Protocol",
   "colors": {
-    "primary": "#09090b",
-    "light": "#FAFAFA",
-    "dark": "#09090b"
+    "primary": "#084CCF",
+    "light": "#FFFFFF",
+    "dark": "#000000"
   },
   "favicon": "/favicon.svg",
   "navbar": {
     "links": [
       {
-        "label": "Blog",
-        "href": "https://blog.modelcontextprotocol.io"
+        "label": "GitHub",
+        "href": "https://github.com/zed-industries/agent-client-protocol"
       },
       {
-        "label": "GitHub",
-        "href": "https://github.com/modelcontextprotocol"
+        "label": "Zed Industries",
+        "href": "https://zed.dev"
       }
     ]
   },
@@ -25,34 +25,25 @@
       {
         "group": "User Guide",
         "pages": [
-          "introduction",
+          "Introduction",
           {
             "group": "Quickstart",
-            "pages": [
-              "quickstart/server",
-              "quickstart/client"
-            ]
+            "pages": ["quickstart/agent", "quickstart/client"]
           },
           {
             "group": "Examples",
-            "pages": ["examples", "clients"]
+            "pages": ["clients", "agents"]
           },
           "faq"
         ]
       },
       {
         "group": "Protocol",
-        "pages": [
-          "Architecture",
-          "Specification"
-        ]
+        "pages": ["Architecture", "Specification", "Schema"]
       },
       {
         "group": "Community",
-        "pages": [
-          "Contributing",
-          "Versioning"
-        ]
+        "pages": ["Contributing", "Versioning"]
       }
     ]
   },
@@ -68,7 +59,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/modelcontextprotocol"
+      "github": "https://github.com/zed-industries/agent-client-protocol"
     }
   },
   "contextual": {
