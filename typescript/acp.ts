@@ -3,11 +3,10 @@ export const LOAD_SESSION_TOOL_NAME = "acp__load_session";
 export const PROMPT_TOOL_NAME = "acp__prompt";
 
 export type AgentClientProtocol =
-  | NewSessionToolArguments
+  | [unknown, unknown]
   | LoadSessionToolArguments
   | PromptToolArguments
   | SessionUpdate
-  | [unknown, unknown]
   | WriteTextFileToolArguments
   | ReadTextFileArguments;
 export type ContentBlock =
@@ -18,15 +17,16 @@ export type ContentBlock =
   | EmbeddedResource;
 export type SessionUpdate =
   | {
-      type: "started";
+      session_update: "started";
     }
   | ContentBlock1
   | ContentBlock2
   | ContentBlock3
   | ToolCall
+  | ToolCallUpdate
   | Plan;
 export type ContentBlock1 = {
-  type: "userMessage";
+  session_update: "userMessage";
 } & (
   | TextContent
   | ImageContent
@@ -35,7 +35,7 @@ export type ContentBlock1 = {
   | EmbeddedResource
 );
 export type ContentBlock2 = {
-  type: "agentMessage";
+  session_update: "agentMessageChunk";
 } & (
   | TextContent
   | ImageContent
@@ -44,7 +44,7 @@ export type ContentBlock2 = {
   | EmbeddedResource
 );
 export type ContentBlock3 = {
-  type: "agentThought";
+  session_update: "agentThoughtChunk";
 } & (
   | TextContent
   | ImageContent
@@ -53,12 +53,13 @@ export type ContentBlock3 = {
   | EmbeddedResource
 );
 
-export interface NewSessionToolArguments {
+export interface LoadSessionToolArguments {
   clientTools: ClientTools;
   cwd: string;
   mcpServers: {
     [k: string]: McpServerConfig;
   };
+  sessionId: string;
 }
 export interface ClientTools {
   confirmPermission: McpToolId | null;
@@ -79,14 +80,6 @@ export interface McpServerConfig {
   env?: {
     [k: string]: string;
   } | null;
-}
-export interface LoadSessionToolArguments {
-  clientTools: ClientTools;
-  cwd: string;
-  mcpServers: {
-    [k: string]: McpServerConfig;
-  };
-  sessionId: string;
 }
 export interface PromptToolArguments {
   prompt: ContentBlock[];
@@ -128,10 +121,13 @@ export interface EmbeddedResource {
   type: "resource";
 }
 export interface ToolCall {
-  type: "toolCall";
+  session_update: "toolCall";
+}
+export interface ToolCallUpdate {
+  session_update: "toolCallUpdate";
 }
 export interface Plan {
-  type: "plan";
+  session_update: "plan";
 }
 export interface WriteTextFileToolArguments {
   content: string;

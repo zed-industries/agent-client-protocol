@@ -82,7 +82,7 @@ pub struct PromptToolArguments {
 pub const SESSION_UPDATE_METHOD_NAME: &str = "acp/session_update";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     pub session_id: SessionId,
     #[serde(flatten)]
@@ -90,7 +90,7 @@ pub struct SessionNotification {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "event", rename_all = "camelCase")]
+#[serde(tag = "session_update", rename_all = "camelCase")]
 pub enum SessionUpdate {
     Started,
     UserMessage(ContentBlock),
@@ -108,7 +108,7 @@ pub struct ToolCall {
     pub label: String,
     pub kind: ToolKind,
     pub status: ToolCallStatus,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub content: Vec<ToolCallContent>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locations: Vec<ToolCallLocation>,
@@ -120,12 +120,23 @@ pub struct ToolCall {
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
     pub id: ToolCallId,
-    pub status: ToolCallStatus,
+    #[serde(flatten)]
+    pub fields: ToolCallUpdateFields,
+}
+
+#[derive(Default, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallUpdateFields {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<ToolKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<ToolCallStatus>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub content: Vec<ToolCallContent>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub locations: Vec<ToolCallLocation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<Vec<ToolCallContent>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locations: Option<Vec<ToolCallLocation>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub structured_content: Option<serde_json::Value>,
 }
@@ -159,18 +170,14 @@ pub enum ToolCallStatus {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
-// todo: should we just add "diff" to the ContentBlock type?
 pub enum ToolCallContent {
-    // todo! make it tuple enum
-    ContentBlock { content: ContentBlock },
+    ContentBlock(ContentBlock),
     Diff { diff: Diff },
 }
 
 impl<T: Into<ContentBlock>> From<T> for ToolCallContent {
     fn from(content: T) -> Self {
-        ToolCallContent::ContentBlock {
-            content: content.into(),
-        }
+        ToolCallContent::ContentBlock(content.into())
     }
 }
 
@@ -192,7 +199,7 @@ pub struct Diff {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct ToolCallLocation {
     pub path: PathBuf,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
 }
 
@@ -307,8 +314,8 @@ pub struct WriteTextFileToolArguments {
 pub struct ReadTextFileArguments {
     pub session_id: SessionId,
     pub path: PathBuf,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
 }

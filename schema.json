@@ -2,7 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "$ref": "#/$defs/NewSessionToolArguments"
+      "type": "array",
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/NewSessionToolArguments"
+        },
+        {
+          "$ref": "#/$defs/NewSessionToolResult"
+        }
+      ]
     },
     {
       "$ref": "#/$defs/LoadSessionToolArguments"
@@ -334,6 +344,15 @@
       },
       "required": ["mcpServers", "clientTools", "cwd"]
     },
+    "NewSessionToolResult": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId"]
+    },
     "PermissionOption": {
       "type": "object",
       "properties": {
@@ -522,67 +541,78 @@
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
               "type": "string",
               "const": "started"
             }
           },
-          "required": ["type"]
+          "required": ["session_update"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
               "type": "string",
               "const": "userMessage"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["type"]
+          "required": ["session_update"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
               "type": "string",
-              "const": "agentMessage"
+              "const": "agentMessageChunk"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["type"]
+          "required": ["session_update"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
               "type": "string",
-              "const": "agentThought"
+              "const": "agentThoughtChunk"
             }
           },
           "$ref": "#/$defs/ContentBlock",
-          "required": ["type"]
+          "required": ["session_update"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
               "type": "string",
               "const": "toolCall"
             }
           },
           "$ref": "#/$defs/ToolCall",
-          "required": ["type"]
+          "required": ["session_update"]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
+            "session_update": {
+              "type": "string",
+              "const": "toolCallUpdate"
+            }
+          },
+          "$ref": "#/$defs/ToolCallUpdate",
+          "required": ["session_update"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_update": {
               "type": "string",
               "const": "plan"
             }
           },
           "$ref": "#/$defs/Plan",
-          "required": ["type"]
+          "required": ["session_update"]
         }
       ]
     },
@@ -647,20 +677,15 @@
         },
         "status": {
           "$ref": "#/$defs/ToolCallStatus"
-        }
+        },
+        "structuredContent": true
       },
       "required": ["id", "label", "kind", "status"]
     },
     "ToolCallContent": {
       "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "content": {
-              "$ref": "#/$defs/ContentBlock"
-            }
-          },
-          "required": ["content"]
+          "$ref": "#/$defs/ContentBlock"
         },
         {
           "type": "object",
@@ -705,6 +730,51 @@
           "const": "failed"
         }
       ]
+    },
+    "ToolCallUpdate": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": ["string", "null"]
+        },
+        "locations": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          }
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "structuredContent": true
+      },
+      "required": ["id"]
     },
     "ToolKind": {
       "type": "string",
