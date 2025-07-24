@@ -245,7 +245,7 @@ pub struct PermissionOption {
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum PermissionOptionKind {
     AllowOnce,
