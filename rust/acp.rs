@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 // New session
 
-pub const NEW_SESSION_TOOL_NAME: &str = "acp__new_session";
+pub const NEW_SESSION_TOOL_NAME: &str = "acp/new_session";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -26,7 +26,7 @@ pub struct NewSessionToolResult {
 
 // Load session
 
-pub const LOAD_SESSION_TOOL_NAME: &str = "acp__load_session";
+pub const LOAD_SESSION_TOOL_NAME: &str = "acp/load_session";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -68,7 +68,7 @@ pub struct McpToolId {
 
 // Prompt
 
-pub const PROMPT_TOOL_NAME: &str = "acp__prompt";
+pub const PROMPT_TOOL_NAME: &str = "acp/prompt";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -79,6 +79,8 @@ pub struct PromptToolArguments {
 
 // Session updates
 
+pub const SESSION_UPDATE_METHOD_NAME: &str = "acp/session_update";
+
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct SessionNotification {
@@ -88,13 +90,14 @@ pub struct SessionNotification {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "event", rename_all = "camelCase")]
 pub enum SessionUpdate {
     Started,
     UserMessage(ContentBlock),
-    AgentMessage(ContentBlock),
-    AgentThought(ContentBlock),
+    AgentMessageChunk(ContentBlock),
+    AgentThoughtChunk(ContentBlock),
     ToolCall(ToolCall),
+    ToolCallUpdate(ToolCallUpdate),
     Plan(Plan),
 }
 
@@ -109,6 +112,22 @@ pub struct ToolCall {
     pub content: Vec<ToolCallContent>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locations: Vec<ToolCallLocation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structured_content: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallUpdate {
+    pub id: ToolCallId,
+    pub status: ToolCallStatus,
+    pub label: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub content: Vec<ToolCallContent>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<ToolCallLocation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structured_content: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
@@ -142,6 +161,7 @@ pub enum ToolCallStatus {
 #[serde(untagged, rename_all = "camelCase")]
 // todo: should we just add "diff" to the ContentBlock type?
 pub enum ToolCallContent {
+    // todo! make it tuple enum
     ContentBlock { content: ContentBlock },
     Diff { diff: Diff },
 }
