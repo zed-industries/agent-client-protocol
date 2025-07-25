@@ -12,7 +12,7 @@ pub const NEW_SESSION_TOOL_NAME: &str = "acp/new_session";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NewSessionToolArguments {
+pub struct NewSessionArguments {
     pub mcp_servers: HashMap<String, McpServerConfig>,
     pub client_tools: ClientTools,
     pub cwd: PathBuf,
@@ -20,7 +20,7 @@ pub struct NewSessionToolArguments {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NewSessionToolResult {
+pub struct NewSessionOutput {
     pub session_id: SessionId,
 }
 
@@ -30,7 +30,7 @@ pub const LOAD_SESSION_TOOL_NAME: &str = "acp/load_session";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LoadSessionToolArguments {
+pub struct LoadSessionArguments {
     pub mcp_servers: HashMap<String, McpServerConfig>,
     pub client_tools: ClientTools,
     pub cwd: PathBuf,
@@ -72,7 +72,7 @@ pub const PROMPT_TOOL_NAME: &str = "acp/prompt";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PromptToolArguments {
+pub struct PromptArguments {
     pub session_id: SessionId,
     pub prompt: Vec<ContentBlock>,
 }
@@ -264,7 +264,7 @@ pub struct ClientTools {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RequestPermissionToolArguments {
+pub struct RequestPermissionArguments {
     pub session_id: SessionId,
     pub tool_call: ToolCall,
     pub options: Vec<PermissionOption>,
@@ -299,7 +299,7 @@ pub enum PermissionOptionKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RequestPermissionToolOutput {
+pub struct RequestPermissionOutput {
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
 }
@@ -318,7 +318,7 @@ pub enum RequestPermissionOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct WriteTextFileToolArguments {
+pub struct WriteTextFileArguments {
     pub session_id: SessionId,
     pub path: PathBuf,
     pub content: String,
@@ -335,4 +335,10 @@ pub struct ReadTextFileArguments {
     pub line: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadTextFileOutput {
+    pub content: String,
 }

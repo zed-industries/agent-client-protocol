@@ -2,45 +2,62 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
+      "title": "NewSession",
       "type": "array",
       "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
-          "$ref": "#/$defs/NewSessionToolArguments"
+          "$ref": "#/$defs/NewSessionArguments"
         },
         {
-          "$ref": "#/$defs/NewSessionToolResult"
+          "$ref": "#/$defs/NewSessionOutput"
         }
       ]
     },
     {
-      "$ref": "#/$defs/LoadSessionToolArguments"
+      "title": "LoadSession",
+      "$ref": "#/$defs/LoadSessionArguments"
     },
     {
-      "$ref": "#/$defs/PromptToolArguments"
+      "title": "Prompt",
+      "$ref": "#/$defs/PromptArguments"
     },
     {
+      "title": "SessionUpdate",
       "$ref": "#/$defs/SessionUpdate"
     },
     {
+      "title": "PermissionTool",
       "type": "array",
       "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
-          "$ref": "#/$defs/RequestPermissionToolArguments"
+          "$ref": "#/$defs/RequestPermissionArguments"
         },
         {
-          "$ref": "#/$defs/RequestPermissionToolOutput"
+          "$ref": "#/$defs/RequestPermissionOutput"
         }
       ]
     },
     {
-      "$ref": "#/$defs/WriteTextFileToolArguments"
+      "title": "WriteTextFile",
+      "$ref": "#/$defs/WriteTextFileArguments"
     },
     {
-      "$ref": "#/$defs/ReadTextFileArguments"
+      "title": "ReadTextFile",
+      "type": "array",
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/ReadTextFileArguments"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileOutput"
+        }
+      ]
     }
   ],
   "$defs": {
@@ -234,9 +251,11 @@
     "EmbeddedResourceResource": {
       "anyOf": [
         {
+          "title": "TextResourceContents",
           "$ref": "#/$defs/TextResourceContents"
         },
         {
+          "title": "BlobResourceContents",
           "$ref": "#/$defs/BlobResourceContents"
         }
       ]
@@ -264,7 +283,7 @@
       },
       "required": ["data", "mimeType"]
     },
-    "LoadSessionToolArguments": {
+    "LoadSessionArguments": {
       "type": "object",
       "properties": {
         "clientTools": {
@@ -326,7 +345,7 @@
       },
       "required": ["mcpServer", "toolName"]
     },
-    "NewSessionToolArguments": {
+    "NewSessionArguments": {
       "type": "object",
       "properties": {
         "clientTools": {
@@ -344,7 +363,7 @@
       },
       "required": ["mcpServers", "clientTools", "cwd"]
     },
-    "NewSessionToolResult": {
+    "NewSessionOutput": {
       "type": "object",
       "properties": {
         "sessionId": {
@@ -413,7 +432,7 @@
       "type": "string",
       "enum": ["pending", "in_progress", "completed"]
     },
-    "PromptToolArguments": {
+    "PromptArguments": {
       "type": "object",
       "properties": {
         "prompt": {
@@ -450,6 +469,33 @@
       },
       "required": ["sessionId", "path"]
     },
+    "ReadTextFileOutput": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": ["content"]
+    },
+    "RequestPermissionArguments": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PermissionOption"
+          }
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": ["sessionId", "toolCall", "options"]
+    },
     "RequestPermissionOutcome": {
       "oneOf": [
         {
@@ -477,25 +523,7 @@
         }
       ]
     },
-    "RequestPermissionToolArguments": {
-      "type": "object",
-      "properties": {
-        "options": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/PermissionOption"
-          }
-        },
-        "sessionId": {
-          "type": "string"
-        },
-        "toolCall": {
-          "$ref": "#/$defs/ToolCall"
-        }
-      },
-      "required": ["sessionId", "toolCall", "options"]
-    },
-    "RequestPermissionToolOutput": {
+    "RequestPermissionOutput": {
       "type": "object",
       "properties": {
         "outcome": {
@@ -684,9 +712,11 @@
     "ToolCallContent": {
       "anyOf": [
         {
+          "title": "contentBlock",
           "$ref": "#/$defs/ContentBlock"
         },
         {
+          "title": "diff",
           "type": "object",
           "properties": {
             "diff": {
@@ -784,7 +814,7 @@
       "type": "string",
       "enum": ["read", "edit", "search", "execute", "think", "fetch", "other"]
     },
-    "WriteTextFileToolArguments": {
+    "WriteTextFileArguments": {
       "type": "object",
       "properties": {
         "content": {

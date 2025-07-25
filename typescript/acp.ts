@@ -3,12 +3,18 @@ export const LOAD_SESSION_TOOL_NAME = "acp__load_session";
 export const PROMPT_TOOL_NAME = "acp__prompt";
 
 export type AgentClientProtocol =
-  | [unknown, unknown]
-  | LoadSessionToolArguments
-  | PromptToolArguments
+  | NewSession
+  | LoadSession
+  | Prompt
   | SessionUpdate
-  | WriteTextFileToolArguments
-  | ReadTextFileArguments;
+  | PermissionTool
+  | WriteTextFile
+  | ReadTextFile;
+/**
+ * @minItems 2
+ * @maxItems 2
+ */
+export type NewSession = [unknown, unknown];
 export type ContentBlock =
   | TextContent
   | ImageContent
@@ -49,8 +55,18 @@ export type ContentBlock3 = {
   | ResourceLink
   | EmbeddedResource
 );
+/**
+ * @minItems 2
+ * @maxItems 2
+ */
+export type PermissionTool = [unknown, unknown];
+/**
+ * @minItems 2
+ * @maxItems 2
+ */
+export type ReadTextFile = [unknown, unknown];
 
-export interface LoadSessionToolArguments {
+export interface LoadSession {
   clientTools: ClientTools;
   cwd: string;
   mcpServers: {
@@ -78,7 +94,7 @@ export interface McpServerConfig {
     [k: string]: string;
   } | null;
 }
-export interface PromptToolArguments {
+export interface Prompt {
   prompt: ContentBlock[];
   sessionId: string;
 }
@@ -126,14 +142,8 @@ export interface ToolCallUpdate {
 export interface Plan {
   sessionUpdate: "plan";
 }
-export interface WriteTextFileToolArguments {
+export interface WriteTextFile {
   content: string;
-  path: string;
-  sessionId: string;
-}
-export interface ReadTextFileArguments {
-  limit?: number | null;
-  line?: number | null;
   path: string;
   sessionId: string;
 }
