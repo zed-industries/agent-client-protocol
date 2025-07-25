@@ -50,7 +50,7 @@ impl Display for SessionId {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServerConfig {
-    pub command: String,
+    pub command: PathBuf,
     pub args: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env: Option<HashMap<String, String>>,
