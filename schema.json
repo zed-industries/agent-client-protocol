@@ -316,14 +316,6 @@
         "command": {
           "type": "string"
         },
-        "enabledTools": {
-          "description": "If provided, only the specified tools are enabled",
-          "type": ["array", "null"],
-          "default": null,
-          "items": {
-            "type": "string"
-          }
-        },
         "env": {
           "type": ["object", "null"],
           "additionalProperties": {
@@ -331,7 +323,7 @@
           }
         }
       },
-      "required": ["command", "args", "enabledTools"]
+      "required": ["command", "args"]
     },
     "McpToolId": {
       "type": "object",

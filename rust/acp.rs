@@ -54,9 +54,6 @@ pub struct McpServerConfig {
     pub args: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env: Option<HashMap<String, String>>,
-    /// If provided, only the specified tools are enabled
-    #[serde(default)]
-    pub enabled_tools: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]

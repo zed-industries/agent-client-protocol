@@ -86,10 +86,6 @@ export interface McpToolId {
 export interface McpServerConfig {
   args: string[];
   command: string;
-  /**
-   * If provided, only the specified tools are enabled
-   */
-  enabledTools: string[] | null;
   env?: {
     [k: string]: string;
   } | null;
