@@ -29,10 +29,10 @@
       "minItems": 2,
       "prefixItems": [
         {
-          "$ref": "#/$defs/PermissionToolArguments"
+          "$ref": "#/$defs/RequestPermissionToolArguments"
         },
         {
-          "$ref": "#/$defs/PermissionOutcome"
+          "$ref": "#/$defs/RequestPermissionToolOutput"
         }
       ]
     },
@@ -372,51 +372,6 @@
       "type": "string",
       "enum": ["allowOnce", "allowAlways", "rejectOnce", "rejectAlways"]
     },
-    "PermissionOutcome": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "outcome": {
-              "type": "string",
-              "const": "canceled"
-            }
-          },
-          "required": ["outcome"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "optionId": {
-              "type": "string"
-            },
-            "outcome": {
-              "type": "string",
-              "const": "selected"
-            }
-          },
-          "required": ["outcome", "optionId"]
-        }
-      ]
-    },
-    "PermissionToolArguments": {
-      "type": "object",
-      "properties": {
-        "options": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/PermissionOption"
-          }
-        },
-        "sessionId": {
-          "type": "string"
-        },
-        "toolCall": {
-          "$ref": "#/$defs/ToolCall"
-        }
-      },
-      "required": ["sessionId", "toolCall", "options"]
-    },
     "Plan": {
       "type": "object",
       "properties": {
@@ -495,6 +450,60 @@
       },
       "required": ["sessionId", "path"]
     },
+    "RequestPermissionOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "canceled"
+            }
+          },
+          "required": ["outcome"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "optionId": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string",
+              "const": "selected"
+            }
+          },
+          "required": ["outcome", "optionId"]
+        }
+      ]
+    },
+    "RequestPermissionToolArguments": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PermissionOption"
+          }
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": ["sessionId", "toolCall", "options"]
+    },
+    "RequestPermissionToolOutput": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/RequestPermissionOutcome"
+        }
+      },
+      "required": ["outcome"]
+    },
     "ResourceLink": {
       "description": "A resource that the server is capable of reading, included in a prompt or tool call result.\n\nNote: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.",
       "type": "object",
@@ -538,16 +547,6 @@
     },
     "SessionUpdate": {
       "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "sessionUpdate": {
-              "type": "string",
-              "const": "started"
-            }
-          },
-          "required": ["sessionUpdate"]
-        },
         {
           "type": "object",
           "properties": {
@@ -714,6 +713,11 @@
     },
     "ToolCallStatus": {
       "oneOf": [
+        {
+          "description": "The tool call is currently running",
+          "type": "string",
+          "const": "pending"
+        },
         {
           "description": "The tool call is currently running",
           "type": "string",

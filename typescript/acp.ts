@@ -16,9 +16,6 @@ export type ContentBlock =
   | ResourceLink
   | EmbeddedResource;
 export type SessionUpdate =
-  | {
-      sessionUpdate: "started";
-    }
   | ContentBlock1
   | ContentBlock2
   | ContentBlock3

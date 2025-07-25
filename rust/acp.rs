@@ -1,7 +1,7 @@
 pub mod mcp_types;
 pub use mcp_types::*;
 
-use std::{collections::HashMap, fmt::Display, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -41,8 +41,8 @@ pub struct LoadSessionToolArguments {
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
 
-impl Display for SessionId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for SessionId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -59,7 +59,7 @@ pub struct McpServerConfig {
     pub enabled_tools: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct McpToolId {
     pub mcp_server: String,
@@ -92,7 +92,6 @@ pub struct SessionNotification {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "sessionUpdate", rename_all = "camelCase")]
 pub enum SessionUpdate {
-    Started,
     UserMessage(ContentBlock),
     AgentMessageChunk(ContentBlock),
     AgentThoughtChunk(ContentBlock),
@@ -162,6 +161,8 @@ pub enum ToolKind {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallStatus {
+    /// The tool call is currently running
+    Pending,
     /// The tool call is currently running
     InProgress,
     /// The tool call completed successfully
@@ -251,7 +252,7 @@ pub enum PlanEntryStatus {
 
 // Client tools
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientTools {
     pub request_permission: Option<McpToolId>,
@@ -263,7 +264,7 @@ pub struct ClientTools {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PermissionToolArguments {
+pub struct RequestPermissionToolArguments {
     pub session_id: SessionId,
     pub tool_call: ToolCall,
     pub options: Vec<PermissionOption>,
@@ -281,6 +282,12 @@ pub struct PermissionOption {
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
 
+impl fmt::Display for PermissionOptionId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum PermissionOptionKind {
@@ -291,8 +298,15 @@ pub enum PermissionOptionKind {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestPermissionToolOutput {
+    // This extra-level is unfortunately needed because the output must be an object
+    pub outcome: RequestPermissionOutcome,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "outcome", rename_all = "camelCase")]
-pub enum PermissionOutcome {
+pub enum RequestPermissionOutcome {
     Canceled,
     #[serde(rename_all = "camelCase")]
     Selected {
