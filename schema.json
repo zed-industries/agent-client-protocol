@@ -2,191 +2,432 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "$ref": "#/$defs/AnyClientRequest"
+      "type": "array",
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/NewSessionToolArguments"
+        },
+        {
+          "$ref": "#/$defs/NewSessionToolResult"
+        }
+      ]
     },
     {
-      "$ref": "#/$defs/AnyClientResult"
+      "$ref": "#/$defs/LoadSessionToolArguments"
     },
     {
-      "$ref": "#/$defs/AnyAgentRequest"
+      "$ref": "#/$defs/PromptToolArguments"
     },
     {
-      "$ref": "#/$defs/AnyAgentResult"
+      "$ref": "#/$defs/SessionUpdate"
     },
     {
-      "$ref": "#/$defs/Error"
+      "type": "array",
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/PermissionToolArguments"
+        },
+        {
+          "$ref": "#/$defs/PermissionOutcome"
+        }
+      ]
+    },
+    {
+      "$ref": "#/$defs/WriteTextFileToolArguments"
+    },
+    {
+      "$ref": "#/$defs/ReadTextFileArguments"
     }
   ],
   "$defs": {
-    "AnyAgentRequest": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/InitializeParams"
-        },
-        {
-          "$ref": "#/$defs/AuthenticateParams"
-        },
-        {
-          "$ref": "#/$defs/SendUserMessageParams"
-        },
-        {
-          "$ref": "#/$defs/CancelSendMessageParams"
-        }
-      ]
-    },
-    "AnyAgentResult": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/InitializeResponse"
-        },
-        {
-          "$ref": "#/$defs/AuthenticateResponse"
-        },
-        {
-          "$ref": "#/$defs/SendUserMessageResponse"
-        },
-        {
-          "$ref": "#/$defs/CancelSendMessageResponse"
-        }
-      ]
-    },
-    "AnyClientRequest": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/StreamAssistantMessageChunkParams"
-        },
-        {
-          "$ref": "#/$defs/RequestToolCallConfirmationParams"
-        },
-        {
-          "$ref": "#/$defs/PushToolCallParams"
-        },
-        {
-          "$ref": "#/$defs/UpdateToolCallParams"
-        },
-        {
-          "$ref": "#/$defs/UpdatePlanParams"
-        },
-        {
-          "$ref": "#/$defs/WriteTextFileParams"
-        },
-        {
-          "$ref": "#/$defs/ReadTextFileParams"
-        }
-      ]
-    },
-    "AnyClientResult": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/StreamAssistantMessageChunkResponse"
-        },
-        {
-          "$ref": "#/$defs/RequestToolCallConfirmationResponse"
-        },
-        {
-          "$ref": "#/$defs/PushToolCallResponse"
-        },
-        {
-          "$ref": "#/$defs/UpdateToolCallResponse"
-        },
-        {
-          "$ref": "#/$defs/UpdatePlanResponse"
-        },
-        {
-          "$ref": "#/$defs/WriteTextFileResponse"
-        },
-        {
-          "$ref": "#/$defs/ReadTextFileResponse"
-        }
-      ]
-    },
-    "AssistantMessageChunk": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            }
-          },
-          "required": ["text"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "thought": {
-              "type": "string"
-            }
-          },
-          "required": ["thought"]
-        }
-      ]
-    },
-    "AuthenticateParams": {
-      "description": "Triggers authentication on the agent side.\n\nThis method should only be called if the initialize response indicates the user isn't already authenticated.\nIf this succceeds then the client can send other messasges to the agent,\nIf it fails then the error message should be shown and the user prompted to authenticate.\n\nThe implementation of authentication is left up to the agent, typically an oauth\nflow is run by opening a browser window in the background.",
-      "type": "null"
-    },
-    "AuthenticateResponse": {
-      "type": "null"
-    },
-    "CancelSendMessageParams": {
-      "description": "cancelSendMessage allows the client to request that the agent\nstop running. The agent should resolve or reject the current sendUserMessage call.",
-      "type": "null"
-    },
-    "CancelSendMessageResponse": {
-      "type": "null"
-    },
-    "Error": {
+    "Annotations": {
+      "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
       "type": "object",
       "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
+        "audience": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/Role"
+          }
         },
-        "data": true,
-        "message": {
+        "lastModified": {
+          "type": ["string", "null"]
+        },
+        "priority": {
+          "type": ["number", "null"],
+          "format": "double"
+        }
+      }
+    },
+    "AudioContent": {
+      "description": "Audio provided to or from an LLM.",
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {
+          "type": "string"
+        },
+        "mimeType": {
           "type": "string"
         }
       },
-      "required": ["code", "message"]
+      "required": ["data", "mimeType"]
     },
-    "Icon": {
-      "type": "string",
-      "enum": [
-        "fileSearch",
-        "folder",
-        "globe",
-        "hammer",
-        "lightBulb",
-        "pencil",
-        "regex",
-        "terminal"
+    "BlobResourceContents": {
+      "type": "object",
+      "properties": {
+        "blob": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["blob", "uri"]
+    },
+    "ClientTools": {
+      "type": "object",
+      "properties": {
+        "readTextFile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpToolId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestPermission": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpToolId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "writeTextFile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpToolId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["requestPermission", "writeTextFile", "readTextFile"]
+    },
+    "ContentBlock": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "$ref": "#/$defs/TextContent",
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            }
+          },
+          "$ref": "#/$defs/ImageContent",
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "audio"
+            }
+          },
+          "$ref": "#/$defs/AudioContent",
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "resource_link"
+            }
+          },
+          "$ref": "#/$defs/ResourceLink",
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "resource"
+            }
+          },
+          "$ref": "#/$defs/EmbeddedResource",
+          "required": ["type"]
+        }
       ]
     },
-    "InitializeParams": {
-      "description": "Initialize sets up the agent's state. It should be called before any other method,\nand no other methods should be called until it has completed.\n\nIf the agent is not authenticated, then the client should prompt the user to authenticate,\nand then call the `authenticate` method.\nOtherwise the client can send other messages to the agent.",
+    "Diff": {
       "type": "object",
       "properties": {
-        "protocolVersion": {
-          "description": "The version of the protocol that the client supports.\nThis should be the latest version supported by the client.",
-          "$ref": "#/$defs/SemVer"
-        }
-      },
-      "required": ["protocolVersion"]
-    },
-    "InitializeResponse": {
-      "type": "object",
-      "properties": {
-        "isAuthenticated": {
-          "description": "Indicates whether the agent is authenticated and\nready to handle requests.",
-          "type": "boolean"
+        "newText": {
+          "type": "string"
         },
-        "protocolVersion": {
-          "description": "The version of the protocol that the agent supports.\nIf the agent supports the requested version, it should respond with the same version.\nOtherwise, the agent should respond with the latest version it supports.",
-          "$ref": "#/$defs/SemVer"
+        "oldText": {
+          "type": ["string", "null"]
+        },
+        "path": {
+          "type": "string"
         }
       },
-      "required": ["protocolVersion", "isAuthenticated"]
+      "required": ["path", "oldText", "newText"]
+    },
+    "EmbeddedResource": {
+      "description": "The contents of a resource, embedded into a prompt or tool call result.\n\nIt is up to the client how best to render embedded resources for the benefit\nof the LLM and/or the user.",
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource": {
+          "$ref": "#/$defs/EmbeddedResourceResource"
+        }
+      },
+      "required": ["resource"]
+    },
+    "EmbeddedResourceResource": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextResourceContents"
+        },
+        {
+          "$ref": "#/$defs/BlobResourceContents"
+        }
+      ]
+    },
+    "ImageContent": {
+      "description": "An image provided to or from an LLM.",
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        }
+      },
+      "required": ["data", "mimeType"]
+    },
+    "LoadSessionToolArguments": {
+      "type": "object",
+      "properties": {
+        "clientTools": {
+          "$ref": "#/$defs/ClientTools"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "mcpServers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/McpServerConfig"
+          }
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["mcpServers", "clientTools", "cwd", "sessionId"]
+    },
+    "McpServerConfig": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        },
+        "enabledTools": {
+          "description": "If provided, only the specified tools are enabled",
+          "type": ["array", "null"],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "type": ["object", "null"],
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["command", "args", "enabledTools"]
+    },
+    "McpToolId": {
+      "type": "object",
+      "properties": {
+        "mcpServer": {
+          "type": "string"
+        },
+        "toolName": {
+          "type": "string"
+        }
+      },
+      "required": ["mcpServer", "toolName"]
+    },
+    "NewSessionToolArguments": {
+      "type": "object",
+      "properties": {
+        "clientTools": {
+          "$ref": "#/$defs/ClientTools"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "mcpServers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/McpServerConfig"
+          }
+        }
+      },
+      "required": ["mcpServers", "clientTools", "cwd"]
+    },
+    "NewSessionToolResult": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId"]
+    },
+    "PermissionOption": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PermissionOptionKind"
+        },
+        "label": {
+          "type": "string"
+        },
+        "optionId": {
+          "type": "string"
+        }
+      },
+      "required": ["optionId", "label", "kind"]
+    },
+    "PermissionOptionKind": {
+      "type": "string",
+      "enum": ["allowOnce", "allowAlways", "rejectOnce", "rejectAlways"]
+    },
+    "PermissionOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "canceled"
+            }
+          },
+          "required": ["outcome"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "optionId": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string",
+              "const": "selected"
+            }
+          },
+          "required": ["outcome", "optionId"]
+        }
+      ]
+    },
+    "PermissionToolArguments": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PermissionOption"
+          }
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": ["sessionId", "toolCall", "options"]
+    },
+    "Plan": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanEntry"
+          }
+        }
+      },
+      "required": ["entries"]
     },
     "PlanEntry": {
       "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.",
@@ -217,45 +458,22 @@
       "type": "string",
       "enum": ["pending", "in_progress", "completed"]
     },
-    "PushToolCallParams": {
-      "description": "pushToolCall allows the agent to start a tool call\nwhen it does not need to request permission to do so.\n\nThe returned id can be used to update the UI for the tool\ncall as needed.",
+    "PromptToolArguments": {
       "type": "object",
       "properties": {
-        "content": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ToolCallContent"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "icon": {
-          "$ref": "#/$defs/Icon"
-        },
-        "label": {
-          "type": "string"
-        },
-        "locations": {
+        "prompt": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ToolCallLocation"
+            "$ref": "#/$defs/ContentBlock"
           }
+        },
+        "sessionId": {
+          "type": "string"
         }
       },
-      "required": ["label", "icon"]
+      "required": ["sessionId", "prompt"]
     },
-    "PushToolCallResponse": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "$ref": "#/$defs/ToolCallId"
-        }
-      },
-      "required": ["id"]
-    },
-    "ReadTextFileParams": {
+    "ReadTextFileArguments": {
       "type": "object",
       "properties": {
         "limit": {
@@ -270,38 +488,180 @@
         },
         "path": {
           "type": "string"
-        }
-      },
-      "required": ["path"]
-    },
-    "ReadTextFileResponse": {
-      "type": "object",
-      "properties": {
-        "content": {
+        },
+        "sessionId": {
           "type": "string"
         }
       },
-      "required": ["content"]
+      "required": ["sessionId", "path"]
     },
-    "RequestToolCallConfirmationParams": {
-      "description": "Request confirmation before running a tool\n\nWhen allowed, the client returns a [`ToolCallId`] which can be used\nto update the tool call's `status` and `content` as it runs.",
+    "ResourceLink": {
+      "description": "A resource that the server is capable of reading, included in a prompt or tool call result.\n\nNote: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.",
       "type": "object",
       "properties": {
-        "confirmation": {
-          "$ref": "#/$defs/ToolCallConfirmation"
+        "title": {
+          "type": ["string", "null"]
         },
-        "content": {
+        "description": {
+          "type": ["string", "null"]
+        },
+        "annotations": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ToolCallContent"
+              "$ref": "#/$defs/Annotations"
             },
             {
               "type": "null"
             }
           ]
         },
-        "icon": {
-          "$ref": "#/$defs/Icon"
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": ["integer", "null"],
+          "format": "int64"
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "uri"]
+    },
+    "Role": {
+      "description": "The sender or recipient of messages and data in a conversation.",
+      "type": "string",
+      "enum": ["assistant", "user"]
+    },
+    "SessionUpdate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "started"
+            }
+          },
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "userMessage"
+            }
+          },
+          "$ref": "#/$defs/ContentBlock",
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "agentMessageChunk"
+            }
+          },
+          "$ref": "#/$defs/ContentBlock",
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "agentThoughtChunk"
+            }
+          },
+          "$ref": "#/$defs/ContentBlock",
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "toolCall"
+            }
+          },
+          "$ref": "#/$defs/ToolCall",
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "toolCallUpdate"
+            }
+          },
+          "$ref": "#/$defs/ToolCallUpdate",
+          "required": ["sessionUpdate"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sessionUpdate": {
+              "type": "string",
+              "const": "plan"
+            }
+          },
+          "$ref": "#/$defs/Plan",
+          "required": ["sessionUpdate"]
+        }
+      ]
+    },
+    "TextContent": {
+      "description": "Text provided to or from an LLM.",
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["text"]
+    },
+    "TextResourceContents": {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "text": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["text", "uri"]
+    },
+    "ToolCall": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          }
+        },
+        "kind": {
+          "$ref": "#/$defs/ToolKind"
         },
         "label": {
           "type": "string"
@@ -311,219 +671,32 @@
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
           }
+        },
+        "status": {
+          "$ref": "#/$defs/ToolCallStatus"
+        },
+        "structuredContent": true,
+        "toolCallId": {
+          "type": "string"
         }
       },
-      "required": ["label", "icon", "confirmation"]
-    },
-    "RequestToolCallConfirmationResponse": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "$ref": "#/$defs/ToolCallId"
-        },
-        "outcome": {
-          "$ref": "#/$defs/ToolCallConfirmationOutcome"
-        }
-      },
-      "required": ["id", "outcome"]
-    },
-    "SemVer": {
-      "type": "string",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
-    },
-    "SendUserMessageParams": {
-      "description": "sendUserMessage allows the user to send a message to the agent.\nThis method should complete after the agent is finished, during\nwhich time the agent may update the client by calling\nstreamAssistantMessageChunk and other methods.",
-      "type": "object",
-      "properties": {
-        "chunks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/UserMessageChunk"
-          }
-        }
-      },
-      "required": ["chunks"]
-    },
-    "SendUserMessageResponse": {
-      "type": "null"
-    },
-    "StreamAssistantMessageChunkParams": {
-      "description": "Streams part of an assistant response to the client",
-      "type": "object",
-      "properties": {
-        "chunk": {
-          "$ref": "#/$defs/AssistantMessageChunk"
-        }
-      },
-      "required": ["chunk"]
-    },
-    "StreamAssistantMessageChunkResponse": {
-      "type": "null"
-    },
-    "ToolCallConfirmation": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": ["string", "null"]
-            },
-            "type": {
-              "type": "string",
-              "const": "edit"
-            }
-          },
-          "required": ["type"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": ["string", "null"]
-            },
-            "type": {
-              "type": "string",
-              "const": "execute"
-            },
-            "command": {
-              "type": "string"
-            },
-            "rootCommand": {
-              "type": "string"
-            }
-          },
-          "required": ["type", "command", "rootCommand"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": ["string", "null"]
-            },
-            "type": {
-              "type": "string",
-              "const": "mcp"
-            },
-            "serverName": {
-              "type": "string"
-            },
-            "toolDisplayName": {
-              "type": "string"
-            },
-            "toolName": {
-              "type": "string"
-            }
-          },
-          "required": ["type", "serverName", "toolName", "toolDisplayName"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": ["string", "null"]
-            },
-            "type": {
-              "type": "string",
-              "const": "fetch"
-            },
-            "urls": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "required": ["type", "urls"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "type": {
-              "type": "string",
-              "const": "other"
-            }
-          },
-          "required": ["type", "description"]
-        }
-      ]
-    },
-    "ToolCallConfirmationOutcome": {
-      "oneOf": [
-        {
-          "description": "Allow this one call",
-          "type": "string",
-          "const": "allow"
-        },
-        {
-          "description": "Always allow this kind of operation",
-          "type": "string",
-          "const": "alwaysAllow"
-        },
-        {
-          "description": "Always allow any tool from this MCP server",
-          "type": "string",
-          "const": "alwaysAllowMcpServer"
-        },
-        {
-          "description": "Always allow this tool from this MCP server",
-          "type": "string",
-          "const": "alwaysAllowTool"
-        },
-        {
-          "description": "Reject this tool call",
-          "type": "string",
-          "const": "reject"
-        },
-        {
-          "description": "The generation was canceled before a confirming",
-          "type": "string",
-          "const": "cancel"
-        }
-      ]
+      "required": ["toolCallId", "label", "kind", "status"]
     },
     "ToolCallContent": {
-      "oneOf": [
+      "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "markdown"
-            },
-            "markdown": {
-              "type": "string"
-            }
-          },
-          "required": ["type", "markdown"]
+          "$ref": "#/$defs/ContentBlock"
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "diff"
-            },
-            "newText": {
-              "type": "string"
-            },
-            "oldText": {
-              "type": ["string", "null"]
-            },
-            "path": {
-              "type": "string"
+            "diff": {
+              "$ref": "#/$defs/Diff"
             }
           },
-          "required": ["type", "path", "oldText", "newText"]
+          "required": ["diff"]
         }
       ]
-    },
-    "ToolCallId": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0
     },
     "ToolCallLocation": {
       "type": "object",
@@ -544,89 +717,70 @@
         {
           "description": "The tool call is currently running",
           "type": "string",
-          "const": "running"
+          "const": "inProgress"
         },
         {
           "description": "The tool call completed successfully",
           "type": "string",
-          "const": "finished"
+          "const": "completed"
         },
         {
           "description": "The tool call failed",
           "type": "string",
-          "const": "error"
+          "const": "failed"
         }
       ]
     },
-    "UpdatePlanParams": {
-      "description": "Parameters for updating the current execution plan.\n\nThis allows the assistant to communicate its high-level plan\nfor completing the user's request.",
-      "type": "object",
-      "properties": {
-        "entries": {
-          "description": "The list of plan entries representing the current execution plan.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/PlanEntry"
-          }
-        }
-      },
-      "required": ["entries"]
-    },
-    "UpdatePlanResponse": {
-      "type": "null"
-    },
-    "UpdateToolCallParams": {
-      "description": "updateToolCall allows the agent to update the content and status of the tool call.\n\nThe new content replaces what is currently displayed in the UI.\n\nThe [`ToolCallId`] is included in the response of\n`pushToolCall` or `requestToolCallConfirmation` respectively.",
+    "ToolCallUpdate": {
       "type": "object",
       "properties": {
         "content": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          }
+        },
+        "kind": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ToolCallContent"
+              "$ref": "#/$defs/ToolKind"
             },
             {
               "type": "null"
             }
           ]
         },
-        "status": {
-          "$ref": "#/$defs/ToolCallStatus"
+        "label": {
+          "type": ["string", "null"]
         },
+        "locations": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          }
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "structuredContent": true,
         "toolCallId": {
-          "$ref": "#/$defs/ToolCallId"
+          "type": "string"
         }
       },
-      "required": ["toolCallId", "status", "content"]
+      "required": ["toolCallId"]
     },
-    "UpdateToolCallResponse": {
-      "type": "null"
+    "ToolKind": {
+      "type": "string",
+      "enum": ["read", "edit", "search", "execute", "think", "fetch", "other"]
     },
-    "UserMessageChunk": {
-      "description": "A part in a user message",
-      "anyOf": [
-        {
-          "description": "A chunk of text in user message",
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            }
-          },
-          "required": ["text"]
-        },
-        {
-          "description": "A file path mention in a user message",
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string"
-            }
-          },
-          "required": ["path"]
-        }
-      ]
-    },
-    "WriteTextFileParams": {
+    "WriteTextFileToolArguments": {
       "type": "object",
       "properties": {
         "content": {
@@ -634,12 +788,12 @@
         },
         "path": {
           "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
         }
       },
-      "required": ["path", "content"]
-    },
-    "WriteTextFileResponse": {
-      "type": "null"
+      "required": ["sessionId", "path", "content"]
     }
   }
 }
