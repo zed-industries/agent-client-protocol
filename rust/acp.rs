@@ -254,7 +254,7 @@ pub enum PlanEntryStatus {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientTools {
-    pub confirm_permission: Option<McpToolId>,
+    pub request_permission: Option<McpToolId>,
     pub write_text_file: Option<McpToolId>,
     pub read_text_file: Option<McpToolId>,
 }

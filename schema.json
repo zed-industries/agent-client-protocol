@@ -104,7 +104,7 @@
     "ClientTools": {
       "type": "object",
       "properties": {
-        "confirmPermission": {
+        "readTextFile": {
           "anyOf": [
             {
               "$ref": "#/$defs/McpToolId"
@@ -114,7 +114,7 @@
             }
           ]
         },
-        "readTextFile": {
+        "requestPermission": {
           "anyOf": [
             {
               "$ref": "#/$defs/McpToolId"
@@ -135,7 +135,7 @@
           ]
         }
       },
-      "required": ["confirmPermission", "writeTextFile", "readTextFile"]
+      "required": ["requestPermission", "writeTextFile", "readTextFile"]
     },
     "ContentBlock": {
       "oneOf": [

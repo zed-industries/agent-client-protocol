@@ -62,8 +62,8 @@ export interface LoadSessionToolArguments {
   sessionId: string;
 }
 export interface ClientTools {
-  confirmPermission: McpToolId | null;
   readTextFile: McpToolId | null;
+  requestPermission: McpToolId | null;
   writeTextFile: McpToolId | null;
 }
 export interface McpToolId {
