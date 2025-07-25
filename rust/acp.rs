@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 pub const NEW_SESSION_TOOL_NAME: &str = "acp/new_session";
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionToolArguments {
     pub mcp_servers: HashMap<String, McpServerConfig>,
@@ -18,7 +18,7 @@ pub struct NewSessionToolArguments {
     pub cwd: PathBuf,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionToolResult {
     pub session_id: SessionId,
@@ -28,7 +28,7 @@ pub struct NewSessionToolResult {
 
 pub const LOAD_SESSION_TOOL_NAME: &str = "acp/load_session";
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionToolArguments {
     pub mcp_servers: HashMap<String, McpServerConfig>,
@@ -47,7 +47,7 @@ impl fmt::Display for SessionId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServerConfig {
     pub command: PathBuf,
@@ -70,7 +70,7 @@ pub struct McpToolId {
 
 pub const PROMPT_TOOL_NAME: &str = "acp/prompt";
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptToolArguments {
     pub session_id: SessionId,
@@ -81,7 +81,7 @@ pub struct PromptToolArguments {
 
 pub const SESSION_UPDATE_METHOD_NAME: &str = "acp/session_update";
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     pub session_id: SessionId,
@@ -89,7 +89,7 @@ pub struct SessionNotification {
     pub update: SessionUpdate,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "sessionUpdate", rename_all = "camelCase")]
 pub enum SessionUpdate {
     UserMessage(ContentBlock),
@@ -100,7 +100,7 @@ pub enum SessionUpdate {
     Plan(Plan),
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCall {
     #[serde(rename = "toolCallId")]
@@ -116,7 +116,7 @@ pub struct ToolCall {
     pub structured_content: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
     #[serde(rename = "toolCallId")]
@@ -125,7 +125,7 @@ pub struct ToolCallUpdate {
     pub fields: ToolCallUpdateFields,
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdateFields {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -146,7 +146,7 @@ pub struct ToolCallUpdateFields {
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolKind {
     Read,
@@ -171,7 +171,7 @@ pub enum ToolCallStatus {
     Failed,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ToolCallContent {
     ContentBlock(ContentBlock),
@@ -190,7 +190,7 @@ impl From<Diff> for ToolCallContent {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Diff {
     pub path: PathBuf,
@@ -206,7 +206,7 @@ pub struct ToolCallLocation {
     pub line: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Plan {
     pub entries: Vec<PlanEntry>,
@@ -216,7 +216,7 @@ pub struct Plan {
 ///
 /// Represents a task or goal that the assistant intends to accomplish
 /// as part of fulfilling the user's request.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanEntry {
     /// Description of what this task aims to accomplish
@@ -231,7 +231,7 @@ pub struct PlanEntry {
 ///
 /// Used to indicate the relative importance or urgency of different
 /// tasks in the execution plan.
-#[derive(Deserialize, Serialize, JsonSchema, Debug)]
+#[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryPriority {
     High,
@@ -242,7 +242,7 @@ pub enum PlanEntryPriority {
 /// Status of a plan entry in the execution flow.
 ///
 /// Tracks the lifecycle of each task from planning through completion.
-#[derive(Deserialize, Serialize, JsonSchema, Debug)]
+#[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryStatus {
     Pending,
@@ -262,7 +262,7 @@ pub struct ClientTools {
 
 // Permission
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionToolArguments {
     pub session_id: SessionId,
@@ -270,7 +270,7 @@ pub struct RequestPermissionToolArguments {
     pub options: Vec<PermissionOption>,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PermissionOption {
     #[serde(rename = "optionId")]
     pub id: PermissionOptionId,
@@ -297,14 +297,14 @@ pub enum PermissionOptionKind {
     RejectAlways,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionToolOutput {
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "outcome", rename_all = "camelCase")]
 pub enum RequestPermissionOutcome {
     Canceled,
@@ -316,7 +316,7 @@ pub enum RequestPermissionOutcome {
 
 // Write text file
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileToolArguments {
     pub session_id: SessionId,
@@ -326,7 +326,7 @@ pub struct WriteTextFileToolArguments {
 
 // Read text file
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileArguments {
     pub session_id: SessionId,
