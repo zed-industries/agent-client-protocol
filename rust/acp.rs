@@ -110,7 +110,7 @@ pub struct ToolCall {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locations: Vec<ToolCallLocation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub structured_content: Option<serde_json::Value>,
+    pub raw_input: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -136,7 +136,7 @@ pub struct ToolCallUpdateFields {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<ToolCallLocation>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub structured_content: Option<serde_json::Value>,
+    pub raw_input: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
