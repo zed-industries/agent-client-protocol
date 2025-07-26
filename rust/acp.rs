@@ -143,11 +143,13 @@ pub struct ToolCallUpdateFields {
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolKind {
     Read,
     Edit,
+    Delete,
+    Move,
     Search,
     Execute,
     Think,
@@ -155,7 +157,7 @@ pub enum ToolKind {
     Other,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ToolCallStatus {
     /// The tool call is currently running
