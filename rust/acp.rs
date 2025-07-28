@@ -119,9 +119,9 @@ pub struct SessionNotification {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "sessionUpdate", rename_all = "camelCase")]
 pub enum SessionUpdate {
-    UserMessage(ContentBlock),
-    AgentMessageChunk(ContentBlock),
-    AgentThoughtChunk(ContentBlock),
+    UserMessageChunk { content: ContentBlock },
+    AgentMessageChunk { content: ContentBlock },
+    AgentThoughtChunk { content: ContentBlock },
     ToolCall(ToolCall),
     ToolCallUpdate(ToolCallUpdate),
     Plan(Plan),
@@ -201,15 +201,22 @@ pub enum ToolCallStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum ToolCallContent {
-    ContentBlock(ContentBlock),
-    Diff { diff: Diff },
+    Content {
+        content: ContentBlock,
+    },
+    Diff {
+        #[serde(flatten)]
+        diff: Diff,
+    },
 }
 
 impl<T: Into<ContentBlock>> From<T> for ToolCallContent {
     fn from(content: T) -> Self {
-        ToolCallContent::ContentBlock(content.into())
+        ToolCallContent::Content {
+            content: content.into(),
+        }
     }
 }
 

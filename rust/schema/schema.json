@@ -7,14 +7,23 @@
           "items": {
             "$ref": "#/$defs/Role"
           },
-          "type": ["array", "null"]
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "lastModified": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "priority": {
           "format": "double",
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "type": "object"
@@ -39,7 +48,10 @@
           "type": "string"
         }
       },
-      "required": ["data", "mimeType"],
+      "required": [
+        "data",
+        "mimeType"
+      ],
       "type": "object"
     },
     "BlobResourceContents": {
@@ -48,13 +60,19 @@
           "type": "string"
         },
         "mimeType": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "uri": {
           "type": "string"
         }
       },
-      "required": ["blob", "uri"],
+      "required": [
+        "blob",
+        "uri"
+      ],
       "type": "object"
     },
     "ClientTools": {
@@ -90,7 +108,11 @@
           ]
         }
       },
-      "required": ["requestPermission", "writeTextFile", "readTextFile"],
+      "required": [
+        "requestPermission",
+        "writeTextFile",
+        "readTextFile"
+      ],
       "type": "object"
     },
     "ContentBlock": {
@@ -115,7 +137,10 @@
               "type": "string"
             }
           },
-          "required": ["type", "text"],
+          "required": [
+            "type",
+            "text"
+          ],
           "type": "object"
         },
         {
@@ -141,7 +166,11 @@
               "type": "string"
             }
           },
-          "required": ["type", "data", "mimeType"],
+          "required": [
+            "type",
+            "data",
+            "mimeType"
+          ],
           "type": "object"
         },
         {
@@ -167,7 +196,11 @@
               "type": "string"
             }
           },
-          "required": ["type", "data", "mimeType"],
+          "required": [
+            "type",
+            "data",
+            "mimeType"
+          ],
           "type": "object"
         },
         {
@@ -183,20 +216,32 @@
               ]
             },
             "description": {
-              "type": ["string", "null"]
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "mimeType": {
-              "type": ["string", "null"]
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "name": {
               "type": "string"
             },
             "size": {
               "format": "int64",
-              "type": ["integer", "null"]
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "title": {
-              "type": ["string", "null"]
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "type": {
               "const": "resource_link",
@@ -206,7 +251,11 @@
               "type": "string"
             }
           },
-          "required": ["type", "name", "uri"],
+          "required": [
+            "type",
+            "name",
+            "uri"
+          ],
           "type": "object"
         },
         {
@@ -229,10 +278,35 @@
               "type": "string"
             }
           },
-          "required": ["type", "resource"],
+          "required": [
+            "type",
+            "resource"
+          ],
           "type": "object"
         }
       ]
+    },
+    "Diff": {
+      "properties": {
+        "newText": {
+          "type": "string"
+        },
+        "oldText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "oldText",
+        "newText"
+      ],
+      "type": "object"
     },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.\n\nIt is up to the client how best to render embedded resources for the benefit\nof the LLM and/or the user.",
@@ -251,7 +325,9 @@
           "$ref": "#/$defs/EmbeddedResourceResource"
         }
       },
-      "required": ["resource"],
+      "required": [
+        "resource"
+      ],
       "type": "object"
     },
     "EmbeddedResourceResource": {
@@ -286,7 +362,10 @@
           "type": "string"
         }
       },
-      "required": ["data", "mimeType"],
+      "required": [
+        "data",
+        "mimeType"
+      ],
       "type": "object"
     },
     "LoadSessionArguments": {
@@ -307,7 +386,12 @@
           "type": "string"
         }
       },
-      "required": ["mcpServers", "clientTools", "cwd", "sessionId"],
+      "required": [
+        "mcpServers",
+        "clientTools",
+        "cwd",
+        "sessionId"
+      ],
       "type": "object"
     },
     "McpServerConfig": {
@@ -325,10 +409,16 @@
           "additionalProperties": {
             "type": "string"
           },
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         }
       },
-      "required": ["command", "args"],
+      "required": [
+        "command",
+        "args"
+      ],
       "type": "object"
     },
     "McpToolId": {
@@ -340,7 +430,10 @@
           "type": "string"
         }
       },
-      "required": ["mcpServer", "toolName"],
+      "required": [
+        "mcpServer",
+        "toolName"
+      ],
       "type": "object"
     },
     "NewSessionArguments": {
@@ -358,7 +451,11 @@
           "type": "object"
         }
       },
-      "required": ["mcpServers", "clientTools", "cwd"],
+      "required": [
+        "mcpServers",
+        "clientTools",
+        "cwd"
+      ],
       "type": "object"
     },
     "NewSessionOutput": {
@@ -367,7 +464,9 @@
           "type": "string"
         }
       },
-      "required": ["sessionId"],
+      "required": [
+        "sessionId"
+      ],
       "type": "object"
     },
     "PermissionOption": {
@@ -382,11 +481,20 @@
           "type": "string"
         }
       },
-      "required": ["optionId", "label", "kind"],
+      "required": [
+        "optionId",
+        "label",
+        "kind"
+      ],
       "type": "object"
     },
     "PermissionOptionKind": {
-      "enum": ["allowOnce", "allowAlways", "rejectOnce", "rejectAlways"],
+      "enum": [
+        "allowOnce",
+        "allowAlways",
+        "rejectOnce",
+        "rejectAlways"
+      ],
       "type": "string"
     },
     "Plan": {
@@ -398,7 +506,9 @@
           "type": "array"
         }
       },
-      "required": ["entries"],
+      "required": [
+        "entries"
+      ],
       "type": "object"
     },
     "PlanEntry": {
@@ -417,17 +527,29 @@
           "description": "Current progress of this task"
         }
       },
-      "required": ["content", "priority", "status"],
+      "required": [
+        "content",
+        "priority",
+        "status"
+      ],
       "type": "object"
     },
     "PlanEntryPriority": {
       "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.",
-      "enum": ["high", "medium", "low"],
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
       "type": "string"
     },
     "PlanEntryStatus": {
       "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.",
-      "enum": ["pending", "in_progress", "completed"],
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed"
+      ],
       "type": "string"
     },
     "PromptArguments": {
@@ -442,7 +564,10 @@
           "type": "string"
         }
       },
-      "required": ["sessionId", "prompt"],
+      "required": [
+        "sessionId",
+        "prompt"
+      ],
       "type": "object"
     },
     "ReadTextFileArguments": {
@@ -450,12 +575,18 @@
         "limit": {
           "format": "uint32",
           "minimum": 0,
-          "type": ["integer", "null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "line": {
           "format": "uint32",
           "minimum": 0,
-          "type": ["integer", "null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "path": {
           "type": "string"
@@ -464,7 +595,10 @@
           "type": "string"
         }
       },
-      "required": ["sessionId", "path"],
+      "required": [
+        "sessionId",
+        "path"
+      ],
       "type": "object"
     },
     "ReadTextFileOutput": {
@@ -473,7 +607,9 @@
           "type": "string"
         }
       },
-      "required": ["content"],
+      "required": [
+        "content"
+      ],
       "type": "object"
     },
     "RequestPermissionArguments": {
@@ -491,7 +627,11 @@
           "$ref": "#/$defs/ToolCall"
         }
       },
-      "required": ["sessionId", "toolCall", "options"],
+      "required": [
+        "sessionId",
+        "toolCall",
+        "options"
+      ],
       "type": "object"
     },
     "RequestPermissionOutcome": {
@@ -503,7 +643,9 @@
               "type": "string"
             }
           },
-          "required": ["outcome"],
+          "required": [
+            "outcome"
+          ],
           "type": "object"
         },
         {
@@ -516,7 +658,10 @@
               "type": "string"
             }
           },
-          "required": ["outcome", "optionId"],
+          "required": [
+            "outcome",
+            "optionId"
+          ],
           "type": "object"
         }
       ]
@@ -527,7 +672,9 @@
           "$ref": "#/$defs/RequestPermissionOutcome"
         }
       },
-      "required": ["outcome"],
+      "required": [
+        "outcome"
+      ],
       "type": "object"
     },
     "ResourceLink": {
@@ -544,72 +691,87 @@
           ]
         },
         "description": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "mimeType": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "type": "string"
         },
         "size": {
           "format": "int64",
-          "type": ["integer", "null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "title": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "uri": {
           "type": "string"
         }
       },
-      "required": ["name", "uri"],
+      "required": [
+        "name",
+        "uri"
+      ],
       "type": "object"
     },
     "Role": {
       "description": "The sender or recipient of messages and data in a conversation.",
-      "enum": ["assistant", "user"],
+      "enum": [
+        "assistant",
+        "user"
+      ],
       "type": "string"
     },
     "SessionUpdate": {
       "oneOf": [
         {
           "properties": {
-            "content": {
-              "$ref": "#/$defs/ContentBlock"
-            },
             "sessionUpdate": {
-              "const": "userMessageChunk",
+              "const": "userMessage",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": [
+            "sessionUpdate"
+          ],
           "type": "object"
         },
         {
           "properties": {
-            "content": {
-              "$ref": "#/$defs/ContentBlock"
-            },
             "sessionUpdate": {
               "const": "agentMessageChunk",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": [
+            "sessionUpdate"
+          ],
           "type": "object"
         },
         {
           "properties": {
-            "content": {
-              "$ref": "#/$defs/ContentBlock"
-            },
             "sessionUpdate": {
               "const": "agentThoughtChunk",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": [
+            "sessionUpdate"
+          ],
           "type": "object"
         },
         {
@@ -659,7 +821,10 @@
               "items": {
                 "$ref": "#/$defs/ToolCallContent"
               },
-              "type": ["array", "null"]
+              "type": [
+                "array",
+                "null"
+              ]
             },
             "kind": {
               "anyOf": [
@@ -672,13 +837,19 @@
               ]
             },
             "label": {
-              "type": ["string", "null"]
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "locations": {
               "items": {
                 "$ref": "#/$defs/ToolCallLocation"
               },
-              "type": ["array", "null"]
+              "type": [
+                "array",
+                "null"
+              ]
             },
             "rawInput": true,
             "sessionUpdate": {
@@ -699,7 +870,10 @@
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "toolCallId"],
+          "required": [
+            "sessionUpdate",
+            "toolCallId"
+          ],
           "type": "object"
         },
         {
@@ -715,7 +889,10 @@
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "entries"],
+          "required": [
+            "sessionUpdate",
+            "entries"
+          ],
           "type": "object"
         }
       ]
@@ -737,13 +914,18 @@
           "type": "string"
         }
       },
-      "required": ["text"],
+      "required": [
+        "text"
+      ],
       "type": "object"
     },
     "TextResourceContents": {
       "properties": {
         "mimeType": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "text": {
           "type": "string"
@@ -752,7 +934,10 @@
           "type": "string"
         }
       },
-      "required": ["text", "uri"],
+      "required": [
+        "text",
+        "uri"
+      ],
       "type": "object"
     },
     "ToolCall": {
@@ -783,41 +968,29 @@
           "type": "string"
         }
       },
-      "required": ["toolCallId", "label", "kind", "status"],
+      "required": [
+        "toolCallId",
+        "label",
+        "kind",
+        "status"
+      ],
       "type": "object"
     },
     "ToolCallContent": {
-      "oneOf": [
+      "anyOf": [
         {
-          "properties": {
-            "content": {
-              "$ref": "#/$defs/ContentBlock"
-            },
-            "type": {
-              "const": "content",
-              "type": "string"
-            }
-          },
-          "required": ["type", "content"],
-          "type": "object"
+          "title": "contentBlock"
         },
         {
           "properties": {
-            "newText": {
-              "type": "string"
-            },
-            "oldText": {
-              "type": ["string", "null"]
-            },
-            "path": {
-              "type": "string"
-            },
-            "type": {
-              "const": "diff",
-              "type": "string"
+            "diff": {
+              "$ref": "#/$defs/Diff"
             }
           },
-          "required": ["type", "path", "oldText", "newText"],
+          "required": [
+            "diff"
+          ],
+          "title": "diff",
           "type": "object"
         }
       ]
@@ -827,13 +1000,18 @@
         "line": {
           "format": "uint32",
           "minimum": 0,
-          "type": ["integer", "null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "path": {
           "type": "string"
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "type": "object"
     },
     "ToolCallStatus": {
@@ -866,7 +1044,10 @@
           "items": {
             "$ref": "#/$defs/ToolCallContent"
           },
-          "type": ["array", "null"]
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "kind": {
           "anyOf": [
@@ -879,13 +1060,19 @@
           ]
         },
         "label": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "locations": {
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
           },
-          "type": ["array", "null"]
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "rawInput": true,
         "status": {
@@ -902,7 +1089,9 @@
           "type": "string"
         }
       },
-      "required": ["toolCallId"],
+      "required": [
+        "toolCallId"
+      ],
       "type": "object"
     },
     "ToolKind": {
@@ -931,7 +1120,11 @@
           "type": "string"
         }
       },
-      "required": ["sessionId", "path", "content"],
+      "required": [
+        "sessionId",
+        "path",
+        "content"
+      ],
       "type": "object"
     }
   },

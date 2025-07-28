@@ -17,57 +17,93 @@ export type AgentClientProtocol =
   | ReadTextFileArguments
   | ReadTextFileOutput;
 export type ContentBlock =
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource;
+  | {
+      annotations?: Annotations | null;
+      text: string;
+      type: "text";
+    }
+  | {
+      annotations?: Annotations | null;
+      data: string;
+      mimeType: string;
+      type: "image";
+    }
+  | {
+      annotations?: Annotations | null;
+      data: string;
+      mimeType: string;
+      type: "audio";
+    }
+  | {
+      annotations?: Annotations | null;
+      description?: string | null;
+      mimeType?: string | null;
+      name: string;
+      size?: number | null;
+      title?: string | null;
+      type: "resource_link";
+      uri: string;
+    }
+  | {
+      annotations?: Annotations | null;
+      resource: EmbeddedResourceResource;
+      type: "resource";
+    };
+/**
+ * The sender or recipient of messages and data in a conversation.
+ */
+export type Role = "assistant" | "user";
+export type EmbeddedResourceResource =
+  | TextResourceContents
+  | BlobResourceContents;
 export type SessionUpdate =
-  | ContentBlock1
-  | ContentBlock2
-  | ContentBlock3
-  | ToolCall
-  | ToolCallUpdate
-  | Plan;
-export type ContentBlock1 = {
-  sessionUpdate: "userMessage";
-} & (
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource
-);
-export type ContentBlock2 = {
-  sessionUpdate: "agentMessageChunk";
-} & (
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource
-);
-export type ContentBlock3 = {
-  sessionUpdate: "agentThoughtChunk";
-} & (
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource
-);
-export type PermissionOptionKind =
-  | "allowOnce"
-  | "allowAlways"
-  | "rejectOnce"
-  | "rejectAlways";
-export type ToolCallContent = ContentBlock4 | Diff;
-export type ContentBlock4 =
-  | TextContent
-  | ImageContent
-  | AudioContent
-  | ResourceLink
-  | EmbeddedResource;
+  | {
+      content: ContentBlock;
+      sessionUpdate: "userMessageChunk";
+    }
+  | {
+      content: ContentBlock;
+      sessionUpdate: "agentMessageChunk";
+    }
+  | {
+      content: ContentBlock;
+      sessionUpdate: "agentThoughtChunk";
+    }
+  | {
+      content?: ToolCallContent[];
+      kind: ToolKind;
+      label: string;
+      locations?: ToolCallLocation[];
+      rawInput?: unknown;
+      sessionUpdate: "toolCall";
+      status: ToolCallStatus;
+      toolCallId: string;
+    }
+  | {
+      content?: ToolCallContent[] | null;
+      kind?: ToolKind | null;
+      label?: string | null;
+      locations?: ToolCallLocation[] | null;
+      rawInput?: unknown;
+      sessionUpdate: "toolCallUpdate";
+      status?: ToolCallStatus | null;
+      toolCallId: string;
+    }
+  | {
+      entries: PlanEntry[];
+      sessionUpdate: "plan";
+    };
+export type ToolCallContent =
+  | {
+      content: ContentBlock;
+      type: "content";
+    }
+  | {
+      newText: string;
+      oldText: string | null;
+      path: string;
+      type: "diff";
+    };
 export type ToolKind =
   | "read"
   | "edit"
@@ -79,6 +115,11 @@ export type ToolKind =
   | "fetch"
   | "other";
 export type ToolCallStatus = "pending" | "inProgress" | "completed" | "failed";
+export type PermissionOptionKind =
+  | "allowOnce"
+  | "allowAlways"
+  | "rejectOnce"
+  | "rejectAlways";
 export type RequestPermissionOutcome =
   | {
       outcome: "canceled";
@@ -127,60 +168,58 @@ export interface Prompt {
   sessionId: string;
 }
 /**
- * Text provided to or from an LLM.
+ * Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
  */
-export interface TextContent {
-  type: "text";
+export interface Annotations {
+  audience?: Role[] | null;
+  lastModified?: string | null;
+  priority?: number | null;
+}
+export interface TextResourceContents {
+  mimeType?: string | null;
+  text: string;
+  uri: string;
+}
+export interface BlobResourceContents {
+  blob: string;
+  mimeType?: string | null;
+  uri: string;
+}
+export interface ToolCallLocation {
+  line?: number | null;
+  path: string;
 }
 /**
- * An image provided to or from an LLM.
- */
-export interface ImageContent {
-  type: "image";
-}
-/**
- * Audio provided to or from an LLM.
- */
-export interface AudioContent {
-  type: "audio";
-}
-/**
- * A resource that the server is capable of reading, included in a prompt or tool call result.
+ * A single entry in the execution plan.
  *
- * Note: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.
+ * Represents a task or goal that the assistant intends to accomplish
+ * as part of fulfilling the user's request.
  */
-export interface ResourceLink {
-  type: "resource_link";
-}
-/**
- * The contents of a resource, embedded into a prompt or tool call result.
- *
- * It is up to the client how best to render embedded resources for the benefit
- * of the LLM and/or the user.
- */
-export interface EmbeddedResource {
-  type: "resource";
-}
-export interface ToolCall {
-  sessionUpdate: "toolCall";
-}
-export interface ToolCallUpdate {
-  sessionUpdate: "toolCallUpdate";
-}
-export interface Plan {
-  sessionUpdate: "plan";
+export interface PlanEntry {
+  /**
+   * Description of what this task aims to accomplish
+   */
+  content: string;
+  /**
+   * Relative importance of this task
+   */
+  priority: "high" | "medium" | "low";
+  /**
+   * Current progress of this task
+   */
+  status: "pending" | "in_progress" | "completed";
 }
 export interface RequestPermissionArguments {
   options: PermissionOption[];
   sessionId: string;
-  toolCall: ToolCall1;
+  toolCall: ToolCall;
 }
 export interface PermissionOption {
   kind: PermissionOptionKind;
   label: string;
   optionId: string;
 }
-export interface ToolCall1 {
+export interface ToolCall {
   content?: ToolCallContent[];
   kind: ToolKind;
   label: string;
@@ -188,18 +227,6 @@ export interface ToolCall1 {
   rawInput?: unknown;
   status: ToolCallStatus;
   toolCallId: string;
-}
-export interface Diff {
-  diff: Diff1;
-}
-export interface Diff1 {
-  newText: string;
-  oldText: string | null;
-  path: string;
-}
-export interface ToolCallLocation {
-  line?: number | null;
-  path: string;
 }
 export interface RequestPermissionOutput {
   outcome: RequestPermissionOutcome;

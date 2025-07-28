@@ -4,6 +4,7 @@ use agent_client_protocol::{
     SessionUpdate, WriteTextFileArguments,
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
+use serde_json::Value;
 use std::fs;
 
 #[allow(dead_code)]
@@ -33,17 +34,101 @@ fn main() {
         schema.remove("title");
     }
 
+    // Convert to serde_json::Value for post-processing
+    let mut schema_value = serde_json::to_value(&schema).unwrap();
+
+    inline_enum_variants(&mut schema_value, "ContentBlock");
+    inline_enum_variants(&mut schema_value, "SessionUpdate");
+
     fs::create_dir_all("./schema").unwrap();
 
     fs::write(
         "./schema/schema.json",
-        serde_json::to_string_pretty(&schema).unwrap(),
+        serde_json::to_string_pretty(&schema_value).unwrap(),
     )
-    .unwrap();
+    .expect("Failed to write schema.json");
 
     fs::write(
         "./schema/methods.json",
         serde_json::to_string_pretty(&AGENT_METHODS).unwrap(),
     )
-    .unwrap();
+    .expect("Failed to write methods.json");
+}
+
+fn inline_enum_variants(schema: &mut Value, enum_name: &str) {
+    let defs_clone = schema.get("$defs").and_then(|v| v.as_object()).cloned();
+
+    let Some(defs_map) = defs_clone else {
+        return;
+    };
+
+    let Some(defs) = schema.get_mut("$defs").and_then(|v| v.as_object_mut()) else {
+        return;
+    };
+
+    let Some(enum_def) = defs.get_mut(enum_name).and_then(|v| v.as_object_mut()) else {
+        return;
+    };
+
+    // Handle both oneOf and anyOf patterns
+    let variants = if let Some(one_of) = enum_def.get_mut("oneOf") {
+        one_of.as_array_mut()
+    } else if let Some(any_of) = enum_def.get_mut("anyOf") {
+        any_of.as_array_mut()
+    } else {
+        None
+    };
+
+    let Some(variants) = variants else {
+        return;
+    };
+
+    for variant in variants.iter_mut() {
+        let _ = inline_variant(variant, &defs_map);
+    }
+}
+
+fn inline_variant(variant: &mut Value, defs_map: &serde_json::Map<String, Value>) -> Option<()> {
+    let variant_obj = variant.as_object_mut()?;
+
+    let ref_value = variant_obj.get("$ref")?.as_str()?.to_string();
+
+    let type_name = ref_value.strip_prefix("#/$defs/")?;
+    let referenced_type = defs_map.get(type_name)?;
+
+    // Merge properties
+    if let Some(ref_props) = referenced_type
+        .get("properties")
+        .and_then(|v| v.as_object())
+    {
+        let existing_props = variant_obj
+            .entry("properties")
+            .or_insert_with(|| Value::Object(serde_json::Map::new()));
+
+        if let Some(existing_obj) = existing_props.as_object_mut() {
+            for (key, value) in ref_props {
+                existing_obj.insert(key.clone(), value.clone());
+            }
+        }
+    }
+
+    // Merge required fields
+    if let Some(ref_required) = referenced_type.get("required").and_then(|v| v.as_array()) {
+        let existing_required = variant_obj
+            .entry("required")
+            .or_insert_with(|| Value::Array(Vec::new()));
+
+        if let Some(existing_arr) = existing_required.as_array_mut() {
+            for req in ref_required {
+                if !existing_arr.contains(req) {
+                    existing_arr.push(req.clone());
+                }
+            }
+        }
+    }
+
+    // Remove the $ref
+    variant_obj.remove("$ref");
+
+    Some(())
 }
