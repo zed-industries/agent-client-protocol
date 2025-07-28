@@ -1,5 +1,5 @@
 use agent_client_protocol::{
-    LoadSessionArguments, NewSessionArguments, NewSessionOutput, PromptArguments,
+    AcpTools, LoadSessionArguments, NewSessionArguments, NewSessionOutput, PromptArguments,
     ReadTextFileArguments, ReadTextFileOutput, RequestPermissionArguments, RequestPermissionOutput,
     SessionUpdate, WriteTextFileArguments,
 };
@@ -9,14 +9,17 @@ use std::fs;
 #[allow(dead_code)]
 #[derive(JsonSchema)]
 #[serde(untagged)]
-enum Acp {
-    NewSession(NewSessionArguments, NewSessionOutput),
+enum AcpTypes {
+    NewSessionArguments(NewSessionArguments),
+    NewSessionOutput(NewSessionOutput),
     LoadSession(LoadSessionArguments),
     Prompt(PromptArguments),
     SessionUpdate(SessionUpdate),
-    PermissionTool(RequestPermissionArguments, RequestPermissionOutput),
+    RequestPermissionArguments(RequestPermissionArguments),
+    RequestPermissionOutput(RequestPermissionOutput),
     WriteTextFile(WriteTextFileArguments),
-    ReadTextFile(ReadTextFileArguments, ReadTextFileOutput),
+    ReadTextFileArguments(ReadTextFileArguments),
+    ReadTextFileOutput(ReadTextFileOutput),
 }
 
 fn main() {
@@ -24,7 +27,7 @@ fn main() {
     settings.untagged_enum_variant_titles = true;
 
     let generator = settings.into_generator();
-    let mut schema = generator.into_root_schema_for::<Acp>();
+    let mut schema = generator.into_root_schema_for::<AcpTypes>();
     {
         let schema = schema.as_object_mut().unwrap();
         schema.remove("title");
@@ -33,6 +36,12 @@ fn main() {
     fs::write(
         "./schema.json",
         serde_json::to_string_pretty(&schema).unwrap(),
+    )
+    .unwrap();
+
+    fs::write(
+        "./methods.json",
+        serde_json::to_string_pretty(&AcpTools::names()).unwrap(),
     )
     .unwrap();
 }

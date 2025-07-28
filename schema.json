@@ -2,18 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "title": "NewSession",
-      "type": "array",
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "$ref": "#/$defs/NewSessionArguments"
-        },
-        {
-          "$ref": "#/$defs/NewSessionOutput"
-        }
-      ]
+      "title": "NewSessionArguments",
+      "$ref": "#/$defs/NewSessionArguments"
+    },
+    {
+      "title": "NewSessionOutput",
+      "$ref": "#/$defs/NewSessionOutput"
     },
     {
       "title": "LoadSession",
@@ -28,36 +22,24 @@
       "$ref": "#/$defs/SessionUpdate"
     },
     {
-      "title": "PermissionTool",
-      "type": "array",
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "$ref": "#/$defs/RequestPermissionArguments"
-        },
-        {
-          "$ref": "#/$defs/RequestPermissionOutput"
-        }
-      ]
+      "title": "RequestPermissionArguments",
+      "$ref": "#/$defs/RequestPermissionArguments"
+    },
+    {
+      "title": "RequestPermissionOutput",
+      "$ref": "#/$defs/RequestPermissionOutput"
     },
     {
       "title": "WriteTextFile",
       "$ref": "#/$defs/WriteTextFileArguments"
     },
     {
-      "title": "ReadTextFile",
-      "type": "array",
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "$ref": "#/$defs/ReadTextFileArguments"
-        },
-        {
-          "$ref": "#/$defs/ReadTextFileOutput"
-        }
-      ]
+      "title": "ReadTextFileArguments",
+      "$ref": "#/$defs/ReadTextFileArguments"
+    },
+    {
+      "title": "ReadTextFileOutput",
+      "$ref": "#/$defs/ReadTextFileOutput"
     }
   ],
   "$defs": {

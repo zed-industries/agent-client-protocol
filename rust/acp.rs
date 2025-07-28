@@ -394,3 +394,20 @@ fn schema_for<T: JsonSchema>() -> serde_json::Value {
     settings.inline_subschemas = true;
     settings.into_generator().into_root_schema_for::<T>().into()
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct AcpTools {
+    pub new_session: &'static str,
+    pub load_session: &'static str,
+    pub prompt: &'static str,
+}
+
+impl AcpTools {
+    pub fn names() -> Self {
+        Self {
+            new_session: NEW_SESSION_TOOL_NAME,
+            load_session: LOAD_SESSION_TOOL_NAME,
+            prompt: PROMPT_TOOL_NAME,
+        }
+    }
+}

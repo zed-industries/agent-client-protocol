@@ -1,20 +1,18 @@
-export const NEW_SESSION_TOOL_NAME = "acp__new_session";
-export const LOAD_SESSION_TOOL_NAME = "acp__load_session";
-export const PROMPT_TOOL_NAME = "acp__prompt";
+export const NEW_SESSION_TOOL_NAME = "acp/new_session";
+export const LOAD_SESSION_TOOL_NAME = "acp/load_session";
+export const PROMPT_TOOL_NAME = "acp/prompt";
 
 export type AgentClientProtocol =
-  | NewSession
+  | NewSessionArguments
+  | NewSessionOutput
   | LoadSession
   | Prompt
   | SessionUpdate
-  | PermissionTool
+  | RequestPermissionArguments
+  | RequestPermissionOutput
   | WriteTextFile
-  | ReadTextFile;
-/**
- * @minItems 2
- * @maxItems 2
- */
-export type NewSession = [unknown, unknown];
+  | ReadTextFileArguments
+  | ReadTextFileOutput;
 export type ContentBlock =
   | TextContent
   | ImageContent
@@ -55,24 +53,44 @@ export type ContentBlock3 = {
   | ResourceLink
   | EmbeddedResource
 );
-/**
- * @minItems 2
- * @maxItems 2
- */
-export type PermissionTool = [unknown, unknown];
-/**
- * @minItems 2
- * @maxItems 2
- */
-export type ReadTextFile = [unknown, unknown];
+export type PermissionOptionKind =
+  | "allowOnce"
+  | "allowAlways"
+  | "rejectOnce"
+  | "rejectAlways";
+export type ToolCallContent = ContentBlock4 | Diff;
+export type ContentBlock4 =
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | ResourceLink
+  | EmbeddedResource;
+export type ToolKind =
+  | "read"
+  | "edit"
+  | "delete"
+  | "move"
+  | "search"
+  | "execute"
+  | "think"
+  | "fetch"
+  | "other";
+export type ToolCallStatus = "pending" | "inProgress" | "completed" | "failed";
+export type RequestPermissionOutcome =
+  | {
+      outcome: "canceled";
+    }
+  | {
+      optionId: string;
+      outcome: "selected";
+    };
 
-export interface LoadSession {
+export interface NewSessionArguments {
   clientTools: ClientTools;
   cwd: string;
   mcpServers: {
     [k: string]: McpServerConfig;
   };
-  sessionId: string;
 }
 export interface ClientTools {
   readTextFile: McpToolId | null;
@@ -89,6 +107,17 @@ export interface McpServerConfig {
   env?: {
     [k: string]: string;
   } | null;
+}
+export interface NewSessionOutput {
+  sessionId: string;
+}
+export interface LoadSession {
+  clientTools: ClientTools;
+  cwd: string;
+  mcpServers: {
+    [k: string]: McpServerConfig;
+  };
+  sessionId: string;
 }
 export interface Prompt {
   prompt: ContentBlock[];
@@ -138,8 +167,51 @@ export interface ToolCallUpdate {
 export interface Plan {
   sessionUpdate: "plan";
 }
+export interface RequestPermissionArguments {
+  options: PermissionOption[];
+  sessionId: string;
+  toolCall: ToolCall1;
+}
+export interface PermissionOption {
+  kind: PermissionOptionKind;
+  label: string;
+  optionId: string;
+}
+export interface ToolCall1 {
+  content?: ToolCallContent[];
+  kind: ToolKind;
+  label: string;
+  locations?: ToolCallLocation[];
+  rawInput?: unknown;
+  status: ToolCallStatus;
+  toolCallId: string;
+}
+export interface Diff {
+  diff: Diff1;
+}
+export interface Diff1 {
+  newText: string;
+  oldText: string | null;
+  path: string;
+}
+export interface ToolCallLocation {
+  line?: number | null;
+  path: string;
+}
+export interface RequestPermissionOutput {
+  outcome: RequestPermissionOutcome;
+}
 export interface WriteTextFile {
   content: string;
   path: string;
   sessionId: string;
+}
+export interface ReadTextFileArguments {
+  limit?: number | null;
+  line?: number | null;
+  path: string;
+  sessionId: string;
+}
+export interface ReadTextFileOutput {
+  content: string;
 }
