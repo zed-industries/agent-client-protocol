@@ -1,7 +1,7 @@
 pub mod mcp_types;
 pub use mcp_types::*;
 
-use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
+use std::{fmt, path::PathBuf, sync::Arc};
 
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde::{Deserialize, Serialize};
