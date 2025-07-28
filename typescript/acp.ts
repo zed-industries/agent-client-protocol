@@ -1,6 +1,9 @@
-export const NEW_SESSION_TOOL_NAME = "acp/new_session";
-export const LOAD_SESSION_TOOL_NAME = "acp/load_session";
-export const PROMPT_TOOL_NAME = "acp/prompt";
+export const AGENT_METHODS = {
+  new_session: "acp/new_session",
+  load_session: "acp/load_session",
+  prompt: "acp/prompt",
+  session_update: "acp/session_update",
+};
 
 export type AgentClientProtocol =
   | NewSessionArguments

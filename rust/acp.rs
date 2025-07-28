@@ -6,9 +6,22 @@ use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde::{Deserialize, Serialize};
 
-// New session
+#[derive(Serialize)]
+pub struct AgentMethods {
+    pub new_session: &'static str,
+    pub load_session: &'static str,
+    pub prompt: &'static str,
+    pub session_update: &'static str,
+}
 
-pub const NEW_SESSION_TOOL_NAME: &str = "acp/new_session";
+pub const AGENT_METHODS: AgentMethods = AgentMethods {
+    new_session: "acp/new_session",
+    load_session: "acp/load_session",
+    prompt: "acp/prompt",
+    session_update: "acp/session_update",
+};
+
+// New session
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -36,8 +49,6 @@ impl NewSessionOutput {
     }
 }
 // Load session
-
-pub const LOAD_SESSION_TOOL_NAME: &str = "acp/load_session";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -82,8 +93,6 @@ pub struct McpToolId {
 
 // Prompt
 
-pub const PROMPT_TOOL_NAME: &str = "acp/prompt";
-
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptArguments {
@@ -98,8 +107,6 @@ impl PromptArguments {
 }
 
 // Session updates
-
-pub const SESSION_UPDATE_METHOD_NAME: &str = "acp/session_update";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -393,21 +400,4 @@ fn schema_for<T: JsonSchema>() -> serde_json::Value {
     let mut settings = SchemaSettings::draft2020_12();
     settings.inline_subschemas = true;
     settings.into_generator().into_root_schema_for::<T>().into()
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct AcpTools {
-    pub new_session: &'static str,
-    pub load_session: &'static str,
-    pub prompt: &'static str,
-}
-
-impl AcpTools {
-    pub fn names() -> Self {
-        Self {
-            new_session: NEW_SESSION_TOOL_NAME,
-            load_session: LOAD_SESSION_TOOL_NAME,
-            prompt: PROMPT_TOOL_NAME,
-        }
-    }
 }

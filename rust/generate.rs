@@ -1,5 +1,5 @@
 use agent_client_protocol::{
-    AcpTools, LoadSessionArguments, NewSessionArguments, NewSessionOutput, PromptArguments,
+    AGENT_METHODS, LoadSessionArguments, NewSessionArguments, NewSessionOutput, PromptArguments,
     ReadTextFileArguments, ReadTextFileOutput, RequestPermissionArguments, RequestPermissionOutput,
     SessionUpdate, WriteTextFileArguments,
 };
@@ -33,15 +33,17 @@ fn main() {
         schema.remove("title");
     }
 
+    fs::create_dir_all("./schema").unwrap();
+
     fs::write(
-        "./schema.json",
+        "./schema/schema.json",
         serde_json::to_string_pretty(&schema).unwrap(),
     )
     .unwrap();
 
     fs::write(
-        "./methods.json",
-        serde_json::to_string_pretty(&AcpTools::names()).unwrap(),
+        "./schema/methods.json",
+        serde_json::to_string_pretty(&AGENT_METHODS).unwrap(),
     )
     .unwrap();
 }
