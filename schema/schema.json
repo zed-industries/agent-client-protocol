@@ -266,6 +266,18 @@
         }
       ]
     },
+    "EnvVariable": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "value"],
+      "type": "object"
+    },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "properties": {
@@ -298,10 +310,10 @@
           "type": "string"
         },
         "mcpServers": {
-          "additionalProperties": {
-            "$ref": "#/$defs/McpServerConfig"
+          "items": {
+            "$ref": "#/$defs/McpServer"
           },
-          "type": "object"
+          "type": "array"
         },
         "sessionId": {
           "type": "string"
@@ -310,7 +322,7 @@
       "required": ["mcpServers", "clientTools", "cwd", "sessionId"],
       "type": "object"
     },
-    "McpServerConfig": {
+    "McpServer": {
       "properties": {
         "args": {
           "items": {
@@ -322,13 +334,16 @@
           "type": "string"
         },
         "env": {
-          "additionalProperties": {
-            "type": "string"
+          "items": {
+            "$ref": "#/$defs/EnvVariable"
           },
-          "type": ["object", "null"]
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
         }
       },
-      "required": ["command", "args"],
+      "required": ["name", "command", "args", "env"],
       "type": "object"
     },
     "McpToolId": {
@@ -352,10 +367,10 @@
           "type": "string"
         },
         "mcpServers": {
-          "additionalProperties": {
-            "$ref": "#/$defs/McpServerConfig"
+          "items": {
+            "$ref": "#/$defs/McpServer"
           },
-          "type": "object"
+          "type": "array"
         }
       },
       "required": ["mcpServers", "clientTools", "cwd"],

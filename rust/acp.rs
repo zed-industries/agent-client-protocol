@@ -26,7 +26,7 @@ pub const AGENT_METHODS: AgentMethods = AgentMethods {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionArguments {
-    pub mcp_servers: HashMap<String, McpServerConfig>,
+    pub mcp_servers: Vec<McpServer>,
     pub client_tools: ClientTools,
     pub cwd: PathBuf,
 }
@@ -53,7 +53,7 @@ impl NewSessionOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionArguments {
-    pub mcp_servers: HashMap<String, McpServerConfig>,
+    pub mcp_servers: Vec<McpServer>,
     pub client_tools: ClientTools,
     pub cwd: PathBuf,
     pub session_id: SessionId,
@@ -77,11 +77,18 @@ impl fmt::Display for SessionId {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct McpServerConfig {
+pub struct McpServer {
+    pub name: String,
     pub command: PathBuf,
     pub args: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub env: Option<HashMap<String, String>>,
+    pub env: Vec<EnvVariable>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvVariable {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
