@@ -3,7 +3,7 @@ pub use mcp_types::*;
 
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
-use schemars::JsonSchema;
+use schemars::{JsonSchema, generate::SchemaSettings};
 use serde::{Deserialize, Serialize};
 
 // New session
@@ -18,12 +18,23 @@ pub struct NewSessionArguments {
     pub cwd: PathBuf,
 }
 
+impl NewSessionArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionOutput {
     pub session_id: SessionId,
 }
 
+impl NewSessionOutput {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
 // Load session
 
 pub const LOAD_SESSION_TOOL_NAME: &str = "acp/load_session";
@@ -35,6 +46,12 @@ pub struct LoadSessionArguments {
     pub client_tools: ClientTools,
     pub cwd: PathBuf,
     pub session_id: SessionId,
+}
+
+impl LoadSessionArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
@@ -72,6 +89,12 @@ pub const PROMPT_TOOL_NAME: &str = "acp/prompt";
 pub struct PromptArguments {
     pub session_id: SessionId,
     pub prompt: Vec<ContentBlock>,
+}
+
+impl PromptArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
 }
 
 // Session updates
@@ -269,6 +292,12 @@ pub struct RequestPermissionArguments {
     pub options: Vec<PermissionOption>,
 }
 
+impl RequestPermissionArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PermissionOption {
     #[serde(rename = "optionId")]
@@ -323,6 +352,12 @@ pub struct WriteTextFileArguments {
     pub content: String,
 }
 
+impl WriteTextFileArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
 // Read text file
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -336,8 +371,26 @@ pub struct ReadTextFileArguments {
     pub limit: Option<u32>,
 }
 
+impl ReadTextFileArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileOutput {
     pub content: String,
+}
+
+impl ReadTextFileOutput {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
+fn schema_for<T: JsonSchema>() -> serde_json::Value {
+    let mut settings = SchemaSettings::draft2020_12();
+    settings.inline_subschemas = true;
+    settings.into_generator().into_root_schema_for::<T>().into()
 }
