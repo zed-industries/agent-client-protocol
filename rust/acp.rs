@@ -12,7 +12,6 @@ pub struct AgentMethods {
     pub new_session: &'static str,
     pub load_session: &'static str,
     pub prompt: &'static str,
-    pub agent_state: &'static str,
     pub session_update: &'static str,
 }
 
@@ -21,50 +20,8 @@ pub const AGENT_METHODS: AgentMethods = AgentMethods {
     new_session: "acp/new_session",
     load_session: "acp/load_session",
     prompt: "acp/prompt",
-    agent_state: "acp/agent_state",
     session_update: "acp/session_update",
 };
-
-// Agent state
-
-#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentState {
-    pub needs_authentication: bool,
-    pub auth_methods: Vec<AuthMethod>,
-    // pub models: Vec<Model>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[serde(transparent)]
-pub struct AuthMethodId(pub Arc<str>);
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthMethod {
-    pub id: AuthMethodId,
-    pub label: String,
-    pub description: Option<String>,
-}
-
-// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-// #[serde(transparent)]
-// pub struct ModelId(pub Arc<str>);
-
-// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-// #[serde(rename_all = "camelCase")]
-// pub struct Model {
-//     pub id: ModelId,
-//     pub label: String,
-// }
-
-// Authenticatication
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthenticateArguments {
-    pub method_id: AuthMethodId,
-}
 
 // New session
 
@@ -85,7 +42,12 @@ impl NewSessionArguments {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionOutput {
-    pub session_id: SessionId,
+    /// The session id if one was created, or null if authentication is required
+    // Note: It'd be nicer to use an enum here, but MCP requires the output schema
+    // to be a non-union object and adding another level seemed impractical.
+    pub session_id: Option<SessionId>,
+    #[serde(default)]
+    pub auth_methods: Vec<AuthMethod>,
 }
 
 impl NewSessionOutput {
@@ -106,6 +68,20 @@ pub struct LoadSessionArguments {
 }
 
 impl LoadSessionArguments {
+    pub fn schema() -> serde_json::Value {
+        schema_for::<Self>()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadSessionOutput {
+    pub auth_required: bool,
+    #[serde(default)]
+    pub auth_methods: Vec<AuthMethod>,
+}
+
+impl LoadSessionOutput {
     pub fn schema() -> serde_json::Value {
         schema_for::<Self>()
     }
@@ -142,6 +118,46 @@ pub struct EnvVariable {
 pub struct McpToolId {
     pub mcp_server: String,
     pub tool_name: String,
+}
+
+// Agent state
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentState {
+    pub auth_methods: Vec<AuthMethod>,
+    // pub models: Vec<Model>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct AuthMethodId(pub Arc<str>);
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthMethod {
+    pub id: AuthMethodId,
+    pub label: String,
+    pub description: Option<String>,
+}
+
+// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+// #[serde(transparent)]
+// pub struct ModelId(pub Arc<str>);
+
+// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+// #[serde(rename_all = "camelCase")]
+// pub struct Model {
+//     pub id: ModelId,
+//     pub label: String,
+// }
+
+// Authenticatication
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthenticateArguments {
+    pub method_id: AuthMethodId,
 }
 
 // Prompt

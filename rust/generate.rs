@@ -1,5 +1,5 @@
 use agent_client_protocol::{
-    AGENT_METHODS, AgentState, AuthenticateArguments, LoadSessionArguments, NewSessionArguments,
+    AGENT_METHODS, AuthenticateArguments, LoadSessionArguments, NewSessionArguments,
     NewSessionOutput, PromptArguments, ReadTextFileArguments, ReadTextFileOutput,
     RequestPermissionArguments, RequestPermissionOutput, SessionUpdate, WriteTextFileArguments,
 };
@@ -11,11 +11,10 @@ use std::fs;
 #[derive(JsonSchema)]
 #[serde(untagged)]
 enum AcpTypes {
-    AgentState(AgentState),
-    AuthenticateArguments(AuthenticateArguments),
     NewSessionArguments(NewSessionArguments),
     NewSessionOutput(NewSessionOutput),
     LoadSession(LoadSessionArguments),
+    AuthenticateArguments(AuthenticateArguments),
     Prompt(PromptArguments),
     SessionUpdate(SessionUpdate),
     RequestPermissionArguments(RequestPermissionArguments),

@@ -3,6 +3,5 @@
   "new_session": "acp/new_session",
   "load_session": "acp/load_session",
   "prompt": "acp/prompt",
-  "agent_state": "acp/agent_state",
   "session_update": "acp/session_update"
 }

@@ -1,20 +1,5 @@
 {
   "$defs": {
-    "AgentState": {
-      "properties": {
-        "authMethods": {
-          "items": {
-            "$ref": "#/$defs/AuthMethod"
-          },
-          "type": "array"
-        },
-        "needsAuthentication": {
-          "type": "boolean"
-        }
-      },
-      "required": ["needsAuthentication", "authMethods"],
-      "type": "object"
-    },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
       "properties": {
@@ -417,11 +402,19 @@
     },
     "NewSessionOutput": {
       "properties": {
+        "authMethods": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AuthMethod"
+          },
+          "type": "array"
+        },
         "sessionId": {
-          "type": "string"
+          "description": "The session id if one was created, or null if authentication is required",
+          "type": ["string", "null"]
         }
       },
-      "required": ["sessionId"],
+      "required": ["sessionId", "authMethods"],
       "type": "object"
     },
     "PermissionOption": {
@@ -992,14 +985,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "$ref": "#/$defs/AgentState",
-      "title": "AgentState"
-    },
-    {
-      "$ref": "#/$defs/AuthenticateArguments",
-      "title": "AuthenticateArguments"
-    },
-    {
       "$ref": "#/$defs/NewSessionArguments",
       "title": "NewSessionArguments"
     },
@@ -1010,6 +995,10 @@
     {
       "$ref": "#/$defs/LoadSessionArguments",
       "title": "LoadSession"
+    },
+    {
+      "$ref": "#/$defs/AuthenticateArguments",
+      "title": "AuthenticateArguments"
     },
     {
       "$ref": "#/$defs/PromptArguments",
