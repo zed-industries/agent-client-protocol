@@ -1,5 +1,20 @@
 {
   "$defs": {
+    "AgentState": {
+      "properties": {
+        "authMethods": {
+          "items": {
+            "$ref": "#/$defs/AuthMethod"
+          },
+          "type": "array"
+        },
+        "needsAuthentication": {
+          "type": "boolean"
+        }
+      },
+      "required": ["needsAuthentication", "authMethods"],
+      "type": "object"
+    },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
       "properties": {
@@ -40,6 +55,30 @@
         }
       },
       "required": ["data", "mimeType"],
+      "type": "object"
+    },
+    "AuthMethod": {
+      "properties": {
+        "description": {
+          "type": ["string", "null"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "label", "description"],
+      "type": "object"
+    },
+    "AuthenticateArguments": {
+      "properties": {
+        "methodId": {
+          "type": "string"
+        }
+      },
+      "required": ["methodId"],
       "type": "object"
     },
     "BlobResourceContents": {
@@ -952,6 +991,14 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
+    {
+      "$ref": "#/$defs/AgentState",
+      "title": "AgentState"
+    },
+    {
+      "$ref": "#/$defs/AuthenticateArguments",
+      "title": "AuthenticateArguments"
+    },
     {
       "$ref": "#/$defs/NewSessionArguments",
       "title": "NewSessionArguments"

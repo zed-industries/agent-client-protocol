@@ -32,7 +32,7 @@
   "scripts": {
     "clean": "rm -rf dist target typescript/acp.ts schema.json tsconfig.tsbuildinfo && cargo clean",
     "test": "cargo test",
-    "generate": "cargo run && typescript/generate.js && prettier --write typescript/acp.ts schema/*",
+    "generate": "cargo run && typescript/generate.js && prettier --write typescript/*.ts schema/*",
     "build": "npm run generate && tsc",
     "format": "prettier --write . && cargo fmt",
     "format:check": "prettier --check . && cargo fmt -- --check",

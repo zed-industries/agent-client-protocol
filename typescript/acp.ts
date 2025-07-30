@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import * as generated from "./zod";
 
+export type AuthenticateArguments = z.infer<
+  typeof generated.authenticateArgumentsSchema
+>;
+
 export type NewSessionOutput = z.infer<typeof generated.newSessionOutputSchema>;
 
 export type WriteTextFile = z.infer<typeof generated.writeTextFileSchema>;
@@ -41,6 +45,8 @@ export type RequestPermissionOutcome = z.infer<
   typeof generated.requestPermissionOutcomeSchema
 >;
 
+export type AuthMethod = z.infer<typeof generated.authMethodSchema>;
+
 export type McpToolId = z.infer<typeof generated.mcpToolIdSchema>;
 
 export type EnvVariable = z.infer<typeof generated.envVariableSchema>;
@@ -56,6 +62,8 @@ export type PermissionOption = z.infer<typeof generated.permissionOptionSchema>;
 export type RequestPermissionOutput = z.infer<
   typeof generated.requestPermissionOutputSchema
 >;
+
+export type AgentState = z.infer<typeof generated.agentStateSchema>;
 
 export type NewSessionArguments = z.infer<
   typeof generated.newSessionArgumentsSchema
@@ -86,8 +94,10 @@ export type AgentClientProtocol = z.infer<
 >;
 
 export const AGENT_METHODS = {
+  authenticate: "acp/authenticate",
   new_session: "acp/new_session",
   load_session: "acp/load_session",
   prompt: "acp/prompt",
+  agent_state: "acp/agent_state",
   session_update: "acp/session_update",
 };

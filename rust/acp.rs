@@ -8,18 +8,63 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub struct AgentMethods {
+    pub authenticate: &'static str,
     pub new_session: &'static str,
     pub load_session: &'static str,
     pub prompt: &'static str,
+    pub agent_state: &'static str,
     pub session_update: &'static str,
 }
 
 pub const AGENT_METHODS: AgentMethods = AgentMethods {
+    authenticate: "acp/authenticate",
     new_session: "acp/new_session",
     load_session: "acp/load_session",
     prompt: "acp/prompt",
+    agent_state: "acp/agent_state",
     session_update: "acp/session_update",
 };
+
+// Agent state
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentState {
+    pub needs_authentication: bool,
+    pub auth_methods: Vec<AuthMethod>,
+    // pub models: Vec<Model>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct AuthMethodId(pub Arc<str>);
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthMethod {
+    pub id: AuthMethodId,
+    pub label: String,
+    pub description: Option<String>,
+}
+
+// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+// #[serde(transparent)]
+// pub struct ModelId(pub Arc<str>);
+
+// #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+// #[serde(rename_all = "camelCase")]
+// pub struct Model {
+//     pub id: ModelId,
+//     pub label: String,
+// }
+
+// Authenticatication
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthenticateArguments {
+    pub method_id: AuthMethodId,
+}
 
 // New session
 
@@ -48,6 +93,7 @@ impl NewSessionOutput {
         schema_for::<Self>()
     }
 }
+
 // Load session
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
