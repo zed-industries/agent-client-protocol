@@ -10,11 +10,7 @@ pub use agent::*;
 pub use client::*;
 pub use content::*;
 pub use error::*;
-use futures::{
-    AsyncRead, AsyncWrite, Future, FutureExt,
-    channel::mpsc::{self, UnboundedSender},
-    future::LocalBoxFuture,
-};
+use futures::{AsyncRead, AsyncWrite, Future, channel::mpsc, future::LocalBoxFuture};
 pub use plan::*;
 pub use tool_call::*;
 
@@ -24,7 +20,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{fmt, sync::Arc};
 
-use crate::rpc::{Dispatcher, OutgoingMessage, RpcConnection, RpcSide};
+use crate::rpc::{BaseDispatcher, Dispatcher, RpcConnection, RpcSide};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -67,9 +63,11 @@ impl AgentConnection {
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
         let on_session_update = Arc::new(Mutex::new(None));
         let dispatcher = ClientDispatcher {
-            delegate: client,
-            spawn: Box::new(spawn),
-            outgoing_tx: outgoing_tx.clone(),
+            base: BaseDispatcher {
+                delegate: client,
+                spawn: Box::new(spawn),
+                outgoing_tx: outgoing_tx.clone(),
+            },
             on_session_update: on_session_update.clone(),
         };
 
@@ -126,7 +124,7 @@ impl AgentConnection {
             .await
     }
 
-    pub fn cancel(&self, request_id: u64) -> Result<(), Error> {
+    pub fn cancel(&self, request_id: i32) -> Result<(), Error> {
         self.conn
             .notify(ClientNotification::Cancelled { request_id })
     }
@@ -134,7 +132,7 @@ impl AgentConnection {
 
 pub struct ClientConnection {
     conn: RpcConnection<AgentSide, ClientSide>,
-    on_cancel: Arc<Mutex<Option<Box<dyn Fn(u64) + Send + Sync>>>>,
+    on_cancel: Arc<Mutex<Option<Box<dyn Fn(i32) + Send + Sync>>>>,
 }
 
 impl ClientConnection {
@@ -147,9 +145,11 @@ impl ClientConnection {
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
         let on_cancel = Arc::new(Mutex::new(None));
         let dispatcher = AgentDispatcher {
-            delegate: agent,
-            spawn: Box::new(spawn),
-            outgoing_tx: outgoing_tx.clone(),
+            base: BaseDispatcher {
+                delegate: agent,
+                spawn: Box::new(spawn),
+                outgoing_tx: outgoing_tx.clone(),
+            },
             on_cancel: on_cancel.clone(),
         };
 
@@ -165,7 +165,7 @@ impl ClientConnection {
 
     pub fn on_cancel<F>(&self, callback: F)
     where
-        F: Fn(u64) + Send + Sync + 'static,
+        F: Fn(i32) + Send + Sync + 'static,
     {
         *self.on_cancel.lock() = Some(Box::new(callback));
     }
@@ -217,10 +217,8 @@ impl ClientConnection {
 }
 
 struct AgentDispatcher<D: Agent> {
-    delegate: D,
-    spawn: Box<dyn Fn(LocalBoxFuture<'static, ()>) + 'static>,
-    outgoing_tx: UnboundedSender<OutgoingMessage<AgentSide, ClientSide>>,
-    on_cancel: Arc<Mutex<Option<Box<dyn Fn(u64) + Send + Sync>>>>,
+    base: BaseDispatcher<D, AgentSide, ClientSide>,
+    on_cancel: Arc<Mutex<Option<Box<dyn Fn(i32) + Send + Sync>>>>,
 }
 
 impl<D: Agent> Dispatcher for AgentDispatcher<D> {
@@ -233,84 +231,30 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
         params: Option<&serde_json::value::RawValue>,
     ) -> Result<(), Error> {
         match method {
-            NEW_SESSION_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<NewSessionArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.new_session(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut.await.map(AgentResponse::NewSession).into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
-            LOAD_SESSION_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<LoadSessionArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.load_session(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut.await.map(AgentResponse::LoadSession).into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
-            PROMPT_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<PromptArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.prompt(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut.await.map(|_| AgentResponse::Prompt).into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
+            NEW_SESSION_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                NewSessionArguments,
+                |delegate: &D, args| delegate.new_session(args),
+                AgentResponse::NewSession
+            ),
+            LOAD_SESSION_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                LoadSessionArguments,
+                |delegate: &D, args| delegate.load_session(args),
+                AgentResponse::LoadSession
+            ),
+            PROMPT_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                PromptArguments,
+                |delegate: &D, args| delegate.prompt(args),
+                |_| AgentResponse::Prompt
+            ),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -328,9 +272,7 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
 }
 
 struct ClientDispatcher<D: Client> {
-    delegate: D,
-    spawn: Box<dyn Fn(LocalBoxFuture<'static, ()>) + 'static>,
-    outgoing_tx: UnboundedSender<OutgoingMessage<ClientSide, AgentSide>>,
+    base: BaseDispatcher<D, ClientSide, AgentSide>,
     on_session_update: Arc<Mutex<Option<Box<dyn Fn(SessionNotification) + Send + Sync>>>>,
 }
 
@@ -344,90 +286,30 @@ impl<D: Client> Dispatcher for ClientDispatcher<D> {
         params: Option<&serde_json::value::RawValue>,
     ) -> Result<(), Error> {
         match method {
-            REQUEST_PERMISSION_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<RequestPermissionArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.request_permission(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut
-                                            .await
-                                            .map(ClientResponse::RequestPermission)
-                                            .into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
-            WRITE_TEXT_FILE_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<WriteTextFileArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.write_text_file(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut
-                                            .await
-                                            .map(|_| ClientResponse::WriteTextFile)
-                                            .into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
-            READ_TEXT_FILE_METHOD_NAME => {
-                let Some(params) = params else {
-                    return Err(Error::invalid_params());
-                };
-
-                match serde_json::from_str::<ReadTextFileArguments>(params.get()) {
-                    Ok(arguments) => {
-                        let fut = self.delegate.read_text_file(arguments);
-                        let outgoing_tx = self.outgoing_tx.clone();
-                        (self.spawn)(
-                            async move {
-                                outgoing_tx
-                                    .unbounded_send(OutgoingMessage::Response {
-                                        id,
-                                        result: fut.await.map(ClientResponse::ReadTextFile).into(),
-                                    })
-                                    .ok();
-                            }
-                            .boxed_local(),
-                        );
-
-                        Ok(())
-                    }
-                    Err(err) => Err(Error::invalid_params().with_data(err.to_string())),
-                }
-            }
+            REQUEST_PERMISSION_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                RequestPermissionArguments,
+                |delegate: &D, args| delegate.request_permission(args),
+                ClientResponse::RequestPermission
+            ),
+            WRITE_TEXT_FILE_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                WriteTextFileArguments,
+                |delegate: &D, args| delegate.write_text_file(args),
+                |_| ClientResponse::WriteTextFile
+            ),
+            READ_TEXT_FILE_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                ReadTextFileArguments,
+                |delegate: &D, args| delegate.read_text_file(args),
+                ClientResponse::ReadTextFile
+            ),
             _ => Err(Error::method_not_found()),
         }
     }

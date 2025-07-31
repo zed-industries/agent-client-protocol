@@ -15,6 +15,7 @@ use futures::{
         mpsc::{UnboundedReceiver, UnboundedSender},
         oneshot,
     },
+    future::LocalBoxFuture,
     io::BufReader,
     select_biased,
 };
@@ -39,13 +40,6 @@ pub struct RpcConnection<Local: RpcSide, Remote: RpcSide> {
 struct PendingResponse {
     deserialize: fn(&serde_json::value::RawValue) -> Result<Box<dyn Any>, Error>,
     respond: oneshot::Sender<Result<Box<dyn Any>, Error>>,
-}
-
-pub trait Dispatcher {
-    type Notification: DeserializeOwned;
-
-    fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
-    fn notification(&self, notification: Self::Notification) -> Result<(), Error>;
 }
 
 impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
@@ -159,7 +153,21 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
                         Ok(message) => {
                             if let Some(id) = message.id {
                                 if let Some(method) = message.method {
-                                    dispatcher.request(id, method, message.params);
+                                    if let Err(error) = dispatcher.request(id, method, message.params) {
+                                        // Send error response for failed request handling
+                                        outgoing_line.clear();
+                                        let error_response = OutgoingMessage::<Local, Remote>::Response {
+                                            id,
+                                            result: ResponseResult::Error(error),
+                                        };
+                                        if let Err(e) = serde_json::to_writer(&mut outgoing_line, &error_response) {
+                                            log::error!("failed to serialize error response: {e}");
+                                        } else {
+                                            log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
+                                            outgoing_line.push(b'\n');
+                                            outgoing_bytes.write_all(&outgoing_line).await.ok();
+                                        }
+                                    }
                                 } else {
                                     if let Some(pending_response) = pending_responses.lock().remove(&id) {
                                         if let Some(result) = message.result {
@@ -176,11 +184,13 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
                                         log::error!("received response for unknown request id: {id}");
                                     }
                                 }
-                            } else if let Some(_method) = message.method {
+                            } else if let Some(method) = message.method {
                                 if let Some(params) = message.params {
                                     match serde_json::from_str::<Remote::Notification>(params.get()) {
                                         Ok(notification) => {
-                                            let _ = dispatcher.notification(notification);
+                                            if let Err(e) = dispatcher.notification(notification) {
+                                                log::error!("failed to handle notification '{}': {}", method, e);
+                                            }
                                         }
                                         Err(e) => {
                                             log::error!("failed to deserialize notification: {e}");
@@ -248,4 +258,44 @@ impl<T> From<Result<T, Error>> for ResponseResult<T> {
             Err(error) => ResponseResult::Error(error),
         }
     }
+}
+
+pub trait Dispatcher {
+    type Notification: DeserializeOwned;
+
+    fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
+    fn notification(&self, notification: Self::Notification) -> Result<(), Error>;
+}
+
+#[macro_export]
+macro_rules! dispatch_request {
+    ($base:expr, $id:expr, $params:expr, $request_type:ty, $method:expr, $response_wrapper:expr) => {{
+        let Some(params) = $params else {
+            return Err($crate::Error::invalid_params());
+        };
+
+        match serde_json::from_str::<$request_type>(params.get()) {
+            Ok(arguments) => {
+                let fut = $method(&$base.delegate, arguments);
+                let outgoing_tx = $base.outgoing_tx.clone();
+                ($base.spawn)(::futures::FutureExt::boxed_local(async move {
+                    outgoing_tx
+                        .unbounded_send($crate::rpc::OutgoingMessage::Response {
+                            id: $id,
+                            result: fut.await.map($response_wrapper).into(),
+                        })
+                        .ok();
+                }));
+
+                Ok(())
+            }
+            Err(err) => Err($crate::Error::invalid_params().with_data(err.to_string())),
+        }
+    }};
+}
+
+pub struct BaseDispatcher<D, Local: RpcSide, Remote: RpcSide> {
+    pub delegate: D,
+    pub spawn: Box<dyn Fn(LocalBoxFuture<'static, ()>) + 'static>,
+    pub outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
 }
