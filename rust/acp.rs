@@ -1,8 +1,9 @@
 pub mod mcp_types;
-use futures::{FutureExt, future::LocalBoxFuture};
 pub use mcp_types::*;
 
-// mod connection;
+pub mod rpc;
+
+use futures::{FutureExt, future::LocalBoxFuture};
 
 use std::{
     fmt::{self, Display},
@@ -13,9 +14,9 @@ use std::{
 
 use anyhow::Result;
 use schemars::{JsonSchema, generate::SchemaSettings};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize};
 
-trait Agent {
+pub trait Agent {
     fn new_session(
         &self,
         arguments: NewSessionArguments,
@@ -29,30 +30,41 @@ trait Agent {
     fn prompt(&self, arguments: PromptArguments) -> impl Future<Output = Result<()>>;
 }
 
-impl<T: Agent> Dispatch for T {
-    type In = AgentRequest;
-    type Out = AgentResponse;
+// impl<T: Agent> LocalPeer for T {
+//     type Request = AgentRequest;
+//     type Response = AgentResponse;
+//     type IncomingNotification = AgentNotification;
 
-    fn dispatch<'a>(&'a self, request: Self::In) -> LocalBoxFuture<'a, Result<Self::Out>> {
-        async move {
-            match request {
-                AgentRequest::NewSession(args) => {
-                    self.new_session(args).await.map(AgentResponse::NewSession)
-                }
-                AgentRequest::LoadSession(args) => self
-                    .load_session(args)
-                    .await
-                    .map(AgentResponse::LoadSession),
-                AgentRequest::Prompt(args) => {
-                    self.prompt(args).await.map(|()| AgentResponse::Prompt)
-                }
-            }
-        }
-        .boxed_local()
-    }
-}
+//     fn dispatch_request<'a>(
+//         &'a self,
+//         request: Self::Request,
+//     ) -> LocalBoxFuture<'a, Result<Self::Response>> {
+//         async move {
+//             match request {
+//                 AgentRequest::NewSession(args) => {
+//                     self.new_session(args).await.map(AgentResponse::NewSession)
+//                 }
+//                 AgentRequest::LoadSession(args) => self
+//                     .load_session(args)
+//                     .await
+//                     .map(AgentResponse::LoadSession),
+//                 AgentRequest::Prompt(args) => {
+//                     self.prompt(args).await.map(|()| AgentResponse::Prompt)
+//                 }
+//             }
+//         }
+//         .boxed_local()
+//     }
 
-trait Client {
+//     fn dispatch_notification<'a>(
+//         &'a self,
+//         notification: Self::IncomingNotification,
+//     ) -> LocalBoxFuture<'a, Result<()>> {
+//         todo!();
+//     }
+// }
+
+pub trait Client {
     fn write_text_file(
         &self,
         arguments: WriteTextFileArguments,
@@ -92,10 +104,6 @@ trait Client {
     }
 }
 
-trait ClientDelegate: Client {
-    fn on_session_update(&self, session_update: SessionUpdate) -> impl Future<Output = Result<()>>;
-}
-
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "method", content = "params", rename_all = "camelCase")]
 pub enum ClientRequest {
@@ -110,6 +118,12 @@ pub enum ClientResponse {
     WriteTextFile,
     ReadTextFile(ReadTextFileOutput),
     RequestPermission(RequestPermissionOutput),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "method", content = "params", rename_all = "camelCase")]
+pub enum ClientNotification {
+    Cancelled { request_id: u64 },
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -614,12 +628,6 @@ pub struct Error {
     pub data: Option<serde_json::Value>,
 }
 
-trait Dispatch {
-    type In: DeserializeOwned;
-    type Out: Serialize;
-    fn dispatch<'a>(&'a self, request: Self::In) -> LocalBoxFuture<'a, Result<Self::Out>>;
-}
-
 impl Error {
     pub fn new(code: impl Into<(i32, String)>) -> Self {
         let (code, message) = code.into();
@@ -731,99 +739,5 @@ impl Display for Error {
 impl From<anyhow::Error> for Error {
     fn from(error: anyhow::Error) -> Self {
         Error::into_internal_error(error.deref())
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(bound(deserialize = "SelfReq: DeserializeOwned"))]
-#[serde(untagged)]
-enum IncomingMessage<SelfReq> {
-    Request {
-        id: u64,
-        #[serde(flatten)]
-        request: SelfReq,
-    },
-    ResponseOk {
-        id: u64,
-        // TODO: consider writing custom deserializer so we can use raw value
-        result: Box<serde_json::Value>,
-    },
-    ResponseErr {
-        id: u64,
-        error: Error,
-    },
-}
-
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    use std::path::Path;
-
-    #[test]
-    fn test_deserialize_request_message() {
-        let message: IncomingMessage<ClientRequest> = serde_json::from_value(json!({
-            "id": 0,
-            "method": "writeTextFile",
-            "params": { "sessionId": "1234", "path": "foo.txt", "content": "hello" }
-        }))
-        .unwrap();
-
-        let IncomingMessage::Request {
-            id,
-            request: ClientRequest::WriteTextFile(args),
-        } = message
-        else {
-            panic!("Got: {:?}", message);
-        };
-
-        assert_eq!(id, 0);
-        assert_eq!(args.session_id, SessionId("1234".into()));
-        assert_eq!(args.path, Path::new("foo.txt"));
-        assert_eq!(args.content, "hello");
-    }
-
-    #[test]
-    fn test_deserialize_response_ok() {
-        let message: IncomingMessage<ClientRequest> = serde_json::from_value(json!({
-            "id": 42,
-            "result": {
-                "authRequired": false,
-                "authMethods": []
-            }
-        }))
-        .unwrap();
-
-        let IncomingMessage::ResponseOk { id, result } = message else {
-            panic!("Got: {:?}", message);
-        };
-
-        let output: LoadSessionOutput = serde_json::from_str(result.get()).unwrap();
-
-        assert_eq!(id, 42);
-        assert_eq!(output.auth_required, false);
-        assert_eq!(output.auth_methods.len(), 0);
-    }
-
-    #[test]
-    fn test_deserialize_response_err() {
-        let message: IncomingMessage<ClientRequest> = serde_json::from_value(json!({
-            "id": 123,
-            "error": {
-                "code": -32602,
-                "message": "Invalid params",
-                "data": "Missing required field"
-            }
-        }))
-        .unwrap();
-
-        let IncomingMessage::ResponseErr { id, error } = message else {
-            panic!("Got: {:?}", message);
-        };
-
-        assert_eq!(id, 123);
-        assert_eq!(error.code, -32602);
-        assert_eq!(error.message, "Invalid params");
-        assert_eq!(error.data, Some(json!("Missing required field")));
     }
 }
