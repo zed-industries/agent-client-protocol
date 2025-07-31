@@ -124,15 +124,15 @@ impl AgentConnection {
             .await
     }
 
-    pub fn cancel(&self, request_id: i32) -> Result<(), Error> {
+    pub fn cancel(&self, session_id: SessionId) -> Result<(), Error> {
         self.conn
-            .notify(ClientNotification::Cancelled { request_id })
+            .notify(ClientNotification::Cancelled { session_id })
     }
 }
 
 pub struct ClientConnection {
     conn: RpcConnection<AgentSide, ClientSide>,
-    on_cancel: Arc<Mutex<Option<Box<dyn Fn(i32) + Send + Sync>>>>,
+    on_cancel: Arc<Mutex<Option<Box<dyn Fn(SessionId) + Send + Sync>>>>,
 }
 
 impl ClientConnection {
@@ -165,7 +165,7 @@ impl ClientConnection {
 
     pub fn on_cancel<F>(&self, callback: F)
     where
-        F: Fn(i32) + Send + Sync + 'static,
+        F: Fn(SessionId) + Send + Sync + 'static,
     {
         *self.on_cancel.lock() = Some(Box::new(callback));
     }
@@ -218,7 +218,7 @@ impl ClientConnection {
 
 struct AgentDispatcher<D: Agent> {
     base: BaseDispatcher<D, AgentSide, ClientSide>,
-    on_cancel: Arc<Mutex<Option<Box<dyn Fn(i32) + Send + Sync>>>>,
+    on_cancel: Arc<Mutex<Option<Box<dyn Fn(SessionId) + Send + Sync>>>>,
 }
 
 impl<D: Agent> Dispatcher for AgentDispatcher<D> {
@@ -261,9 +261,9 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
 
     fn notification(&self, notification: Self::Notification) -> Result<(), Error> {
         match notification {
-            ClientNotification::Cancelled { request_id } => {
+            ClientNotification::Cancelled { session_id } => {
                 if let Some(callback) = &*self.on_cancel.lock() {
-                    callback(request_id);
+                    callback(session_id);
                 }
                 Ok(())
             }

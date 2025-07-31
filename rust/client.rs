@@ -47,7 +47,7 @@ pub enum ClientResponse {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "method", content = "params", rename_all = "camelCase")]
 pub enum ClientNotification {
-    Cancelled { request_id: i32 },
+    Cancelled { session_id: SessionId },
 }
 
 // Permission
