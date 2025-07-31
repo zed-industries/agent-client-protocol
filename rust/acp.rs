@@ -12,18 +12,17 @@ pub use agent::*;
 pub use client::*;
 pub use content::*;
 pub use error::*;
-use futures::{AsyncRead, AsyncWrite, Future, channel::mpsc, future::LocalBoxFuture};
 pub use plan::*;
+pub use rpc::*;
 pub use tool_call::*;
 
 use anyhow::Result;
+use futures::{AsyncRead, AsyncWrite, channel::mpsc, future::LocalBoxFuture};
 use parking_lot::Mutex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
-
-use crate::rpc::{BaseDispatcher, Dispatcher, RpcConnection, RpcSide};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -128,8 +127,12 @@ impl AgentConnection {
     }
 
     pub fn cancel(&self, session_id: SessionId) -> Result<(), Error> {
-        self.conn
-            .notify(ClientNotification::Cancelled { session_id })
+        self.conn.notify(
+            CANCELLED_NOTIFICATION,
+            Some(ClientNotification::Cancelled(CancelledParams {
+                session_id,
+            })),
+        )
     }
 }
 
@@ -211,11 +214,13 @@ impl ClientConnection {
         session_id: SessionId,
         update: SessionUpdate,
     ) -> Result<(), Error> {
-        self.conn
-            .notify(AgentNotification::SessionUpdate(SessionNotification {
+        self.conn.notify(
+            SESSION_UPDATE_NOTIFICATION,
+            Some(AgentNotification::SessionUpdate(SessionNotification {
                 session_id,
                 update,
-            }))
+            })),
+        )
     }
 }
 
@@ -264,17 +269,12 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
 
     fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error> {
         match method {
-            "cancelled" => {
-                #[derive(Deserialize)]
-                struct CancelledParams {
-                    session_id: SessionId,
-                }
-
+            CANCELLED_NOTIFICATION => {
                 dispatch_notification!(
                     method,
                     params,
-                    CancelledParams,
-                    |params: CancelledParams| {
+                    client::CancelledParams,
+                    |params: client::CancelledParams| {
                         if let Some(callback) = &*self.on_cancel.lock() {
                             callback(params.session_id);
                         }
@@ -332,7 +332,7 @@ impl<D: Client> Dispatcher for ClientDispatcher<D> {
 
     fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error> {
         match method {
-            "sessionUpdate" => {
+            SESSION_UPDATE_NOTIFICATION => {
                 dispatch_notification!(
                     method,
                     params,

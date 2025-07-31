@@ -72,9 +72,13 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
         (this, io_task)
     }
 
-    pub(crate) fn notify(&self, notification: Local::Notification) -> Result<(), Error> {
+    pub(crate) fn notify(
+        &self,
+        method: &'static str,
+        params: Option<Local::Notification>,
+    ) -> Result<(), Error> {
         self.outgoing_tx
-            .unbounded_send(OutgoingMessage::Notification { notification })
+            .unbounded_send(OutgoingMessage::Notification { method, params })
             .map_err(|_| Error::internal_error().with_data("failed to send notification"))
     }
 
@@ -228,8 +232,9 @@ pub enum OutgoingMessage<Local: RpcSide, Remote: RpcSide> {
         result: ResponseResult<Local::Response>,
     },
     Notification {
-        #[serde(flatten)]
-        notification: Local::Notification,
+        method: &'static str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        params: Option<Local::Notification>,
     },
 }
 

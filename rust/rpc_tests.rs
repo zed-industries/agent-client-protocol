@@ -567,3 +567,61 @@ async fn test_full_conversation_flow() {
         })
         .await;
 }
+
+#[tokio::test]
+async fn test_notification_wire_format() {
+    use crate::{
+        AgentNotification, AgentSide, CancelledParams, ClientNotification, ClientSide,
+        ContentBlock, SessionNotification, SessionUpdate, TextContent, rpc::OutgoingMessage,
+    };
+    use serde_json::{Value, json};
+
+    // Test client -> agent notification wire format
+    let outgoing_msg = OutgoingMessage::<ClientSide, AgentSide>::Notification {
+        method: "cancelled",
+        params: Some(ClientNotification::Cancelled(CancelledParams {
+            session_id: SessionId("test-123".into()),
+        })),
+    };
+
+    let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
+    assert_eq!(
+        serialized,
+        json!({
+            "method": "cancelled",
+            "params": {
+                "session_id": "test-123"
+            }
+        })
+    );
+
+    // Test agent -> client notification wire format
+    let outgoing_msg = OutgoingMessage::<AgentSide, ClientSide>::Notification {
+        method: "sessionUpdate",
+        params: Some(AgentNotification::SessionUpdate(SessionNotification {
+            session_id: SessionId("test-456".into()),
+            update: SessionUpdate::AgentMessageChunk {
+                content: ContentBlock::Text(TextContent {
+                    annotations: None,
+                    text: "Hello".to_string(),
+                }),
+            },
+        })),
+    };
+
+    let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
+    assert_eq!(
+        serialized,
+        json!({
+            "method": "sessionUpdate",
+            "params": {
+                "sessionId": "test-456",
+                "sessionUpdate": "agentMessageChunk",
+                "content": {
+                    "type": "text",
+                    "text": "Hello"
+                }
+            }
+        })
+    );
+}

@@ -27,6 +27,7 @@ pub trait Client {
 pub const REQUEST_PERMISSION_METHOD_NAME: &'static str = "request_permission";
 pub const WRITE_TEXT_FILE_METHOD_NAME: &'static str = "write_text_file";
 pub const READ_TEXT_FILE_METHOD_NAME: &'static str = "read_text_file";
+pub const CANCELLED_NOTIFICATION: &'static str = "cancelled";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
@@ -45,9 +46,14 @@ pub enum ClientResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "method", content = "params", rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum ClientNotification {
-    Cancelled { session_id: SessionId },
+    Cancelled(CancelledParams),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CancelledParams {
+    pub session_id: SessionId,
 }
 
 // Permission

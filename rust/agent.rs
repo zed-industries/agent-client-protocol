@@ -24,6 +24,7 @@ pub trait Agent {
 pub const NEW_SESSION_METHOD_NAME: &'static str = "newSession";
 pub const LOAD_SESSION_METHOD_NAME: &'static str = "loadSession";
 pub const PROMPT_METHOD_NAME: &'static str = "prompt";
+pub const SESSION_UPDATE_NOTIFICATION: &'static str = "sessionUpdate";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
@@ -42,7 +43,7 @@ pub enum AgentResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "method", content = "params", rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum AgentNotification {
     SessionUpdate(SessionNotification),
 }
