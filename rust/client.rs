@@ -1,32 +1,35 @@
 use std::{fmt, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use futures::future::LocalBoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{SessionId, ToolCall};
+use crate::{Error, SessionId, ToolCall};
 
 pub trait Client {
     fn request_permission(
         &self,
         arguments: RequestPermissionArguments,
-    ) -> impl Future<Output = Result<RequestPermissionOutput>>;
+    ) -> LocalBoxFuture<'static, Result<RequestPermissionOutput, Error>>;
 
     fn write_text_file(
         &self,
         arguments: WriteTextFileArguments,
-    ) -> impl Future<Output = Result<()>>;
+    ) -> LocalBoxFuture<'static, Result<(), Error>>;
 
     fn read_text_file(
         &self,
         arguments: ReadTextFileArguments,
-    ) -> impl Future<Output = Result<ReadTextFileOutput>>;
+    ) -> LocalBoxFuture<'static, Result<ReadTextFileOutput, Error>>;
 }
 
-// Methods
+pub const REQUEST_PERMISSION_METHOD_NAME: &'static str = "request_permission";
+pub const WRITE_TEXT_FILE_METHOD_NAME: &'static str = "write_text_file";
+pub const READ_TEXT_FILE_METHOD_NAME: &'static str = "read_text_file";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "method", content = "params", rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum ClientRequest {
     WriteTextFile(WriteTextFileArguments),
     ReadTextFile(ReadTextFileArguments),

@@ -1,26 +1,29 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use futures::future::LocalBoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 pub trait Agent {
     fn new_session(
         &self,
         arguments: NewSessionArguments,
-    ) -> impl Future<Output = Result<NewSessionOutput>>;
+    ) -> LocalBoxFuture<'static, Result<NewSessionOutput, Error>>;
 
     fn load_session(
         &self,
         arguments: LoadSessionArguments,
-    ) -> impl Future<Output = Result<LoadSessionOutput>>;
+    ) -> LocalBoxFuture<'static, Result<LoadSessionOutput, Error>>;
 
-    fn prompt(&self, arguments: PromptArguments) -> impl Future<Output = Result<()>>;
+    fn prompt(&self, arguments: PromptArguments) -> LocalBoxFuture<'static, Result<(), Error>>;
 }
 
-// Methods
+pub const NEW_SESSION_METHOD_NAME: &'static str = "newSession";
+pub const LOAD_SESSION_METHOD_NAME: &'static str = "loadSession";
+pub const PROMPT_METHOD_NAME: &'static str = "prompt";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "method", content = "params", rename_all = "camelCase")]
@@ -41,7 +44,7 @@ pub enum AgentResponse {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "method", content = "params", rename_all = "camelCase")]
 pub enum AgentNotification {
-    SessionUpdate(SessionUpdate),
+    SessionUpdate(SessionNotification),
 }
 
 // Authenticatication

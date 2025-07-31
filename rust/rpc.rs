@@ -1,8 +1,10 @@
 use std::{
-    cell::RefCell,
+    any::Any,
     collections::HashMap,
-    rc::Rc,
-    sync::atomic::{AtomicI32, Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicI32, Ordering},
+    },
 };
 
 use anyhow::Result;
@@ -10,68 +12,61 @@ use futures::{
     AsyncBufReadExt as _, AsyncRead, AsyncWrite, AsyncWriteExt as _, FutureExt as _,
     StreamExt as _,
     channel::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        mpsc::{UnboundedReceiver, UnboundedSender},
         oneshot,
     },
-    future::LocalBoxFuture,
     io::BufReader,
     select_biased,
 };
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde_json::value::RawValue;
 
 use crate::Error;
 
-pub trait Side {
+pub trait RpcSide {
     type Request: Serialize + DeserializeOwned + 'static;
     type Response: Serialize + DeserializeOwned + 'static;
     type Notification: Serialize + DeserializeOwned + 'static;
 }
 
-pub trait Local: Side {
-    type Peer: Side;
-
-    fn handle_request<'a>(
-        &'a self,
-        request: Self::Request,
-    ) -> LocalBoxFuture<'a, Result<Self::Response, Error>>;
-
-    fn handle_notification<'a>(
-        &'a self,
-        notification: <Self::Peer as Side>::Notification,
-    ) -> LocalBoxFuture<'a, ()>;
-}
-
-pub struct RpcConnection<L: Local> {
-    outgoing_tx: UnboundedSender<OutgoingMessage<L>>,
-    pending_responses: PendingResponses<L>,
+pub struct RpcConnection<Local: RpcSide, Remote: RpcSide> {
+    outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
+    pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
     next_id: AtomicI32,
 }
 
-type PendingResponses<L> =
-    Rc<RefCell<HashMap<i32, oneshot::Sender<Result<ResponseFromPeer<L>, Error>>>>>;
+struct PendingResponse {
+    deserialize: fn(&serde_json::value::RawValue) -> Result<Box<dyn Any>, Error>,
+    respond: oneshot::Sender<Result<Box<dyn Any>, Error>>,
+}
 
-impl<L> RpcConnection<L>
-where
-    L: Local + 'static,
-{
-    pub fn new(
-        local: L,
+pub trait Dispatcher {
+    type Notification: DeserializeOwned;
+
+    fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
+    fn notification(&self, notification: Self::Notification) -> Result<(), Error>;
+}
+
+impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
+    pub fn new<D>(
+        dispatcher: D,
+        outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
+        outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
-        let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
-        let (incoming_tx, incoming_rx) = mpsc::unbounded();
+    ) -> (Self, impl futures::Future<Output = Result<()>>)
+    where
+        D: Dispatcher<Notification = Remote::Notification> + 'static,
+    {
+        let pending_responses = Arc::new(Mutex::new(HashMap::default()));
 
-        let io_task = Self::handle_io(outgoing_rx, incoming_tx, outgoing_bytes, incoming_bytes);
-
-        let pending_responses = Rc::new(RefCell::new(HashMap::default()));
-        Self::handle_incoming(
-            outgoing_tx.clone(),
-            incoming_rx,
-            local,
+        let io_task = Self::handle_io(
+            outgoing_rx,
+            outgoing_bytes,
+            incoming_bytes,
+            dispatcher,
             pending_responses.clone(),
-            spawn,
         );
 
         let this = Self {
@@ -83,32 +78,61 @@ where
         (this, io_task)
     }
 
-    pub fn request(
+    pub(crate) fn notify(&self, notification: Local::Notification) -> Result<(), Error> {
+        self.outgoing_tx
+            .unbounded_send(OutgoingMessage::Notification { notification })
+            .map_err(|_| Error::internal_error().with_data("failed to send notification"))
+    }
+
+    pub(crate) fn request<Out: DeserializeOwned + 'static>(
         &self,
-        request: RequestToPeer<L>,
-    ) -> impl use<L> + Future<Output = Result<ResponseFromPeer<L>, Error>> {
+        method: &'static str,
+        params: Option<Remote::Request>,
+    ) -> impl Future<Output = Result<Out, Error>> {
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
-        self.pending_responses.borrow_mut().insert(id, tx);
+        self.pending_responses.lock().insert(
+            id,
+            PendingResponse {
+                deserialize: |value| {
+                    serde_json::from_str::<Out>(value.get())
+                        .map(|out| Box::new(out) as _)
+                        .map_err(|_| {
+                            Error::internal_error().with_data("failed to deserialize response")
+                        })
+                },
+                respond: tx,
+            },
+        );
+
         if self
             .outgoing_tx
-            .unbounded_send(Message::Request { id, request })
+            .unbounded_send(OutgoingMessage::Request { id, method, params })
             .is_err()
         {
-            self.pending_responses.borrow_mut().remove(&id);
+            self.pending_responses.lock().remove(&id);
         }
         async move {
-            rx.await
-                .map_err(|e| Error::internal_error().with_data(e.to_string()))?
+            let result = rx
+                .await
+                .map_err(|e| Error::internal_error().with_data(e.to_string()))??
+                .downcast::<Out>()
+                .map_err(|_| Error::internal_error().with_data("failed to deserialize response"))?;
+
+            Ok(*result)
         }
     }
 
-    async fn handle_io(
-        mut outgoing_rx: UnboundedReceiver<OutgoingMessage<L>>,
-        incoming_tx: UnboundedSender<IncomingMessage<L>>,
+    async fn handle_io<D>(
+        mut outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-    ) -> Result<()> {
+        dispatcher: D,
+        pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
+    ) -> Result<()>
+    where
+        D: Dispatcher<Notification = Remote::Notification>,
+    {
         let mut input_reader = BufReader::new(incoming_bytes);
         let mut outgoing_line = Vec::new();
         let mut incoming_line = String::new();
@@ -130,9 +154,44 @@ where
                         break
                     }
                     log::trace!("recv: {}", &incoming_line);
-                    match serde_json::from_str::<IncomingMessage<L>>(&incoming_line) {
+
+                    match serde_json::from_str::<RawIncomingMessage>(&incoming_line) {
                         Ok(message) => {
-                            incoming_tx.unbounded_send(message).ok();
+                            if let Some(id) = message.id {
+                                if let Some(method) = message.method {
+                                    dispatcher.request(id, method, message.params);
+                                } else {
+                                    if let Some(pending_response) = pending_responses.lock().remove(&id) {
+                                        if let Some(result) = message.result {
+                                            let result = (pending_response.deserialize)(result);
+                                            pending_response.respond.send(result).ok();
+                                        } else if let Some(error) = message.error {
+                                            pending_response.respond.send(Err(error)).ok();
+                                        } else {
+                                            let result = (pending_response.deserialize)(&RawValue::from_string("null".into()).unwrap());
+                                            pending_response.respond.send(result).ok();
+                                        }
+
+                                    } else {
+                                        log::error!("received response for unknown request id: {id}");
+                                    }
+                                }
+                            } else if let Some(_method) = message.method {
+                                if let Some(params) = message.params {
+                                    match serde_json::from_str::<Remote::Notification>(params.get()) {
+                                        Ok(notification) => {
+                                            let _ = dispatcher.notification(notification);
+                                        }
+                                        Err(e) => {
+                                            log::error!("failed to deserialize notification: {e}");
+                                        }
+                                    }
+                                } else {
+                                    log::error!("notification missing params");
+                                }
+                            } else {
+                                log::error!("received message with neither id nor method");
+                            }
                         }
                         Err(error) => {
                             log::error!("failed to parse incoming message: {error}. Raw: {incoming_line}");
@@ -144,188 +203,49 @@ where
         }
         Ok(())
     }
-
-    fn handle_incoming(
-        outgoing_tx: UnboundedSender<OutgoingMessage<L>>,
-        mut incoming_rx: UnboundedReceiver<IncomingMessage<L>>,
-        local: L,
-        pending_responses: PendingResponses<L>,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) {
-        let spawn = Rc::new(spawn);
-        let local_peer = Rc::new(local);
-
-        spawn({
-            let spawn = spawn.clone();
-            async move {
-                while let Some(message) = incoming_rx.next().await {
-                    let outgoing_tx = outgoing_tx.clone();
-                    let local_peer = local_peer.clone();
-                    let pending_responses = pending_responses.clone();
-                    spawn(
-                        async move {
-                            match message {
-                                Message::Request { id, request } => {
-                                    let result = match local_peer.handle_request(request).await {
-                                        Ok(result) => ResponseResult::Result(result),
-                                        Err(error) => ResponseResult::Error(error),
-                                    };
-
-                                    outgoing_tx
-                                        .unbounded_send(Message::Response { id, result })
-                                        .ok();
-                                }
-                                Message::Notification { notification } => {
-                                    local_peer.handle_notification(notification).await;
-                                }
-                                Message::Response { id, result } => {
-                                    if let Some(pending_response) =
-                                        pending_responses.borrow_mut().remove(&id)
-                                    {
-                                        match result {
-                                            ResponseResult::Result(result) => {
-                                                pending_response.send(Ok(result)).ok();
-                                            }
-                                            ResponseResult::Error(error) => {
-                                                pending_response.send(Err(error)).ok();
-                                            }
-                                        }
-                                    } else {
-                                        log::error!(
-                                            "Received response for unknown request ID: {}",
-                                            id
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                        .boxed_local(),
-                    )
-                }
-            }
-            .boxed_local()
-        })
-    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
+struct RawIncomingMessage<'a> {
+    id: Option<i32>,
+    method: Option<&'a str>,
+    params: Option<&'a RawValue>,
+    result: Option<&'a RawValue>,
+    error: Option<Error>,
+}
+
+#[derive(Serialize, Deserialize)]
 #[serde(untagged)]
-enum Message<Req, Res, N> {
+pub enum OutgoingMessage<Local: RpcSide, Remote: RpcSide> {
     Request {
         id: i32,
-        #[serde(flatten)]
-        request: Req,
+        method: &'static str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        params: Option<Remote::Request>,
     },
     Response {
         id: i32,
         #[serde(flatten)]
-        result: ResponseResult<Res>,
+        result: ResponseResult<Local::Response>,
     },
     Notification {
         #[serde(flatten)]
-        notification: N,
+        notification: Local::Notification,
     },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum ResponseResult<Res> {
+pub enum ResponseResult<Res> {
     Result(Res),
     Error(Error),
 }
 
-type RequestToPeer<L> = <<L as Local>::Peer as Side>::Request;
-type RequestFromPeer<L> = <L as Side>::Request;
-type ResponseToPeer<L> = <L as Side>::Response;
-type ResponseFromPeer<L> = <<L as Local>::Peer as Side>::Response;
-type NotificationToPeer<L> = <L as Side>::Notification;
-type NotificationFromPeer<L> = <<L as Local>::Peer as Side>::Notification;
-
-type OutgoingMessage<L> = Message<RequestToPeer<L>, ResponseToPeer<L>, NotificationToPeer<L>>;
-type IncomingMessage<L> = Message<RequestFromPeer<L>, ResponseFromPeer<L>, NotificationFromPeer<L>>;
-
-#[cfg(test)]
-mod tests {
-    use crate::{ClientRequest, LoadSessionOutput, SessionId};
-
-    use super::*;
-    use serde_json::json;
-
-    use std::path::Path;
-
-    #[test]
-    fn test_deserialize_request_message() {
-        let message: Message<ClientRequest, (), ()> = serde_json::from_value(json!({
-            "id": 0,
-            "method": "writeTextFile",
-            "params": { "sessionId": "1234", "path": "foo.txt", "content": "hello" }
-        }))
-        .unwrap();
-
-        let Message::Request {
-            id,
-            request: ClientRequest::WriteTextFile(args),
-        } = message
-        else {
-            panic!("Got: {:?}", message);
-        };
-
-        assert_eq!(id, 0);
-        assert_eq!(args.session_id, SessionId("1234".into()));
-        assert_eq!(args.path, Path::new("foo.txt"));
-        assert_eq!(args.content, "hello");
-    }
-
-    #[test]
-    fn test_deserialize_response_ok() {
-        let message: Message<ClientRequest, serde_json::Value, ()> =
-            serde_json::from_value(json!({
-                "id": 42,
-                "result": {
-                    "authRequired": false,
-                    "authMethods": []
-                }
-            }))
-            .unwrap();
-
-        let Message::Response {
-            id,
-            result: ResponseResult::Result(result),
-        } = message
-        else {
-            panic!("Got: {:?}", message);
-        };
-
-        let output: LoadSessionOutput = serde_json::from_value(result).unwrap();
-
-        assert_eq!(id, 42);
-        assert_eq!(output.auth_required, false);
-        assert_eq!(output.auth_methods.len(), 0);
-    }
-
-    #[test]
-    fn test_deserialize_response_err() {
-        let message: Message<ClientRequest, (), ()> = serde_json::from_value(json!({
-            "id": 123,
-            "error": {
-                "code": -32602,
-                "message": "Invalid params",
-                "data": "Missing required field"
-            }
-        }))
-        .unwrap();
-
-        let Message::Response {
-            id,
-            result: ResponseResult::Error(error),
-        } = message
-        else {
-            panic!("Got: {:?}", message);
-        };
-
-        assert_eq!(id, 123);
-        assert_eq!(error.code, -32602);
-        assert_eq!(error.message, "Invalid params");
-        assert_eq!(error.data, Some(json!("Missing required field")));
+impl<T> From<Result<T, Error>> for ResponseResult<T> {
+    fn from(result: Result<T, Error>) -> Self {
+        match result {
+            Ok(value) => ResponseResult::Result(value),
+            Err(error) => ResponseResult::Error(error),
+        }
     }
 }
