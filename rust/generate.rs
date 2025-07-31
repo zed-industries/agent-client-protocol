@@ -1,7 +1,7 @@
 use agent_client_protocol::{
-    AGENT_METHODS, AuthenticateArguments, LoadSessionArguments, NewSessionArguments,
-    NewSessionOutput, PromptArguments, ReadTextFileArguments, ReadTextFileOutput,
-    RequestPermissionArguments, RequestPermissionOutput, SessionUpdate, WriteTextFileArguments,
+    AuthenticateArguments, LoadSessionArguments, NewSessionArguments, NewSessionOutput,
+    PromptArguments, ReadTextFileArguments, ReadTextFileOutput, RequestPermissionArguments,
+    RequestPermissionOutput, SessionUpdate, WriteTextFileArguments,
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde_json::Value;
@@ -48,12 +48,6 @@ fn main() {
         serde_json::to_string_pretty(&schema_value).unwrap(),
     )
     .expect("Failed to write schema.json");
-
-    fs::write(
-        "./schema/methods.json",
-        serde_json::to_string_pretty(&AGENT_METHODS).unwrap(),
-    )
-    .expect("Failed to write methods.json");
 }
 
 fn inline_enum_variants(schema: &mut Value, enum_name: &str) {

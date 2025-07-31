@@ -83,7 +83,7 @@ where
         (this, io_task)
     }
 
-    fn request(
+    pub fn request(
         &self,
         request: RequestToPeer<L>,
     ) -> impl use<L> + Future<Output = Result<ResponseFromPeer<L>, Error>> {
@@ -244,6 +244,7 @@ type NotificationFromPeer<L> = <<L as Local>::Peer as Side>::Notification;
 type OutgoingMessage<L> = Message<RequestToPeer<L>, ResponseToPeer<L>, NotificationToPeer<L>>;
 type IncomingMessage<L> = Message<RequestFromPeer<L>, ResponseFromPeer<L>, NotificationFromPeer<L>>;
 
+#[cfg(test)]
 mod tests {
     use crate::{ClientRequest, LoadSessionOutput, SessionId};
 
