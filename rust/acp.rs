@@ -3,7 +3,9 @@ mod client;
 mod content;
 mod error;
 mod plan;
-pub mod rpc;
+mod rpc;
+#[cfg(test)]
+mod rpc_tests;
 mod tool_call;
 
 pub use agent::*;
@@ -18,6 +20,7 @@ use anyhow::Result;
 use parking_lot::Mutex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
 
 use crate::rpc::{BaseDispatcher, Dispatcher, RpcConnection, RpcSide};
@@ -259,14 +262,27 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
         }
     }
 
-    fn notification(&self, notification: Self::Notification) -> Result<(), Error> {
-        match notification {
-            ClientNotification::Cancelled { session_id } => {
-                if let Some(callback) = &*self.on_cancel.lock() {
-                    callback(session_id);
+    fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error> {
+        match method {
+            "cancelled" => {
+                #[derive(Deserialize)]
+                struct CancelledParams {
+                    session_id: SessionId,
                 }
-                Ok(())
+
+                dispatch_notification!(
+                    method,
+                    params,
+                    CancelledParams,
+                    |params: CancelledParams| {
+                        if let Some(callback) = &*self.on_cancel.lock() {
+                            callback(params.session_id);
+                        }
+                        Ok(())
+                    }
+                )
             }
+            _ => Err(Error::method_not_found()),
         }
     }
 }
@@ -314,14 +330,22 @@ impl<D: Client> Dispatcher for ClientDispatcher<D> {
         }
     }
 
-    fn notification(&self, notification: Self::Notification) -> Result<(), Error> {
-        match notification {
-            AgentNotification::SessionUpdate(session_notification) => {
-                if let Some(callback) = &*self.on_session_update.lock() {
-                    callback(session_notification);
-                }
-                Ok(())
+    fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error> {
+        match method {
+            "sessionUpdate" => {
+                dispatch_notification!(
+                    method,
+                    params,
+                    SessionNotification,
+                    |notification: SessionNotification| {
+                        if let Some(callback) = &*self.on_session_update.lock() {
+                            callback(notification);
+                        }
+                        Ok(())
+                    }
+                )
             }
+            _ => Err(Error::method_not_found()),
         }
     }
 }

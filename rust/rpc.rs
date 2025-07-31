@@ -185,19 +185,8 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
                                     }
                                 }
                             } else if let Some(method) = message.method {
-                                if let Some(params) = message.params {
-                                    match serde_json::from_str::<Remote::Notification>(params.get()) {
-                                        Ok(notification) => {
-                                            if let Err(e) = dispatcher.notification(notification) {
-                                                log::error!("failed to handle notification '{}': {}", method, e);
-                                            }
-                                        }
-                                        Err(e) => {
-                                            log::error!("failed to deserialize notification: {e}");
-                                        }
-                                    }
-                                } else {
-                                    log::error!("notification missing params");
+                                if let Err(e) = dispatcher.notification(method, message.params) {
+                                    log::error!("failed to handle notification '{}': {}", method, e);
                                 }
                             } else {
                                 log::error!("received message with neither id nor method");
@@ -264,7 +253,7 @@ pub trait Dispatcher {
     type Notification: DeserializeOwned;
 
     fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
-    fn notification(&self, notification: Self::Notification) -> Result<(), Error>;
+    fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
 }
 
 #[macro_export]
@@ -289,6 +278,20 @@ macro_rules! dispatch_request {
 
                 Ok(())
             }
+            Err(err) => Err($crate::Error::invalid_params().with_data(err.to_string())),
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! dispatch_notification {
+    ($method:expr, $params:expr, $params_type:ty, $handler:expr) => {{
+        let Some(params) = $params else {
+            return Err($crate::Error::invalid_params());
+        };
+
+        match serde_json::from_str::<$params_type>(params.get()) {
+            Ok(arguments) => $handler(arguments),
             Err(err) => Err($crate::Error::invalid_params().with_data(err.to_string())),
         }
     }};

@@ -26,7 +26,7 @@ pub const LOAD_SESSION_METHOD_NAME: &'static str = "loadSession";
 pub const PROMPT_METHOD_NAME: &'static str = "prompt";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "method", content = "params", rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum AgentRequest {
     NewSession(NewSessionArguments),
     LoadSession(LoadSessionArguments),
