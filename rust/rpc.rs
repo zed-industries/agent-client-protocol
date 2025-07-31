@@ -216,14 +216,14 @@ enum Message<Req, Res, N> {
         #[serde(flatten)]
         request: Req,
     },
-    Notification {
-        #[serde(flatten)]
-        notification: N,
-    },
     Response {
         id: i32,
         #[serde(flatten)]
         result: ResponseResult<Res>,
+    },
+    Notification {
+        #[serde(flatten)]
+        notification: N,
     },
 }
 
@@ -244,78 +244,87 @@ type NotificationFromPeer<L> = <<L as Local>::Peer as Side>::Notification;
 type OutgoingMessage<L> = Message<RequestToPeer<L>, ResponseToPeer<L>, NotificationToPeer<L>>;
 type IncomingMessage<L> = Message<RequestFromPeer<L>, ResponseFromPeer<L>, NotificationFromPeer<L>>;
 
-// mod tests {
-//     use crate::{ClientRequest, LoadSessionOutput, SessionId};
+mod tests {
+    use crate::{ClientRequest, LoadSessionOutput, SessionId};
 
-//     use super::*;
-//     use serde_json::json;
+    use super::*;
+    use serde_json::json;
 
-//     use std::path::Path;
+    use std::path::Path;
 
-//     #[test]
-//     fn test_deserialize_request_message() {
-//         let message: Message<ClientRequest, ()> = serde_json::from_value(json!({
-//             "id": 0,
-//             "method": "writeTextFile",
-//             "params": { "sessionId": "1234", "path": "foo.txt", "content": "hello" }
-//         }))
-//         .unwrap();
+    #[test]
+    fn test_deserialize_request_message() {
+        let message: Message<ClientRequest, (), ()> = serde_json::from_value(json!({
+            "id": 0,
+            "method": "writeTextFile",
+            "params": { "sessionId": "1234", "path": "foo.txt", "content": "hello" }
+        }))
+        .unwrap();
 
-//         let Message::Request {
-//             id,
-//             request: ClientRequest::WriteTextFile(args),
-//         } = message
-//         else {
-//             panic!("Got: {:?}", message);
-//         };
+        let Message::Request {
+            id,
+            request: ClientRequest::WriteTextFile(args),
+        } = message
+        else {
+            panic!("Got: {:?}", message);
+        };
 
-//         assert_eq!(id, 0);
-//         assert_eq!(args.session_id, SessionId("1234".into()));
-//         assert_eq!(args.path, Path::new("foo.txt"));
-//         assert_eq!(args.content, "hello");
-//     }
+        assert_eq!(id, 0);
+        assert_eq!(args.session_id, SessionId("1234".into()));
+        assert_eq!(args.path, Path::new("foo.txt"));
+        assert_eq!(args.content, "hello");
+    }
 
-//     #[test]
-//     fn test_deserialize_response_ok() {
-//         let message: Message<ClientRequest, serde_json::Value> = serde_json::from_value(json!({
-//             "id": 42,
-//             "result": {
-//                 "authRequired": false,
-//                 "authMethods": []
-//             }
-//         }))
-//         .unwrap();
+    #[test]
+    fn test_deserialize_response_ok() {
+        let message: Message<ClientRequest, serde_json::Value, ()> =
+            serde_json::from_value(json!({
+                "id": 42,
+                "result": {
+                    "authRequired": false,
+                    "authMethods": []
+                }
+            }))
+            .unwrap();
 
-//         let Message::ResponseOk { id, result } = message else {
-//             panic!("Got: {:?}", message);
-//         };
+        let Message::Response {
+            id,
+            result: ResponseResult::Result(result),
+        } = message
+        else {
+            panic!("Got: {:?}", message);
+        };
 
-//         let output: LoadSessionOutput = serde_json::from_value(result).unwrap();
+        let output: LoadSessionOutput = serde_json::from_value(result).unwrap();
 
-//         assert_eq!(id, 42);
-//         assert_eq!(output.auth_required, false);
-//         assert_eq!(output.auth_methods.len(), 0);
-//     }
+        assert_eq!(id, 42);
+        assert_eq!(output.auth_required, false);
+        assert_eq!(output.auth_methods.len(), 0);
+    }
 
-//     #[test]
-//     fn test_deserialize_response_err() {
-//         let message: Message<ClientRequest, ()> = serde_json::from_value(json!({
-//             "id": 123,
-//             "error": {
-//                 "code": -32602,
-//                 "message": "Invalid params",
-//                 "data": "Missing required field"
-//             }
-//         }))
-//         .unwrap();
+    #[test]
+    fn test_deserialize_response_err() {
+        let message: Message<ClientRequest, (), ()> = serde_json::from_value(json!({
+            "id": 123,
+            "error": {
+                "code": -32602,
+                "message": "Invalid params",
+                "data": "Missing required field"
+            }
+        }))
+        .unwrap();
 
-//         let Message::ResponseErr { id, error } = message else {
-//             panic!("Got: {:?}", message);
-//         };
+        let Message::Response {
+            id,
+            result: ResponseResult::Error(error),
+        } = message
+        else {
+            panic!("Got: {:?}", message);
+        };
 
-//         assert_eq!(id, 123);
-//         assert_eq!(error.code, -32602);
-//         assert_eq!(error.message, "Invalid params");
-//         assert_eq!(error.data, Some(json!("Missing required field")));
-//     }
-// }
+        assert_eq!(id, 123);
+        assert_eq!(error.code, -32602);
+        assert_eq!(error.message, "Invalid params");
+        assert_eq!(error.data, Some(json!("Missing required field")));
+    }
+}
