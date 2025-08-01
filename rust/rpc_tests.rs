@@ -32,21 +32,21 @@ impl TestClient {
 impl Client for TestClient {
     fn request_permission(
         &self,
-        _arguments: RequestPermissionArguments,
-    ) -> LocalBoxFuture<'static, Result<RequestPermissionOutput, Error>> {
+        _arguments: RequestPermissionRequest,
+    ) -> LocalBoxFuture<'static, Result<RequestPermissionResponse, Error>> {
         let responses = self.permission_responses.clone();
         Box::pin(async move {
             let mut responses = responses.lock().unwrap();
             let outcome = responses
                 .pop()
-                .unwrap_or(RequestPermissionOutcome::Canceled);
-            Ok(RequestPermissionOutput { outcome })
+                .unwrap_or(RequestPermissionOutcome::Cancelled);
+            Ok(RequestPermissionResponse { outcome })
         })
     }
 
     fn write_text_file(
         &self,
-        arguments: WriteTextFileArguments,
+        arguments: WriteTextFileRequest,
     ) -> LocalBoxFuture<'static, Result<(), Error>> {
         let written_files = self.written_files.clone();
         Box::pin(async move {
@@ -60,8 +60,8 @@ impl Client for TestClient {
 
     fn read_text_file(
         &self,
-        arguments: ReadTextFileArguments,
-    ) -> LocalBoxFuture<'static, Result<ReadTextFileOutput, Error>> {
+        arguments: ReadTextFileRequest,
+    ) -> LocalBoxFuture<'static, Result<ReadTextFileResponse, Error>> {
         let file_contents = self.file_contents.clone();
         Box::pin(async move {
             let contents = file_contents.lock().unwrap();
@@ -69,7 +69,7 @@ impl Client for TestClient {
                 .get(&arguments.path)
                 .cloned()
                 .unwrap_or_else(|| "default content".to_string());
-            Ok(ReadTextFileOutput { content })
+            Ok(ReadTextFileResponse { content })
         })
     }
 }
@@ -90,15 +90,22 @@ impl TestAgent {
 }
 
 impl Agent for TestAgent {
+    fn authenticate(
+        &self,
+        _arguments: AuthenticateRequest,
+    ) -> LocalBoxFuture<'static, Result<(), Error>> {
+        Box::pin(async move { Ok(()) })
+    }
+
     fn new_session(
         &self,
-        _arguments: NewSessionArguments,
-    ) -> LocalBoxFuture<'static, Result<NewSessionOutput, Error>> {
+        _arguments: NewSessionRequest,
+    ) -> LocalBoxFuture<'static, Result<NewSessionResponse, Error>> {
         let sessions = self.sessions.clone();
         Box::pin(async move {
             let session_id = SessionId(Arc::from("test-session-123"));
             sessions.lock().unwrap().insert(session_id.clone());
-            Ok(NewSessionOutput {
+            Ok(NewSessionResponse {
                 session_id: Some(session_id),
                 auth_methods: vec![],
             })
@@ -107,19 +114,19 @@ impl Agent for TestAgent {
 
     fn load_session(
         &self,
-        arguments: LoadSessionArguments,
-    ) -> LocalBoxFuture<'static, Result<LoadSessionOutput, Error>> {
+        arguments: LoadSessionRequest,
+    ) -> LocalBoxFuture<'static, Result<LoadSessionResponse, Error>> {
         let sessions = self.sessions.clone();
         Box::pin(async move {
             let has_session = sessions.lock().unwrap().contains(&arguments.session_id);
-            Ok(LoadSessionOutput {
+            Ok(LoadSessionResponse {
                 auth_required: !has_session,
                 auth_methods: vec![],
             })
         })
     }
 
-    fn prompt(&self, arguments: PromptArguments) -> LocalBoxFuture<'static, Result<(), Error>> {
+    fn prompt(&self, arguments: PromptRequest) -> LocalBoxFuture<'static, Result<(), Error>> {
         let prompts_received = self.prompts_received.clone();
         Box::pin(async move {
             prompts_received
@@ -175,7 +182,7 @@ async fn test_basic_session_creation() {
             let (agent_conn, _client_conn) = create_connection_pair(client, agent).await;
 
             let result = agent_conn
-                .new_session(NewSessionArguments {
+                .new_session(NewSessionRequest {
                     mcp_servers: vec![],
                     cwd: std::path::PathBuf::from("/test"),
                 })
@@ -205,7 +212,7 @@ async fn test_bidirectional_file_operations() {
             // Test reading a file
             let session_id = SessionId(Arc::from("test-session"));
             let read_result = client_conn
-                .read_text_file(ReadTextFileArguments {
+                .read_text_file(ReadTextFileRequest {
                     session_id: session_id.clone(),
                     path: test_path.clone(),
                     line: None,
@@ -218,7 +225,7 @@ async fn test_bidirectional_file_operations() {
 
             // Test writing a file
             let write_result = client_conn
-                .write_text_file(WriteTextFileArguments {
+                .write_text_file(WriteTextFileRequest {
                     session_id: session_id.clone(),
                     path: test_path.clone(),
                     content: "Updated content".to_string(),
@@ -302,7 +309,7 @@ async fn test_cancel_notification() {
             let session_id = SessionId(Arc::from("test-session"));
             // Send cancel notification
             agent_conn
-                .cancel(session_id.clone())
+                .cancel_generation(session_id.clone())
                 .expect("cancel failed");
 
             tokio::task::yield_now().await;
@@ -336,7 +343,7 @@ async fn test_concurrent_operations() {
             let mut read_futures = vec![];
             for i in 0..5 {
                 let path = std::path::PathBuf::from(format!("/test/file{}.txt", i));
-                let future = client_conn.read_text_file(ReadTextFileArguments {
+                let future = client_conn.read_text_file(ReadTextFileRequest {
                     session_id: session_id.clone(),
                     path,
                     line: None,
@@ -380,7 +387,7 @@ async fn test_full_conversation_flow() {
             });
             // 1. Start new session
             let new_session_result = agent_conn
-                .new_session(NewSessionArguments {
+                .new_session(NewSessionRequest {
                     mcp_servers: vec![],
                     cwd: std::path::PathBuf::from("/test"),
                 })
@@ -396,7 +403,7 @@ async fn test_full_conversation_flow() {
             })];
 
             agent_conn
-                .prompt(PromptArguments {
+                .prompt(PromptRequest {
                     session_id: session_id.clone(),
                     prompt: user_prompt,
                 })
@@ -438,7 +445,7 @@ async fn test_full_conversation_flow() {
 
             // 5. Agent requests permission for the tool call
             let permission_result = client_conn
-                .request_permission(RequestPermissionArguments {
+                .request_permission(RequestPermissionRequest {
                     session_id: session_id.clone(),
                     tool_call: ToolCall {
                         id: tool_call_id.clone(),
@@ -571,7 +578,7 @@ async fn test_full_conversation_flow() {
 #[tokio::test]
 async fn test_notification_wire_format() {
     use crate::{
-        AgentNotification, AgentSide, CancelledParams, ClientNotification, ClientSide,
+        AgentNotification, AgentSide, CancelledNotification, ClientNotification, ClientSide,
         ContentBlock, SessionNotification, SessionUpdate, TextContent, rpc::OutgoingMessage,
     };
     use serde_json::{Value, json};
@@ -579,9 +586,11 @@ async fn test_notification_wire_format() {
     // Test client -> agent notification wire format
     let outgoing_msg = OutgoingMessage::<ClientSide, AgentSide>::Notification {
         method: "cancelled",
-        params: Some(ClientNotification::Cancelled(CancelledParams {
-            session_id: SessionId("test-123".into()),
-        })),
+        params: Some(ClientNotification::CancelledNotification(
+            CancelledNotification {
+                session_id: SessionId("test-123".into()),
+            },
+        )),
     };
 
     let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
@@ -590,7 +599,7 @@ async fn test_notification_wire_format() {
         json!({
             "method": "cancelled",
             "params": {
-                "session_id": "test-123"
+                "sessionId": "test-123"
             }
         })
     );
@@ -598,15 +607,17 @@ async fn test_notification_wire_format() {
     // Test agent -> client notification wire format
     let outgoing_msg = OutgoingMessage::<AgentSide, ClientSide>::Notification {
         method: "sessionUpdate",
-        params: Some(AgentNotification::SessionUpdate(SessionNotification {
-            session_id: SessionId("test-456".into()),
-            update: SessionUpdate::AgentMessageChunk {
-                content: ContentBlock::Text(TextContent {
-                    annotations: None,
-                    text: "Hello".to_string(),
-                }),
+        params: Some(AgentNotification::SessionNotification(
+            SessionNotification {
+                session_id: SessionId("test-456".into()),
+                update: SessionUpdate::AgentMessageChunk {
+                    content: ContentBlock::Text(TextContent {
+                        annotations: None,
+                        text: "Hello".to_string(),
+                    }),
+                },
             },
-        })),
+        )),
     };
 
     let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();

@@ -8,51 +8,29 @@ use serde::{Deserialize, Serialize};
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 pub trait Agent {
+    fn authenticate(
+        &self,
+        arguments: AuthenticateRequest,
+    ) -> LocalBoxFuture<'static, Result<(), Error>>;
+
     fn new_session(
         &self,
-        arguments: NewSessionArguments,
-    ) -> LocalBoxFuture<'static, Result<NewSessionOutput, Error>>;
+        arguments: NewSessionRequest,
+    ) -> LocalBoxFuture<'static, Result<NewSessionResponse, Error>>;
 
     fn load_session(
         &self,
-        arguments: LoadSessionArguments,
-    ) -> LocalBoxFuture<'static, Result<LoadSessionOutput, Error>>;
+        arguments: LoadSessionRequest,
+    ) -> LocalBoxFuture<'static, Result<LoadSessionResponse, Error>>;
 
-    fn prompt(&self, arguments: PromptArguments) -> LocalBoxFuture<'static, Result<(), Error>>;
-}
-
-pub const NEW_SESSION_METHOD_NAME: &'static str = "newSession";
-pub const LOAD_SESSION_METHOD_NAME: &'static str = "loadSession";
-pub const PROMPT_METHOD_NAME: &'static str = "prompt";
-pub const SESSION_UPDATE_NOTIFICATION: &'static str = "sessionUpdate";
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum AgentRequest {
-    NewSession(NewSessionArguments),
-    LoadSession(LoadSessionArguments),
-    Prompt(PromptArguments),
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum AgentResponse {
-    NewSession(NewSessionOutput),
-    LoadSession(LoadSessionOutput),
-    Prompt,
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum AgentNotification {
-    SessionUpdate(SessionNotification),
+    fn prompt(&self, arguments: PromptRequest) -> LocalBoxFuture<'static, Result<(), Error>>;
 }
 
 // Authenticatication
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct AuthenticateArguments {
+pub struct AuthenticateRequest {
     pub method_id: AuthMethodId,
 }
 
@@ -72,14 +50,14 @@ pub struct AuthMethod {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NewSessionArguments {
+pub struct NewSessionRequest {
     pub mcp_servers: Vec<McpServer>,
     pub cwd: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NewSessionOutput {
+pub struct NewSessionResponse {
     /// The session id if one was created, or null if authentication is required
     // Note: It'd be nicer to use an enum here, but MCP requires the output schema
     // to be a non-union object and adding another level seemed impractical.
@@ -92,7 +70,7 @@ pub struct NewSessionOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LoadSessionArguments {
+pub struct LoadSessionRequest {
     pub mcp_servers: Vec<McpServer>,
     pub cwd: PathBuf,
     pub session_id: SessionId,
@@ -100,7 +78,7 @@ pub struct LoadSessionArguments {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LoadSessionOutput {
+pub struct LoadSessionResponse {
     pub auth_required: bool,
     #[serde(default)]
     pub auth_methods: Vec<AuthMethod>,
@@ -128,7 +106,7 @@ pub struct EnvVariable {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PromptArguments {
+pub struct PromptRequest {
     pub session_id: SessionId,
     pub prompt: Vec<ContentBlock>,
 }
@@ -152,4 +130,53 @@ pub enum SessionUpdate {
     ToolCall(ToolCall),
     ToolCallUpdate(ToolCallUpdate),
     Plan(Plan),
+}
+
+// Method schema
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentMethodNames {
+    pub authenticate: &'static str,
+    pub session_new: &'static str,
+    pub session_load: &'static str,
+    pub session_prompt: &'static str,
+    pub session_update: &'static str,
+}
+
+pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
+    authenticate: AUTHENTICATE_METHOD_NAME,
+    session_new: SESSION_NEW_METHOD_NAME,
+    session_load: SESSION_LOAD_METHOD_NAME,
+    session_prompt: SESSION_PROMPT_METHOD_NAME,
+    session_update: SESSION_UPDATE_NOTIFICATION,
+};
+
+pub const AUTHENTICATE_METHOD_NAME: &'static str = "authenticate";
+pub const SESSION_NEW_METHOD_NAME: &'static str = "session/new";
+pub const SESSION_LOAD_METHOD_NAME: &'static str = "session/load";
+pub const SESSION_PROMPT_METHOD_NAME: &'static str = "session/prompt";
+pub const SESSION_UPDATE_NOTIFICATION: &'static str = "session/update";
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum AgentRequest {
+    AuthenticateRequest(AuthenticateRequest),
+    NewSessionRequest(NewSessionRequest),
+    LoadSessionRequest(LoadSessionRequest),
+    PromptRequest(PromptRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum AgentResponse {
+    AuthenticateResponse,
+    NewSessionResponse(NewSessionResponse),
+    LoadSessionResponse(LoadSessionResponse),
+    PromptResponse,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum AgentNotification {
+    SessionNotification(SessionNotification),
 }

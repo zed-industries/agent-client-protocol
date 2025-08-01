@@ -1,27 +1,21 @@
 use agent_client_protocol::{
-    AuthenticateArguments, LoadSessionArguments, NewSessionArguments, NewSessionOutput,
-    PromptArguments, ReadTextFileArguments, ReadTextFileOutput, RequestPermissionArguments,
-    RequestPermissionOutput, SessionUpdate, WriteTextFileArguments,
+    AGENT_METHOD_NAMES, AgentNotification, AgentRequest, AgentResponse, CLIENT_METHOD_NAMES,
+    ClientNotification, ClientRequest, ClientResponse,
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde_json::Value;
-use std::fs;
+use std::{fs, path::Path};
 
 #[allow(dead_code)]
 #[derive(JsonSchema)]
 #[serde(untagged)]
 enum AcpTypes {
-    NewSessionArguments(NewSessionArguments),
-    NewSessionOutput(NewSessionOutput),
-    LoadSession(LoadSessionArguments),
-    AuthenticateArguments(AuthenticateArguments),
-    Prompt(PromptArguments),
-    SessionUpdate(SessionUpdate),
-    RequestPermissionArguments(RequestPermissionArguments),
-    RequestPermissionOutput(RequestPermissionOutput),
-    WriteTextFile(WriteTextFileArguments),
-    ReadTextFileArguments(ReadTextFileArguments),
-    ReadTextFileOutput(ReadTextFileOutput),
+    ClientRequest(ClientRequest),
+    ClientResponse(ClientResponse),
+    ClientNotification(ClientNotification),
+    AgentRequest(AgentRequest),
+    AgentResponse(AgentResponse),
+    AgentNotification(AgentNotification),
 }
 
 fn main() {
@@ -41,11 +35,26 @@ fn main() {
     inline_enum_variants(&mut schema_value, "ContentBlock");
     inline_enum_variants(&mut schema_value, "SessionUpdate");
 
-    fs::create_dir_all("./schema").unwrap();
+    let root = env!("CARGO_MANIFEST_DIR");
+    let schema_dir = Path::new(root).join("schema");
+
+    fs::create_dir_all(schema_dir.clone()).unwrap();
 
     fs::write(
-        "./schema/schema.json",
+        schema_dir.join("schema.json"),
         serde_json::to_string_pretty(&schema_value).unwrap(),
+    )
+    .expect("Failed to write schema.json");
+
+    fs::write(
+        schema_dir.join("agent-methods.json"),
+        serde_json::to_string_pretty(&AGENT_METHOD_NAMES).unwrap(),
+    )
+    .expect("Failed to write schema.json");
+
+    fs::write(
+        schema_dir.join("client-methods.json"),
+        serde_json::to_string_pretty(&CLIENT_METHOD_NAMES).unwrap(),
     )
     .expect("Failed to write schema.json");
 }

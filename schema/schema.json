@@ -1,5 +1,53 @@
 {
   "$defs": {
+    "AgentNotification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionNotification",
+          "title": "SessionNotification"
+        }
+      ]
+    },
+    "AgentRequest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AuthenticateRequest",
+          "title": "AuthenticateRequest"
+        },
+        {
+          "$ref": "#/$defs/NewSessionRequest",
+          "title": "NewSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/LoadSessionRequest",
+          "title": "LoadSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/PromptRequest",
+          "title": "PromptRequest"
+        }
+      ]
+    },
+    "AgentResponse": {
+      "anyOf": [
+        {
+          "title": "AuthenticateResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/NewSessionResponse",
+          "title": "NewSessionResponse"
+        },
+        {
+          "$ref": "#/$defs/LoadSessionResponse",
+          "title": "LoadSessionResponse"
+        },
+        {
+          "title": "PromptResponse",
+          "type": "null"
+        }
+      ]
+    },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
       "properties": {
@@ -57,7 +105,7 @@
       "required": ["id", "label", "description"],
       "type": "object"
     },
-    "AuthenticateArguments": {
+    "AuthenticateRequest": {
       "properties": {
         "methodId": {
           "type": "string"
@@ -81,41 +129,54 @@
       "required": ["blob", "uri"],
       "type": "object"
     },
-    "ClientTools": {
+    "CancelledNotification": {
       "properties": {
-        "readTextFile": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/McpToolId"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "requestPermission": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/McpToolId"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "writeTextFile": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/McpToolId"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "sessionId": {
+          "type": "string"
         }
       },
-      "required": ["requestPermission", "writeTextFile", "readTextFile"],
+      "required": ["sessionId"],
       "type": "object"
+    },
+    "ClientNotification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CancelledNotification",
+          "title": "CancelledNotification"
+        }
+      ]
+    },
+    "ClientRequest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WriteTextFileRequest",
+          "title": "WriteTextFileRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileRequest",
+          "title": "ReadTextFileRequest"
+        },
+        {
+          "$ref": "#/$defs/RequestPermissionRequest",
+          "title": "RequestPermissionRequest"
+        }
+      ]
+    },
+    "ClientResponse": {
+      "anyOf": [
+        {
+          "title": "WriteTextFileResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileResponse",
+          "title": "ReadTextFileResponse"
+        },
+        {
+          "$ref": "#/$defs/RequestPermissionResponse",
+          "title": "RequestPermissionResponse"
+        }
+      ]
     },
     "ContentBlock": {
       "oneOf": [
@@ -325,11 +386,8 @@
       "required": ["data", "mimeType"],
       "type": "object"
     },
-    "LoadSessionArguments": {
+    "LoadSessionRequest": {
       "properties": {
-        "clientTools": {
-          "$ref": "#/$defs/ClientTools"
-        },
         "cwd": {
           "type": "string"
         },
@@ -343,7 +401,23 @@
           "type": "string"
         }
       },
-      "required": ["mcpServers", "clientTools", "cwd", "sessionId"],
+      "required": ["mcpServers", "cwd", "sessionId"],
+      "type": "object"
+    },
+    "LoadSessionResponse": {
+      "properties": {
+        "authMethods": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AuthMethod"
+          },
+          "type": "array"
+        },
+        "authRequired": {
+          "type": "boolean"
+        }
+      },
+      "required": ["authRequired", "authMethods"],
       "type": "object"
     },
     "McpServer": {
@@ -370,23 +444,8 @@
       "required": ["name", "command", "args", "env"],
       "type": "object"
     },
-    "McpToolId": {
+    "NewSessionRequest": {
       "properties": {
-        "mcpServer": {
-          "type": "string"
-        },
-        "toolName": {
-          "type": "string"
-        }
-      },
-      "required": ["mcpServer", "toolName"],
-      "type": "object"
-    },
-    "NewSessionArguments": {
-      "properties": {
-        "clientTools": {
-          "$ref": "#/$defs/ClientTools"
-        },
         "cwd": {
           "type": "string"
         },
@@ -397,10 +456,10 @@
           "type": "array"
         }
       },
-      "required": ["mcpServers", "clientTools", "cwd"],
+      "required": ["mcpServers", "cwd"],
       "type": "object"
     },
-    "NewSessionOutput": {
+    "NewSessionResponse": {
       "properties": {
         "authMethods": {
           "default": [],
@@ -477,7 +536,7 @@
       "enum": ["pending", "in_progress", "completed"],
       "type": "string"
     },
-    "PromptArguments": {
+    "PromptRequest": {
       "properties": {
         "prompt": {
           "items": {
@@ -492,7 +551,7 @@
       "required": ["sessionId", "prompt"],
       "type": "object"
     },
-    "ReadTextFileArguments": {
+    "ReadTextFileRequest": {
       "properties": {
         "limit": {
           "format": "uint32",
@@ -514,7 +573,7 @@
       "required": ["sessionId", "path"],
       "type": "object"
     },
-    "ReadTextFileOutput": {
+    "ReadTextFileResponse": {
       "properties": {
         "content": {
           "type": "string"
@@ -523,30 +582,12 @@
       "required": ["content"],
       "type": "object"
     },
-    "RequestPermissionArguments": {
-      "properties": {
-        "options": {
-          "items": {
-            "$ref": "#/$defs/PermissionOption"
-          },
-          "type": "array"
-        },
-        "sessionId": {
-          "type": "string"
-        },
-        "toolCall": {
-          "$ref": "#/$defs/ToolCall"
-        }
-      },
-      "required": ["sessionId", "toolCall", "options"],
-      "type": "object"
-    },
     "RequestPermissionOutcome": {
       "oneOf": [
         {
           "properties": {
             "outcome": {
-              "const": "canceled",
+              "const": "cancelled",
               "type": "string"
             }
           },
@@ -568,7 +609,25 @@
         }
       ]
     },
-    "RequestPermissionOutput": {
+    "RequestPermissionRequest": {
+      "properties": {
+        "options": {
+          "items": {
+            "$ref": "#/$defs/PermissionOption"
+          },
+          "type": "array"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": ["sessionId", "toolCall", "options"],
+      "type": "object"
+    },
+    "RequestPermissionResponse": {
       "properties": {
         "outcome": {
           "$ref": "#/$defs/RequestPermissionOutcome"
@@ -618,7 +677,7 @@
       "enum": ["assistant", "user"],
       "type": "string"
     },
-    "SessionUpdate": {
+    "SessionNotification": {
       "oneOf": [
         {
           "properties": {
@@ -660,112 +719,46 @@
           "type": "object"
         },
         {
+          "$ref": "#/$defs/ToolCall",
           "properties": {
-            "content": {
-              "items": {
-                "$ref": "#/$defs/ToolCallContent"
-              },
-              "type": "array"
-            },
-            "kind": {
-              "$ref": "#/$defs/ToolKind"
-            },
-            "label": {
-              "type": "string"
-            },
-            "locations": {
-              "items": {
-                "$ref": "#/$defs/ToolCallLocation"
-              },
-              "type": "array"
-            },
-            "rawInput": true,
             "sessionUpdate": {
               "const": "toolCall",
               "type": "string"
-            },
-            "status": {
-              "$ref": "#/$defs/ToolCallStatus"
-            },
-            "toolCallId": {
-              "type": "string"
             }
           },
-          "required": [
-            "sessionUpdate",
-            "toolCallId",
-            "label",
-            "kind",
-            "status"
-          ],
+          "required": ["sessionUpdate"],
           "type": "object"
         },
         {
+          "$ref": "#/$defs/ToolCallUpdate",
           "properties": {
-            "content": {
-              "items": {
-                "$ref": "#/$defs/ToolCallContent"
-              },
-              "type": ["array", "null"]
-            },
-            "kind": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ToolKind"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "label": {
-              "type": ["string", "null"]
-            },
-            "locations": {
-              "items": {
-                "$ref": "#/$defs/ToolCallLocation"
-              },
-              "type": ["array", "null"]
-            },
-            "rawInput": true,
             "sessionUpdate": {
               "const": "toolCallUpdate",
               "type": "string"
-            },
-            "status": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ToolCallStatus"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "toolCallId": {
-              "type": "string"
             }
           },
-          "required": ["sessionUpdate", "toolCallId"],
+          "required": ["sessionUpdate"],
           "type": "object"
         },
         {
+          "$ref": "#/$defs/Plan",
           "properties": {
-            "entries": {
-              "items": {
-                "$ref": "#/$defs/PlanEntry"
-              },
-              "type": "array"
-            },
             "sessionUpdate": {
               "const": "plan",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "entries"],
+          "required": ["sessionUpdate"],
           "type": "object"
         }
-      ]
+      ],
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId"],
+      "type": "object"
     },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
@@ -966,7 +959,7 @@
       ],
       "type": "string"
     },
-    "WriteTextFileArguments": {
+    "WriteTextFileRequest": {
       "properties": {
         "content": {
           "type": "string"
@@ -985,48 +978,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "$ref": "#/$defs/NewSessionArguments",
-      "title": "NewSessionArguments"
+      "$ref": "#/$defs/ClientRequest",
+      "title": "ClientRequest"
     },
     {
-      "$ref": "#/$defs/NewSessionOutput",
-      "title": "NewSessionOutput"
+      "$ref": "#/$defs/ClientResponse",
+      "title": "ClientResponse"
     },
     {
-      "$ref": "#/$defs/LoadSessionArguments",
-      "title": "LoadSession"
+      "$ref": "#/$defs/ClientNotification",
+      "title": "ClientNotification"
     },
     {
-      "$ref": "#/$defs/AuthenticateArguments",
-      "title": "AuthenticateArguments"
+      "$ref": "#/$defs/AgentRequest",
+      "title": "AgentRequest"
     },
     {
-      "$ref": "#/$defs/PromptArguments",
-      "title": "Prompt"
+      "$ref": "#/$defs/AgentResponse",
+      "title": "AgentResponse"
     },
     {
-      "$ref": "#/$defs/SessionUpdate",
-      "title": "SessionUpdate"
-    },
-    {
-      "$ref": "#/$defs/RequestPermissionArguments",
-      "title": "RequestPermissionArguments"
-    },
-    {
-      "$ref": "#/$defs/RequestPermissionOutput",
-      "title": "RequestPermissionOutput"
-    },
-    {
-      "$ref": "#/$defs/WriteTextFileArguments",
-      "title": "WriteTextFile"
-    },
-    {
-      "$ref": "#/$defs/ReadTextFileArguments",
-      "title": "ReadTextFileArguments"
-    },
-    {
-      "$ref": "#/$defs/ReadTextFileOutput",
-      "title": "ReadTextFileOutput"
+      "$ref": "#/$defs/AgentNotification",
+      "title": "AgentNotification"
     }
   ]
 }

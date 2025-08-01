@@ -96,42 +96,54 @@ impl AgentConnection {
         *self.on_session_update.lock() = Some(Box::new(callback));
     }
 
-    pub async fn new_session(
-        &self,
-        arguments: NewSessionArguments,
-    ) -> Result<NewSessionOutput, Error> {
+    pub async fn authenticate(&self, arguments: AuthenticateRequest) -> Result<(), Error> {
         self.conn
             .request(
-                NEW_SESSION_METHOD_NAME,
-                Some(AgentRequest::NewSession(arguments)),
+                AUTHENTICATE_METHOD_NAME,
+                Some(AgentRequest::AuthenticateRequest(arguments)),
+            )
+            .await
+    }
+
+    pub async fn new_session(
+        &self,
+        arguments: NewSessionRequest,
+    ) -> Result<NewSessionResponse, Error> {
+        self.conn
+            .request(
+                SESSION_NEW_METHOD_NAME,
+                Some(AgentRequest::NewSessionRequest(arguments)),
             )
             .await
     }
 
     pub async fn load_session(
         &self,
-        arguments: LoadSessionArguments,
-    ) -> Result<LoadSessionOutput, Error> {
+        arguments: LoadSessionRequest,
+    ) -> Result<LoadSessionResponse, Error> {
         self.conn
             .request(
-                LOAD_SESSION_METHOD_NAME,
-                Some(AgentRequest::LoadSession(arguments)),
+                SESSION_LOAD_METHOD_NAME,
+                Some(AgentRequest::LoadSessionRequest(arguments)),
             )
             .await
     }
 
-    pub async fn prompt(&self, arguments: PromptArguments) -> Result<(), Error> {
+    pub async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
         self.conn
-            .request(PROMPT_METHOD_NAME, Some(AgentRequest::Prompt(arguments)))
+            .request(
+                SESSION_PROMPT_METHOD_NAME,
+                Some(AgentRequest::PromptRequest(arguments)),
+            )
             .await
     }
 
-    pub fn cancel(&self, session_id: SessionId) -> Result<(), Error> {
+    pub fn cancel_generation(&self, session_id: SessionId) -> Result<(), Error> {
         self.conn.notify(
-            CANCELLED_NOTIFICATION,
-            Some(ClientNotification::Cancelled(CancelledParams {
-                session_id,
-            })),
+            SESSION_CANCELLED_METHOD_NAME,
+            Some(ClientNotification::CancelledNotification(
+                CancelledNotification { session_id },
+            )),
         )
     }
 }
@@ -178,33 +190,33 @@ impl ClientConnection {
 
     pub async fn request_permission(
         &self,
-        arguments: RequestPermissionArguments,
-    ) -> Result<RequestPermissionOutput, Error> {
+        arguments: RequestPermissionRequest,
+    ) -> Result<RequestPermissionResponse, Error> {
         self.conn
             .request(
-                REQUEST_PERMISSION_METHOD_NAME,
-                Some(ClientRequest::RequestPermission(arguments)),
+                SESSION_REQUEST_PERMISSION_METHOD_NAME,
+                Some(ClientRequest::RequestPermissionRequest(arguments)),
             )
             .await
     }
 
-    pub async fn write_text_file(&self, arguments: WriteTextFileArguments) -> Result<(), Error> {
+    pub async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
         self.conn
             .request(
-                WRITE_TEXT_FILE_METHOD_NAME,
-                Some(ClientRequest::WriteTextFile(arguments)),
+                FS_WRITE_TEXT_FILE_METHOD_NAME,
+                Some(ClientRequest::WriteTextFileRequest(arguments)),
             )
             .await
     }
 
     pub async fn read_text_file(
         &self,
-        arguments: ReadTextFileArguments,
-    ) -> Result<ReadTextFileOutput, Error> {
+        arguments: ReadTextFileRequest,
+    ) -> Result<ReadTextFileResponse, Error> {
         self.conn
             .request(
-                READ_TEXT_FILE_METHOD_NAME,
-                Some(ClientRequest::ReadTextFile(arguments)),
+                FS_READ_TEXT_FILE_METHOD_NAME,
+                Some(ClientRequest::ReadTextFileRequest(arguments)),
             )
             .await
     }
@@ -216,10 +228,9 @@ impl ClientConnection {
     ) -> Result<(), Error> {
         self.conn.notify(
             SESSION_UPDATE_NOTIFICATION,
-            Some(AgentNotification::SessionUpdate(SessionNotification {
-                session_id,
-                update,
-            })),
+            Some(AgentNotification::SessionNotification(
+                SessionNotification { session_id, update },
+            )),
         )
     }
 }
@@ -239,29 +250,37 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
         params: Option<&serde_json::value::RawValue>,
     ) -> Result<(), Error> {
         match method {
-            NEW_SESSION_METHOD_NAME => dispatch_request!(
+            AUTHENTICATE_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                NewSessionArguments,
+                AuthenticateRequest,
+                |delegate: &D, args| delegate.authenticate(args),
+                |_| AgentResponse::AuthenticateResponse
+            ),
+            SESSION_NEW_METHOD_NAME => dispatch_request!(
+                &self.base,
+                id,
+                params,
+                NewSessionRequest,
                 |delegate: &D, args| delegate.new_session(args),
-                AgentResponse::NewSession
+                AgentResponse::NewSessionResponse
             ),
-            LOAD_SESSION_METHOD_NAME => dispatch_request!(
+            SESSION_LOAD_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                LoadSessionArguments,
+                LoadSessionRequest,
                 |delegate: &D, args| delegate.load_session(args),
-                AgentResponse::LoadSession
+                AgentResponse::LoadSessionResponse
             ),
-            PROMPT_METHOD_NAME => dispatch_request!(
+            SESSION_PROMPT_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                PromptArguments,
+                PromptRequest,
                 |delegate: &D, args| delegate.prompt(args),
-                |_| AgentResponse::Prompt
+                |_| AgentResponse::PromptResponse
             ),
             _ => Err(Error::method_not_found()),
         }
@@ -269,12 +288,12 @@ impl<D: Agent> Dispatcher for AgentDispatcher<D> {
 
     fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error> {
         match method {
-            CANCELLED_NOTIFICATION => {
+            SESSION_CANCELLED_METHOD_NAME => {
                 dispatch_notification!(
                     method,
                     params,
-                    client::CancelledParams,
-                    |params: client::CancelledParams| {
+                    client::CancelledNotification,
+                    |params: client::CancelledNotification| {
                         if let Some(callback) = &*self.on_cancel.lock() {
                             callback(params.session_id);
                         }
@@ -302,29 +321,29 @@ impl<D: Client> Dispatcher for ClientDispatcher<D> {
         params: Option<&serde_json::value::RawValue>,
     ) -> Result<(), Error> {
         match method {
-            REQUEST_PERMISSION_METHOD_NAME => dispatch_request!(
+            SESSION_REQUEST_PERMISSION_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                RequestPermissionArguments,
+                RequestPermissionRequest,
                 |delegate: &D, args| delegate.request_permission(args),
-                ClientResponse::RequestPermission
+                ClientResponse::RequestPermissionResponse
             ),
-            WRITE_TEXT_FILE_METHOD_NAME => dispatch_request!(
+            FS_WRITE_TEXT_FILE_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                WriteTextFileArguments,
+                WriteTextFileRequest,
                 |delegate: &D, args| delegate.write_text_file(args),
-                |_| ClientResponse::WriteTextFile
+                |_| ClientResponse::WriteTextFileResponse
             ),
-            READ_TEXT_FILE_METHOD_NAME => dispatch_request!(
+            FS_READ_TEXT_FILE_METHOD_NAME => dispatch_request!(
                 &self.base,
                 id,
                 params,
-                ReadTextFileArguments,
+                ReadTextFileRequest,
                 |delegate: &D, args| delegate.read_text_file(args),
-                ClientResponse::ReadTextFile
+                ClientResponse::ReadTextFileResponse
             ),
             _ => Err(Error::method_not_found()),
         }

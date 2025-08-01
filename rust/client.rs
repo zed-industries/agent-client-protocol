@@ -10,57 +10,25 @@ use crate::{Error, SessionId, ToolCall};
 pub trait Client {
     fn request_permission(
         &self,
-        arguments: RequestPermissionArguments,
-    ) -> LocalBoxFuture<'static, Result<RequestPermissionOutput, Error>>;
+        arguments: RequestPermissionRequest,
+    ) -> LocalBoxFuture<'static, Result<RequestPermissionResponse, Error>>;
 
     fn write_text_file(
         &self,
-        arguments: WriteTextFileArguments,
+        arguments: WriteTextFileRequest,
     ) -> LocalBoxFuture<'static, Result<(), Error>>;
 
     fn read_text_file(
         &self,
-        arguments: ReadTextFileArguments,
-    ) -> LocalBoxFuture<'static, Result<ReadTextFileOutput, Error>>;
-}
-
-pub const REQUEST_PERMISSION_METHOD_NAME: &'static str = "request_permission";
-pub const WRITE_TEXT_FILE_METHOD_NAME: &'static str = "write_text_file";
-pub const READ_TEXT_FILE_METHOD_NAME: &'static str = "read_text_file";
-pub const CANCELLED_NOTIFICATION: &'static str = "cancelled";
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum ClientRequest {
-    WriteTextFile(WriteTextFileArguments),
-    ReadTextFile(ReadTextFileArguments),
-    RequestPermission(RequestPermissionArguments),
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum ClientResponse {
-    WriteTextFile,
-    ReadTextFile(ReadTextFileOutput),
-    RequestPermission(RequestPermissionOutput),
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum ClientNotification {
-    Cancelled(CancelledParams),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct CancelledParams {
-    pub session_id: SessionId,
+        arguments: ReadTextFileRequest,
+    ) -> LocalBoxFuture<'static, Result<ReadTextFileResponse, Error>>;
 }
 
 // Permission
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RequestPermissionArguments {
+pub struct RequestPermissionRequest {
     pub session_id: SessionId,
     pub tool_call: ToolCall,
     pub options: Vec<PermissionOption>,
@@ -95,7 +63,7 @@ pub enum PermissionOptionKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RequestPermissionOutput {
+pub struct RequestPermissionResponse {
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
 }
@@ -103,7 +71,7 @@ pub struct RequestPermissionOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "outcome", rename_all = "camelCase")]
 pub enum RequestPermissionOutcome {
-    Canceled,
+    Cancelled,
     #[serde(rename_all = "camelCase")]
     Selected {
         option_id: PermissionOptionId,
@@ -114,7 +82,7 @@ pub enum RequestPermissionOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct WriteTextFileArguments {
+pub struct WriteTextFileRequest {
     pub session_id: SessionId,
     pub path: PathBuf,
     pub content: String,
@@ -124,7 +92,7 @@ pub struct WriteTextFileArguments {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ReadTextFileArguments {
+pub struct ReadTextFileRequest {
     pub session_id: SessionId,
     pub path: PathBuf,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -135,6 +103,56 @@ pub struct ReadTextFileArguments {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ReadTextFileOutput {
+pub struct ReadTextFileResponse {
     pub content: String,
+}
+
+// Method schema
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientMethodNames {
+    pub session_request_permission: &'static str,
+    pub session_cancelled: &'static str,
+    pub fs_write_text_file: &'static str,
+    pub fs_read_text_file: &'static str,
+}
+
+pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
+    session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
+    session_cancelled: SESSION_CANCELLED_METHOD_NAME,
+    fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
+    fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
+};
+
+pub const SESSION_REQUEST_PERMISSION_METHOD_NAME: &'static str = "session/request_permission";
+pub const SESSION_CANCELLED_METHOD_NAME: &'static str = "session/cancelled";
+pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &'static str = "fs/write_text_file";
+pub const FS_READ_TEXT_FILE_METHOD_NAME: &'static str = "fs/read_text_file";
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ClientRequest {
+    WriteTextFileRequest(WriteTextFileRequest),
+    ReadTextFileRequest(ReadTextFileRequest),
+    RequestPermissionRequest(RequestPermissionRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ClientResponse {
+    WriteTextFileResponse,
+    ReadTextFileResponse(ReadTextFileResponse),
+    RequestPermissionResponse(RequestPermissionResponse),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ClientNotification {
+    CancelledNotification(CancelledNotification),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelledNotification {
+    pub session_id: SessionId,
 }
