@@ -173,10 +173,10 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
 };
 
+pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 pub const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request_permission";
 pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 pub const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
-pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 
 /// Requests the agent sends to the client
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
