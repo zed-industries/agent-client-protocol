@@ -1,0 +1,218 @@
+---
+title: "Architecture"
+description: "Overview of the Agent Client Protocol architecture"
+---
+
+The Agent Client Protocol defines a standard interface for communication between AI agents and client applications. The architecture is designed to be flexible, extensible, and platform-agnostic.
+
+![Agent Client Protocol Architecture](/images/architecture-diagram.png)
+
+## Design Philosophy
+
+The protocol architecture follows several key principles:
+
+### 1. **Session-Based Isolation**
+Each interaction operates within a session context, providing:
+- State isolation between different conversations
+- Clean lifecycle management
+- Resource scoping and cleanup
+
+### 2. **Tool-Centric Design**
+The protocol treats all operations as tools, creating a uniform interface for:
+- MCP server integrations (`McpToolId`)
+- Client-provided capabilities (`ClientTools`)
+- Permission-gated operations
+
+### 3. **Streaming-First Communication**
+Built for real-time interaction through:
+- Chunked message delivery (`agentMessageChunk`, `agentThoughtChunk`)
+- Progressive tool execution updates (`toolCallUpdate`)
+- Incremental plan revelations
+
+## Component Architecture
+
+### Component Boundaries
+
+1. **Client Application Layer**
+   - Manages UI/UX concerns
+   - Handles permission dialogs
+   - Provides file system access through controlled tools
+
+2. **ACP Protocol Layer**
+   - Session lifecycle management
+   - Message routing and transformation
+   - Tool orchestration
+   - Permission enforcement
+
+3. **Agent Layer**
+   - LLM integration
+   - Reasoning and planning
+   - Tool selection and execution
+   - Response generation
+
+## Key Architectural Patterns
+
+### 1. Tool Abstraction Pattern
+
+All capabilities are exposed as tools with a consistent interface:
+
+```rust
+pub struct McpToolId {
+    pub mcp_server: String,
+    pub tool_name: String,
+}
+```
+
+This abstraction enables:
+- Uniform permission handling
+- Consistent execution tracking
+- Flexible capability composition
+
+### 2. Content Polymorphism
+
+The protocol uses discriminated unions for content flexibility:
+
+```rust
+pub enum ContentBlock {
+    Text(TextContent),
+    Image(ImageContent),
+    Audio(AudioContent),
+    ResourceLink(ResourceLink),
+    // ... extensible
+}
+```
+
+Benefits:
+- Type-safe content handling
+- Forward compatibility
+- Rich media support
+
+### 3. Update Streaming Pattern
+
+Session updates follow a streaming pattern for responsive interaction:
+
+```rust
+pub enum SessionUpdate {
+    Started,
+    UserMessage(ContentBlock),
+    AgentMessageChunk(ContentBlock),
+    AgentThoughtChunk(ContentBlock),
+    ToolCall(ToolCall),
+    ToolCallUpdate(ToolCallUpdate),
+    Plan(Plan),
+}
+```
+
+This enables:
+- Real-time feedback
+- Progressive rendering
+- Interruptible operations
+
+## Implementation Considerations
+
+### State Management
+
+The protocol maintains minimal shared state:
+- **Session State**: Managed by session ID, includes configuration and context
+- **Tool State**: Tracked through tool call IDs for update correlation
+- **Permission State**: Cached permission decisions (allow/reject always)
+
+### Error Boundaries
+
+Error handling is localized to maintain system stability:
+- Tool failures don't crash sessions
+- MCP server errors are isolated
+- Network failures are recoverable
+
+### Performance Optimization
+
+Key areas for optimization:
+1. **Streaming Buffers**: Chunk size tuning for message streams
+2. **Tool Parallelization**: Concurrent tool execution where safe
+3. **Session Caching**: Reuse of MCP server connections
+4. **Content Deduplication**: Efficient handling of repeated resources
+
+## Integration Patterns
+
+### 1. MCP Server Integration
+
+```rust
+pub struct McpServerConfig {
+    pub command: PathBuf,
+    pub args: Vec<String>,
+    pub env: Option<HashMap<String, String>>,
+    pub enabled_tools: Option<Vec<String>>,
+}
+```
+
+Supports:
+- Dynamic server spawning
+- Tool whitelisting
+- Environment isolation
+
+### 2. Client Tool Mapping
+
+```rust
+pub struct ClientTools {
+    pub request_permission: Option<McpToolId>,
+    pub write_text_file: Option<McpToolId>,
+    pub read_text_file: Option<McpToolId>,
+}
+```
+
+Enables:
+- Flexible tool implementation
+- Platform-specific capabilities
+- Security boundaries
+
+### 3. Permission Flow
+
+The architecture enforces a clear permission flow:
+1. Agent requests operation
+2. Protocol checks permission cache
+3. If needed, client prompts user
+4. Decision cached based on kind (`allowAlways`, etc.)
+5. Operation proceeds or fails
+
+## Extensibility Points
+
+The architecture provides several extension mechanisms:
+
+### 1. Custom Content Types
+New `ContentBlock` variants can be added without breaking existing clients
+
+### 2. Tool Categories
+The `ToolKind` enum can be extended for new operation types
+
+### 3. Session Updates
+New `SessionUpdate` variants enable protocol evolution
+
+### 4. Annotations
+The `Annotations` type allows metadata extension without schema changes
+
+## Security Architecture
+
+### Principle of Least Privilege
+- Tools are explicitly granted through `enabled_tools`
+- File operations require specific client tool mappings
+- Permissions are granular and auditable
+
+### Isolation Boundaries
+- Sessions cannot interact with each other
+- MCP servers run in separate processes
+- File access is mediated through client tools
+
+### Trust Model
+```
+Client (Trusted) ← ACP Protocol → Agent (Sandboxed)
+                        ↓
+                  MCP Servers (Isolated)
+```
+
+## Future Considerations
+
+The architecture is designed to accommodate:
+- **Multiplexed Sessions**: Multiple agents in one session
+- **Bidirectional Tools**: Client-initiated tool calls
+- **Resource Streaming**: Large file handling without full loading
+- **Federated Permissions**: Cross-session permission sharing

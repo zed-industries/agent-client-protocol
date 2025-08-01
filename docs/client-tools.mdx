@@ -1,0 +1,111 @@
+---
+title: "Client Tools"
+description: "Tools available to agents for interacting with the client"
+---
+
+Client tools provide agents with enhanced capabilities to interact with the client environment. These tools are optional and can be configured when creating or loading a session.
+
+## Overview
+
+Client tools extend agent functionality by providing controlled access to:
+- User permission requests
+- File system operations (read/write)
+
+## Available Tools
+
+### Request Permission
+
+The request permission tool allows agents to request user authorization before performing sensitive operations.
+
+**Tool ID Configuration:**
+```json
+{
+  "request_permission": {
+    "mcp_server": "your-mcp-server",
+    "tool_name": "permission-tool-name"
+  }
+}
+```
+
+**Permission Options:**
+- `AllowOnce` - Grant permission for a single use
+- `AllowAlways` - Grant permission permanently for this type of operation
+- `RejectOnce` - Deny permission for a single use
+- `RejectAlways` - Deny permission permanently for this type of operation
+
+### Write Text File
+
+Enables agents to write content to files in the client's file system.
+
+**Tool ID Configuration:**
+```json
+{
+  "write_text_file": {
+    "mcp_server": "your-mcp-server",
+    "tool_name": "write-file-tool-name"
+  }
+}
+```
+
+**Parameters:**
+- `session_id` - Current session identifier
+- `path` - File path to write to
+- `content` - Text content to write
+
+### Read Text File
+
+Allows agents to read file contents from the client's file system.
+
+**Tool ID Configuration:**
+```json
+{
+  "read_text_file": {
+    "mcp_server": "your-mcp-server",
+    "tool_name": "read-file-tool-name"
+  }
+}
+```
+
+**Parameters:**
+- `session_id` - Current session identifier
+- `path` - File path to read from
+- `line` (optional) - Specific line number to start reading from
+- `limit` (optional) - Maximum number of lines to read
+
+## Configuration
+
+Client tools are configured as part of the session initialization:
+
+```json
+{
+  "client_tools": {
+    "request_permission": {
+      "mcp_server": "client-tools-server",
+      "tool_name": "request_permission"
+    },
+    "write_text_file": {
+      "mcp_server": "client-tools-server",
+      "tool_name": "write_file"
+    },
+    "read_text_file": {
+      "mcp_server": "client-tools-server",
+      "tool_name": "read_file"
+    }
+  }
+}
+```
+
+All client tools are optional. Only include the tools you want to make available to the agent.
+
+## Security Considerations
+
+- All file operations require explicit session context
+- Permission requests provide granular control over agent actions
+- Users can choose between one-time and persistent permissions
+- File paths are relative to the configured working directory
+
+## Implementation Notes
+
+- Each tool requires a valid `session_id` to maintain context
+- Tools are referenced via `McpToolId` containing the MCP server name and tool name
+- Permission outcomes can be either `Canceled` or `Selected` with the chosen option

@@ -1,0 +1,100 @@
+---
+title: "LLM Turn"
+description: "Understanding the LLM interaction flow in ACP"
+---
+
+The LLM turn process in ACP represents the complete flow of interaction between a user, an AI assistant, and various tools. Each turn consists of multiple phases that can occur in sequence or in parallel, with updates streamed in real-time through the session notification system.
+
+## Session Updates
+
+All LLM turn events are delivered as `SessionUpdate` notifications through the `acp/session_update` method. Each update includes a `session_id` and the specific update type.
+
+## Turn Flow
+
+### 1. Session Started
+
+The turn begins with a `Started` event, indicating that a new session has been initialized and is ready to process requests.
+
+### 2. User Message
+
+The user's input is delivered as a `UserMessage` event containing a `ContentBlock` with the user's request or question.
+
+### 3. Agent Response
+
+The assistant's response can consist of two types of content:
+
+#### Agent Message Chunks
+- Visible responses to the user
+- Streamed as `AgentMessageChunk` events
+- Each chunk contains a `ContentBlock` with partial content
+
+#### Agent Thought Chunks
+- Internal reasoning or planning steps
+- Streamed as `AgentThoughtChunk` events
+- Not necessarily shown to the end user
+- Useful for debugging and understanding the assistant's decision process
+
+### 4. Tool Calls
+
+When the assistant needs to use tools, it generates `ToolCall` events with the following properties:
+
+#### Tool Call Structure
+- **ID** (`toolCallId`): Unique identifier for tracking the tool call
+- **Label**: Human-readable description of what the tool is doing
+- **Kind**: The type of tool operation
+  - `Read`: Reading files or data
+  - `Edit`: Modifying files or content
+  - `Search`: Searching for information
+  - `Execute`: Running commands or code
+  - `Think`: Internal reasoning operations
+  - `Fetch`: Retrieving external resources
+  - `Other`: Other tool types
+- **Status**: Current execution state
+  - `InProgress`: Tool is currently running
+  - `Completed`: Tool finished successfully
+  - `Failed`: Tool encountered an error
+- **Content**: Results or output from the tool
+  - Can be a `ContentBlock` for text/structured output
+  - Can be a `Diff` for file modifications showing old and new text
+- **Locations**: File paths and line numbers affected by the tool
+- **Structured Content**: Optional JSON data for complex tool results
+
+#### Tool Call Updates
+Existing tool calls can be modified through `ToolCallUpdate` events, which can update any field of the original tool call (status, content, locations, etc.).
+
+### 5. Planning
+
+The assistant can share its execution plan through `Plan` events, which contain:
+
+#### Plan Entries
+Each plan consists of multiple entries representing tasks or goals:
+- **Content**: Description of what the task aims to accomplish
+- **Priority**: Relative importance
+  - `High`: Critical tasks that must be completed
+  - `Medium`: Important but not critical tasks
+  - `Low`: Nice-to-have or optional tasks
+- **Status**: Current progress
+  - `Pending`: Not yet started
+  - `InProgress`: Currently being worked on
+  - `Completed`: Successfully finished
+
+## Example Flow
+
+A typical LLM turn might follow this sequence:
+
+1. `Started` - Session initialized
+2. `UserMessage` - "Please analyze the errors in my code"
+3. `AgentThoughtChunk` - "I need to first read the file to see the errors..."
+4. `Plan` - Multiple entries outlining the analysis steps
+5. `ToolCall` - Read file operation (status: InProgress)
+6. `ToolCallUpdate` - Read complete with file contents (status: Completed)
+7. `AgentThoughtChunk` - "I found several syntax errors..."
+8. `ToolCall` - Edit file operation with fixes
+9. `AgentMessageChunk` - "I've identified and fixed the following errors in your code..."
+
+## Implementation Notes
+
+- Updates are delivered through the `acp/session_update` notification method
+- Each update includes a `session_id` and specific update type
+- Tool calls can be updated after creation using `ToolCallUpdate` events
+- Multiple update types (message chunks, thought chunks, tool calls) can occur within a single turn

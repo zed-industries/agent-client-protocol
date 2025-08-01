@@ -1,0 +1,357 @@
+---
+title: "Specification"
+description: "Formal specification of the Agent Client Protocol"
+---
+
+The Agent Client Protocol (ACP) is a JSON-based protocol for communication between AI agents and client applications. This specification defines the message formats, data types, and interaction patterns used in the protocol.
+
+## Overview
+
+The protocol supports various types of interactions including:
+- Session management (creating and loading sessions)
+- Prompting agents with content
+- Session updates and streaming responses
+- Permission management
+- File operations (read/write)
+- Tool execution and updates
+
+## Core Message Types
+
+The protocol defines several core message types that can be sent between clients and agents:
+
+### 1. Session Management
+
+#### NewSessionToolArguments
+Creates a new session with specified configuration.
+
+**Properties:**
+- `clientTools` (ClientTools, required): Configuration for client-side tools
+- `cwd` (string, required): Current working directory
+- `mcpServers` (object, required): Map of MCP server configurations
+
+**Returns:** `NewSessionToolResult` with:
+- `sessionId` (string): Unique identifier for the created session
+
+#### LoadSessionToolArguments
+Loads an existing session.
+
+**Properties:**
+- `sessionId` (string, required): ID of the session to load
+- `clientTools` (ClientTools, required): Configuration for client-side tools
+- `cwd` (string, required): Current working directory
+- `mcpServers` (object, required): Map of MCP server configurations
+
+### 2. Prompting
+
+#### PromptToolArguments
+Sends a prompt to the agent.
+
+**Properties:**
+- `sessionId` (string, required): Target session ID
+- `prompt` (array of ContentBlock, required): Content blocks to send
+
+### 3. Session Updates
+
+Session updates represent various events during agent execution:
+
+#### SessionUpdate Types
+- `started`: Session has started
+- `userMessage`: User message content
+- `agentMessageChunk`: Streaming agent response chunk
+- `agentThoughtChunk`: Streaming agent thought/reasoning chunk
+- `toolCall`: Tool execution initiated
+- `toolCallUpdate`: Tool execution progress update
+- `plan`: Execution plan update
+
+### 4. File Operations
+
+#### ReadTextFileArguments
+Reads a text file from the filesystem.
+
+**Properties:**
+- `sessionId` (string, required): Current session ID
+- `path` (string, required): File path to read
+- `line` (integer, optional): Specific line number to read
+- `limit` (integer, optional): Maximum number of lines to read
+
+#### WriteTextFileToolArguments
+Writes content to a text file.
+
+**Properties:**
+- `sessionId` (string, required): Current session ID
+- `path` (string, required): File path to write
+- `content` (string, required): Content to write
+
+### 5. Permission Management
+
+#### PermissionToolArguments
+Requests permission for a tool operation.
+
+**Properties:**
+- `sessionId` (string, required): Current session ID
+- `toolCall` (ToolCall, required): Tool call requiring permission
+- `options` (array of PermissionOption, required): Available permission options
+
+**Returns:** `PermissionOutcome` which can be:
+- `canceled`: User canceled the permission request
+- `selected`: User selected an option (includes `optionId`)
+
+## Data Types
+
+### Content Types
+
+#### ContentBlock
+A polymorphic type representing different content formats:
+
+**Variants:**
+1. **TextContent**
+   - `type`: "text"
+   - `text` (string, required): Text content
+   - `annotations` (Annotations, optional): Metadata
+
+2. **ImageContent**
+   - `type`: "image"
+   - `data` (string, required): Base64-encoded image data
+   - `mimeType` (string, required): Image MIME type
+   - `annotations` (Annotations, optional): Metadata
+
+3. **AudioContent**
+   - `type`: "audio"
+   - `data` (string, required): Base64-encoded audio data
+   - `mimeType` (string, required): Audio MIME type
+   - `annotations` (Annotations, optional): Metadata
+
+4. **ResourceLink**
+   - `type`: "resource_link"
+   - `name` (string, required): Resource name
+   - `uri` (string, required): Resource URI
+   - `title` (string, optional): Display title
+   - `description` (string, optional): Resource description
+   - `mimeType` (string, optional): Resource MIME type
+   - `size` (integer, optional): Resource size in bytes
+   - `annotations` (Annotations, optional): Metadata
+
+5. **EmbeddedResource**
+   - `type`: "resource"
+   - `resource` (EmbeddedResourceResource, required): Resource contents
+
+### Tool Execution
+
+#### ToolCall
+Represents a tool invocation.
+
+**Properties:**
+- `toolCallId` (string, required): Unique tool call identifier
+- `label` (string, required): Human-readable tool label
+- `kind` (ToolKind, required): Type of tool operation
+- `status` (ToolCallStatus, required): Current execution status
+- `content` (array of ToolCallContent, optional): Tool results
+- `locations` (array of ToolCallLocation, optional): File locations
+- `structuredContent` (any, optional): Structured data
+
+#### ToolKind
+Enumeration of tool types:
+- `read`: Reading operations
+- `edit`: Editing operations
+- `search`: Search operations
+- `execute`: Command execution
+- `think`: Reasoning/planning operations
+- `fetch`: Network fetch operations
+- `other`: Other tool types
+
+#### ToolCallStatus
+Tool execution states:
+- `inProgress`: Currently executing
+- `completed`: Successfully completed
+- `failed`: Execution failed
+
+#### ToolCallUpdate
+Partial update to an existing tool call.
+
+**Properties:**
+- `toolCallId` (string, required): ID of tool call to update
+- `content` (array of ToolCallContent, optional): Additional content
+- `kind` (ToolKind, optional): Update tool kind
+- `label` (string, optional): Update label
+- `locations` (array of ToolCallLocation, optional): Update locations
+- `status` (ToolCallStatus, optional): Update status
+
+### Planning
+
+#### Plan
+Represents an execution plan.
+
+**Properties:**
+- `entries` (array of PlanEntry, required): Plan tasks
+
+#### PlanEntry
+Individual task in a plan.
+
+**Properties:**
+- `content` (string, required): Task description
+- `priority` (PlanEntryPriority, required): Task priority
+- `status` (PlanEntryStatus, required): Task status
+
+**Priority Levels:**
+- `high`: High priority
+- `medium`: Medium priority
+- `low`: Low priority
+
+**Status Values:**
+- `pending`: Not yet started
+- `in_progress`: Currently executing
+- `completed`: Finished
+
+### Configuration
+
+#### ClientTools
+Configuration for client-side tool mappings.
+
+**Properties:**
+- `readTextFile` (McpToolId, optional): Tool for reading files
+- `writeTextFile` (McpToolId, optional): Tool for writing files
+- `requestPermission` (McpToolId, optional): Tool for permissions
+
+#### McpToolId
+Identifies a tool within an MCP server.
+
+**Properties:**
+- `mcpServer` (string, required): Server name
+- `toolName` (string, required): Tool name within server
+
+#### McpServerConfig
+Configuration for an MCP server.
+
+**Properties:**
+- `command` (string, required): Command to launch server
+- `args` (array of string, required): Command arguments
+- `enabledTools` (array of string, optional): Whitelist of enabled tools
+- `env` (object, optional): Environment variables
+
+### Annotations
+
+#### Annotations
+Optional metadata for content objects.
+
+**Properties:**
+- `audience` (array of Role, optional): Target audience
+- `lastModified` (string, optional): Last modification timestamp
+- `priority` (number, optional): Content priority
+
+#### Role
+Participant roles:
+- `assistant`: AI assistant
+- `user`: Human user
+
+### Resources
+
+#### EmbeddedResourceResource
+Resource content, either text or binary.
+
+**Variants:**
+1. **TextResourceContents**
+   - `text` (string, required): Text content
+   - `uri` (string, required): Resource URI
+   - `mimeType` (string, optional): MIME type
+
+2. **BlobResourceContents**
+   - `blob` (string, required): Base64-encoded binary data
+   - `uri` (string, required): Resource URI
+   - `mimeType` (string, optional): MIME type
+
+### Permissions
+
+#### PermissionOption
+Available permission choice.
+
+**Properties:**
+- `optionId` (string, required): Unique option identifier
+- `label` (string, required): Display label
+- `kind` (PermissionOptionKind, required): Option type
+
+#### PermissionOptionKind
+Permission option types:
+- `allowOnce`: Allow this operation once
+- `allowAlways`: Always allow this operation
+- `rejectOnce`: Reject this operation once
+- `rejectAlways`: Always reject this operation
+
+### File Operations
+
+#### Diff
+Represents a text file change.
+
+**Properties:**
+- `path` (string, required): File path
+- `oldText` (string, optional): Original text
+- `newText` (string, required): New text
+
+#### ToolCallLocation
+File location reference.
+
+**Properties:**
+- `path` (string, required): File path
+- `line` (integer, optional): Line number (0-based)
+
+## Protocol Flow
+
+### Typical Session Lifecycle
+
+1. **Session Creation**
+   - Client sends `NewSessionToolArguments`
+   - Server responds with `NewSessionToolResult` containing session ID
+
+2. **Prompting**
+   - Client sends `PromptToolArguments` with content
+   - Server sends `SessionUpdate` with type `started`
+   - Server streams responses via `agentMessageChunk` updates
+
+3. **Tool Execution**
+   - Server sends `toolCall` update when invoking tools
+   - Server may send `toolCallUpdate` for progress
+   - Tool results included in `content` array
+
+4. **Permission Requests**
+   - When permission needed, server sends `PermissionToolArguments`
+   - Client responds with `PermissionOutcome`
+   - Execution continues based on permission result
+
+5. **File Operations**
+   - Client can read files via `ReadTextFileArguments`
+   - Client can write files via `WriteTextFileToolArguments`
+   - Operations require appropriate permissions
+
+### Streaming
+
+The protocol supports streaming responses through chunked updates:
+- `agentMessageChunk`: Incremental message content
+- `agentThoughtChunk`: Incremental reasoning/thoughts
+- `toolCallUpdate`: Incremental tool execution updates
+
+### Error Handling
+
+Errors are communicated through:
+- Tool calls with `failed` status
+- Session updates with error content
+- Permission rejections
+
+## Security Considerations
+
+1. **Permission Model**: All potentially dangerous operations require explicit permission
+2. **Session Isolation**: Each session operates in isolation
+3. **Path Validation**: File paths should be validated and sandboxed
+4. **Resource Limits**: Implementations should enforce reasonable limits on:
+   - File sizes
+   - Number of concurrent operations
+   - Session duration
+   - Memory usage
+
+## Extensibility
+
+The protocol is designed for extensibility:
+- New `ContentBlock` types can be added
+- New `ToolKind` values can be introduced
+- Additional `SessionUpdate` types can be defined
+- Custom annotations can extend metadata
+
+Implementations should gracefully handle unknown types and fields to maintain compatibility.
