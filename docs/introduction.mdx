@@ -27,49 +27,16 @@ If authentication is required, it can send authenticate to allow the agent to pe
 
 Once the agent is ready, the client can send sendUserMessage requests with content from the user. The agent sends streamAssistantMessageChunk and related tool call messages to update the UI while handling the user's message, and finally responds when there will be no more output.
 
-### Architecture
+## Architecture
+
+ACP follows a simple client-server architecture where the client (typically a code editor or IDE) spawns the agent as a subprocess and communicates via standard input/output streams. The protocol uses newline-delimited JSON-RPC 2.0 messages, ensuring compatibility with existing tooling and easy debugging. The client maintains control over the agent's lifecycle and can manage multiple concurrent sessions. Each session represents an isolated conversation context where the agent can access editor-provided tools for reading files, writing changes, and requesting user permissions for sensitive operations.
 
 ```
-┌─────────────┐                   ┌─────────────┐
-│             │     stdin/out     │             │
-│   Client    │ ←───────────────→ │    Agent    │
-│    (IDE)    │   JSON-RPC 2.0    │  (AI Tool)  │
-│             │                   │             │
-└─────────────┘                   └─────────────┘
+┌─────────────────┐                    ┌─────────────────┐
+│                 │                    │                 │
+│     Client      │    stdin/stdout    │      Agent      │
+│      (IDE)      │ ←────────────────→ │    (AI Tool)    │
+│                 │    JSON-RPC 2.0    │                 │
+│                 │                    │                 │
+└─────────────────┘                    └─────────────────┘
 ```
-High level diagram
-some text about the architecture
-over MCP, agent runs an MCP server + client 
-
-
-Introduction
-Architecture
-Protocol Flow 
-  Auth
-  LLM turn (acp.rs)
-    - User message
-    - Assistant Text 
-    - Assistant Thoughts 
-    - Tool Calls
-      - content
-      - status
-      - label
-      - kinds
-      - locations
-    - Plans
-- Client Tools 
-  Enrich agent with more capabilities like:
-    - Request tool permission
-    - Access Editor file system
-Libraries
-  - TypeScript
-  - Rust 
-  These are just auto-generated from schema.json, you can use whatever language 
-- Specification
-  Auto-generated from schema.json
-  
-- FAQ
-
-- Agent tools (what zed calls into) - acp.rs
-
-Schema – 

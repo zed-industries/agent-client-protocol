@@ -40,27 +40,24 @@
   "navigation": {
     "groups": [
       {
-        "group": "User Guide",
-        "pages": [
-          "Introduction",
-          {
-            "group": "Quickstart",
-            "pages": ["quickstart/agent", "quickstart/client"]
-          },
-          {
-            "group": "Examples",
-            "pages": ["clients", "agents"]
-          },
-          "faq"
-        ]
+        "group": "Introduction",
+        "pages": ["Introduction"]
+      },
+      {
+        "group": "Protocol Flow",
+        "pages": ["auth", "llm-turn", "client-tools", "agent-tools"]
       },
       {
         "group": "Protocol",
-        "pages": ["Architecture", "Specification", "Schema"]
+        "pages": ["architecture", "specification", "schema"]
+      },
+      {
+        "group": "Libraries",
+        "pages": ["typescript", "rust"]
       },
       {
         "group": "Community",
-        "pages": ["Contributing", "Versioning"]
+        "pages": ["contributing", "versioning"]
       }
     ]
   },
