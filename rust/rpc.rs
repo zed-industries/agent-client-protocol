@@ -1,6 +1,7 @@
 use std::{
     any::Any,
     collections::HashMap,
+    rc::Rc,
     sync::{
         Arc,
         atomic::{AtomicI32, Ordering},
@@ -12,7 +13,7 @@ use futures::{
     AsyncBufReadExt as _, AsyncRead, AsyncWrite, AsyncWriteExt as _, FutureExt as _,
     StreamExt as _,
     channel::{
-        mpsc::{UnboundedReceiver, UnboundedSender},
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot,
     },
     future::LocalBoxFuture,
@@ -38,30 +39,41 @@ pub struct RpcConnection<Local: RpcSide, Remote: RpcSide> {
 }
 
 struct PendingResponse {
-    deserialize: fn(&serde_json::value::RawValue) -> Result<Box<dyn Any>, Error>,
-    respond: oneshot::Sender<Result<Box<dyn Any>, Error>>,
+    deserialize: fn(&serde_json::value::RawValue) -> Result<Box<dyn Any + Send>, Error>,
+    respond: oneshot::Sender<Result<Box<dyn Any + Send>, Error>>,
 }
 
-impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
-    pub fn new<D>(
-        dispatcher: D,
-        outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
-        outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
+impl<Local, Remote> RpcConnection<Local, Remote>
+where
+    Local: RpcSide + 'static,
+    Remote: RpcSide + 'static,
+{
+    pub fn new<Decoder, Handler>(
+        message_decoder: Decoder,
+        handler: Handler,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) -> (Self, impl futures::Future<Output = Result<()>>)
     where
-        D: Dispatcher<Notification = Remote::Notification> + 'static,
+        Decoder: MessageDecoder<Local, Remote> + 'static,
+        Handler: MessageHandler<Local, Remote> + 'static,
     {
+        let (incoming_tx, incoming_rx) = mpsc::unbounded();
+        let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
+
         let pending_responses = Arc::new(Mutex::new(HashMap::default()));
 
         let io_task = Self::handle_io(
+            incoming_tx,
             outgoing_rx,
             outgoing_bytes,
             incoming_bytes,
-            dispatcher,
+            message_decoder,
             pending_responses.clone(),
         );
+
+        Self::handle_incoming(outgoing_tx.clone(), incoming_rx, handler, spawn);
 
         let this = Self {
             outgoing_tx,
@@ -82,7 +94,7 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
             .map_err(|_| Error::internal_error().with_data("failed to send notification"))
     }
 
-    pub(crate) fn request<Out: DeserializeOwned + 'static>(
+    pub(crate) fn request<Out: DeserializeOwned + Send + 'static>(
         &self,
         method: &'static str,
         params: Option<Remote::Request>,
@@ -121,16 +133,14 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
         }
     }
 
-    async fn handle_io<D>(
+    async fn handle_io<Decoder: MessageDecoder<Local, Remote>>(
+        incoming_tx: UnboundedSender<IncomingMessage<Local, Remote>>,
         mut outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        dispatcher: D,
+        decoder: Decoder,
         pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
-    ) -> Result<()>
-    where
-        D: Dispatcher<Notification = Remote::Notification>,
-    {
+    ) -> Result<()> {
         let mut input_reader = BufReader::new(incoming_bytes);
         let mut outgoing_line = Vec::new();
         let mut incoming_line = String::new();
@@ -157,40 +167,47 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
                         Ok(message) => {
                             if let Some(id) = message.id {
                                 if let Some(method) = message.method {
-                                    if let Err(error) = dispatcher.request(id, method, message.params) {
-                                        // Send error response for failed request handling
-                                        outgoing_line.clear();
-                                        let error_response = OutgoingMessage::<Local, Remote>::Response {
-                                            id,
-                                            result: ResponseResult::Error(error),
-                                        };
-                                        if let Err(e) = serde_json::to_writer(&mut outgoing_line, &error_response) {
-                                            log::error!("failed to serialize error response: {e}");
-                                        } else {
+                                    // Request
+                                    match decoder.decode_request(method, message.params) {
+                                        Ok(request) => {
+                                            incoming_tx.unbounded_send(IncomingMessage::Request { id, request }).ok();
+                                        }
+                                        Err(err) => {
+                                            outgoing_line.clear();
+                                            let error_response = OutgoingMessage::<Local, Remote>::Response {
+                                                id,
+                                                result: ResponseResult::Error(err),
+                                            };
+
+                                            serde_json::to_writer(&mut outgoing_line, &error_response)?;
                                             log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                                             outgoing_line.push(b'\n');
                                             outgoing_bytes.write_all(&outgoing_line).await.ok();
                                         }
                                     }
-                                } else {
-                                    if let Some(pending_response) = pending_responses.lock().remove(&id) {
-                                        if let Some(result) = message.result {
-                                            let result = (pending_response.deserialize)(result);
-                                            pending_response.respond.send(result).ok();
-                                        } else if let Some(error) = message.error {
-                                            pending_response.respond.send(Err(error)).ok();
-                                        } else {
-                                            let result = (pending_response.deserialize)(&RawValue::from_string("null".into()).unwrap());
-                                            pending_response.respond.send(result).ok();
-                                        }
-
+                                } else if let Some(pending_response) = pending_responses.lock().remove(&id) {
+                                    // Response
+                                    if let Some(result) = message.result {
+                                        let result = (pending_response.deserialize)(result);
+                                        pending_response.respond.send(result).ok();
+                                    } else if let Some(error) = message.error {
+                                        pending_response.respond.send(Err(error)).ok();
                                     } else {
-                                        log::error!("received response for unknown request id: {id}");
+                                        let result = (pending_response.deserialize)(&RawValue::from_string("null".into()).unwrap());
+                                        pending_response.respond.send(result).ok();
                                     }
+                                } else {
+                                    log::error!("received response for unknown request id: {id}");
                                 }
                             } else if let Some(method) = message.method {
-                                if let Err(e) = dispatcher.notification(method, message.params) {
-                                    log::error!("failed to handle notification '{}': {}", method, e);
+                                // Notification
+                                match decoder.decode_notification(method, message.params) {
+                                    Ok(notification) => {
+                                        incoming_tx.unbounded_send(IncomingMessage::Notification { notification }).ok();
+                                    }
+                                    Err(err) => {
+                                        log::error!("failed to decode notification: {err}");
+                                    }
                                 }
                             } else {
                                 log::error!("received message with neither id nor method");
@@ -206,6 +223,52 @@ impl<Local: RpcSide, Remote: RpcSide> RpcConnection<Local, Remote> {
         }
         Ok(())
     }
+
+    fn handle_incoming<Handler: MessageHandler<Local, Remote> + 'static>(
+        outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
+        mut incoming_rx: UnboundedReceiver<IncomingMessage<Local, Remote>>,
+        handler: Handler,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
+    ) {
+        let spawn = Rc::new(spawn);
+        let handler = Rc::new(handler);
+        spawn({
+            let spawn = spawn.clone();
+            async move {
+                while let Some(message) = incoming_rx.next().await {
+                    match message {
+                        IncomingMessage::Request { id, request } => {
+                            let outgoing_tx = outgoing_tx.clone();
+                            let handler = handler.clone();
+                            spawn(
+                                async move {
+                                    let result = handler.handle_request(request).await.into();
+                                    outgoing_tx
+                                        .unbounded_send(OutgoingMessage::Response { id, result })
+                                        .ok();
+                                }
+                                .boxed_local(),
+                            )
+                        }
+                        IncomingMessage::Notification { notification } => {
+                            let handler = handler.clone();
+                            spawn(
+                                async move {
+                                    if let Err(err) =
+                                        handler.handle_notification(notification).await
+                                    {
+                                        log::error!("failed to handle notification: {err:?}");
+                                    }
+                                }
+                                .boxed_local(),
+                            )
+                        }
+                    }
+                }
+            }
+            .boxed_local()
+        })
+    }
 }
 
 #[derive(Deserialize)]
@@ -215,6 +278,11 @@ struct RawIncomingMessage<'a> {
     params: Option<&'a RawValue>,
     result: Option<&'a RawValue>,
     error: Option<Error>,
+}
+
+enum IncomingMessage<Local: RpcSide, Remote: RpcSide> {
+    Request { id: i32, request: Local::Request },
+    Notification { notification: Remote::Notification },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -254,12 +322,38 @@ impl<T> From<Result<T, Error>> for ResponseResult<T> {
     }
 }
 
-pub trait Dispatcher {
-    type Notification: DeserializeOwned;
+pub trait MessageDecoder<Local: RpcSide, Remote: RpcSide> {
+    fn decode_request(
+        &self,
+        method: &str,
+        params: Option<&RawValue>,
+    ) -> Result<Local::Request, Error>;
 
-    fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
-    fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
+    fn decode_notification(
+        &self,
+        method: &str,
+        params: Option<&RawValue>,
+    ) -> Result<Remote::Notification, Error>;
 }
+
+pub trait MessageHandler<Local: RpcSide, Remote: RpcSide> {
+    fn handle_request(
+        &self,
+        request: Local::Request,
+    ) -> LocalBoxFuture<'static, Result<Local::Response, Error>>;
+
+    fn handle_notification(
+        &self,
+        notification: Remote::Notification,
+    ) -> LocalBoxFuture<'static, Result<(), Error>>;
+}
+
+// pub trait Dispatcher {
+//     type Notification: DeserializeOwned;
+
+//     fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
+//     fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
+// }
 
 #[macro_export]
 macro_rules! dispatch_request {

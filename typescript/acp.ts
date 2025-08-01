@@ -25,11 +25,11 @@ type AnyNotification = {
 
 type Result<T> =
   | {
-    result: T;
-  }
+      result: T;
+    }
   | {
-    error: ErrorResponse;
-  };
+      error: ErrorResponse;
+    };
 
 type ErrorResponse = {
   code: number;
@@ -181,7 +181,7 @@ class Connection {
         const error = new RequestError(
           response.error.code,
           response.error.message,
-          response.error.data
+          response.error.data,
         );
         pendingResponse.reject(error);
       }

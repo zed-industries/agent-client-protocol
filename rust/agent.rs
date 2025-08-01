@@ -151,11 +151,11 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_update: SESSION_UPDATE_NOTIFICATION,
 };
 
-pub const AUTHENTICATE_METHOD_NAME: &'static str = "authenticate";
-pub const SESSION_NEW_METHOD_NAME: &'static str = "session/new";
-pub const SESSION_LOAD_METHOD_NAME: &'static str = "session/load";
-pub const SESSION_PROMPT_METHOD_NAME: &'static str = "session/prompt";
-pub const SESSION_UPDATE_NOTIFICATION: &'static str = "session/update";
+pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
+pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
+pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
+pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
+pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]

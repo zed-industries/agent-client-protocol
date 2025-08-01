@@ -252,7 +252,9 @@ describe("Connection", () => {
           authMethods: [],
         };
       }
-      async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
+      async loadSession(
+        params: LoadSessionRequest,
+      ): Promise<LoadSessionResponse> {
         messageLog.push(`loadSession called: ${params.sessionId}`);
         return {
           authMethods: [],
