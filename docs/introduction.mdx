@@ -37,3 +37,39 @@ Once the agent is ready, the client can send sendUserMessage requests with conte
 │             │                   │             │
 └─────────────┘                   └─────────────┘
 ```
+High level diagram
+some text about the architecture
+over MCP, agent runs an MCP server + client 
+
+
+Introduction
+Architecture
+Protocol Flow 
+  Auth
+  LLM turn (acp.rs)
+    - User message
+    - Assistant Text 
+    - Assistant Thoughts 
+    - Tool Calls
+      - content
+      - status
+      - label
+      - kinds
+      - locations
+    - Plans
+- Client Tools 
+  Enrich agent with more capabilities like:
+    - Request tool permission
+    - Access Editor file system
+Libraries
+  - TypeScript
+  - Rust 
+  These are just auto-generated from schema.json, you can use whatever language 
+- Specification
+  Auto-generated from schema.json
+  
+- FAQ
+
+- Agent tools (what zed calls into) - acp.rs
+
+Schema – 
