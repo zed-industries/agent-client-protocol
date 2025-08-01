@@ -1,7 +1,0 @@
-{
-  "authenticate": "acp/authenticate",
-  "new_session": "acp/new_session",
-  "load_session": "acp/load_session",
-  "prompt": "acp/prompt",
-  "session_update": "acp/session_update"
-}

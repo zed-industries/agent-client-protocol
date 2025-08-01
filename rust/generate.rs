@@ -1,6 +1,6 @@
 use agent_client_protocol::{
     AGENT_METHOD_NAMES, AgentNotification, AgentRequest, AgentResponse, CLIENT_METHOD_NAMES,
-    ClientNotification, ClientRequest, ClientResponse,
+    ClientNotification, ClientRequest, ClientResponse, VERSION,
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde_json::Value;
@@ -46,17 +46,18 @@ fn main() {
     )
     .expect("Failed to write schema.json");
 
-    fs::write(
-        schema_dir.join("agent-methods.json"),
-        serde_json::to_string_pretty(&AGENT_METHOD_NAMES).unwrap(),
-    )
-    .expect("Failed to write schema.json");
+    // Create a combined metadata object
+    let metadata = serde_json::json!({
+        "version": VERSION,
+        "agentMethods": AGENT_METHOD_NAMES,
+        "clientMethods": CLIENT_METHOD_NAMES,
+    });
 
     fs::write(
-        schema_dir.join("client-methods.json"),
-        serde_json::to_string_pretty(&CLIENT_METHOD_NAMES).unwrap(),
+        schema_dir.join("meta.json"),
+        serde_json::to_string_pretty(&metadata).unwrap(),
     )
-    .expect("Failed to write schema.json");
+    .expect("Failed to write meta.json");
 }
 
 fn inline_enum_variants(schema: &mut Value, enum_name: &str) {

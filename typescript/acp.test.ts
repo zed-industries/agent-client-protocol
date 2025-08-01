@@ -4,6 +4,8 @@ import {
   AgentConnection,
   Client,
   ClientConnection,
+  InitializeRequest,
+  InitializeResponse,
   NewSessionRequest,
   NewSessionResponse,
   LoadSessionRequest,
@@ -20,6 +22,7 @@ import {
   RequestPermissionResponse,
   CancelledNotification,
   SessionNotification,
+  PROTOCOL_VERSION,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -56,6 +59,9 @@ describe("Connection", () => {
 
     // Create agent that throws errors
     class TestAgent implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        throw new Error("Failed to initialize");
+      }
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         throw new Error("Failed to create session");
       }
@@ -142,6 +148,14 @@ describe("Connection", () => {
 
     // Create agent
     class TestAgent implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: 1,
+          agentCapabilities: {},
+          authMethods: [],
+        };
+      }
+
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return {
           sessionId: "test-session",
@@ -243,6 +257,13 @@ describe("Connection", () => {
 
     // Create agent
     class TestAgent implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: 1,
+          agentCapabilities: {},
+          authMethods: [],
+        };
+      }
       async newSession(
         request: NewSessionRequest,
       ): Promise<NewSessionResponse> {
@@ -382,6 +403,13 @@ describe("Connection", () => {
 
     // Create agent
     class TestAgent implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: 1,
+          agentCapabilities: {},
+          authMethods: [],
+        };
+      }
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return {
           sessionId: "test-session",
@@ -443,5 +471,96 @@ describe("Connection", () => {
     // Verify notifications were received
     expect(notificationLog).toContain("agent message: Hello from agent");
     expect(notificationLog).toContain("cancelled: test-session");
+  });
+
+  it("handles initialize method", async () => {
+    // Create client
+    class TestClient implements Client {
+      async writeTextFile(
+        _: WriteTextFileRequest,
+      ): Promise<WriteTextFileResponse> {
+        return null;
+      }
+      async readTextFile(
+        _: ReadTextFileRequest,
+      ): Promise<ReadTextFileResponse> {
+        return { content: "test" };
+      }
+      async requestPermission(
+        _: RequestPermissionRequest,
+      ): Promise<RequestPermissionResponse> {
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: "allow",
+          },
+        };
+      }
+      async sessionUpdate(_: SessionNotification): Promise<void> {
+        // no-op
+      }
+    }
+
+    // Create agent
+    class TestAgent implements Agent {
+      async initialize(params: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: params.protocolVersion,
+          agentCapabilities: { loadSession: true },
+          authMethods: [
+            {
+              id: "oauth",
+              label: "OAuth",
+              description: "Authenticate with OAuth",
+            },
+          ],
+        };
+      }
+      async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
+        return { sessionId: "test-session" };
+      }
+      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
+        return { authRequired: false, authMethods: [] };
+      }
+      async authenticate(
+        _: AuthenticateRequest,
+      ): Promise<AuthenticateResponse> {
+        return null;
+      }
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return null;
+      }
+      async cancelled(_: CancelledNotification): Promise<void> {
+        // no-op
+      }
+    }
+
+    const agentConnection = new AgentConnection(
+      new TestClient(),
+      clientToAgent.writable,
+      agentToClient.readable,
+    );
+
+    new ClientConnection(
+      new TestAgent(),
+      agentToClient.writable,
+      clientToAgent.readable,
+    );
+
+    // Test initialize request
+    const response = await agentConnection.initialize({
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: {
+          readTextFile: false,
+          writeTextFile: false,
+        },
+      },
+    });
+
+    expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
+    expect(response.agentCapabilities.loadSession).toBe(true);
+    expect(response.authMethods).toHaveLength(1);
+    expect(response.authMethods[0].id).toBe("oauth");
   });
 });

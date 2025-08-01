@@ -7,6 +7,7 @@ mod rpc;
 #[cfg(test)]
 mod rpc_tests;
 mod tool_call;
+mod version;
 
 pub use agent::*;
 pub use client::*;
@@ -15,6 +16,7 @@ pub use error::*;
 pub use plan::*;
 pub use rpc::*;
 pub use tool_call::*;
+pub use version::*;
 
 use anyhow::Result;
 use futures::{AsyncRead, AsyncWrite, Future, future::LocalBoxFuture};
@@ -86,6 +88,18 @@ impl AgentConnection {
         self.on_session_update.replace(Some(Box::new(callback)));
     }
 
+    pub async fn initialize(
+        &self,
+        arguments: InitializeRequest,
+    ) -> Result<InitializeResponse, Error> {
+        self.conn
+            .request(
+                INITIALIZE_METHOD_NAME,
+                Some(AgentRequest::InitializeRequest(arguments)),
+            )
+            .await
+    }
+
     pub async fn authenticate(&self, arguments: AuthenticateRequest) -> Result<(), Error> {
         self.conn
             .request(
@@ -149,6 +163,9 @@ impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
         let params = params.ok_or_else(Error::invalid_params)?;
 
         match method {
+            INITIALIZE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::InitializeRequest)
+                .map_err(Into::into),
             AUTHENTICATE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::AuthenticateRequest)
                 .map_err(Into::into),
@@ -191,6 +208,10 @@ type SessionCancelCallback = Rc<RefCell<Option<Box<dyn Fn(SessionId)>>>>;
 impl<D: Agent> MessageHandler<AgentSide, ClientSide> for AgentMessageHandler<D> {
     async fn handle_request(&self, request: AgentRequest) -> Result<AgentResponse, Error> {
         match request {
+            AgentRequest::InitializeRequest(args) => {
+                let response = self.agent.initialize(args).await?;
+                Ok(AgentResponse::InitializeResponse(response))
+            }
             AgentRequest::AuthenticateRequest(args) => {
                 self.agent.authenticate(args).await?;
                 Ok(AgentResponse::AuthenticateResponse)

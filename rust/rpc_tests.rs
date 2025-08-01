@@ -90,6 +90,19 @@ impl TestAgent {
 }
 
 impl Agent for TestAgent {
+    fn initialize(
+        &self,
+        arguments: InitializeRequest,
+    ) -> LocalBoxFuture<'static, Result<InitializeResponse, Error>> {
+        Box::pin(async move {
+            Ok(InitializeResponse {
+                protocol_version: arguments.protocol_version,
+                agent_capabilities: Default::default(),
+                auth_methods: vec![],
+            })
+        })
+    }
+
     fn authenticate(
         &self,
         _arguments: AuthenticateRequest,
@@ -107,7 +120,6 @@ impl Agent for TestAgent {
             sessions.lock().unwrap().insert(session_id.clone());
             Ok(NewSessionResponse {
                 session_id: Some(session_id),
-                auth_methods: vec![],
             })
         })
     }
@@ -172,6 +184,30 @@ async fn create_connection_pair(
 }
 
 #[tokio::test]
+async fn test_initialize() {
+    let local_set = tokio::task::LocalSet::new();
+    local_set
+        .run_until(async {
+            let client = TestClient::new();
+            let agent = TestAgent::new();
+
+            let (agent_conn, _client_conn) = create_connection_pair(client, agent).await;
+
+            let result = agent_conn
+                .initialize(InitializeRequest {
+                    protocol_version: VERSION,
+                    client_capabilities: Default::default(),
+                })
+                .await;
+
+            assert!(result.is_ok());
+            let response = result.unwrap();
+            assert_eq!(response.protocol_version, VERSION);
+        })
+        .await;
+}
+
+#[tokio::test]
 async fn test_basic_session_creation() {
     let local_set = tokio::task::LocalSet::new();
     local_set
@@ -190,7 +226,6 @@ async fn test_basic_session_creation() {
                 .expect("new_session failed");
 
             assert!(result.session_id.is_some());
-            assert_eq!(result.auth_methods.len(), 0);
         })
         .await;
 }

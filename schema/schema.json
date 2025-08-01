@@ -1,5 +1,16 @@
 {
   "$defs": {
+    "AgentCapabilities": {
+      "properties": {
+        "loadSession": {
+          "default": false,
+          "description": "Agent supports `session/load`",
+          "type": "boolean"
+        }
+      },
+      "required": ["loadSession"],
+      "type": "object"
+    },
     "AgentNotification": {
       "anyOf": [
         {
@@ -10,6 +21,10 @@
     },
     "AgentRequest": {
       "anyOf": [
+        {
+          "$ref": "#/$defs/InitializeRequest",
+          "title": "InitializeRequest"
+        },
         {
           "$ref": "#/$defs/AuthenticateRequest",
           "title": "AuthenticateRequest"
@@ -30,6 +45,10 @@
     },
     "AgentResponse": {
       "anyOf": [
+        {
+          "$ref": "#/$defs/InitializeResponse",
+          "title": "InitializeResponse"
+        },
         {
           "title": "AuthenticateResponse",
           "type": "null"
@@ -136,6 +155,21 @@
         }
       },
       "required": ["sessionId"],
+      "type": "object"
+    },
+    "ClientCapabilities": {
+      "description": "Capabilities supported by the client",
+      "properties": {
+        "fs": {
+          "$ref": "#/$defs/FileSystemCapability",
+          "default": {
+            "readTextFile": false,
+            "writeTextFile": false
+          },
+          "description": "FileSystem capabilities supported by the client."
+        }
+      },
+      "required": ["fs"],
       "type": "object"
     },
     "ClientNotification": {
@@ -363,6 +397,22 @@
       "required": ["name", "value"],
       "type": "object"
     },
+    "FileSystemCapability": {
+      "properties": {
+        "readTextFile": {
+          "default": false,
+          "description": "Client supports `fs/read_text_file`",
+          "type": "boolean"
+        },
+        "writeTextFile": {
+          "default": false,
+          "description": "Client supports `fs/write_text_file`",
+          "type": "boolean"
+        }
+      },
+      "required": ["readTextFile", "writeTextFile"],
+      "type": "object"
+    },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "properties": {
@@ -384,6 +434,51 @@
         }
       },
       "required": ["data", "mimeType"],
+      "type": "object"
+    },
+    "InitializeRequest": {
+      "properties": {
+        "clientCapabilities": {
+          "$ref": "#/$defs/ClientCapabilities",
+          "default": {
+            "fs": {
+              "readTextFile": false,
+              "writeTextFile": false
+            }
+          },
+          "description": "Capabilities supported by the client"
+        },
+        "protocolVersion": {
+          "$ref": "#/$defs/ProtocolVersion",
+          "description": "The latest protocol version supported by the client"
+        }
+      },
+      "required": ["protocolVersion", "clientCapabilities"],
+      "type": "object"
+    },
+    "InitializeResponse": {
+      "properties": {
+        "agentCapabilities": {
+          "$ref": "#/$defs/AgentCapabilities",
+          "default": {
+            "loadSession": false
+          },
+          "description": "Capabilities supported by the agent"
+        },
+        "authMethods": {
+          "default": [],
+          "description": "Authentication methods supported by the agent",
+          "items": {
+            "$ref": "#/$defs/AuthMethod"
+          },
+          "type": "array"
+        },
+        "protocolVersion": {
+          "$ref": "#/$defs/ProtocolVersion",
+          "description": "The protocol version the client specified if supported by the agent,\nor the latest protocol version supported by the agent.\n\nThe client should disconnect, if it doesn't support this version."
+        }
+      },
+      "required": ["protocolVersion", "agentCapabilities", "authMethods"],
       "type": "object"
     },
     "LoadSessionRequest": {
@@ -461,19 +556,12 @@
     },
     "NewSessionResponse": {
       "properties": {
-        "authMethods": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/AuthMethod"
-          },
-          "type": "array"
-        },
         "sessionId": {
           "description": "The session id if one was created, or null if authentication is required",
           "type": ["string", "null"]
         }
       },
-      "required": ["sessionId", "authMethods"],
+      "required": ["sessionId"],
       "type": "object"
     },
     "PermissionOption": {
@@ -550,6 +638,13 @@
       },
       "required": ["sessionId", "prompt"],
       "type": "object"
+    },
+    "ProtocolVersion": {
+      "description": "Protocol version identifier.\n\nThis version is only bumped for breaking changes.\nNon-breaking changes should be introduced via capabilities.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
     },
     "ReadTextFileRequest": {
       "properties": {

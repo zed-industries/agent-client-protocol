@@ -5,9 +5,17 @@ use futures::future::LocalBoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{
+    ClientCapabilities, ContentBlock, Error, Plan, ProtocolVersion, SessionId, ToolCall,
+    ToolCallUpdate,
+};
 
 pub trait Agent {
+    fn initialize(
+        &self,
+        arguments: InitializeRequest,
+    ) -> LocalBoxFuture<'static, Result<InitializeResponse, Error>>;
+
     fn authenticate(
         &self,
         arguments: AuthenticateRequest,
@@ -24,6 +32,34 @@ pub trait Agent {
     ) -> LocalBoxFuture<'static, Result<LoadSessionResponse, Error>>;
 
     fn prompt(&self, arguments: PromptRequest) -> LocalBoxFuture<'static, Result<(), Error>>;
+}
+
+// Initialize
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct InitializeRequest {
+    /// The latest protocol version supported by the client
+    pub protocol_version: ProtocolVersion,
+    /// Capabilities supported by the client
+    #[serde(default)]
+    pub client_capabilities: ClientCapabilities,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct InitializeResponse {
+    /// The protocol version the client specified if supported by the agent,
+    /// or the latest protocol version supported by the agent.
+    ///
+    /// The client should disconnect, if it doesn't support this version.
+    pub protocol_version: ProtocolVersion,
+    /// Capabilities supported by the agent
+    #[serde(default)]
+    pub agent_capabilities: AgentCapabilities,
+    /// Authentication methods supported by the agent
+    #[serde(default)]
+    pub auth_methods: Vec<AuthMethod>,
 }
 
 // Authenticatication
@@ -62,8 +98,6 @@ pub struct NewSessionResponse {
     // Note: It'd be nicer to use an enum here, but MCP requires the output schema
     // to be a non-union object and adding another level seemed impractical.
     pub session_id: Option<SessionId>,
-    #[serde(default)]
-    pub auth_methods: Vec<AuthMethod>,
 }
 
 // Load session
@@ -132,10 +166,21 @@ pub enum SessionUpdate {
     Plan(Plan),
 }
 
+// Capabilities
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilities {
+    /// Agent supports `session/load`
+    #[serde(default)]
+    load_session: bool,
+}
+
 // Method schema
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentMethodNames {
+    pub initialize: &'static str,
     pub authenticate: &'static str,
     pub session_new: &'static str,
     pub session_load: &'static str,
@@ -144,6 +189,7 @@ pub struct AgentMethodNames {
 }
 
 pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
+    initialize: INITIALIZE_METHOD_NAME,
     authenticate: AUTHENTICATE_METHOD_NAME,
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
@@ -151,6 +197,7 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_update: SESSION_UPDATE_NOTIFICATION,
 };
 
+pub const INITIALIZE_METHOD_NAME: &str = "initialize";
 pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
 pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
@@ -160,6 +207,7 @@ pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentRequest {
+    InitializeRequest(InitializeRequest),
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
     LoadSessionRequest(LoadSessionRequest),
@@ -169,6 +217,7 @@ pub enum AgentRequest {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentResponse {
+    InitializeResponse(InitializeResponse),
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
     LoadSessionResponse(LoadSessionResponse),

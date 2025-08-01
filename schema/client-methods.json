@@ -1,6 +1,0 @@
-{
-  "session_request_permission": "session/request_permission",
-  "session_cancelled": "session/cancelled",
-  "fs_write_text_file": "fs/write_text_file",
-  "fs_read_text_file": "fs/read_text_file"
-}

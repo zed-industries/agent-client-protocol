@@ -1,7 +1,0 @@
-{
-  "authenticate": "authenticate",
-  "session_new": "session/new",
-  "session_load": "session/load",
-  "session_prompt": "session/prompt",
-  "session_update": "session/update"
-}

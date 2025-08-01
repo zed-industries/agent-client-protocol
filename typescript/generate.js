@@ -5,8 +5,7 @@ import { generate } from "ts-to-zod";
 import fs from "fs";
 
 const jsonSchema = JSON.parse(fs.readFileSync("./schema/schema.json", "utf8"));
-const agentMethods = JSON.parse(fs.readFileSync("./schema/agent-methods.json", "utf8"));
-const clientMethods = JSON.parse(fs.readFileSync("./schema/client-methods.json", "utf8"));
+const metadata = JSON.parse(fs.readFileSync("./schema/meta.json", "utf8"));
 
 const tsSrc = await compile(jsonSchema, "Agent Client Protocol", {
   additionalProperties: false,
@@ -18,9 +17,11 @@ const zodSchemas = zodGenerator.getZodSchemasFile();
 const zodInfer = zodGenerator.getInferredTypes("./zod");
 
 const schemaTs = `
-export const AGENT_METHODS = ${JSON.stringify(agentMethods, null, 2)};
+export const AGENT_METHODS = ${JSON.stringify(metadata.agentMethods, null, 2)};
 
-export const CLIENT_METHODS = ${JSON.stringify(clientMethods, null, 2)};
+export const CLIENT_METHODS = ${JSON.stringify(metadata.clientMethods, null, 2)};
+
+export const PROTOCOL_VERSION = ${metadata.version};
 
 import { z } from "zod";
 

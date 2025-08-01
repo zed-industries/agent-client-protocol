@@ -107,6 +107,28 @@ pub struct ReadTextFileResponse {
     pub content: String,
 }
 
+// Capabilities
+
+/// Capabilities supported by the client
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientCapabilities {
+    /// FileSystem capabilities supported by the client.
+    #[serde(default)]
+    fs: FileSystemCapability,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FileSystemCapability {
+    /// Client supports `fs/read_text_file`
+    #[serde(default)]
+    read_text_file: bool,
+    /// Client supports `fs/write_text_file`
+    #[serde(default)]
+    write_text_file: bool,
+}
+
 // Method schema
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

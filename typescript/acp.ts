@@ -222,6 +222,9 @@ class Connection {
 }
 
 export interface Agent {
+  initialize(
+    params: schema.InitializeRequest,
+  ): Promise<schema.InitializeResponse>;
   newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse>;
@@ -291,6 +294,15 @@ export class AgentConnection {
     this.#connection = new Connection(methods, input, output);
   }
 
+  async initialize(
+    params: schema.InitializeRequest,
+  ): Promise<schema.InitializeResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.initialize,
+      params,
+    );
+  }
+
   async newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse> {
@@ -343,6 +355,13 @@ export class ClientConnection {
   ) {
     // Create method configuration map for agent methods
     const methods = new Map<string, MethodConfig>([
+      [
+        schema.AGENT_METHODS.initialize,
+        {
+          handler: (params) => agent.initialize(params),
+          schema: schema.initializeRequestSchema,
+        },
+      ],
       [
         schema.AGENT_METHODS.session_new,
         {

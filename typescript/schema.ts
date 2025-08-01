@@ -1,17 +1,20 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
-  session_new: "session/new",
+  initialize: "initialize",
   session_load: "session/load",
+  session_new: "session/new",
   session_prompt: "session/prompt",
   session_update: "session/update",
 };
 
 export const CLIENT_METHODS = {
-  session_request_permission: "session/request_permission",
-  session_cancelled: "session/cancelled",
-  fs_write_text_file: "fs/write_text_file",
   fs_read_text_file: "fs/read_text_file",
+  fs_write_text_file: "fs/write_text_file",
+  session_cancelled: "session/cancelled",
+  session_request_permission: "session/request_permission",
 };
+
+export const PROTOCOL_VERSION = 1;
 
 import { z } from "zod";
 
@@ -45,6 +48,8 @@ export type AuthenticateRequest = z.infer<typeof authenticateRequestSchema>;
 
 export type AuthenticateResponse = z.infer<typeof authenticateResponseSchema>;
 
+export type NewSessionResponse = z.infer<typeof newSessionResponseSchema>;
+
 export type PromptResponse = z.infer<typeof promptResponseSchema>;
 
 export type ToolCall1 = z.infer<typeof toolCall1Schema>;
@@ -63,9 +68,13 @@ export type RequestPermissionResponse = z.infer<
   typeof requestPermissionResponseSchema
 >;
 
+export type FileSystemCapability = z.infer<typeof fileSystemCapabilitySchema>;
+
 export type EnvVariable = z.infer<typeof envVariableSchema>;
 
 export type McpServer = z.infer<typeof mcpServerSchema>;
+
+export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
 
 export type AuthMethod = z.infer<typeof authMethodSchema>;
 
@@ -83,21 +92,25 @@ export type NewSessionRequest = z.infer<typeof newSessionRequestSchema>;
 
 export type LoadSessionRequest = z.infer<typeof loadSessionRequestSchema>;
 
-export type NewSessionResponse = z.infer<typeof newSessionResponseSchema>;
+export type InitializeResponse = z.infer<typeof initializeResponseSchema>;
 
 export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
 
+export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>;
+
 export type PromptRequest = z.infer<typeof promptRequestSchema>;
 
-export type AgentRequest = z.infer<typeof agentRequestSchema>;
-
 export type AgentResponse = z.infer<typeof agentResponseSchema>;
+
+export type InitializeRequest = z.infer<typeof initializeRequestSchema>;
 
 export type SessionNotification = z.infer<typeof sessionNotificationSchema>;
 
 export type ToolCall = z.infer<typeof toolCallSchema>;
+
+export type AgentRequest = z.infer<typeof agentRequestSchema>;
 
 export type AgentNotification = z.infer<typeof agentNotificationSchema>;
 
@@ -188,6 +201,10 @@ export const authenticateRequestSchema = z.object({
 
 export const authenticateResponseSchema = z.null();
 
+export const newSessionResponseSchema = z.object({
+  sessionId: z.string().nullable(),
+});
+
 export const promptResponseSchema = z.null();
 
 export const toolCall1Schema = z.object({
@@ -223,6 +240,11 @@ export const requestPermissionResponseSchema = z.object({
   outcome: requestPermissionOutcomeSchema,
 });
 
+export const fileSystemCapabilitySchema = z.object({
+  readTextFile: z.boolean(),
+  writeTextFile: z.boolean(),
+});
+
 export const envVariableSchema = z.object({
   name: z.string(),
   value: z.string(),
@@ -233,6 +255,10 @@ export const mcpServerSchema = z.object({
   command: z.string(),
   env: z.array(envVariableSchema),
   name: z.string(),
+});
+
+export const agentCapabilitiesSchema = z.object({
+  loadSession: z.boolean(),
 });
 
 export const authMethodSchema = z.object({
@@ -270,9 +296,10 @@ export const loadSessionRequestSchema = z.object({
   sessionId: z.string(),
 });
 
-export const newSessionResponseSchema = z.object({
+export const initializeResponseSchema = z.object({
+  agentCapabilities: agentCapabilitiesSchema,
   authMethods: z.array(authMethodSchema),
-  sessionId: z.string().nullable(),
+  protocolVersion: z.number(),
 });
 
 export const contentBlockSchema = z.union([
@@ -323,24 +350,27 @@ export const toolCallContentSchema = z.union([
   }),
 ]);
 
+export const clientCapabilitiesSchema = z.object({
+  fs: fileSystemCapabilitySchema,
+});
+
 export const promptRequestSchema = z.object({
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
 });
 
-export const agentRequestSchema = z.union([
-  authenticateRequestSchema,
-  newSessionRequestSchema,
-  loadSessionRequestSchema,
-  promptRequestSchema,
-]);
-
 export const agentResponseSchema = z.union([
+  initializeResponseSchema,
   authenticateResponseSchema,
   newSessionResponseSchema,
   loadSessionResponseSchema,
   promptResponseSchema,
 ]);
+
+export const initializeRequestSchema = z.object({
+  clientCapabilities: clientCapabilitiesSchema,
+  protocolVersion: z.number(),
+});
 
 export const sessionNotificationSchema = z.union([
   z.object({
@@ -369,6 +399,14 @@ export const toolCallSchema = z.object({
   status: toolCallStatusSchema,
   toolCallId: z.string(),
 });
+
+export const agentRequestSchema = z.union([
+  initializeRequestSchema,
+  authenticateRequestSchema,
+  newSessionRequestSchema,
+  loadSessionRequestSchema,
+  promptRequestSchema,
+]);
 
 export const agentNotificationSchema = sessionNotificationSchema;
 
