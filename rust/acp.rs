@@ -17,16 +17,11 @@ pub use rpc::*;
 pub use tool_call::*;
 
 use anyhow::Result;
-use futures::{AsyncRead, AsyncWrite, Future, FutureExt, future::LocalBoxFuture};
-use parking_lot::Mutex;
+use futures::{AsyncRead, AsyncWrite, Future, future::LocalBoxFuture};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
-use std::{fmt, sync::Arc};
-
-// Type aliases to reduce complexity
-type SessionUpdateCallback = Arc<Mutex<Option<Box<dyn Fn(SessionNotification) + Send + Sync>>>>;
-type SessionCancelCallback = Arc<Mutex<Option<Box<dyn Fn(SessionId) + Send + Sync>>>>;
+use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -53,6 +48,8 @@ pub struct AgentConnection {
     on_session_update: SessionUpdateCallback,
 }
 
+type SessionUpdateCallback = Rc<RefCell<Option<Box<dyn Fn(SessionNotification)>>>>;
+
 impl AgentConnection {
     pub fn new(
         client: impl Client + 'static,
@@ -60,15 +57,19 @@ impl AgentConnection {
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) -> (Self, impl Future<Output = Result<()>>) {
-        let on_session_update = Arc::new(Mutex::new(None));
-        let decoder = ClientMessageDecoder;
+        let on_session_update = Rc::new(RefCell::new(None));
         let handler = ClientMessageHandler {
             client,
             on_session_update: on_session_update.clone(),
         };
 
-        let (conn, io_task) =
-            RpcConnection::new(decoder, handler, outgoing_bytes, incoming_bytes, spawn);
+        let (conn, io_task) = RpcConnection::new(
+            ClientMessageDecoder,
+            handler,
+            outgoing_bytes,
+            incoming_bytes,
+            spawn,
+        );
         (
             Self {
                 conn,
@@ -80,9 +81,9 @@ impl AgentConnection {
 
     pub fn on_session_update<F>(&self, callback: F)
     where
-        F: Fn(SessionNotification) + Send + Sync + 'static,
+        F: Fn(SessionNotification) + 'static,
     {
-        *self.on_session_update.lock() = Some(Box::new(callback));
+        self.on_session_update.replace(Some(Box::new(callback)));
     }
 
     pub async fn authenticate(&self, arguments: AuthenticateRequest) -> Result<(), Error> {
@@ -137,9 +138,7 @@ impl AgentConnection {
     }
 }
 
-struct AgentMessageDecoder {
-    on_cancel: SessionCancelCallback,
-}
+struct AgentMessageDecoder;
 
 impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
     fn decode_request(
@@ -174,16 +173,9 @@ impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
         let params = params.ok_or_else(Error::invalid_params)?;
 
         match method {
-            SESSION_CANCELLED_METHOD_NAME => {
-                let notification: client::CancelledNotification =
-                    serde_json::from_str(params.get())?;
-
-                if let Some(callback) = &*self.on_cancel.lock() {
-                    callback(notification.session_id.clone());
-                }
-
-                Ok(ClientNotification::CancelledNotification(notification))
-            }
+            SESSION_CANCELLED_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientNotification::CancelledNotification)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -191,47 +183,42 @@ impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
 
 struct AgentMessageHandler<D: Agent> {
     agent: D,
+    on_cancel: SessionCancelCallback,
 }
 
+type SessionCancelCallback = Rc<RefCell<Option<Box<dyn Fn(SessionId)>>>>;
+
 impl<D: Agent> MessageHandler<AgentSide, ClientSide> for AgentMessageHandler<D> {
-    fn handle_request(
-        &self,
-        request: AgentRequest,
-    ) -> LocalBoxFuture<'static, Result<AgentResponse, Error>> {
+    async fn handle_request(&self, request: AgentRequest) -> Result<AgentResponse, Error> {
         match request {
             AgentRequest::AuthenticateRequest(args) => {
-                let fut = self.agent.authenticate(args);
-                async move {
-                    fut.await?;
-                    Ok(AgentResponse::AuthenticateResponse)
-                }
-                .boxed_local()
+                self.agent.authenticate(args).await?;
+                Ok(AgentResponse::AuthenticateResponse)
             }
             AgentRequest::NewSessionRequest(args) => {
-                let fut = self.agent.new_session(args);
-                async move { Ok(AgentResponse::NewSessionResponse(fut.await?)) }.boxed_local()
+                let response = self.agent.new_session(args).await?;
+                Ok(AgentResponse::NewSessionResponse(response))
             }
             AgentRequest::LoadSessionRequest(args) => {
-                let fut = self.agent.load_session(args);
-                async move { Ok(AgentResponse::LoadSessionResponse(fut.await?)) }.boxed_local()
+                let response = self.agent.load_session(args).await?;
+                Ok(AgentResponse::LoadSessionResponse(response))
             }
             AgentRequest::PromptRequest(args) => {
-                let fut = self.agent.prompt(args);
-                async move {
-                    fut.await?;
-                    Ok(AgentResponse::PromptResponse)
-                }
-                .boxed_local()
+                self.agent.prompt(args).await?;
+                Ok(AgentResponse::PromptResponse)
             }
         }
     }
 
-    fn handle_notification(
-        &self,
-        _notification: ClientNotification,
-    ) -> LocalBoxFuture<'static, Result<(), Error>> {
-        // Agent doesn't handle client notifications in the handler
-        async { Ok(()) }.boxed_local()
+    async fn handle_notification(&self, notification: ClientNotification) -> Result<(), Error> {
+        match notification {
+            ClientNotification::CancelledNotification(notification) => {
+                if let Some(callback) = &*self.on_cancel.borrow() {
+                    callback(notification.session_id);
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -257,22 +244,24 @@ impl ClientConnection {
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) -> (Self, impl Future<Output = Result<()>>) {
-        let on_cancel = Arc::new(Mutex::new(None));
-        let decoder = AgentMessageDecoder {
+        let on_cancel = Rc::new(RefCell::new(None));
+        let handler = AgentMessageHandler {
+            agent,
             on_cancel: on_cancel.clone(),
         };
-        let handler = AgentMessageHandler { agent };
 
-        let (conn, io_task) =
-            RpcConnection::new(decoder, handler, outgoing_bytes, incoming_bytes, spawn);
+        let (conn, io_task) = RpcConnection::new(
+            AgentMessageDecoder,
+            handler,
+            outgoing_bytes,
+            incoming_bytes,
+            spawn,
+        );
         (Self { conn, on_cancel }, io_task)
     }
 
-    pub fn on_cancel<F>(&self, callback: F)
-    where
-        F: Fn(SessionId) + Send + Sync + 'static,
-    {
-        *self.on_cancel.lock() = Some(Box::new(callback));
+    pub fn on_cancel(&self, callback: impl Fn(SessionId) + 'static) {
+        self.on_cancel.replace(Some(Box::new(callback)));
     }
 
     pub async fn request_permission(
@@ -368,42 +357,31 @@ struct ClientMessageHandler<D: Client> {
 }
 
 impl<D: Client> MessageHandler<ClientSide, AgentSide> for ClientMessageHandler<D> {
-    fn handle_request(
-        &self,
-        request: ClientRequest,
-    ) -> LocalBoxFuture<'static, Result<ClientResponse, Error>> {
+    async fn handle_request(&self, request: ClientRequest) -> Result<ClientResponse, Error> {
         match request {
             ClientRequest::RequestPermissionRequest(args) => {
-                let fut = self.client.request_permission(args);
-                async move { Ok(ClientResponse::RequestPermissionResponse(fut.await?)) }
-                    .boxed_local()
+                let response = self.client.request_permission(args).await?;
+                Ok(ClientResponse::RequestPermissionResponse(response))
             }
             ClientRequest::WriteTextFileRequest(args) => {
-                let fut = self.client.write_text_file(args);
-                async move {
-                    fut.await?;
-                    Ok(ClientResponse::WriteTextFileResponse)
-                }
-                .boxed_local()
+                self.client.write_text_file(args).await?;
+                Ok(ClientResponse::WriteTextFileResponse)
             }
             ClientRequest::ReadTextFileRequest(args) => {
-                let fut = self.client.read_text_file(args);
-                async move { Ok(ClientResponse::ReadTextFileResponse(fut.await?)) }.boxed_local()
+                let response = self.client.read_text_file(args).await?;
+                Ok(ClientResponse::ReadTextFileResponse(response))
             }
         }
     }
 
-    fn handle_notification(
-        &self,
-        notification: AgentNotification,
-    ) -> LocalBoxFuture<'static, Result<(), Error>> {
+    async fn handle_notification(&self, notification: AgentNotification) -> Result<(), Error> {
         match notification {
             AgentNotification::SessionNotification(session_notification) => {
-                if let Some(callback) = &*self.on_session_update.lock() {
+                if let Some(callback) = &*self.on_session_update.borrow() {
                     callback(session_notification);
                 }
             }
         }
-        async { Ok(()) }.boxed_local()
+        Ok(())
     }
 }

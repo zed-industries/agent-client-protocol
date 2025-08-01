@@ -340,12 +340,12 @@ pub trait MessageHandler<Local: RpcSide, Remote: RpcSide> {
     fn handle_request(
         &self,
         request: Local::Request,
-    ) -> LocalBoxFuture<'static, Result<Local::Response, Error>>;
+    ) -> impl Future<Output = Result<Local::Response, Error>>;
 
     fn handle_notification(
         &self,
         notification: Remote::Notification,
-    ) -> LocalBoxFuture<'static, Result<(), Error>>;
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // pub trait Dispatcher {
