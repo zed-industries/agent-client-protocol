@@ -1,7 +1,6 @@
 use std::{fmt, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use futures::future::LocalBoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -10,18 +9,18 @@ use crate::{Error, SessionId, ToolCall};
 pub trait Client {
     fn request_permission(
         &self,
-        arguments: RequestPermissionRequest,
-    ) -> LocalBoxFuture<'static, Result<RequestPermissionResponse, Error>>;
+        args: RequestPermissionRequest,
+    ) -> impl Future<Output = Result<RequestPermissionResponse, Error>>;
 
     fn write_text_file(
         &self,
-        arguments: WriteTextFileRequest,
-    ) -> LocalBoxFuture<'static, Result<(), Error>>;
+        args: WriteTextFileRequest,
+    ) -> impl Future<Output = Result<(), Error>>;
 
     fn read_text_file(
         &self,
-        arguments: ReadTextFileRequest,
-    ) -> LocalBoxFuture<'static, Result<ReadTextFileResponse, Error>>;
+        args: ReadTextFileRequest,
+    ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
 }
 
 // Permission
@@ -115,7 +114,7 @@ pub struct ReadTextFileResponse {
 pub struct ClientCapabilities {
     /// FileSystem capabilities supported by the client.
     #[serde(default)]
-    fs: FileSystemCapability,
+    pub fs: FileSystemCapability,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -123,10 +122,10 @@ pub struct ClientCapabilities {
 pub struct FileSystemCapability {
     /// Client supports `fs/read_text_file`
     #[serde(default)]
-    read_text_file: bool,
+    pub read_text_file: bool,
     /// Client supports `fs/write_text_file`
     #[serde(default)]
-    write_text_file: bool,
+    pub write_text_file: bool,
 }
 
 // Method schema

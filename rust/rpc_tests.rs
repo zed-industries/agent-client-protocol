@@ -1,5 +1,4 @@
 use anyhow::Result;
-use futures::future::LocalBoxFuture;
 use std::sync::{Arc, Mutex};
 
 use crate::*;
@@ -30,47 +29,36 @@ impl TestClient {
 }
 
 impl Client for TestClient {
-    fn request_permission(
+    async fn request_permission(
         &self,
         _arguments: RequestPermissionRequest,
-    ) -> LocalBoxFuture<'static, Result<RequestPermissionResponse, Error>> {
+    ) -> Result<RequestPermissionResponse, Error> {
         let responses = self.permission_responses.clone();
-        Box::pin(async move {
-            let mut responses = responses.lock().unwrap();
-            let outcome = responses
-                .pop()
-                .unwrap_or(RequestPermissionOutcome::Cancelled);
-            Ok(RequestPermissionResponse { outcome })
-        })
+        let mut responses = responses.lock().unwrap();
+        let outcome = responses
+            .pop()
+            .unwrap_or(RequestPermissionOutcome::Cancelled);
+        Ok(RequestPermissionResponse { outcome })
     }
 
-    fn write_text_file(
-        &self,
-        arguments: WriteTextFileRequest,
-    ) -> LocalBoxFuture<'static, Result<(), Error>> {
-        let written_files = self.written_files.clone();
-        Box::pin(async move {
-            written_files
-                .lock()
-                .unwrap()
-                .push((arguments.path, arguments.content));
-            Ok(())
-        })
+    async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
+        self.written_files
+            .lock()
+            .unwrap()
+            .push((arguments.path, arguments.content));
+        Ok(())
     }
 
-    fn read_text_file(
+    async fn read_text_file(
         &self,
         arguments: ReadTextFileRequest,
-    ) -> LocalBoxFuture<'static, Result<ReadTextFileResponse, Error>> {
-        let file_contents = self.file_contents.clone();
-        Box::pin(async move {
-            let contents = file_contents.lock().unwrap();
-            let content = contents
-                .get(&arguments.path)
-                .cloned()
-                .unwrap_or_else(|| "default content".to_string());
-            Ok(ReadTextFileResponse { content })
-        })
+    ) -> Result<ReadTextFileResponse, Error> {
+        let contents = self.file_contents.lock().unwrap();
+        let content = contents
+            .get(&arguments.path)
+            .cloned()
+            .unwrap_or_else(|| "default content".to_string());
+        Ok(ReadTextFileResponse { content })
     }
 }
 
@@ -90,63 +78,50 @@ impl TestAgent {
 }
 
 impl Agent for TestAgent {
-    fn initialize(
-        &self,
-        arguments: InitializeRequest,
-    ) -> LocalBoxFuture<'static, Result<InitializeResponse, Error>> {
-        Box::pin(async move {
-            Ok(InitializeResponse {
-                protocol_version: arguments.protocol_version,
-                agent_capabilities: Default::default(),
-                auth_methods: vec![],
-            })
+    async fn initialize(&self, arguments: InitializeRequest) -> Result<InitializeResponse, Error> {
+        Ok(InitializeResponse {
+            protocol_version: arguments.protocol_version,
+            agent_capabilities: Default::default(),
+            auth_methods: vec![],
         })
     }
 
-    fn authenticate(
-        &self,
-        _arguments: AuthenticateRequest,
-    ) -> LocalBoxFuture<'static, Result<(), Error>> {
-        Box::pin(async move { Ok(()) })
+    async fn authenticate(&self, _arguments: AuthenticateRequest) -> Result<(), Error> {
+        Ok(())
     }
 
-    fn new_session(
+    async fn new_session(
         &self,
         _arguments: NewSessionRequest,
-    ) -> LocalBoxFuture<'static, Result<NewSessionResponse, Error>> {
-        let sessions = self.sessions.clone();
-        Box::pin(async move {
-            let session_id = SessionId(Arc::from("test-session-123"));
-            sessions.lock().unwrap().insert(session_id.clone());
-            Ok(NewSessionResponse {
-                session_id: Some(session_id),
-            })
+    ) -> Result<NewSessionResponse, Error> {
+        let session_id = SessionId(Arc::from("test-session-123"));
+        self.sessions.lock().unwrap().insert(session_id.clone());
+        Ok(NewSessionResponse {
+            session_id: Some(session_id),
         })
     }
 
-    fn load_session(
+    async fn load_session(
         &self,
         arguments: LoadSessionRequest,
-    ) -> LocalBoxFuture<'static, Result<LoadSessionResponse, Error>> {
-        let sessions = self.sessions.clone();
-        Box::pin(async move {
-            let has_session = sessions.lock().unwrap().contains(&arguments.session_id);
-            Ok(LoadSessionResponse {
-                auth_required: !has_session,
-                auth_methods: vec![],
-            })
+    ) -> Result<LoadSessionResponse, Error> {
+        let has_session = self
+            .sessions
+            .lock()
+            .unwrap()
+            .contains(&arguments.session_id);
+        Ok(LoadSessionResponse {
+            auth_required: !has_session,
+            auth_methods: vec![],
         })
     }
 
-    fn prompt(&self, arguments: PromptRequest) -> LocalBoxFuture<'static, Result<(), Error>> {
-        let prompts_received = self.prompts_received.clone();
-        Box::pin(async move {
-            prompts_received
-                .lock()
-                .unwrap()
-                .push((arguments.session_id, arguments.prompt));
-            Ok(())
-        })
+    async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
+        self.prompts_received
+            .lock()
+            .unwrap()
+            .push((arguments.session_id, arguments.prompt));
+        Ok(())
     }
 }
 
@@ -344,7 +319,7 @@ async fn test_cancel_notification() {
             let session_id = SessionId(Arc::from("test-session"));
             // Send cancel notification
             agent_conn
-                .cancel_generation(session_id.clone())
+                .cancel(session_id.clone())
                 .expect("cancel failed");
 
             tokio::task::yield_now().await;

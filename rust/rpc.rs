@@ -395,9 +395,3 @@ macro_rules! dispatch_notification {
         }
     }};
 }
-
-pub struct BaseDispatcher<D, Local: RpcSide, Remote: RpcSide> {
-    pub delegate: D,
-    pub spawn: Box<dyn Fn(LocalBoxFuture<'static, ()>) + 'static>,
-    pub outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
-}

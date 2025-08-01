@@ -1,7 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use futures::future::LocalBoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -14,24 +13,24 @@ pub trait Agent {
     fn initialize(
         &self,
         arguments: InitializeRequest,
-    ) -> LocalBoxFuture<'static, Result<InitializeResponse, Error>>;
+    ) -> impl Future<Output = Result<InitializeResponse, Error>>;
 
     fn authenticate(
         &self,
         arguments: AuthenticateRequest,
-    ) -> LocalBoxFuture<'static, Result<(), Error>>;
+    ) -> impl Future<Output = Result<(), Error>>;
 
     fn new_session(
         &self,
         arguments: NewSessionRequest,
-    ) -> LocalBoxFuture<'static, Result<NewSessionResponse, Error>>;
+    ) -> impl Future<Output = Result<NewSessionResponse, Error>>;
 
     fn load_session(
         &self,
         arguments: LoadSessionRequest,
-    ) -> LocalBoxFuture<'static, Result<LoadSessionResponse, Error>>;
+    ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
 
-    fn prompt(&self, arguments: PromptRequest) -> LocalBoxFuture<'static, Result<(), Error>>;
+    fn prompt(&self, arguments: PromptRequest) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize

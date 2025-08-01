@@ -142,7 +142,7 @@ impl AgentConnection {
             .await
     }
 
-    pub fn cancel_generation(&self, session_id: SessionId) -> Result<(), Error> {
+    pub fn cancel(&self, session_id: SessionId) -> Result<(), Error> {
         self.conn.notify(
             SESSION_CANCELLED_METHOD_NAME,
             Some(ClientNotification::CancelledNotification(
