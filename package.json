@@ -19,7 +19,6 @@
     "typescript",
     "dist",
     "schema/schema.json",
-    "schema/methods.json",
     "LICENSE.MIT",
     "README.md"
   ],
@@ -30,9 +29,13 @@
     "example": "examples"
   },
   "scripts": {
-    "clean": "rm -rf dist target typescript/acp.ts schema.json tsconfig.tsbuildinfo && cargo clean",
-    "test": "cargo test",
-    "generate": "cargo run && typescript/generate.js && prettier --write typescript/*.ts schema/*",
+    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo && cargo clean",
+    "test": "cargo test && vitest run",
+    "test:ts": "vitest run",
+    "test:ts:watch": "vitest",
+    "generate:json-schema": "cd rust && cargo run --bin generate",
+    "generate:ts-schema": "node typescript/generate.js",
+    "generate": "npm run generate:json-schema && npm run generate:ts-schema && prettier --write typescript/*.ts schema/*",
     "build": "npm run generate && tsc",
     "format": "prettier --write . && cargo fmt",
     "format:check": "prettier --check . && cargo fmt -- --check",
@@ -41,10 +44,12 @@
     "check": "npm run lint && npm run format:check && npm run build && npm run test"
   },
   "devDependencies": {
+    "@types/node": "^24.1.0",
     "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.3.3",
     "ts-to-zod": "^3.15.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "zod": "^3.0.0"
