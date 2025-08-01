@@ -146,11 +146,11 @@ impl Agent for TestAgent {
 async fn create_connection_pair(
     client: TestClient,
     agent: TestAgent,
-) -> (AgentConnection, ClientConnection) {
+) -> (ClientSideConnection, AgentSideConnection) {
     let (client_to_agent_tx, client_to_agent_rx) = async_pipe::pipe();
     let (agent_to_client_tx, agent_to_client_rx) = async_pipe::pipe();
 
-    let (agent_conn, agent_io_task) = AgentConnection::new(
+    let (agent_conn, agent_io_task) = ClientSideConnection::new(
         client.clone(),
         client_to_agent_tx,
         agent_to_client_rx,
@@ -159,7 +159,7 @@ async fn create_connection_pair(
         },
     );
 
-    let (client_conn, client_io_task) = ClientConnection::new(
+    let (client_conn, client_io_task) = AgentSideConnection::new(
         agent.clone(),
         agent_to_client_tx,
         client_to_agent_rx,
@@ -273,7 +273,6 @@ async fn test_session_notifications() {
             let agent = TestAgent::new();
 
             let (_agent_conn, client_conn) = create_connection_pair(client.clone(), agent).await;
-
 
             let session_id = SessionId(Arc::from("test-session"));
             // Send various session updates

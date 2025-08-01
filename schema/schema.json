@@ -17,31 +17,25 @@
           "$ref": "#/$defs/SessionNotification",
           "title": "SessionNotification"
         }
-      ]
+      ],
+      "description": "Notifications the agent sends to the client"
     },
     "AgentRequest": {
       "anyOf": [
         {
-          "$ref": "#/$defs/InitializeRequest",
-          "title": "InitializeRequest"
+          "$ref": "#/$defs/WriteTextFileRequest",
+          "title": "WriteTextFileRequest"
         },
         {
-          "$ref": "#/$defs/AuthenticateRequest",
-          "title": "AuthenticateRequest"
+          "$ref": "#/$defs/ReadTextFileRequest",
+          "title": "ReadTextFileRequest"
         },
         {
-          "$ref": "#/$defs/NewSessionRequest",
-          "title": "NewSessionRequest"
-        },
-        {
-          "$ref": "#/$defs/LoadSessionRequest",
-          "title": "LoadSessionRequest"
-        },
-        {
-          "$ref": "#/$defs/PromptRequest",
-          "title": "PromptRequest"
+          "$ref": "#/$defs/RequestPermissionRequest",
+          "title": "RequestPermissionRequest"
         }
-      ]
+      ],
+      "description": "Requests the agent sends to the client"
     },
     "AgentResponse": {
       "anyOf": [
@@ -65,7 +59,8 @@
           "title": "PromptResponse",
           "type": "null"
         }
-      ]
+      ],
+      "description": "Responses the agent sends to the client"
     },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
@@ -178,23 +173,33 @@
           "$ref": "#/$defs/CancelledNotification",
           "title": "CancelledNotification"
         }
-      ]
+      ],
+      "description": "Notifications the client sends to the agent"
     },
     "ClientRequest": {
       "anyOf": [
         {
-          "$ref": "#/$defs/WriteTextFileRequest",
-          "title": "WriteTextFileRequest"
+          "$ref": "#/$defs/InitializeRequest",
+          "title": "InitializeRequest"
         },
         {
-          "$ref": "#/$defs/ReadTextFileRequest",
-          "title": "ReadTextFileRequest"
+          "$ref": "#/$defs/AuthenticateRequest",
+          "title": "AuthenticateRequest"
         },
         {
-          "$ref": "#/$defs/RequestPermissionRequest",
-          "title": "RequestPermissionRequest"
+          "$ref": "#/$defs/NewSessionRequest",
+          "title": "NewSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/LoadSessionRequest",
+          "title": "LoadSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/PromptRequest",
+          "title": "PromptRequest"
         }
-      ]
+      ],
+      "description": "Requests the client sends to the agent"
     },
     "ClientResponse": {
       "anyOf": [
@@ -210,7 +215,8 @@
           "$ref": "#/$defs/RequestPermissionResponse",
           "title": "RequestPermissionResponse"
         }
-      ]
+      ],
+      "description": "Responses the client sends to the agent"
     },
     "ContentBlock": {
       "oneOf": [
@@ -1073,7 +1079,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
-      "$ref": "#/$defs/ClientRequest",
+      "$ref": "#/$defs/AgentRequest",
       "title": "ClientRequest"
     },
     {
@@ -1085,7 +1091,7 @@
       "title": "ClientNotification"
     },
     {
-      "$ref": "#/$defs/AgentRequest",
+      "$ref": "#/$defs/ClientRequest",
       "title": "AgentRequest"
     },
     {

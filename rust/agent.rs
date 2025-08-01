@@ -1,13 +1,12 @@
+//! Methods and notifications the agent handles/receives
+
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    CancelledNotification, ClientCapabilities, ContentBlock, Error, Plan, ProtocolVersion,
-    SessionId, ToolCall, ToolCallUpdate,
-};
+use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
 pub trait Agent {
     fn initialize(
@@ -146,27 +145,6 @@ pub struct PromptRequest {
     pub prompt: Vec<ContentBlock>,
 }
 
-// Session updates
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionNotification {
-    pub session_id: SessionId,
-    #[serde(flatten)]
-    pub update: SessionUpdate,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "sessionUpdate", rename_all = "camelCase")]
-pub enum SessionUpdate {
-    UserMessageChunk { content: ContentBlock },
-    AgentMessageChunk { content: ContentBlock },
-    AgentThoughtChunk { content: ContentBlock },
-    ToolCall(ToolCall),
-    ToolCallUpdate(ToolCallUpdate),
-    Plan(Plan),
-}
-
 // Capabilities
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -186,7 +164,7 @@ pub struct AgentMethodNames {
     pub session_new: &'static str,
     pub session_load: &'static str,
     pub session_prompt: &'static str,
-    pub session_update: &'static str,
+    pub session_cancelled: &'static str,
 }
 
 pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
@@ -195,7 +173,7 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
-    session_update: SESSION_UPDATE_NOTIFICATION,
+    session_cancelled: SESSION_CANCELLED_METHOD_NAME,
 };
 
 pub const INITIALIZE_METHOD_NAME: &str = "initialize";
@@ -203,11 +181,12 @@ pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
 pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
 pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
-pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
+pub const SESSION_CANCELLED_METHOD_NAME: &str = "session/cancelled";
 
+/// Requests the client sends to the agent
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
-pub enum AgentRequest {
+pub enum ClientRequest {
     InitializeRequest(InitializeRequest),
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
@@ -215,6 +194,7 @@ pub enum AgentRequest {
     PromptRequest(PromptRequest),
 }
 
+/// Responses the agent sends to the client
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentResponse {
@@ -225,8 +205,15 @@ pub enum AgentResponse {
     PromptResponse,
 }
 
+/// Notifications the client sends to the agent
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
-pub enum AgentNotification {
-    SessionNotification(SessionNotification),
+pub enum ClientNotification {
+    CancelledNotification(CancelledNotification),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelledNotification {
+    pub session_id: SessionId,
 }

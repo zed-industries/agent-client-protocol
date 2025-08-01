@@ -1,10 +1,12 @@
+//! Methods and notifications the client handles/receives
+
 use std::{fmt, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, SessionId, SessionNotification, ToolCall};
+use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 pub trait Client {
     fn request_permission(
@@ -26,6 +28,27 @@ pub trait Client {
         &self,
         args: SessionNotification,
     ) -> impl Future<Output = Result<(), Error>>;
+}
+
+// Session updates
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionNotification {
+    pub session_id: SessionId,
+    #[serde(flatten)]
+    pub update: SessionUpdate,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "sessionUpdate", rename_all = "camelCase")]
+pub enum SessionUpdate {
+    UserMessageChunk { content: ContentBlock },
+    AgentMessageChunk { content: ContentBlock },
+    AgentThoughtChunk { content: ContentBlock },
+    ToolCall(ToolCall),
+    ToolCallUpdate(ToolCallUpdate),
+    Plan(Plan),
 }
 
 // Permission
@@ -138,31 +161,33 @@ pub struct FileSystemCapability {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMethodNames {
     pub session_request_permission: &'static str,
-    pub session_cancelled: &'static str,
+    pub session_update: &'static str,
     pub fs_write_text_file: &'static str,
     pub fs_read_text_file: &'static str,
 }
 
 pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
+    session_update: SESSION_UPDATE_NOTIFICATION,
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
-    session_cancelled: SESSION_CANCELLED_METHOD_NAME,
     fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
 };
 
 pub const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request_permission";
-pub const SESSION_CANCELLED_METHOD_NAME: &str = "session/cancelled";
 pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 pub const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
+pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 
+/// Requests the agent sends to the client
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
-pub enum ClientRequest {
+pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
     RequestPermissionRequest(RequestPermissionRequest),
 }
 
+/// Responses the client sends to the agent
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientResponse {
@@ -171,14 +196,9 @@ pub enum ClientResponse {
     RequestPermissionResponse(RequestPermissionResponse),
 }
 
+/// Notifications the agent sends to the client
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
-pub enum ClientNotification {
-    CancelledNotification(CancelledNotification),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CancelledNotification {
-    pub session_id: SessionId,
+pub enum AgentNotification {
+    SessionNotification(SessionNotification),
 }

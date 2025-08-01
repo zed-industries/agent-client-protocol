@@ -1,17 +1,17 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
   initialize: "initialize",
+  session_cancelled: "session/cancelled",
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
-  session_update: "session/update",
 };
 
 export const CLIENT_METHODS = {
   fs_read_text_file: "fs/read_text_file",
   fs_write_text_file: "fs/write_text_file",
-  session_cancelled: "session/cancelled",
   session_request_permission: "session/request_permission",
+  session_update: "session/update",
 };
 
 export const PROTOCOL_VERSION = 1;

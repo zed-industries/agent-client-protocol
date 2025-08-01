@@ -251,7 +251,7 @@ export interface Client {
   sessionUpdate(params: schema.SessionNotification): Promise<void>;
 }
 
-export class AgentConnection {
+export class ClientSideConnection {
   #connection: Connection;
 
   constructor(
@@ -283,7 +283,7 @@ export class AgentConnection {
         },
       ],
       [
-        schema.AGENT_METHODS.session_update,
+        schema.CLIENT_METHODS.session_update,
         {
           handler: (params) => client.sessionUpdate(params),
           schema: schema.sessionNotificationSchema,
@@ -339,13 +339,13 @@ export class AgentConnection {
 
   async sendCancelled(params: schema.CancelledNotification): Promise<void> {
     return await this.#connection.sendNotification(
-      schema.CLIENT_METHODS.session_cancelled,
+      schema.AGENT_METHODS.session_cancelled,
       params,
     );
   }
 }
 
-export class ClientConnection {
+export class AgentSideConnection {
   #connection: Connection;
 
   constructor(
@@ -391,7 +391,7 @@ export class ClientConnection {
         },
       ],
       [
-        schema.CLIENT_METHODS.session_cancelled,
+        schema.AGENT_METHODS.session_cancelled,
         {
           handler: (params) => agent.cancelled(params),
           schema: schema.cancelledNotificationSchema,
@@ -431,7 +431,7 @@ export class ClientConnection {
 
   async sendSessionUpdate(params: schema.SessionNotification): Promise<void> {
     return await this.#connection.sendNotification(
-      schema.AGENT_METHODS.session_update,
+      schema.CLIENT_METHODS.session_update,
       params,
     );
   }

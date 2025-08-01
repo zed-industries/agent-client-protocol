@@ -10,10 +10,10 @@ use std::{fs, path::Path};
 #[derive(JsonSchema)]
 #[serde(untagged)]
 enum AcpTypes {
-    ClientRequest(ClientRequest),
+    ClientRequest(AgentRequest),
     ClientResponse(ClientResponse),
     ClientNotification(ClientNotification),
-    AgentRequest(AgentRequest),
+    AgentRequest(ClientRequest),
     AgentResponse(AgentResponse),
     AgentNotification(AgentNotification),
 }

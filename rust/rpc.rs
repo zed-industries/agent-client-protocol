@@ -39,7 +39,7 @@ struct PendingResponse {
 
 impl<Local, Remote> RpcConnection<Local, Remote>
 where
-    Local: Side + MessageDecoder<Local, Remote> + 'static,
+    Local: Side + 'static,
     Remote: Side + 'static,
 {
     pub fn new<Handler>(
@@ -49,7 +49,7 @@ where
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) -> (Self, impl futures::Future<Output = Result<()>>)
     where
-        Handler: MessageHandler<Local, Remote> + 'static,
+        Handler: MessageHandler<Local> + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::unbounded();
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
@@ -78,7 +78,7 @@ where
     pub fn notify(
         &self,
         method: &'static str,
-        params: Option<Local::Notification>,
+        params: Option<Remote::InNotification>,
     ) -> Result<(), Error> {
         self.outgoing_tx
             .unbounded_send(OutgoingMessage::Notification { method, params })
@@ -88,7 +88,7 @@ where
     pub fn request<Out: DeserializeOwned + Send + 'static>(
         &self,
         method: &'static str,
-        params: Option<Remote::Request>,
+        params: Option<Remote::InRequest>,
     ) -> impl Future<Output = Result<Out, Error>> {
         let (tx, rx) = oneshot::channel();
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
@@ -125,7 +125,7 @@ where
     }
 
     async fn handle_io(
-        incoming_tx: UnboundedSender<IncomingMessage<Local, Remote>>,
+        incoming_tx: UnboundedSender<IncomingMessage<Local>>,
         mut outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
@@ -214,9 +214,9 @@ where
         Ok(())
     }
 
-    fn handle_incoming<Handler: MessageHandler<Local, Remote> + 'static>(
+    fn handle_incoming<Handler: MessageHandler<Local> + 'static>(
         outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
-        mut incoming_rx: UnboundedReceiver<IncomingMessage<Local, Remote>>,
+        mut incoming_rx: UnboundedReceiver<IncomingMessage<Local>>,
         handler: Handler,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) {
@@ -270,9 +270,9 @@ struct RawIncomingMessage<'a> {
     error: Option<Error>,
 }
 
-enum IncomingMessage<Local: Side, Remote: Side> {
-    Request { id: i32, request: Local::Request },
-    Notification { notification: Remote::Notification },
+enum IncomingMessage<Local: Side> {
+    Request { id: i32, request: Local::InRequest },
+    Notification { notification: Local::InNotification },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -282,17 +282,17 @@ pub enum OutgoingMessage<Local: Side, Remote: Side> {
         id: i32,
         method: &'static str,
         #[serde(skip_serializing_if = "Option::is_none")]
-        params: Option<Remote::Request>,
+        params: Option<Remote::InRequest>,
     },
     Response {
         id: i32,
         #[serde(flatten)]
-        result: ResponseResult<Local::Response>,
+        result: ResponseResult<Local::OutResponse>,
     },
     Notification {
         method: &'static str,
         #[serde(skip_serializing_if = "Option::is_none")]
-        params: Option<Local::Notification>,
+        params: Option<Remote::InNotification>,
     },
 }
 
@@ -313,29 +313,27 @@ impl<T> From<Result<T, Error>> for ResponseResult<T> {
 }
 
 pub trait Side {
-    type Request: Serialize + DeserializeOwned + 'static;
-    type Response: Serialize + DeserializeOwned + 'static;
-    type Notification: Serialize + DeserializeOwned + 'static;
-}
+    type InRequest: Serialize + DeserializeOwned + 'static;
+    type OutResponse: Serialize + DeserializeOwned + 'static;
+    type InNotification: Serialize + DeserializeOwned + 'static;
 
-pub trait MessageDecoder<Local: Side, Remote: Side> {
-    fn decode_request(method: &str, params: Option<&RawValue>) -> Result<Local::Request, Error>;
+    fn decode_request(method: &str, params: Option<&RawValue>) -> Result<Self::InRequest, Error>;
 
     fn decode_notification(
         method: &str,
         params: Option<&RawValue>,
-    ) -> Result<Remote::Notification, Error>;
+    ) -> Result<Self::InNotification, Error>;
 }
 
-pub trait MessageHandler<Local: Side, Remote: Side> {
+pub trait MessageHandler<Local: Side> {
     fn handle_request(
         &self,
-        request: Local::Request,
-    ) -> impl Future<Output = Result<Local::Response, Error>>;
+        request: Local::InRequest,
+    ) -> impl Future<Output = Result<Local::OutResponse, Error>>;
 
     fn handle_notification(
         &self,
-        notification: Remote::Notification,
+        notification: Local::InNotification,
     ) -> impl Future<Output = Result<(), Error>>;
 }
 

@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
 
-use crate::rpc::{MessageDecoder, MessageHandler, RpcConnection, Side};
+use crate::rpc::{MessageHandler, RpcConnection, Side};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -38,21 +38,13 @@ impl fmt::Display for SessionId {
 
 // Client to Agent
 
-pub struct ClientSide;
-
-impl Side for ClientSide {
-    type Request = ClientRequest;
-    type Response = ClientResponse;
-    type Notification = ClientNotification;
-}
-
-pub struct AgentConnection {
+pub struct ClientSideConnection {
     conn: RpcConnection<ClientSide, AgentSide>,
 }
 
-impl AgentConnection {
+impl ClientSideConnection {
     pub fn new(
-        client: impl MessageHandler<ClientSide, AgentSide> + 'static,
+        client: impl MessageHandler<ClientSide> + 'static,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
@@ -62,12 +54,12 @@ impl AgentConnection {
     }
 }
 
-impl Agent for AgentConnection {
+impl Agent for ClientSideConnection {
     async fn initialize(&self, arguments: InitializeRequest) -> Result<InitializeResponse, Error> {
         self.conn
             .request(
                 INITIALIZE_METHOD_NAME,
-                Some(AgentRequest::InitializeRequest(arguments)),
+                Some(ClientRequest::InitializeRequest(arguments)),
             )
             .await
     }
@@ -76,7 +68,7 @@ impl Agent for AgentConnection {
         self.conn
             .request(
                 AUTHENTICATE_METHOD_NAME,
-                Some(AgentRequest::AuthenticateRequest(arguments)),
+                Some(ClientRequest::AuthenticateRequest(arguments)),
             )
             .await
     }
@@ -85,7 +77,7 @@ impl Agent for AgentConnection {
         self.conn
             .request(
                 SESSION_NEW_METHOD_NAME,
-                Some(AgentRequest::NewSessionRequest(arguments)),
+                Some(ClientRequest::NewSessionRequest(arguments)),
             )
             .await
     }
@@ -97,7 +89,7 @@ impl Agent for AgentConnection {
         self.conn
             .request(
                 SESSION_LOAD_METHOD_NAME,
-                Some(AgentRequest::LoadSessionRequest(arguments)),
+                Some(ClientRequest::LoadSessionRequest(arguments)),
             )
             .await
     }
@@ -106,7 +98,7 @@ impl Agent for AgentConnection {
         self.conn
             .request(
                 SESSION_PROMPT_METHOD_NAME,
-                Some(AgentRequest::PromptRequest(arguments)),
+                Some(ClientRequest::PromptRequest(arguments)),
             )
             .await
     }
@@ -119,162 +111,25 @@ impl Agent for AgentConnection {
     }
 }
 
-impl MessageDecoder<AgentSide, ClientSide> for AgentSide {
+pub struct ClientSide;
+
+impl Side for ClientSide {
+    type InNotification = AgentNotification;
+    type InRequest = AgentRequest;
+    type OutResponse = ClientResponse;
+
     fn decode_request(method: &str, params: Option<&RawValue>) -> Result<AgentRequest, Error> {
         let params = params.ok_or_else(Error::invalid_params)?;
 
         match method {
-            INITIALIZE_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::InitializeRequest)
-                .map_err(Into::into),
-            AUTHENTICATE_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::AuthenticateRequest)
-                .map_err(Into::into),
-            SESSION_NEW_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::NewSessionRequest)
-                .map_err(Into::into),
-            SESSION_LOAD_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::LoadSessionRequest)
-                .map_err(Into::into),
-            SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::PromptRequest)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
-        }
-    }
-
-    fn decode_notification(
-        method: &str,
-        params: Option<&RawValue>,
-    ) -> Result<ClientNotification, Error> {
-        let params = params.ok_or_else(Error::invalid_params)?;
-
-        match method {
-            SESSION_CANCELLED_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientNotification::CancelledNotification)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
-        }
-    }
-}
-
-impl<T: Agent> MessageHandler<AgentSide, ClientSide> for T {
-    async fn handle_request(&self, request: AgentRequest) -> Result<AgentResponse, Error> {
-        match request {
-            AgentRequest::InitializeRequest(args) => {
-                let response = self.initialize(args).await?;
-                Ok(AgentResponse::InitializeResponse(response))
-            }
-            AgentRequest::AuthenticateRequest(args) => {
-                self.authenticate(args).await?;
-                Ok(AgentResponse::AuthenticateResponse)
-            }
-            AgentRequest::NewSessionRequest(args) => {
-                let response = self.new_session(args).await?;
-                Ok(AgentResponse::NewSessionResponse(response))
-            }
-            AgentRequest::LoadSessionRequest(args) => {
-                let response = self.load_session(args).await?;
-                Ok(AgentResponse::LoadSessionResponse(response))
-            }
-            AgentRequest::PromptRequest(args) => {
-                self.prompt(args).await?;
-                Ok(AgentResponse::PromptResponse)
-            }
-        }
-    }
-
-    async fn handle_notification(&self, notification: ClientNotification) -> Result<(), Error> {
-        match notification {
-            ClientNotification::CancelledNotification(notification) => {
-                self.cancelled(notification).await?;
-            }
-        }
-        Ok(())
-    }
-}
-
-// Agent to Client
-
-pub struct AgentSide;
-
-impl Side for AgentSide {
-    type Request = AgentRequest;
-    type Response = AgentResponse;
-    type Notification = AgentNotification;
-}
-
-pub struct ClientConnection {
-    conn: RpcConnection<AgentSide, ClientSide>,
-}
-
-impl ClientConnection {
-    pub fn new(
-        agent: impl MessageHandler<AgentSide, ClientSide> + 'static,
-        outgoing_bytes: impl Unpin + AsyncWrite,
-        incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
-        let (conn, io_task) = RpcConnection::new(agent, outgoing_bytes, incoming_bytes, spawn);
-        (Self { conn }, io_task)
-    }
-}
-
-impl Client for ClientConnection {
-    async fn request_permission(
-        &self,
-        arguments: RequestPermissionRequest,
-    ) -> Result<RequestPermissionResponse, Error> {
-        self.conn
-            .request(
-                SESSION_REQUEST_PERMISSION_METHOD_NAME,
-                Some(ClientRequest::RequestPermissionRequest(arguments)),
-            )
-            .await
-    }
-
-    async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
-        self.conn
-            .request(
-                FS_WRITE_TEXT_FILE_METHOD_NAME,
-                Some(ClientRequest::WriteTextFileRequest(arguments)),
-            )
-            .await
-    }
-
-    async fn read_text_file(
-        &self,
-        arguments: ReadTextFileRequest,
-    ) -> Result<ReadTextFileResponse, Error> {
-        self.conn
-            .request(
-                FS_READ_TEXT_FILE_METHOD_NAME,
-                Some(ClientRequest::ReadTextFileRequest(arguments)),
-            )
-            .await
-    }
-
-    async fn session_notification(&self, notification: SessionNotification) -> Result<(), Error> {
-        self.conn.notify(
-            SESSION_UPDATE_NOTIFICATION,
-            Some(AgentNotification::SessionNotification(notification)),
-        )
-    }
-}
-
-impl MessageDecoder<ClientSide, AgentSide> for ClientSide {
-    fn decode_request(method: &str, params: Option<&RawValue>) -> Result<ClientRequest, Error> {
-        let params = params.ok_or_else(Error::invalid_params)?;
-
-        match method {
             SESSION_REQUEST_PERMISSION_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientRequest::RequestPermissionRequest)
+                .map(AgentRequest::RequestPermissionRequest)
                 .map_err(Into::into),
             FS_WRITE_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientRequest::WriteTextFileRequest)
+                .map(AgentRequest::WriteTextFileRequest)
                 .map_err(Into::into),
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientRequest::ReadTextFileRequest)
+                .map(AgentRequest::ReadTextFileRequest)
                 .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
@@ -295,18 +150,18 @@ impl MessageDecoder<ClientSide, AgentSide> for ClientSide {
     }
 }
 
-impl<T: Client> MessageHandler<ClientSide, AgentSide> for T {
-    async fn handle_request(&self, request: ClientRequest) -> Result<ClientResponse, Error> {
+impl<T: Client> MessageHandler<ClientSide> for T {
+    async fn handle_request(&self, request: AgentRequest) -> Result<ClientResponse, Error> {
         match request {
-            ClientRequest::RequestPermissionRequest(args) => {
+            AgentRequest::RequestPermissionRequest(args) => {
                 let response = self.request_permission(args).await?;
                 Ok(ClientResponse::RequestPermissionResponse(response))
             }
-            ClientRequest::WriteTextFileRequest(args) => {
+            AgentRequest::WriteTextFileRequest(args) => {
                 self.write_text_file(args).await?;
                 Ok(ClientResponse::WriteTextFileResponse)
             }
-            ClientRequest::ReadTextFileRequest(args) => {
+            AgentRequest::ReadTextFileRequest(args) => {
                 let response = self.read_text_file(args).await?;
                 Ok(ClientResponse::ReadTextFileResponse(response))
             }
@@ -317,6 +172,147 @@ impl<T: Client> MessageHandler<ClientSide, AgentSide> for T {
         match notification {
             AgentNotification::SessionNotification(notification) => {
                 self.session_notification(notification).await?;
+            }
+        }
+        Ok(())
+    }
+}
+
+// Agent to Client
+
+pub struct AgentSideConnection {
+    conn: RpcConnection<AgentSide, ClientSide>,
+}
+
+impl AgentSideConnection {
+    pub fn new(
+        agent: impl MessageHandler<AgentSide> + 'static,
+        outgoing_bytes: impl Unpin + AsyncWrite,
+        incoming_bytes: impl Unpin + AsyncRead,
+        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
+    ) -> (Self, impl Future<Output = Result<()>>) {
+        let (conn, io_task) = RpcConnection::new(agent, outgoing_bytes, incoming_bytes, spawn);
+        (Self { conn }, io_task)
+    }
+}
+
+impl Client for AgentSideConnection {
+    async fn request_permission(
+        &self,
+        arguments: RequestPermissionRequest,
+    ) -> Result<RequestPermissionResponse, Error> {
+        self.conn
+            .request(
+                SESSION_REQUEST_PERMISSION_METHOD_NAME,
+                Some(AgentRequest::RequestPermissionRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
+        self.conn
+            .request(
+                FS_WRITE_TEXT_FILE_METHOD_NAME,
+                Some(AgentRequest::WriteTextFileRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn read_text_file(
+        &self,
+        arguments: ReadTextFileRequest,
+    ) -> Result<ReadTextFileResponse, Error> {
+        self.conn
+            .request(
+                FS_READ_TEXT_FILE_METHOD_NAME,
+                Some(AgentRequest::ReadTextFileRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn session_notification(&self, notification: SessionNotification) -> Result<(), Error> {
+        self.conn.notify(
+            SESSION_UPDATE_NOTIFICATION,
+            Some(AgentNotification::SessionNotification(notification)),
+        )
+    }
+}
+
+pub struct AgentSide;
+
+impl Side for AgentSide {
+    type InRequest = ClientRequest;
+    type InNotification = ClientNotification;
+    type OutResponse = AgentResponse;
+
+    fn decode_request(method: &str, params: Option<&RawValue>) -> Result<ClientRequest, Error> {
+        let params = params.ok_or_else(Error::invalid_params)?;
+
+        match method {
+            INITIALIZE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::InitializeRequest)
+                .map_err(Into::into),
+            AUTHENTICATE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::AuthenticateRequest)
+                .map_err(Into::into),
+            SESSION_NEW_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::NewSessionRequest)
+                .map_err(Into::into),
+            SESSION_LOAD_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::LoadSessionRequest)
+                .map_err(Into::into),
+            SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::PromptRequest)
+                .map_err(Into::into),
+            _ => Err(Error::method_not_found()),
+        }
+    }
+
+    fn decode_notification(
+        method: &str,
+        params: Option<&RawValue>,
+    ) -> Result<ClientNotification, Error> {
+        let params = params.ok_or_else(Error::invalid_params)?;
+
+        match method {
+            SESSION_CANCELLED_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientNotification::CancelledNotification)
+                .map_err(Into::into),
+            _ => Err(Error::method_not_found()),
+        }
+    }
+}
+
+impl<T: Agent> MessageHandler<AgentSide> for T {
+    async fn handle_request(&self, request: ClientRequest) -> Result<AgentResponse, Error> {
+        match request {
+            ClientRequest::InitializeRequest(args) => {
+                let response = self.initialize(args).await?;
+                Ok(AgentResponse::InitializeResponse(response))
+            }
+            ClientRequest::AuthenticateRequest(args) => {
+                self.authenticate(args).await?;
+                Ok(AgentResponse::AuthenticateResponse)
+            }
+            ClientRequest::NewSessionRequest(args) => {
+                let response = self.new_session(args).await?;
+                Ok(AgentResponse::NewSessionResponse(response))
+            }
+            ClientRequest::LoadSessionRequest(args) => {
+                let response = self.load_session(args).await?;
+                Ok(AgentResponse::LoadSessionResponse(response))
+            }
+            ClientRequest::PromptRequest(args) => {
+                self.prompt(args).await?;
+                Ok(AgentResponse::PromptResponse)
+            }
+        }
+    }
+
+    async fn handle_notification(&self, notification: ClientNotification) -> Result<(), Error> {
+        match notification {
+            ClientNotification::CancelledNotification(notification) => {
+                self.cancelled(notification).await?;
             }
         }
         Ok(())

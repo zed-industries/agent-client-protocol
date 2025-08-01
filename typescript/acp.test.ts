@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   Agent,
-  AgentConnection,
+  ClientSideConnection,
   Client,
-  ClientConnection,
+  AgentSideConnection,
   InitializeRequest,
   InitializeResponse,
   NewSessionRequest,
@@ -82,13 +82,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = new AgentConnection(
+    const agentConnection = new ClientSideConnection(
       new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = new ClientConnection(
+    const clientConnection = new AgentSideConnection(
       new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
@@ -181,13 +181,13 @@ describe("Connection", () => {
       }
     }
 
-    new AgentConnection(
+    new ClientSideConnection(
       new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = new ClientConnection(
+    const clientConnection = new AgentSideConnection(
       new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
@@ -298,13 +298,13 @@ describe("Connection", () => {
     }
 
     // Set up connections
-    const agentConnection = new AgentConnection(
+    const agentConnection = new ClientSideConnection(
       new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = new ClientConnection(
+    const clientConnection = new AgentSideConnection(
       new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
@@ -440,13 +440,13 @@ describe("Connection", () => {
     const testAgent = new TestAgent();
 
     // Set up connections
-    const agentConnection = new AgentConnection(
+    const agentConnection = new ClientSideConnection(
       testClient,
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    const clientConnection = new ClientConnection(
+    const clientConnection = new AgentSideConnection(
       testAgent,
       agentToClient.writable,
       clientToAgent.readable,
@@ -535,13 +535,13 @@ describe("Connection", () => {
       }
     }
 
-    const agentConnection = new AgentConnection(
+    const agentConnection = new ClientSideConnection(
       new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
-    new ClientConnection(
+    new AgentSideConnection(
       new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
