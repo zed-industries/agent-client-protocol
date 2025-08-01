@@ -124,3 +124,9 @@ impl From<anyhow::Error> for Error {
         Error::into_internal_error(error.deref())
     }
 }
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Error::invalid_params().with_data(error.to_string())
+    }
+}

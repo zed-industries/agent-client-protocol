@@ -152,16 +152,16 @@ impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
         match method {
             AUTHENTICATE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::AuthenticateRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             SESSION_NEW_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::NewSessionRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             SESSION_LOAD_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::LoadSessionRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::PromptRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -176,8 +176,7 @@ impl MessageDecoder<AgentSide, ClientSide> for AgentMessageDecoder {
         match method {
             SESSION_CANCELLED_METHOD_NAME => {
                 let notification: client::CancelledNotification =
-                    serde_json::from_str(params.get())
-                        .map_err(|e| Error::invalid_params().with_data(e.to_string()))?;
+                    serde_json::from_str(params.get())?;
 
                 if let Some(callback) = &*self.on_cancel.lock() {
                     callback(notification.session_id.clone());
@@ -336,13 +335,13 @@ impl MessageDecoder<ClientSide, AgentSide> for ClientMessageDecoder {
         match method {
             SESSION_REQUEST_PERMISSION_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::RequestPermissionRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             FS_WRITE_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::WriteTextFileRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::ReadTextFileRequest)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -357,7 +356,7 @@ impl MessageDecoder<ClientSide, AgentSide> for ClientMessageDecoder {
         match method {
             SESSION_UPDATE_NOTIFICATION => serde_json::from_str(params.get())
                 .map(AgentNotification::SessionNotification)
-                .map_err(|e| Error::invalid_params().with_data(e.to_string())),
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
