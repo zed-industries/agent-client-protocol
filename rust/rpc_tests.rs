@@ -8,6 +8,7 @@ struct TestClient {
     permission_responses: Arc<Mutex<Vec<RequestPermissionOutcome>>>,
     file_contents: Arc<Mutex<std::collections::HashMap<std::path::PathBuf, String>>>,
     written_files: Arc<Mutex<Vec<(std::path::PathBuf, String)>>>,
+    session_notifications: Arc<Mutex<Vec<SessionNotification>>>,
 }
 
 impl TestClient {
@@ -16,6 +17,7 @@ impl TestClient {
             permission_responses: Arc::new(Mutex::new(vec![])),
             file_contents: Arc::new(Mutex::new(std::collections::HashMap::new())),
             written_files: Arc::new(Mutex::new(vec![])),
+            session_notifications: Arc::new(Mutex::new(vec![])),
         }
     }
 
@@ -60,12 +62,18 @@ impl Client for TestClient {
             .unwrap_or_else(|| "default content".to_string());
         Ok(ReadTextFileResponse { content })
     }
+
+    async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {
+        self.session_notifications.lock().unwrap().push(args);
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
 struct TestAgent {
     sessions: Arc<Mutex<std::collections::HashSet<SessionId>>>,
     prompts_received: Arc<Mutex<Vec<(SessionId, Vec<ContentBlock>)>>>,
+    cancellations_received: Arc<Mutex<Vec<SessionId>>>,
 }
 
 impl TestAgent {
@@ -73,6 +81,7 @@ impl TestAgent {
         Self {
             sessions: Arc::new(Mutex::new(std::collections::HashSet::new())),
             prompts_received: Arc::new(Mutex::new(vec![])),
+            cancellations_received: Arc::new(Mutex::new(vec![])),
         }
     }
 }
@@ -121,6 +130,14 @@ impl Agent for TestAgent {
             .lock()
             .unwrap()
             .push((arguments.session_id, arguments.prompt));
+        Ok(())
+    }
+
+    async fn cancelled(&self, args: CancelledNotification) -> Result<(), Error> {
+        self.cancellations_received
+            .lock()
+            .unwrap()
+            .push(args.session_id);
         Ok(())
     }
 }
@@ -255,46 +272,43 @@ async fn test_session_notifications() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (agent_conn, client_conn) = create_connection_pair(client, agent).await;
+            let (_agent_conn, client_conn) = create_connection_pair(client.clone(), agent).await;
 
-            // Set up notification handler
-            let notifications_received = Arc::new(Mutex::new(Vec::new()));
-            let notifications_clone = notifications_received.clone();
-            agent_conn.on_session_update(move |notification| {
-                notifications_clone.lock().unwrap().push(notification);
-            });
 
             let session_id = SessionId(Arc::from("test-session"));
             // Send various session updates
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::UserMessageChunk {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::UserMessageChunk {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Hello from user".to_string(),
                         }),
                     },
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::AgentMessageChunk {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::AgentMessageChunk {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Hello from agent".to_string(),
                         }),
                     },
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             tokio::task::yield_now().await;
 
-            let notifications = notifications_received.lock().unwrap();
-            assert!(!notifications.is_empty());
+            let notifications = client.session_notifications.lock().unwrap();
+            assert_eq!(notifications.len(), 2);
             assert_eq!(notifications[0].session_id, session_id);
+            assert_eq!(notifications[1].session_id, session_id);
         })
         .await;
 }
@@ -307,25 +321,21 @@ async fn test_cancel_notification() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (agent_conn, client_conn) = create_connection_pair(client, agent).await;
-
-            // Set up cancel handler
-            let cancelled_sessions = Arc::new(Mutex::new(Vec::new()));
-            let cancelled_clone = cancelled_sessions.clone();
-            client_conn.on_cancel(move |session_id| {
-                cancelled_clone.lock().unwrap().push(session_id);
-            });
+            let (agent_conn, _client_conn) = create_connection_pair(client, agent.clone()).await;
 
             let session_id = SessionId(Arc::from("test-session"));
             // Send cancel notification
             agent_conn
-                .cancel(session_id.clone())
-                .expect("cancel failed");
+                .cancelled(CancelledNotification {
+                    session_id: session_id.clone(),
+                })
+                .await
+                .expect("cancelled failed");
 
             tokio::task::yield_now().await;
 
-            let cancelled = cancelled_sessions.lock().unwrap();
-            assert!(!cancelled.is_empty());
+            let cancelled = agent.cancellations_received.lock().unwrap();
+            assert_eq!(cancelled.len(), 1);
             assert_eq!(cancelled[0], session_id);
         })
         .await;
@@ -387,14 +397,7 @@ async fn test_full_conversation_flow() {
                 option_id: PermissionOptionId(Arc::from("allow-once")),
             });
 
-            let (agent_conn, client_conn) = create_connection_pair(client, agent).await;
-
-            // Track all session updates
-            let all_updates = Arc::new(Mutex::new(Vec::new()));
-            let updates_clone = all_updates.clone();
-            agent_conn.on_session_update(move |notification| {
-                updates_clone.lock().unwrap().push(notification);
-            });
+            let (agent_conn, client_conn) = create_connection_pair(client.clone(), agent).await;
             // 1. Start new session
             let new_session_result = agent_conn
                 .new_session(NewSessionRequest {
@@ -422,23 +425,24 @@ async fn test_full_conversation_flow() {
 
             // 3. Agent starts responding
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::AgentMessageChunk {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::AgentMessageChunk {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "I'll analyze the file for you. ".to_string(),
                         }),
                     },
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             // 4. Agent creates a tool call
             let tool_call_id = ToolCallId(Arc::from("read-file-001"));
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::ToolCall(ToolCall {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::ToolCall(ToolCall {
                         id: tool_call_id.clone(),
                         label: "Reading file".to_string(),
                         kind: ToolKind::Read,
@@ -450,8 +454,9 @@ async fn test_full_conversation_flow() {
                         }],
                         raw_input: None,
                     }),
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             // 5. Agent requests permission for the tool call
             let permission_result = client_conn
@@ -495,23 +500,24 @@ async fn test_full_conversation_flow() {
 
             // 6. Update tool call status
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::ToolCallUpdate(ToolCallUpdate {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::ToolCallUpdate(ToolCallUpdate {
                         id: tool_call_id.clone(),
                         fields: ToolCallUpdateFields {
                             status: Some(ToolCallStatus::InProgress),
                             ..Default::default()
                         },
                     }),
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             // 7. Tool call completes with content
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::ToolCallUpdate(ToolCallUpdate {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::ToolCallUpdate(ToolCallUpdate {
                         id: tool_call_id.clone(),
                         fields: ToolCallUpdateFields {
                             status: Some(ToolCallStatus::Completed),
@@ -524,28 +530,30 @@ async fn test_full_conversation_flow() {
                             ..Default::default()
                         },
                     }),
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             // 8. Agent sends more text after tool completion
             client_conn
-                .send_session_update(
-                    session_id.clone(),
-                    SessionUpdate::AgentMessageChunk {
+                .session_notification(SessionNotification {
+                    session_id: session_id.clone(),
+                    update: SessionUpdate::AgentMessageChunk {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Based on the file contents, here's my summary: The file contains placeholder text commonly used in the printing industry.".to_string(),
                         }),
                     },
-                )
-                .expect("send_session_update failed");
+                })
+                .await
+                .expect("session_notification failed");
 
             for _ in 0..10 {
                 tokio::task::yield_now().await;
             }
 
             // Verify we received all the updates
-            let updates = all_updates.lock().unwrap();
+            let updates = client.session_notifications.lock().unwrap();
             assert!(updates.len() >= 5); // At least 5 updates sent
 
             // Verify the sequence of updates
@@ -554,8 +562,8 @@ async fn test_full_conversation_flow() {
             let mut found_tool_update = false;
             let mut found_final_message = false;
 
-            for update in updates.iter() {
-                match &update.update {
+            for notification in updates.iter() {
+                match &notification.update {
                     SessionUpdate::AgentMessageChunk { content } => {
                         if let ContentBlock::Text(text) = content {
                             if text.text.contains("I'll analyze") {

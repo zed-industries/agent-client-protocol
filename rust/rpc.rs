@@ -26,13 +26,7 @@ use serde_json::value::RawValue;
 
 use crate::Error;
 
-pub trait RpcSide {
-    type Request: Serialize + DeserializeOwned + 'static;
-    type Response: Serialize + DeserializeOwned + 'static;
-    type Notification: Serialize + DeserializeOwned + 'static;
-}
-
-pub struct RpcConnection<Local: RpcSide, Remote: RpcSide> {
+pub struct RpcConnection<Local: Side, Remote: Side> {
     outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
     pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
     next_id: AtomicI32,
@@ -45,18 +39,16 @@ struct PendingResponse {
 
 impl<Local, Remote> RpcConnection<Local, Remote>
 where
-    Local: RpcSide + 'static,
-    Remote: RpcSide + 'static,
+    Local: Side + MessageDecoder<Local, Remote> + 'static,
+    Remote: Side + 'static,
 {
-    pub fn new<Decoder, Handler>(
-        message_decoder: Decoder,
+    pub fn new<Handler>(
         handler: Handler,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
     ) -> (Self, impl futures::Future<Output = Result<()>>)
     where
-        Decoder: MessageDecoder<Local, Remote> + 'static,
         Handler: MessageHandler<Local, Remote> + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::unbounded();
@@ -69,7 +61,6 @@ where
             outgoing_rx,
             outgoing_bytes,
             incoming_bytes,
-            message_decoder,
             pending_responses.clone(),
         );
 
@@ -84,7 +75,7 @@ where
         (this, io_task)
     }
 
-    pub(crate) fn notify(
+    pub fn notify(
         &self,
         method: &'static str,
         params: Option<Local::Notification>,
@@ -94,7 +85,7 @@ where
             .map_err(|_| Error::internal_error().with_data("failed to send notification"))
     }
 
-    pub(crate) fn request<Out: DeserializeOwned + Send + 'static>(
+    pub fn request<Out: DeserializeOwned + Send + 'static>(
         &self,
         method: &'static str,
         params: Option<Remote::Request>,
@@ -133,12 +124,11 @@ where
         }
     }
 
-    async fn handle_io<Decoder: MessageDecoder<Local, Remote>>(
+    async fn handle_io(
         incoming_tx: UnboundedSender<IncomingMessage<Local, Remote>>,
         mut outgoing_rx: UnboundedReceiver<OutgoingMessage<Local, Remote>>,
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
-        decoder: Decoder,
         pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
     ) -> Result<()> {
         let mut input_reader = BufReader::new(incoming_bytes);
@@ -168,7 +158,7 @@ where
                             if let Some(id) = message.id {
                                 if let Some(method) = message.method {
                                     // Request
-                                    match decoder.decode_request(method, message.params) {
+                                    match Local::decode_request(method, message.params) {
                                         Ok(request) => {
                                             incoming_tx.unbounded_send(IncomingMessage::Request { id, request }).ok();
                                         }
@@ -201,7 +191,7 @@ where
                                 }
                             } else if let Some(method) = message.method {
                                 // Notification
-                                match decoder.decode_notification(method, message.params) {
+                                match Local::decode_notification(method, message.params) {
                                     Ok(notification) => {
                                         incoming_tx.unbounded_send(IncomingMessage::Notification { notification }).ok();
                                     }
@@ -280,14 +270,14 @@ struct RawIncomingMessage<'a> {
     error: Option<Error>,
 }
 
-enum IncomingMessage<Local: RpcSide, Remote: RpcSide> {
+enum IncomingMessage<Local: Side, Remote: Side> {
     Request { id: i32, request: Local::Request },
     Notification { notification: Remote::Notification },
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum OutgoingMessage<Local: RpcSide, Remote: RpcSide> {
+pub enum OutgoingMessage<Local: Side, Remote: Side> {
     Request {
         id: i32,
         method: &'static str,
@@ -322,21 +312,22 @@ impl<T> From<Result<T, Error>> for ResponseResult<T> {
     }
 }
 
-pub trait MessageDecoder<Local: RpcSide, Remote: RpcSide> {
-    fn decode_request(
-        &self,
-        method: &str,
-        params: Option<&RawValue>,
-    ) -> Result<Local::Request, Error>;
+pub trait Side {
+    type Request: Serialize + DeserializeOwned + 'static;
+    type Response: Serialize + DeserializeOwned + 'static;
+    type Notification: Serialize + DeserializeOwned + 'static;
+}
+
+pub trait MessageDecoder<Local: Side, Remote: Side> {
+    fn decode_request(method: &str, params: Option<&RawValue>) -> Result<Local::Request, Error>;
 
     fn decode_notification(
-        &self,
         method: &str,
         params: Option<&RawValue>,
     ) -> Result<Remote::Notification, Error>;
 }
 
-pub trait MessageHandler<Local: RpcSide, Remote: RpcSide> {
+pub trait MessageHandler<Local: Side, Remote: Side> {
     fn handle_request(
         &self,
         request: Local::Request,

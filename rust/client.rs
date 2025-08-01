@@ -4,7 +4,7 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, SessionId, ToolCall};
+use crate::{Error, SessionId, SessionNotification, ToolCall};
 
 pub trait Client {
     fn request_permission(
@@ -21,6 +21,11 @@ pub trait Client {
         &self,
         args: ReadTextFileRequest,
     ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
+
+    fn session_notification(
+        &self,
+        args: SessionNotification,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Permission

@@ -5,8 +5,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ClientCapabilities, ContentBlock, Error, Plan, ProtocolVersion, SessionId, ToolCall,
-    ToolCallUpdate,
+    CancelledNotification, ClientCapabilities, ContentBlock, Error, Plan, ProtocolVersion,
+    SessionId, ToolCall, ToolCallUpdate,
 };
 
 pub trait Agent {
@@ -31,6 +31,8 @@ pub trait Agent {
     ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
 
     fn prompt(&self, arguments: PromptRequest) -> impl Future<Output = Result<(), Error>>;
+
+    fn cancelled(&self, args: CancelledNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
