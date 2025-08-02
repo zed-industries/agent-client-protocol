@@ -72,9 +72,11 @@ impl Client for TestClient {
 #[derive(Clone)]
 struct TestAgent {
     sessions: Arc<Mutex<std::collections::HashSet<SessionId>>>,
-    prompts_received: Arc<Mutex<Vec<(SessionId, Vec<ContentBlock>)>>>,
+    prompts_received: Arc<Mutex<Vec<PromptReceived>>>,
     cancellations_received: Arc<Mutex<Vec<SessionId>>>,
 }
+
+type PromptReceived = (SessionId, Vec<ContentBlock>);
 
 impl TestAgent {
     fn new() -> Self {
@@ -350,8 +352,8 @@ async fn test_concurrent_operations() {
 
             // Add multiple file contents
             for i in 0..5 {
-                let path = std::path::PathBuf::from(format!("/test/file{}.txt", i));
-                client.add_file_content(path, format!("Content {}", i));
+                let path = std::path::PathBuf::from(format!("/test/file{i}.txt"));
+                client.add_file_content(path, format!("Content {i}"));
             }
 
             let (_agent_conn, client_conn) = create_connection_pair(client.clone(), agent).await;
@@ -361,7 +363,7 @@ async fn test_concurrent_operations() {
             // Launch multiple concurrent read operations
             let mut read_futures = vec![];
             for i in 0..5 {
-                let path = std::path::PathBuf::from(format!("/test/file{}.txt", i));
+                let path = std::path::PathBuf::from(format!("/test/file{i}.txt"));
                 let future = client_conn.read_text_file(ReadTextFileRequest {
                     session_id: session_id.clone(),
                     path,
@@ -377,7 +379,7 @@ async fn test_concurrent_operations() {
             // Verify all reads succeeded
             for (i, result) in results.into_iter().enumerate() {
                 let output = result.expect("read failed");
-                assert_eq!(output.content, format!("Content {}", i));
+                assert_eq!(output.content, format!("Content {i}"));
             }
         })
         .await;
@@ -563,13 +565,11 @@ async fn test_full_conversation_flow() {
 
             for notification in updates.iter() {
                 match &notification.update {
-                    SessionUpdate::AgentMessageChunk { content } => {
-                        if let ContentBlock::Text(text) = content {
-                            if text.text.contains("I'll analyze") {
-                                found_agent_message = true;
-                            } else if text.text.contains("Based on the file") {
-                                found_final_message = true;
-                            }
+                    SessionUpdate::AgentMessageChunk { content : ContentBlock::Text(text)} => {
+                        if text.text.contains("I'll analyze") {
+                            found_agent_message = true;
+                        } else if text.text.contains("Based on the file") {
+                            found_final_message = true;
                         }
                     }
                     SessionUpdate::ToolCall(_) => {

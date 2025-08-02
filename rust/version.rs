@@ -71,7 +71,6 @@ impl<'de> Deserialize<'de> for ProtocolVersion {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_deserialize_u64() {
