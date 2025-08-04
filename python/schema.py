@@ -78,7 +78,7 @@ ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 ClientResponse = 'WriteTextFileResponse | ReadTextFileResponse | RequestPermissionResponse'
 
-WriteTextFileResponse = None
+WriteTextFileResponse = type[None]
 
 class RequestPermissionOutcome_0(TypedDict):
     outcome: Literal["cancelled"]
@@ -93,11 +93,11 @@ AgentRequest = 'InitializeRequest | AuthenticateRequest | NewSessionRequest | Lo
 
 AgentResponse = 'InitializeResponse | AuthenticateResponse | NewSessionResponse | LoadSessionResponse | PromptResponse'
 
-AuthenticateResponse = None
+AuthenticateResponse = type[None]
 
-LoadSessionResponse = None
+LoadSessionResponse = type[None]
 
-PromptResponse = None
+PromptResponse = type[None]
 
 AgentNotification = 'SessionNotification'
 
