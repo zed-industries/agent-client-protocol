@@ -1,0 +1,12 @@
+[project]
+name = "agent-client-protocol"
+version = "0.0.18"
+description = "A protocol for standardizing communication between code editors and AI coding agents"
+readme = "README.md"
+requires-python = ">=3.13"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.403",
+    "ts2python>=0.7.6",
+]

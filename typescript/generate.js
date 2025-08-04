@@ -12,6 +12,8 @@ const tsSrc = await compile(jsonSchema, "Agent Client Protocol", {
   bannerComment: false,
 });
 
+fs.writeFileSync("typescript/raw-schema.d.ts", tsSrc, "utf8");
+
 const zodGenerator = generate({ sourceText: tsSrc, bannerComment: false });
 const zodSchemas = zodGenerator.getZodSchemasFile();
 const zodInfer = zodGenerator.getInferredTypes("./zod");
