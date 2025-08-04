@@ -797,12 +797,12 @@
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "kind": {
+            "sessionUpdate": {
               "const": "userMessageChunk",
               "type": "string"
             }
           },
-          "required": ["kind", "content"],
+          "required": ["sessionUpdate", "content"],
           "type": "object"
         },
         {
@@ -810,12 +810,12 @@
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "kind": {
+            "sessionUpdate": {
               "const": "agentMessageChunk",
               "type": "string"
             }
           },
-          "required": ["kind", "content"],
+          "required": ["sessionUpdate", "content"],
           "type": "object"
         },
         {
@@ -823,12 +823,12 @@
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "kind": {
+            "sessionUpdate": {
               "const": "agentThoughtChunk",
               "type": "string"
             }
           },
-          "required": ["kind", "content"],
+          "required": ["sessionUpdate", "content"],
           "type": "object"
         },
         {
@@ -852,6 +852,10 @@
               "type": "array"
             },
             "rawInput": true,
+            "sessionUpdate": {
+              "const": "toolCall",
+              "type": "string"
+            },
             "status": {
               "$ref": "#/$defs/ToolCallStatus"
             },
@@ -859,7 +863,13 @@
               "type": "string"
             }
           },
-          "required": ["kind", "toolCallId", "label", "status"],
+          "required": [
+            "sessionUpdate",
+            "toolCallId",
+            "label",
+            "kind",
+            "status"
+          ],
           "type": "object"
         },
         {
@@ -890,6 +900,10 @@
               "type": ["array", "null"]
             },
             "rawInput": true,
+            "sessionUpdate": {
+              "const": "toolCallUpdate",
+              "type": "string"
+            },
             "status": {
               "anyOf": [
                 {
@@ -904,7 +918,7 @@
               "type": "string"
             }
           },
-          "required": ["kind", "toolCallId"],
+          "required": ["sessionUpdate", "toolCallId"],
           "type": "object"
         },
         {
@@ -915,12 +929,12 @@
               },
               "type": "array"
             },
-            "kind": {
+            "sessionUpdate": {
               "const": "plan",
               "type": "string"
             }
           },
-          "required": ["kind", "entries"],
+          "required": ["sessionUpdate", "entries"],
           "type": "object"
         }
       ]

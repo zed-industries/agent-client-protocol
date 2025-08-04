@@ -368,15 +368,15 @@ export const promptRequestSchema = z.object({
 export const sessionUpdateSchema = z.union([
   z.object({
     content: contentBlockSchema,
-    kind: z.literal("userMessageChunk"),
+    sessionUpdate: z.literal("userMessageChunk"),
   }),
   z.object({
     content: contentBlockSchema,
-    kind: z.literal("agentMessageChunk"),
+    sessionUpdate: z.literal("agentMessageChunk"),
   }),
   z.object({
     content: contentBlockSchema,
-    kind: z.literal("agentThoughtChunk"),
+    sessionUpdate: z.literal("agentThoughtChunk"),
   }),
   z.object({
     content: z.array(toolCallContentSchema).optional(),
@@ -384,21 +384,23 @@ export const sessionUpdateSchema = z.union([
     label: z.string(),
     locations: z.array(toolCallLocationSchema).optional(),
     rawInput: z.unknown().optional(),
+    sessionUpdate: z.literal("toolCall"),
     status: toolCallStatusSchema,
     toolCallId: z.string(),
   }),
   z.object({
     content: z.array(toolCallContentSchema).optional().nullable(),
-    kind: toolKindSchema.nullable(),
+    kind: toolKindSchema.optional().nullable(),
     label: z.string().optional().nullable(),
     locations: z.array(toolCallLocationSchema).optional().nullable(),
     rawInput: z.unknown().optional(),
+    sessionUpdate: z.literal("toolCallUpdate"),
     status: toolCallStatusSchema.optional().nullable(),
     toolCallId: z.string(),
   }),
   z.object({
     entries: z.array(planEntrySchema),
-    kind: z.literal("plan"),
+    sessionUpdate: z.literal("plan"),
   }),
 ]);
 
