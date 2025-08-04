@@ -1,13 +1,15 @@
 use schemars::JsonSchema;
 use serde::Serialize;
 
-pub const VERSION: ProtocolVersion = ProtocolVersion(1);
+pub const V0: ProtocolVersion = ProtocolVersion(0);
+pub const V1: ProtocolVersion = ProtocolVersion(1);
+pub const VERSION: ProtocolVersion = V1;
 
 /// Protocol version identifier.
 ///
 /// This version is only bumped for breaking changes.
 /// Non-breaking changes should be introduced via capabilities.
-#[derive(Default, Debug, Clone, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtocolVersion(u16);
 
 impl ProtocolVersion {
