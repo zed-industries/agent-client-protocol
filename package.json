@@ -29,7 +29,7 @@
     "example": "examples"
   },
   "scripts": {
-    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo && cargo clean",
+    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo python/__pycache__ && cargo clean && uv clean",
     "test": "cargo test && vitest run",
     "test:ts": "vitest run",
     "test:ts:watch": "vitest",
