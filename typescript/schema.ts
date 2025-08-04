@@ -1,7 +1,7 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
   initialize: "initialize",
-  session_cancelled: "session/cancelled",
+  session_cancel: "session/cancel",
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
@@ -42,13 +42,15 @@ export type RequestPermissionOutcome = z.infer<
   typeof requestPermissionOutcomeSchema
 >;
 
-export type CancelledNotification = z.infer<typeof cancelledNotificationSchema>;
+export type CancelNotification = z.infer<typeof cancelNotificationSchema>;
 
 export type AuthenticateRequest = z.infer<typeof authenticateRequestSchema>;
 
 export type AuthenticateResponse = z.infer<typeof authenticateResponseSchema>;
 
 export type NewSessionResponse = z.infer<typeof newSessionResponseSchema>;
+
+export type LoadSessionResponse = z.infer<typeof loadSessionResponseSchema>;
 
 export type PromptResponse = z.infer<typeof promptResponseSchema>;
 
@@ -73,8 +75,6 @@ export type McpServer = z.infer<typeof mcpServerSchema>;
 export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
 
 export type AuthMethod = z.infer<typeof authMethodSchema>;
-
-export type LoadSessionResponse = z.infer<typeof loadSessionResponseSchema>;
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
@@ -134,10 +134,10 @@ export const readTextFileRequestSchema = z.object({
 });
 
 export const permissionOptionKindSchema = z.union([
-  z.literal("allowOnce"),
-  z.literal("allowAlways"),
-  z.literal("rejectOnce"),
-  z.literal("rejectAlways"),
+  z.literal("allow_once"),
+  z.literal("allow_always"),
+  z.literal("reject_once"),
+  z.literal("reject_always"),
 ]);
 
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
@@ -168,7 +168,7 @@ export const toolKindSchema = z.union([
 
 export const toolCallStatusSchema = z.union([
   z.literal("pending"),
-  z.literal("inProgress"),
+  z.literal("in_progress"),
   z.literal("completed"),
   z.literal("failed"),
 ]);
@@ -189,7 +189,7 @@ export const requestPermissionOutcomeSchema = z.union([
   }),
 ]);
 
-export const cancelledNotificationSchema = z.object({
+export const cancelNotificationSchema = z.object({
   sessionId: z.string(),
 });
 
@@ -200,8 +200,10 @@ export const authenticateRequestSchema = z.object({
 export const authenticateResponseSchema = z.null();
 
 export const newSessionResponseSchema = z.object({
-  sessionId: z.string().nullable(),
+  sessionId: z.string(),
 });
+
+export const loadSessionResponseSchema = z.null();
 
 export const promptResponseSchema = z.null();
 
@@ -222,7 +224,7 @@ export const planEntrySchema = z.object({
 
 export const permissionOptionSchema = z.object({
   kind: permissionOptionKindSchema,
-  label: z.string(),
+  name: z.string(),
   optionId: z.string(),
 });
 
@@ -260,12 +262,7 @@ export const agentCapabilitiesSchema = z.object({
 export const authMethodSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
-  label: z.string(),
-});
-
-export const loadSessionResponseSchema = z.object({
-  authMethods: z.array(authMethodSchema),
-  authRequired: z.boolean(),
+  name: z.string(),
 });
 
 export const clientResponseSchema = z.union([
@@ -274,7 +271,7 @@ export const clientResponseSchema = z.union([
   requestPermissionResponseSchema,
 ]);
 
-export const clientNotificationSchema = cancelledNotificationSchema;
+export const clientNotificationSchema = cancelNotificationSchema;
 
 export const embeddedResourceResourceSchema = z.union([
   textResourceContentsSchema,
@@ -349,10 +346,10 @@ export const toolCallContentSchema = z.union([
 export const toolCallSchema = z.object({
   content: z.array(toolCallContentSchema).optional(),
   kind: toolKindSchema,
-  label: z.string(),
   locations: z.array(toolCallLocationSchema).optional(),
   rawInput: z.unknown().optional(),
   status: toolCallStatusSchema,
+  title: z.string(),
   toolCallId: z.string(),
 });
 
@@ -368,34 +365,34 @@ export const promptRequestSchema = z.object({
 export const sessionUpdateSchema = z.union([
   z.object({
     content: contentBlockSchema,
-    sessionUpdate: z.literal("userMessageChunk"),
+    sessionUpdate: z.literal("user_message_chunk"),
   }),
   z.object({
     content: contentBlockSchema,
-    sessionUpdate: z.literal("agentMessageChunk"),
+    sessionUpdate: z.literal("agent_message_chunk"),
   }),
   z.object({
     content: contentBlockSchema,
-    sessionUpdate: z.literal("agentThoughtChunk"),
+    sessionUpdate: z.literal("agent_thought_chunk"),
   }),
   z.object({
     content: z.array(toolCallContentSchema).optional(),
     kind: toolKindSchema,
-    label: z.string(),
     locations: z.array(toolCallLocationSchema).optional(),
     rawInput: z.unknown().optional(),
-    sessionUpdate: z.literal("toolCall"),
+    sessionUpdate: z.literal("tool_call"),
     status: toolCallStatusSchema,
+    title: z.string(),
     toolCallId: z.string(),
   }),
   z.object({
     content: z.array(toolCallContentSchema).optional().nullable(),
     kind: toolKindSchema.optional().nullable(),
-    label: z.string().optional().nullable(),
     locations: z.array(toolCallLocationSchema).optional().nullable(),
     rawInput: z.unknown().optional(),
-    sessionUpdate: z.literal("toolCallUpdate"),
+    sessionUpdate: z.literal("tool_call_update"),
     status: toolCallStatusSchema.optional().nullable(),
+    title: z.string().optional().nullable(),
     toolCallId: z.string(),
   }),
   z.object({

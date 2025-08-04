@@ -10,7 +10,7 @@ use crate::ContentBlock;
 pub struct ToolCall {
     #[serde(rename = "toolCallId")]
     pub id: ToolCallId,
-    pub label: String,
+    pub title: String,
     pub kind: ToolKind,
     pub status: ToolCallStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -38,7 +38,7 @@ pub struct ToolCallUpdateFields {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<ToolCallStatus>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
+    pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content: Option<Vec<ToolCallContent>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -52,7 +52,7 @@ pub struct ToolCallUpdateFields {
 pub struct ToolCallId(pub Arc<str>);
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum ToolKind {
     Read,
     Edit,
@@ -66,7 +66,7 @@ pub enum ToolKind {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
     /// The tool call is currently running
     Pending,
@@ -79,7 +79,7 @@ pub enum ToolCallStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum ToolCallContent {
     Content {
         content: ContentBlock,

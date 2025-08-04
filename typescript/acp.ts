@@ -1,7 +1,195 @@
 import { z } from "zod";
 import * as schema from "./schema.js";
-
 export * from "./schema.js";
+
+import { WritableStream, ReadableStream } from "node:stream/web";
+
+export class AgentSideConnection implements Client {
+  #connection: Connection;
+
+  constructor(
+    toAgent: (conn: AgentSideConnection) => Agent,
+    input: WritableStream<Uint8Array>,
+    output: ReadableStream<Uint8Array>,
+  ) {
+    const agent = toAgent(this);
+
+    const handler = async (
+      method: string,
+      params: unknown,
+    ): Promise<unknown> => {
+      switch (method) {
+        case schema.AGENT_METHODS.initialize: {
+          const validatedParams = schema.initializeRequestSchema.parse(params);
+          return agent.initialize(validatedParams);
+        }
+        case schema.AGENT_METHODS.session_new: {
+          const validatedParams = schema.newSessionRequestSchema.parse(params);
+          return agent.newSession(validatedParams);
+        }
+        case schema.AGENT_METHODS.session_load: {
+          if (!agent.loadSession) {
+            throw RequestError.methodNotFound();
+          }
+          const validatedParams = schema.loadSessionRequestSchema.parse(params);
+          return agent.loadSession(validatedParams);
+        }
+        case schema.AGENT_METHODS.authenticate: {
+          const validatedParams =
+            schema.authenticateRequestSchema.parse(params);
+          return agent.authenticate(validatedParams);
+        }
+        case schema.AGENT_METHODS.session_prompt: {
+          const validatedParams = schema.promptRequestSchema.parse(params);
+          return agent.prompt(validatedParams);
+        }
+        case schema.AGENT_METHODS.session_cancel: {
+          const validatedParams = schema.cancelNotificationSchema.parse(params);
+          return agent.cancel(validatedParams);
+        }
+        default:
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(handler, input, output);
+  }
+
+  /**
+   * Streams new content to the client including text, tool calls, etc.
+   */
+  async sessionUpdate(params: schema.SessionNotification): Promise<void> {
+    return await this.#connection.sendNotification(
+      schema.CLIENT_METHODS.session_update,
+      params,
+    );
+  }
+
+  /**
+   * Request permission before running a tool
+   *
+   * The agent specifies a series of permission options with different granularity,
+   * and the client returns the chosen one.
+   */
+  async requestPermission(
+    params: schema.RequestPermissionRequest,
+  ): Promise<schema.RequestPermissionResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.session_request_permission,
+      params,
+    );
+  }
+
+  async readTextFile(
+    params: schema.ReadTextFileRequest,
+  ): Promise<schema.ReadTextFileResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.fs_read_text_file,
+      params,
+    );
+  }
+
+  async writeTextFile(
+    params: schema.WriteTextFileRequest,
+  ): Promise<schema.WriteTextFileResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.fs_write_text_file,
+      params,
+    );
+  }
+}
+
+export class ClientSideConnection implements Agent {
+  #connection: Connection;
+
+  constructor(
+    toClient: (agent: Agent) => Client,
+    input: WritableStream<Uint8Array>,
+    output: ReadableStream<Uint8Array>,
+  ) {
+    const handler = async (
+      method: string,
+      params: unknown,
+    ): Promise<unknown> => {
+      const client = toClient(this);
+
+      switch (method) {
+        case schema.CLIENT_METHODS.fs_write_text_file: {
+          const validatedParams =
+            schema.writeTextFileRequestSchema.parse(params);
+          return client.writeTextFile(validatedParams);
+        }
+        case schema.CLIENT_METHODS.fs_read_text_file: {
+          const validatedParams =
+            schema.readTextFileRequestSchema.parse(params);
+          return client.readTextFile(validatedParams);
+        }
+        case schema.CLIENT_METHODS.session_request_permission: {
+          const validatedParams =
+            schema.requestPermissionRequestSchema.parse(params);
+          return client.requestPermission(validatedParams);
+        }
+        case schema.CLIENT_METHODS.session_update: {
+          const validatedParams =
+            schema.sessionNotificationSchema.parse(params);
+          return client.sessionUpdate(validatedParams);
+        }
+        default:
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(handler, input, output);
+  }
+
+  async initialize(
+    params: schema.InitializeRequest,
+  ): Promise<schema.InitializeResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.initialize,
+      params,
+    );
+  }
+
+  async newSession(
+    params: schema.NewSessionRequest,
+  ): Promise<schema.NewSessionResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_new,
+      params,
+    );
+  }
+
+  async loadSession(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_load,
+      params,
+    );
+  }
+
+  async authenticate(params: schema.AuthenticateRequest): Promise<void> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.authenticate,
+      params,
+    );
+  }
+
+  async prompt(params: schema.PromptRequest): Promise<void> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_prompt,
+      params,
+    );
+  }
+
+  async cancel(params: schema.CancelNotification): Promise<void> {
+    return await this.#connection.sendNotification(
+      schema.AGENT_METHODS.session_cancel,
+      params,
+    );
+  }
+}
 
 type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
 
@@ -42,65 +230,50 @@ type PendingResponse = {
   reject: (error: ErrorResponse) => void;
 };
 
-type MethodConfig = {
-  handler: (params: any) => Promise<any>;
-  schema?: z.ZodType<any>;
-};
+type MethodHandler = (method: string, params: unknown) => Promise<unknown>;
 
 class Connection {
   #pendingResponses: Map<string | number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
-  #methods: Map<string, MethodConfig>;
+  #handler: MethodHandler;
   #peerInput: WritableStream<Uint8Array>;
   #writeQueue: Promise<void> = Promise.resolve();
   #textEncoder: TextEncoder;
 
   constructor(
-    methods: Map<string, MethodConfig>,
+    handler: MethodHandler,
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
+    this.#handler = handler;
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
-    this.#methods = methods;
     this.#receive(peerOutput);
   }
 
   async #receive(output: ReadableStream<Uint8Array>) {
     let content = "";
     const decoder = new TextDecoder();
-    const reader = output.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = value;
-        content += decoder.decode(chunk, { stream: true });
-        const lines = content.split("\n");
-        content = lines.pop() || "";
+    for await (const chunk of output) {
+      content += decoder.decode(chunk, { stream: true });
+      const lines = content.split("\n");
+      content = lines.pop() || "";
 
-        for (const line of lines) {
-          const trimmedLine = line.trim();
+      for (const line of lines) {
+        const trimmedLine = line.trim();
 
-          if (trimmedLine) {
-            try {
-              const message = JSON.parse(trimmedLine);
-              await this.#processMessage(message);
-            } catch (error) {
-              console.error("Failed to parse message:", error);
-            }
-          }
+        if (trimmedLine) {
+          const message = JSON.parse(trimmedLine);
+          this.#processMessage(message);
         }
       }
-    } finally {
-      reader.releaseLock();
     }
   }
 
   async #processMessage(message: AnyMessage) {
     if ("method" in message && "id" in message) {
       // It's a request
-      let response = await this.#tryCallDelegateMethod(
+      const response = await this.#tryCallHandler(
         message.method,
         message.params,
       );
@@ -110,49 +283,31 @@ class Connection {
         id: message.id,
         ...response,
       });
-    } else if ("method" in message && !("id" in message)) {
+    } else if ("method" in message) {
       // It's a notification
-      await this.#tryCallDelegateMethod(message.method, message.params);
+      await this.#tryCallHandler(message.method, message.params);
     } else if ("id" in message) {
       // It's a response
       this.#handleResponse(message as AnyResponse);
     }
   }
 
-  async #tryCallDelegateMethod(
+  async #tryCallHandler(
     method: string,
     params?: unknown,
   ): Promise<Result<unknown>> {
-    const methodConfig = this.#methods.get(method);
-    if (!methodConfig) {
-      return {
-        error: { code: -32601, message: `Method not found - '${method}'` },
-      };
-    }
-
     try {
-      let validatedParams = params;
-
-      // Validate params if we have a schema for this method
-      if (methodConfig.schema) {
-        const parseResult = methodConfig.schema.safeParse(params);
-        if (!parseResult.success) {
-          return {
-            error: {
-              code: -32602,
-              message: "Invalid params",
-              data: parseResult.error.format(),
-            },
-          };
-        }
-        validatedParams = parseResult.data;
-      }
-
-      const result = await methodConfig.handler(validatedParams);
+      const result = await this.#handler(method, params);
       return { result: result ?? null };
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();
+      }
+
+      if (error instanceof z.ZodError) {
+        return RequestError.invalidParams(
+          JSON.stringify(error.format(), undefined, 2),
+        ).toResult();
       }
 
       let details;
@@ -178,12 +333,7 @@ class Connection {
       if ("result" in response) {
         pendingResponse.resolve(response.result);
       } else if ("error" in response) {
-        const error = new RequestError(
-          response.error.code,
-          response.error.message,
-          response.error.data,
-        );
-        pendingResponse.reject(error);
+        pendingResponse.reject(response.error);
       }
       this.#pendingResponses.delete(response.id);
     }
@@ -221,275 +371,43 @@ class Connection {
   }
 }
 
-export interface Agent {
-  initialize(
-    params: schema.InitializeRequest,
-  ): Promise<schema.InitializeResponse>;
-  newSession(
-    params: schema.NewSessionRequest,
-  ): Promise<schema.NewSessionResponse>;
-  loadSession(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse>;
-  authenticate(
-    params: schema.AuthenticateRequest,
-  ): Promise<schema.AuthenticateResponse>;
-  prompt(params: schema.PromptRequest): Promise<schema.PromptResponse>;
-  cancelled(params: schema.CancelledNotification): Promise<void>;
-}
-
-export interface Client {
-  writeTextFile(
-    params: schema.WriteTextFileRequest,
-  ): Promise<schema.WriteTextFileResponse>;
-  readTextFile(
-    params: schema.ReadTextFileRequest,
-  ): Promise<schema.ReadTextFileResponse>;
-  requestPermission(
-    params: schema.RequestPermissionRequest,
-  ): Promise<schema.RequestPermissionResponse>;
-  sessionUpdate(params: schema.SessionNotification): Promise<void>;
-}
-
-export class ClientSideConnection {
-  #connection: Connection;
-
-  constructor(
-    client: Client,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
-  ) {
-    // Create method configuration map for client methods
-    const methods = new Map<string, MethodConfig>([
-      [
-        schema.CLIENT_METHODS.fs_write_text_file,
-        {
-          handler: (params) => client.writeTextFile(params),
-          schema: schema.writeTextFileRequestSchema,
-        },
-      ],
-      [
-        schema.CLIENT_METHODS.fs_read_text_file,
-        {
-          handler: (params) => client.readTextFile(params),
-          schema: schema.readTextFileRequestSchema,
-        },
-      ],
-      [
-        schema.CLIENT_METHODS.session_request_permission,
-        {
-          handler: (params) => client.requestPermission(params),
-          schema: schema.requestPermissionRequestSchema,
-        },
-      ],
-      [
-        schema.CLIENT_METHODS.session_update,
-        {
-          handler: (params) => client.sessionUpdate(params),
-          schema: schema.sessionNotificationSchema,
-        },
-      ],
-    ]);
-
-    this.#connection = new Connection(methods, input, output);
-  }
-
-  async initialize(
-    params: schema.InitializeRequest,
-  ): Promise<schema.InitializeResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.initialize,
-      params,
-    );
-  }
-
-  async newSession(
-    params: schema.NewSessionRequest,
-  ): Promise<schema.NewSessionResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_new,
-      params,
-    );
-  }
-
-  async loadSession(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_load,
-      params,
-    );
-  }
-
-  async authenticate(
-    params: schema.AuthenticateRequest,
-  ): Promise<schema.AuthenticateResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.authenticate,
-      params,
-    );
-  }
-
-  async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_prompt,
-      params,
-    );
-  }
-
-  async sendCancelled(params: schema.CancelledNotification): Promise<void> {
-    return await this.#connection.sendNotification(
-      schema.AGENT_METHODS.session_cancelled,
-      params,
-    );
-  }
-}
-
-export class AgentSideConnection {
-  #connection: Connection;
-
-  constructor(
-    agent: Agent,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
-  ) {
-    // Create method configuration map for agent methods
-    const methods = new Map<string, MethodConfig>([
-      [
-        schema.AGENT_METHODS.initialize,
-        {
-          handler: (params) => agent.initialize(params),
-          schema: schema.initializeRequestSchema,
-        },
-      ],
-      [
-        schema.AGENT_METHODS.session_new,
-        {
-          handler: (params) => agent.newSession(params),
-          schema: schema.newSessionRequestSchema,
-        },
-      ],
-      [
-        schema.AGENT_METHODS.session_load,
-        {
-          handler: (params) => agent.loadSession(params),
-          schema: schema.loadSessionRequestSchema,
-        },
-      ],
-      [
-        schema.AGENT_METHODS.authenticate,
-        {
-          handler: (params) => agent.authenticate(params),
-          schema: schema.authenticateRequestSchema,
-        },
-      ],
-      [
-        schema.AGENT_METHODS.session_prompt,
-        {
-          handler: (params) => agent.prompt(params),
-          schema: schema.promptRequestSchema,
-        },
-      ],
-      [
-        schema.AGENT_METHODS.session_cancelled,
-        {
-          handler: (params) => agent.cancelled(params),
-          schema: schema.cancelledNotificationSchema,
-        },
-      ],
-    ]);
-
-    this.#connection = new Connection(methods, input, output);
-  }
-
-  async writeTextFile(
-    params: schema.WriteTextFileRequest,
-  ): Promise<schema.WriteTextFileResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.fs_write_text_file,
-      params,
-    );
-  }
-
-  async readTextFile(
-    params: schema.ReadTextFileRequest,
-  ): Promise<schema.ReadTextFileResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.fs_read_text_file,
-      params,
-    );
-  }
-
-  async requestPermission(
-    params: schema.RequestPermissionRequest,
-  ): Promise<schema.RequestPermissionResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.session_request_permission,
-      params,
-    );
-  }
-
-  async sendSessionUpdate(params: schema.SessionNotification): Promise<void> {
-    return await this.#connection.sendNotification(
-      schema.CLIENT_METHODS.session_update,
-      params,
-    );
-  }
-}
-
 export class RequestError extends Error {
-  data?: unknown;
+  data?: { details?: string };
 
   constructor(
     public code: number,
     message: string,
-    data?: unknown,
+    details?: string,
   ) {
     super(message);
     this.name = "RequestError";
-    if (data !== undefined) {
-      this.data = data;
+    if (details) {
+      this.data = { details };
     }
   }
 
   static parseError(details?: string): RequestError {
-    return new RequestError(
-      -32700,
-      "Parse error",
-      details ? { details } : undefined,
-    );
+    return new RequestError(-32700, "Parse error", details);
   }
 
   static invalidRequest(details?: string): RequestError {
-    return new RequestError(
-      -32600,
-      "Invalid request",
-      details ? { details } : undefined,
-    );
+    return new RequestError(-32600, "Invalid request", details);
   }
 
   static methodNotFound(details?: string): RequestError {
-    return new RequestError(
-      -32601,
-      "Method not found",
-      details ? { details } : undefined,
-    );
+    return new RequestError(-32601, "Method not found", details);
   }
 
   static invalidParams(details?: string): RequestError {
-    return new RequestError(
-      -32602,
-      "Invalid params",
-      details ? { details } : undefined,
-    );
+    return new RequestError(-32602, "Invalid params", details);
   }
 
   static internalError(details?: string): RequestError {
-    return new RequestError(
-      -32603,
-      "Internal error",
-      details ? { details } : undefined,
-    );
+    return new RequestError(-32603, "Internal error", details);
+  }
+
+  static authRequired(details?: string): RequestError {
+    return new RequestError(-32000, "Authentication required", details);
   }
 
   toResult<T>(): Result<T> {
@@ -501,4 +419,32 @@ export class RequestError extends Error {
       },
     };
   }
+}
+
+export interface Client {
+  requestPermission(
+    params: schema.RequestPermissionRequest,
+  ): Promise<schema.RequestPermissionResponse>;
+  sessionUpdate(params: schema.SessionNotification): Promise<void>;
+  writeTextFile(
+    params: schema.WriteTextFileRequest,
+  ): Promise<schema.WriteTextFileResponse>;
+  readTextFile(
+    params: schema.ReadTextFileRequest,
+  ): Promise<schema.ReadTextFileResponse>;
+}
+
+export interface Agent {
+  initialize(
+    params: schema.InitializeRequest,
+  ): Promise<schema.InitializeResponse>;
+  newSession(
+    params: schema.NewSessionRequest,
+  ): Promise<schema.NewSessionResponse>;
+  loadSession?(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse>;
+  authenticate(params: schema.AuthenticateRequest): Promise<void>;
+  prompt(params: schema.PromptRequest): Promise<void>;
+  cancel(params: schema.CancelNotification): Promise<void>;
 }

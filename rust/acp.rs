@@ -30,6 +30,8 @@ use crate::rpc::{MessageHandler, RpcConnection, Side};
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
 
+// todo! casing
+//
 impl fmt::Display for SessionId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -82,10 +84,7 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn load_session(
-        &self,
-        arguments: LoadSessionRequest,
-    ) -> Result<LoadSessionResponse, Error> {
+    async fn load_session(&self, arguments: LoadSessionRequest) -> Result<(), Error> {
         self.conn
             .request(
                 SESSION_LOAD_METHOD_NAME,
@@ -103,10 +102,10 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn cancelled(&self, notification: CancelledNotification) -> Result<(), Error> {
+    async fn cancel(&self, notification: CancelNotification) -> Result<(), Error> {
         self.conn.notify(
-            SESSION_CANCELLED_METHOD_NAME,
-            Some(ClientNotification::CancelledNotification(notification)),
+            SESSION_CANCEL_METHOD_NAME,
+            Some(ClientNotification::CancelNotification(notification)),
         )
     }
 }
@@ -275,8 +274,8 @@ impl Side for AgentSide {
         let params = params.ok_or_else(Error::invalid_params)?;
 
         match method {
-            SESSION_CANCELLED_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientNotification::CancelledNotification)
+            SESSION_CANCEL_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientNotification::CancelNotification)
                 .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
@@ -299,8 +298,8 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::NewSessionResponse(response))
             }
             ClientRequest::LoadSessionRequest(args) => {
-                let response = self.load_session(args).await?;
-                Ok(AgentResponse::LoadSessionResponse(response))
+                self.load_session(args).await?;
+                Ok(AgentResponse::LoadSessionResponse)
             }
             ClientRequest::PromptRequest(args) => {
                 self.prompt(args).await?;
@@ -311,8 +310,8 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
 
     async fn handle_notification(&self, notification: ClientNotification) -> Result<(), Error> {
         match notification {
-            ClientNotification::CancelledNotification(notification) => {
-                self.cancelled(notification).await?;
+            ClientNotification::CancelNotification(notification) => {
+                self.cancel(notification).await?;
             }
         }
         Ok(())

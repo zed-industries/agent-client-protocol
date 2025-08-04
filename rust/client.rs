@@ -40,7 +40,7 @@ pub struct SessionNotification {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "sessionUpdate", rename_all = "camelCase")]
+#[serde(tag = "sessionUpdate", rename_all = "snake_case")]
 pub enum SessionUpdate {
     UserMessageChunk { content: ContentBlock },
     AgentMessageChunk { content: ContentBlock },
@@ -64,7 +64,7 @@ pub struct RequestPermissionRequest {
 pub struct PermissionOption {
     #[serde(rename = "optionId")]
     pub id: PermissionOptionId,
-    pub label: String,
+    pub name: String,
     pub kind: PermissionOptionKind,
 }
 
@@ -79,7 +79,7 @@ impl fmt::Display for PermissionOptionId {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum PermissionOptionKind {
     AllowOnce,
     AllowAlways,
@@ -95,7 +95,7 @@ pub struct RequestPermissionResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "outcome", rename_all = "camelCase")]
+#[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
     Cancelled,
     #[serde(rename_all = "camelCase")]

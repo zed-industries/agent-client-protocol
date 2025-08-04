@@ -52,8 +52,8 @@
           "title": "NewSessionResponse"
         },
         {
-          "$ref": "#/$defs/LoadSessionResponse",
-          "title": "LoadSessionResponse"
+          "title": "LoadSessionResponse",
+          "type": "null"
         },
         {
           "title": "PromptResponse",
@@ -112,11 +112,11 @@
         "id": {
           "type": "string"
         },
-        "label": {
+        "name": {
           "type": "string"
         }
       },
-      "required": ["id", "label", "description"],
+      "required": ["id", "name", "description"],
       "type": "object"
     },
     "AuthenticateRequest": {
@@ -143,7 +143,7 @@
       "required": ["blob", "uri"],
       "type": "object"
     },
-    "CancelledNotification": {
+    "CancelNotification": {
       "properties": {
         "sessionId": {
           "type": "string"
@@ -170,8 +170,8 @@
     "ClientNotification": {
       "anyOf": [
         {
-          "$ref": "#/$defs/CancelledNotification",
-          "title": "CancelledNotification"
+          "$ref": "#/$defs/CancelNotification",
+          "title": "CancelNotification"
         }
       ],
       "description": "Notifications the client sends to the agent"
@@ -505,22 +505,6 @@
       "required": ["mcpServers", "cwd", "sessionId"],
       "type": "object"
     },
-    "LoadSessionResponse": {
-      "properties": {
-        "authMethods": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/AuthMethod"
-          },
-          "type": "array"
-        },
-        "authRequired": {
-          "type": "boolean"
-        }
-      },
-      "required": ["authRequired", "authMethods"],
-      "type": "object"
-    },
     "McpServer": {
       "properties": {
         "args": {
@@ -563,8 +547,7 @@
     "NewSessionResponse": {
       "properties": {
         "sessionId": {
-          "description": "The session id if one was created, or null if authentication is required",
-          "type": ["string", "null"]
+          "type": "string"
         }
       },
       "required": ["sessionId"],
@@ -575,18 +558,18 @@
         "kind": {
           "$ref": "#/$defs/PermissionOptionKind"
         },
-        "label": {
+        "name": {
           "type": "string"
         },
         "optionId": {
           "type": "string"
         }
       },
-      "required": ["optionId", "label", "kind"],
+      "required": ["optionId", "name", "kind"],
       "type": "object"
     },
     "PermissionOptionKind": {
-      "enum": ["allowOnce", "allowAlways", "rejectOnce", "rejectAlways"],
+      "enum": ["allow_once", "allow_always", "reject_once", "reject_always"],
       "type": "string"
     },
     "Plan": {
@@ -798,7 +781,7 @@
               "$ref": "#/$defs/ContentBlock"
             },
             "sessionUpdate": {
-              "const": "userMessageChunk",
+              "const": "user_message_chunk",
               "type": "string"
             }
           },
@@ -811,7 +794,7 @@
               "$ref": "#/$defs/ContentBlock"
             },
             "sessionUpdate": {
-              "const": "agentMessageChunk",
+              "const": "agent_message_chunk",
               "type": "string"
             }
           },
@@ -824,7 +807,7 @@
               "$ref": "#/$defs/ContentBlock"
             },
             "sessionUpdate": {
-              "const": "agentThoughtChunk",
+              "const": "agent_thought_chunk",
               "type": "string"
             }
           },
@@ -842,9 +825,6 @@
             "kind": {
               "$ref": "#/$defs/ToolKind"
             },
-            "label": {
-              "type": "string"
-            },
             "locations": {
               "items": {
                 "$ref": "#/$defs/ToolCallLocation"
@@ -853,11 +833,14 @@
             },
             "rawInput": true,
             "sessionUpdate": {
-              "const": "toolCall",
+              "const": "tool_call",
               "type": "string"
             },
             "status": {
               "$ref": "#/$defs/ToolCallStatus"
+            },
+            "title": {
+              "type": "string"
             },
             "toolCallId": {
               "type": "string"
@@ -866,7 +849,7 @@
           "required": [
             "sessionUpdate",
             "toolCallId",
-            "label",
+            "title",
             "kind",
             "status"
           ],
@@ -890,9 +873,6 @@
                 }
               ]
             },
-            "label": {
-              "type": ["string", "null"]
-            },
             "locations": {
               "items": {
                 "$ref": "#/$defs/ToolCallLocation"
@@ -901,7 +881,7 @@
             },
             "rawInput": true,
             "sessionUpdate": {
-              "const": "toolCallUpdate",
+              "const": "tool_call_update",
               "type": "string"
             },
             "status": {
@@ -913,6 +893,9 @@
                   "type": "null"
                 }
               ]
+            },
+            "title": {
+              "type": ["string", "null"]
             },
             "toolCallId": {
               "type": "string"
@@ -985,9 +968,6 @@
         "kind": {
           "$ref": "#/$defs/ToolKind"
         },
-        "label": {
-          "type": "string"
-        },
         "locations": {
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
@@ -998,11 +978,14 @@
         "status": {
           "$ref": "#/$defs/ToolCallStatus"
         },
+        "title": {
+          "type": "string"
+        },
         "toolCallId": {
           "type": "string"
         }
       },
-      "required": ["toolCallId", "label", "kind", "status"],
+      "required": ["toolCallId", "title", "kind", "status"],
       "type": "object"
     },
     "ToolCallContent": {
@@ -1063,7 +1046,7 @@
           "type": "string"
         },
         {
-          "const": "inProgress",
+          "const": "in_progress",
           "description": "The tool call is currently running",
           "type": "string"
         },
@@ -1097,9 +1080,6 @@
             }
           ]
         },
-        "label": {
-          "type": ["string", "null"]
-        },
         "locations": {
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
@@ -1116,6 +1096,9 @@
               "type": "null"
             }
           ]
+        },
+        "title": {
+          "type": ["string", "null"]
         },
         "toolCallId": {
           "type": "string"

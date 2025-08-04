@@ -51,6 +51,11 @@ impl Error {
         Error::new(ErrorCode::INTERNAL_ERROR)
     }
 
+    /// Authentication required.
+    pub fn auth_required() -> Self {
+        Error::new(ErrorCode::AUTH_REQUIRED)
+    }
+
     pub fn into_internal_error(err: impl std::error::Error) -> Self {
         Error::internal_error().with_data(err.to_string())
     }
@@ -86,6 +91,11 @@ impl ErrorCode {
     pub const INTERNAL_ERROR: ErrorCode = ErrorCode {
         code: -32603,
         message: "Internal error",
+    };
+
+    pub const AUTH_REQUIRED: ErrorCode = ErrorCode {
+        code: -32000,
+        message: "Authentication required",
     };
 }
 

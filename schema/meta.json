@@ -2,7 +2,7 @@
   "agentMethods": {
     "authenticate": "authenticate",
     "initialize": "initialize",
-    "session_cancelled": "session/cancelled",
+    "session_cancel": "session/cancel",
     "session_load": "session/load",
     "session_new": "session/new",
     "session_prompt": "session/prompt"

@@ -107,24 +107,11 @@ impl Agent for TestAgent {
     ) -> Result<NewSessionResponse, Error> {
         let session_id = SessionId(Arc::from("test-session-123"));
         self.sessions.lock().unwrap().insert(session_id.clone());
-        Ok(NewSessionResponse {
-            session_id: Some(session_id),
-        })
+        Ok(NewSessionResponse { session_id })
     }
 
-    async fn load_session(
-        &self,
-        arguments: LoadSessionRequest,
-    ) -> Result<LoadSessionResponse, Error> {
-        let has_session = self
-            .sessions
-            .lock()
-            .unwrap()
-            .contains(&arguments.session_id);
-        Ok(LoadSessionResponse {
-            auth_required: !has_session,
-            auth_methods: vec![],
-        })
+    async fn load_session(&self, _: LoadSessionRequest) -> Result<(), Error> {
+        Ok(())
     }
 
     async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
@@ -135,7 +122,7 @@ impl Agent for TestAgent {
         Ok(())
     }
 
-    async fn cancelled(&self, args: CancelledNotification) -> Result<(), Error> {
+    async fn cancel(&self, args: CancelNotification) -> Result<(), Error> {
         self.cancellations_received
             .lock()
             .unwrap()
@@ -211,15 +198,13 @@ async fn test_basic_session_creation() {
 
             let (agent_conn, _client_conn) = create_connection_pair(client, agent).await;
 
-            let result = agent_conn
+            agent_conn
                 .new_session(NewSessionRequest {
                     mcp_servers: vec![],
                     cwd: std::path::PathBuf::from("/test"),
                 })
                 .await
                 .expect("new_session failed");
-
-            assert!(result.session_id.is_some());
         })
         .await;
 }
@@ -327,11 +312,11 @@ async fn test_cancel_notification() {
             let session_id = SessionId(Arc::from("test-session"));
             // Send cancel notification
             agent_conn
-                .cancelled(CancelledNotification {
+                .cancel(CancelNotification {
                     session_id: session_id.clone(),
                 })
                 .await
-                .expect("cancelled failed");
+                .expect("cancel failed");
 
             tokio::task::yield_now().await;
 
@@ -408,7 +393,7 @@ async fn test_full_conversation_flow() {
                 .await
                 .expect("new_session failed");
 
-            let session_id = new_session_result.session_id.unwrap();
+            let session_id = new_session_result.session_id;
 
             // 2. Send user message
             let user_prompt = vec![ContentBlock::Text(TextContent {
@@ -445,7 +430,7 @@ async fn test_full_conversation_flow() {
                     session_id: session_id.clone(),
                     update: SessionUpdate::ToolCall(ToolCall {
                         id: tool_call_id.clone(),
-                        label: "Reading file".to_string(),
+                        title: "Reading file".to_string(),
                         kind: ToolKind::Read,
                         status: ToolCallStatus::Pending,
                         content: vec![],
@@ -465,7 +450,7 @@ async fn test_full_conversation_flow() {
                     session_id: session_id.clone(),
                     tool_call: ToolCall {
                         id: tool_call_id.clone(),
-                        label: "Read /test/data.txt".to_string(),
+                        title: "Read /test/data.txt".to_string(),
                         kind: ToolKind::Read,
                         status: ToolCallStatus::Pending,
                         content: vec![],
@@ -478,12 +463,12 @@ async fn test_full_conversation_flow() {
                     options: vec![
                         PermissionOption {
                             id: PermissionOptionId(Arc::from("allow-once")),
-                            label: "Allow once".to_string(),
+                            name: "Allow once".to_string(),
                             kind: PermissionOptionKind::AllowOnce,
                         },
                         PermissionOption {
                             id: PermissionOptionId(Arc::from("reject-once")),
-                            label: "Reject".to_string(),
+                            name: "Reject".to_string(),
                             kind: PermissionOptionKind::RejectOnce,
                         },
                     ],
@@ -595,26 +580,24 @@ async fn test_full_conversation_flow() {
 #[tokio::test]
 async fn test_notification_wire_format() {
     use crate::{
-        AgentNotification, AgentSide, CancelledNotification, ClientNotification, ClientSide,
+        AgentNotification, AgentSide, CancelNotification, ClientNotification, ClientSide,
         ContentBlock, SessionNotification, SessionUpdate, TextContent, rpc::OutgoingMessage,
     };
     use serde_json::{Value, json};
 
     // Test client -> agent notification wire format
     let outgoing_msg = OutgoingMessage::<ClientSide, AgentSide>::Notification {
-        method: "cancelled",
-        params: Some(ClientNotification::CancelledNotification(
-            CancelledNotification {
-                session_id: SessionId("test-123".into()),
-            },
-        )),
+        method: "cancel",
+        params: Some(ClientNotification::CancelNotification(CancelNotification {
+            session_id: SessionId("test-123".into()),
+        })),
     };
 
     let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
     assert_eq!(
         serialized,
         json!({
-            "method": "cancelled",
+            "method": "cancel",
             "params": {
                 "sessionId": "test-123"
             }
@@ -644,10 +627,12 @@ async fn test_notification_wire_format() {
             "method": "sessionUpdate",
             "params": {
                 "sessionId": "test-456",
-                "sessionUpdate": "agentMessageChunk",
-                "content": {
-                    "type": "text",
-                    "text": "Hello"
+                "update": {
+                    "sessionUpdate": "agent_message_chunk",
+                    "content": {
+                        "type": "text",
+                        "text": "Hello"
+                    }
                 }
             }
         })

@@ -297,7 +297,7 @@ pub enum OutgoingMessage<Local: Side, Remote: Side> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ResponseResult<Res> {
     Result(Res),
     Error(Error),

@@ -68,28 +68,26 @@ describe("Connection", () => {
       async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
         throw new Error("Failed to load session");
       }
-      async authenticate(
-        _: AuthenticateRequest,
-      ): Promise<AuthenticateResponse> {
+      async authenticate(_: AuthenticateRequest): Promise<void> {
         throw new Error("Authentication failed");
       }
-      async prompt(_: PromptRequest): Promise<PromptResponse> {
+      async prompt(_: PromptRequest): Promise<void> {
         throw new Error("Prompt failed");
       }
-      async cancelled(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }
 
     // Set up connections
     const agentConnection = new ClientSideConnection(
-      new TestClient(),
+      () => new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
     const clientConnection = new AgentSideConnection(
-      new TestAgent(),
+      () => new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
     );
@@ -168,27 +166,25 @@ describe("Connection", () => {
           authRequired: false,
         };
       }
-      async authenticate(
-        _: AuthenticateRequest,
-      ): Promise<AuthenticateResponse> {
-        return null;
+      async authenticate(_: AuthenticateRequest): Promise<void> {
+        // no-op
       }
-      async prompt(_: PromptRequest): Promise<PromptResponse> {
-        return null;
+      async prompt(_: PromptRequest): Promise<void> {
+        // no-op
       }
-      async cancelled(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }
 
     new ClientSideConnection(
-      new TestClient(),
+      () => new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
     const clientConnection = new AgentSideConnection(
-      new TestAgent(),
+      () => new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
     );
@@ -242,7 +238,7 @@ describe("Connection", () => {
       async requestPermission(
         params: RequestPermissionRequest,
       ): Promise<RequestPermissionResponse> {
-        messageLog.push(`requestPermission called: ${params.toolCall.label}`);
+        messageLog.push(`requestPermission called: ${params.toolCall.title}`);
         return {
           outcome: {
             outcome: "selected",
@@ -282,30 +278,26 @@ describe("Connection", () => {
           authRequired: false,
         };
       }
-      async authenticate(
-        params: AuthenticateRequest,
-      ): Promise<AuthenticateResponse> {
+      async authenticate(params: AuthenticateRequest): Promise<void> {
         messageLog.push(`authenticate called: ${params.methodId}`);
-        return null;
       }
-      async prompt(params: PromptRequest): Promise<PromptResponse> {
+      async prompt(params: PromptRequest): Promise<void> {
         messageLog.push(`prompt called: ${params.sessionId}`);
-        return null;
       }
-      async cancelled(params: CancelledNotification): Promise<void> {
+      async cancel(params: CancelledNotification): Promise<void> {
         messageLog.push(`cancelled called: ${params.sessionId}`);
       }
     }
 
     // Set up connections
     const agentConnection = new ClientSideConnection(
-      new TestClient(),
+      () => new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
     const clientConnection = new AgentSideConnection(
-      new TestAgent(),
+      () => new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
     );
@@ -327,7 +319,7 @@ describe("Connection", () => {
     await clientConnection.requestPermission({
       sessionId: "test-session",
       toolCall: {
-        label: "Execute command",
+        title: "Execute command",
         kind: "execute",
         status: "pending",
         toolCallId: "tool-123",
@@ -343,13 +335,13 @@ describe("Connection", () => {
       },
       options: [
         {
-          kind: "allowOnce",
-          label: "Allow",
+          kind: "allow_once",
+          name: "Allow",
           optionId: "allow",
         },
         {
-          kind: "rejectOnce",
-          label: "Reject",
+          kind: "reject_once",
+          name: "Reject",
           optionId: "reject",
         },
       ],
@@ -391,11 +383,12 @@ describe("Connection", () => {
       }
       async sessionUpdate(notification: SessionNotification): Promise<void> {
         if (
-          "sessionUpdate" in notification &&
-          notification.sessionUpdate === "agentMessageChunk"
+          notification.update &&
+          "sessionUpdate" in notification.update &&
+          notification.update.sessionUpdate === "agent_message_chunk"
         ) {
           notificationLog.push(
-            `agent message: ${(notification.content as any).text}`,
+            `agent message: ${(notification.update.content as any).text}`,
           );
         }
       }
@@ -422,22 +415,20 @@ describe("Connection", () => {
           authRequired: false,
         };
       }
-      async authenticate(
-        _: AuthenticateRequest,
-      ): Promise<AuthenticateResponse> {
-        return null;
+      async authenticate(_: AuthenticateRequest): Promise<void> {
+        // no-op
       }
-      async prompt(_: PromptRequest): Promise<PromptResponse> {
-        return null;
+      async prompt(_: PromptRequest): Promise<void> {
+        // no-op
       }
-      async cancelled(params: CancelledNotification): Promise<void> {
+      async cancel(params: CancelledNotification): Promise<void> {
         notificationLog.push(`cancelled: ${params.sessionId}`);
       }
     }
 
     // Create shared instances
-    const testClient = new TestClient();
-    const testAgent = new TestAgent();
+    const testClient = () => new TestClient();
+    const testAgent = () => new TestAgent();
 
     // Set up connections
     const agentConnection = new ClientSideConnection(
@@ -453,15 +444,18 @@ describe("Connection", () => {
     );
 
     // Send notifications
-    await clientConnection.sendSessionUpdate({
-      sessionUpdate: "agentMessageChunk",
-      content: {
-        type: "text",
-        text: "Hello from agent",
+    await clientConnection.sessionUpdate({
+      sessionId: "test-session",
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: {
+          type: "text",
+          text: "Hello from agent",
+        },
       },
     });
 
-    await agentConnection.sendCancelled({
+    await agentConnection.cancel({
       sessionId: "test-session",
     });
 
@@ -522,27 +516,25 @@ describe("Connection", () => {
       async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
         return { authRequired: false, authMethods: [] };
       }
-      async authenticate(
-        _: AuthenticateRequest,
-      ): Promise<AuthenticateResponse> {
-        return null;
+      async authenticate(_: AuthenticateRequest): Promise<void> {
+        // no-op
       }
-      async prompt(_: PromptRequest): Promise<PromptResponse> {
-        return null;
+      async prompt(_: PromptRequest): Promise<void> {
+        // no-op
       }
-      async cancelled(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }
 
     const agentConnection = new ClientSideConnection(
-      new TestClient(),
+      () => new TestClient(),
       clientToAgent.writable,
       agentToClient.readable,
     );
 
     new AgentSideConnection(
-      new TestAgent(),
+      () => new TestAgent(),
       agentToClient.writable,
       clientToAgent.readable,
     );

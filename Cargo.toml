@@ -11,6 +11,7 @@ documentation = "https://docs.rs/agent-client-protocol"
 readme = "README.md"
 keywords = ["agent", "client", "protocol", "ai", "editor"]
 categories = ["development-tools", "api-bindings"]
+include = ["/rust/**/*.rs", "/README.md", "/LICENSE.MIT", "/Cargo.toml"]
 
 [lib]
 path = "rust/acp.rs"

@@ -27,11 +27,11 @@ pub trait Agent {
     fn load_session(
         &self,
         arguments: LoadSessionRequest,
-    ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
+    ) -> impl Future<Output = Result<(), Error>>;
 
     fn prompt(&self, arguments: PromptRequest) -> impl Future<Output = Result<(), Error>>;
 
-    fn cancelled(&self, args: CancelledNotification) -> impl Future<Output = Result<(), Error>>;
+    fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
@@ -78,7 +78,7 @@ pub struct AuthMethodId(pub Arc<str>);
 #[serde(rename_all = "camelCase")]
 pub struct AuthMethod {
     pub id: AuthMethodId,
-    pub label: String,
+    pub name: String,
     pub description: Option<String>,
 }
 
@@ -94,10 +94,7 @@ pub struct NewSessionRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
-    /// The session id if one was created, or null if authentication is required
-    // Note: It'd be nicer to use an enum here, but MCP requires the output schema
-    // to be a non-union object and adding another level seemed impractical.
-    pub session_id: Option<SessionId>,
+    pub session_id: SessionId,
 }
 
 // Load session
@@ -108,14 +105,6 @@ pub struct LoadSessionRequest {
     pub mcp_servers: Vec<McpServer>,
     pub cwd: PathBuf,
     pub session_id: SessionId,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct LoadSessionResponse {
-    pub auth_required: bool,
-    #[serde(default)]
-    pub auth_methods: Vec<AuthMethod>,
 }
 
 // MCP
@@ -164,7 +153,7 @@ pub struct AgentMethodNames {
     pub session_new: &'static str,
     pub session_load: &'static str,
     pub session_prompt: &'static str,
-    pub session_cancelled: &'static str,
+    pub session_cancel: &'static str,
 }
 
 pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
@@ -173,7 +162,7 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
-    session_cancelled: SESSION_CANCELLED_METHOD_NAME,
+    session_cancel: SESSION_CANCEL_METHOD_NAME,
 };
 
 pub const INITIALIZE_METHOD_NAME: &str = "initialize";
@@ -181,7 +170,7 @@ pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
 pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
 pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
-pub const SESSION_CANCELLED_METHOD_NAME: &str = "session/cancelled";
+pub const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 
 /// Requests the client sends to the agent
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -201,7 +190,7 @@ pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
-    LoadSessionResponse(LoadSessionResponse),
+    LoadSessionResponse,
     PromptResponse,
 }
 
@@ -209,11 +198,11 @@ pub enum AgentResponse {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientNotification {
-    CancelledNotification(CancelledNotification),
+    CancelNotification(CancelNotification),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct CancelledNotification {
+pub struct CancelNotification {
     pub session_id: SessionId,
 }
