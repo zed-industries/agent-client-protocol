@@ -63,8 +63,8 @@ impl Error {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ErrorCode {
-    code: i32,
-    message: &'static str,
+    pub code: i32,
+    pub message: &'static str,
 }
 
 impl ErrorCode {
