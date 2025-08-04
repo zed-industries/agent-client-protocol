@@ -36,12 +36,11 @@ pub trait Client {
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     pub session_id: SessionId,
-    #[serde(flatten)]
     pub update: SessionUpdate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "sessionUpdate", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub enum SessionUpdate {
     UserMessageChunk { content: ContentBlock },
     AgentMessageChunk { content: ContentBlock },

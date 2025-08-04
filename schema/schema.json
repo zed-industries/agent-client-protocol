@@ -779,18 +779,30 @@
       "type": "string"
     },
     "SessionNotification": {
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "update": {
+          "$ref": "#/$defs/SessionUpdate"
+        }
+      },
+      "required": ["sessionId", "update"],
+      "type": "object"
+    },
+    "SessionUpdate": {
       "oneOf": [
         {
           "properties": {
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "sessionUpdate": {
+            "kind": {
               "const": "userMessageChunk",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": ["kind", "content"],
           "type": "object"
         },
         {
@@ -798,12 +810,12 @@
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "sessionUpdate": {
+            "kind": {
               "const": "agentMessageChunk",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": ["kind", "content"],
           "type": "object"
         },
         {
@@ -811,55 +823,107 @@
             "content": {
               "$ref": "#/$defs/ContentBlock"
             },
-            "sessionUpdate": {
+            "kind": {
               "const": "agentThoughtChunk",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate", "content"],
+          "required": ["kind", "content"],
           "type": "object"
         },
         {
-          "$ref": "#/$defs/ToolCall",
           "properties": {
-            "sessionUpdate": {
-              "const": "toolCall",
+            "content": {
+              "items": {
+                "$ref": "#/$defs/ToolCallContent"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "$ref": "#/$defs/ToolKind"
+            },
+            "label": {
+              "type": "string"
+            },
+            "locations": {
+              "items": {
+                "$ref": "#/$defs/ToolCallLocation"
+              },
+              "type": "array"
+            },
+            "rawInput": true,
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "toolCallId": {
               "type": "string"
             }
           },
-          "required": ["sessionUpdate"],
+          "required": ["kind", "toolCallId", "label", "status"],
           "type": "object"
         },
         {
-          "$ref": "#/$defs/ToolCallUpdate",
           "properties": {
-            "sessionUpdate": {
-              "const": "toolCallUpdate",
+            "content": {
+              "items": {
+                "$ref": "#/$defs/ToolCallContent"
+              },
+              "type": ["array", "null"]
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolKind"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "type": ["string", "null"]
+            },
+            "locations": {
+              "items": {
+                "$ref": "#/$defs/ToolCallLocation"
+              },
+              "type": ["array", "null"]
+            },
+            "rawInput": true,
+            "status": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolCallStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "toolCallId": {
               "type": "string"
             }
           },
-          "required": ["sessionUpdate"],
+          "required": ["kind", "toolCallId"],
           "type": "object"
         },
         {
-          "$ref": "#/$defs/Plan",
           "properties": {
-            "sessionUpdate": {
+            "entries": {
+              "items": {
+                "$ref": "#/$defs/PlanEntry"
+              },
+              "type": "array"
+            },
+            "kind": {
               "const": "plan",
               "type": "string"
             }
           },
-          "required": ["sessionUpdate"],
+          "required": ["kind", "entries"],
           "type": "object"
         }
-      ],
-      "properties": {
-        "sessionId": {
-          "type": "string"
-        }
-      },
-      "required": ["sessionId"],
-      "type": "object"
+      ]
     },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
