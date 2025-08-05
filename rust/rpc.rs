@@ -56,13 +56,21 @@ where
 
         let pending_responses = Arc::new(Mutex::new(HashMap::default()));
 
-        let io_task = Self::handle_io(
-            incoming_tx,
-            outgoing_rx,
-            outgoing_bytes,
-            incoming_bytes,
-            pending_responses.clone(),
-        );
+        let io_task = {
+            let pending_responses = pending_responses.clone();
+            async move {
+                let result = Self::handle_io(
+                    incoming_tx,
+                    outgoing_rx,
+                    outgoing_bytes,
+                    incoming_bytes,
+                    pending_responses.clone(),
+                )
+                .await;
+                pending_responses.lock().clear();
+                result
+            }
+        };
 
         Self::handle_incoming(outgoing_tx.clone(), incoming_rx, handler, spawn);
 
@@ -116,7 +124,7 @@ where
         async move {
             let result = rx
                 .await
-                .map_err(|e| Error::internal_error().with_data(e.to_string()))??
+                .map_err(|_| Error::internal_error().with_data("server shut down unexpectedly"))??
                 .downcast::<Out>()
                 .map_err(|_| Error::internal_error().with_data("failed to deserialize response"))?;
 
