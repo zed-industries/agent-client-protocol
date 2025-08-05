@@ -150,6 +150,9 @@ pub enum StopReason {
     EndTurn,
     /// The turn ended because the agent reached the maximum number of tokens.
     MaxTokens,
+    /// The turn ended because the agent reached the maximum number of allowed
+    /// agent requests between user turns.
+    MaxTurnRequests,
     /// The turn ended because the agent refused to continue. The user prompt
     /// and everything that comes after it won't be included in the next
     /// prompt, so this should be reflected in the UI.
