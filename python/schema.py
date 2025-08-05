@@ -23,11 +23,14 @@ CLIENT_METHODS = {
 PROTOCOL_VERSION = 1
 
 
-AgentClientProtocol = 'ClientRequest | ClientResponse | ClientNotification | AgentRequest | AgentResponse | AgentNotification'
+type AgentClientProtocol = 'ClientRequest | ClientResponse | ClientNotification | AgentRequest | AgentResponse | AgentNotification'
 
-ClientRequest = 'WriteTextFileRequest | ReadTextFileRequest | RequestPermissionRequest'
 
-PermissionOptionKind = Literal["allow_once", "allow_always", "reject_once", "reject_always"]
+# Requests the agent sends to the client
+
+type ClientRequest = 'WriteTextFileRequest | ReadTextFileRequest | RequestPermissionRequest'
+
+type PermissionOptionKind = Literal["allow_once", "allow_always", "reject_once", "reject_always"]
 
 class ToolCallContent_0(TypedDict):
     content: 'ContentBlock'
@@ -37,7 +40,7 @@ class ToolCallContent_1(TypedDict):
     oldText: str | None
     path: str
     type: Literal["diff"]
-ToolCallContent = ToolCallContent_0 | ToolCallContent_1
+type ToolCallContent = ToolCallContent_0 | ToolCallContent_1
 
 class ContentBlock_0(TypedDict):
     annotations: NotRequired['Annotations | None']
@@ -66,72 +69,90 @@ class ContentBlock_4(TypedDict):
     annotations: NotRequired['Annotations | None']
     resource: 'EmbeddedResourceResource'
     type: Literal["resource"]
-ContentBlock = ContentBlock_0 | ContentBlock_1 | ContentBlock_2 | ContentBlock_3 | ContentBlock_4
+type ContentBlock = ContentBlock_0 | ContentBlock_1 | ContentBlock_2 | ContentBlock_3 | ContentBlock_4
 
-Role = Literal["assistant", "user"]
 
-EmbeddedResourceResource = Union['TextResourceContents', 'BlobResourceContents']
+# The sender or recipient of messages and data in a conversation.
 
-ToolKind = Literal["read", "edit", "delete", "move", "search", "execute", "think", "fetch", "other"]
+type Role = Literal["assistant", "user"]
 
-ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
+type EmbeddedResourceResource = 'TextResourceContents | BlobResourceContents'
 
-ClientResponse = 'WriteTextFileResponse | ReadTextFileResponse | RequestPermissionResponse'
+type ToolKind = Literal["read", "edit", "delete", "move", "search", "execute", "think", "fetch", "other"]
 
-WriteTextFileResponse = type[None]
+type ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
+
+
+# Responses the client sends to the agent
+
+type ClientResponse = 'WriteTextFileResponse | ReadTextFileResponse | RequestPermissionResponse'
+
+type WriteTextFileResponse = None
 
 class RequestPermissionOutcome_0(TypedDict):
     outcome: Literal["cancelled"]
 class RequestPermissionOutcome_1(TypedDict):
     optionId: str
     outcome: Literal["selected"]
-RequestPermissionOutcome = RequestPermissionOutcome_0 | RequestPermissionOutcome_1
+type RequestPermissionOutcome = RequestPermissionOutcome_0 | RequestPermissionOutcome_1
 
-ClientNotification = 'CancelNotification'
 
-AgentRequest = 'InitializeRequest | AuthenticateRequest | NewSessionRequest | LoadSessionRequest | PromptRequest'
+# Notifications the client sends to the agent
 
-AgentResponse = 'InitializeResponse | AuthenticateResponse | NewSessionResponse | LoadSessionResponse | PromptResponse'
+type ClientNotification = 'CancelNotification'
 
-AuthenticateResponse = type[None]
 
-LoadSessionResponse = type[None]
+# Requests the client sends to the agent
 
-PromptResponse = type[None]
+type AgentRequest = 'InitializeRequest | AuthenticateRequest | NewSessionRequest | LoadSessionRequest | PromptRequest'
 
-AgentNotification = 'SessionNotification'
+
+# Responses the agent sends to the client
+
+type AgentResponse = 'InitializeResponse | AuthenticateResponse | NewSessionResponse | LoadSessionResponse | PromptResponse'
+
+type AuthenticateResponse = None
+
+type LoadSessionResponse = None
+
+type PromptResponse = None
+
+
+# Notifications the agent sends to the client
+
+type AgentNotification = 'SessionNotification'
 
 class SessionUpdate_0(TypedDict):
-    content: ContentBlock
+    content: 'ContentBlock'
     sessionUpdate: Literal["user_message_chunk"]
 class SessionUpdate_1(TypedDict):
-    content: ContentBlock
+    content: 'ContentBlock'
     sessionUpdate: Literal["agent_message_chunk"]
 class SessionUpdate_2(TypedDict):
-    content: ContentBlock
+    content: 'ContentBlock'
     sessionUpdate: Literal["agent_thought_chunk"]
 class SessionUpdate_3(TypedDict):
-    content: NotRequired[List[ToolCallContent]]
-    kind: ToolKind
+    content: NotRequired[List['ToolCallContent']]
+    kind: 'ToolKind'
     locations: NotRequired[List['ToolCallLocation']]
     rawInput: NotRequired[Any]
     sessionUpdate: Literal["tool_call"]
-    status: ToolCallStatus
+    status: 'ToolCallStatus'
     title: str
     toolCallId: str
 class SessionUpdate_4(TypedDict):
-    content: NotRequired[List[ToolCallContent] | None]
-    kind: NotRequired[ToolKind | None]
+    content: NotRequired[List['ToolCallContent'] | None]
+    kind: NotRequired['ToolKind | None']
     locations: NotRequired[List['ToolCallLocation'] | None]
     rawInput: NotRequired[Any]
     sessionUpdate: Literal["tool_call_update"]
-    status: NotRequired[ToolCallStatus | None]
+    status: NotRequired['ToolCallStatus | None']
     title: NotRequired[str | None]
     toolCallId: str
 class SessionUpdate_5(TypedDict):
     entries: List['PlanEntry']
     sessionUpdate: Literal["plan"]
-SessionUpdate = SessionUpdate_0 | SessionUpdate_1 | SessionUpdate_2 | SessionUpdate_3 | SessionUpdate_4 | SessionUpdate_5
+type SessionUpdate = SessionUpdate_0 | SessionUpdate_1 | SessionUpdate_2 | SessionUpdate_3 | SessionUpdate_4 | SessionUpdate_5
 
 
 class WriteTextFileRequest(TypedDict):
@@ -154,23 +175,26 @@ class RequestPermissionRequest(TypedDict):
 
 
 class PermissionOption(TypedDict):
-    kind: PermissionOptionKind
+    kind: 'PermissionOptionKind'
     name: str
     optionId: str
 
 
 class ToolCall(TypedDict):
-    content: NotRequired[List[ToolCallContent]]
-    kind: ToolKind
+    content: NotRequired[List['ToolCallContent']]
+    kind: 'ToolKind'
     locations: NotRequired[List['ToolCallLocation']]
     rawInput: NotRequired[Any]
-    status: ToolCallStatus
+    status: 'ToolCallStatus'
     title: str
     toolCallId: str
 
 
+# Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
+
+
 class Annotations(TypedDict):
-    audience: NotRequired[List[Role] | None]
+    audience: NotRequired[List['Role'] | None]
     lastModified: NotRequired[str | None]
     priority: NotRequired[float | None]
 
@@ -197,7 +221,7 @@ class ReadTextFileResponse(TypedDict):
 
 
 class RequestPermissionResponse(TypedDict):
-    outcome: RequestPermissionOutcome
+    outcome: 'RequestPermissionOutcome'
 
 
 class CancelNotification(TypedDict):
@@ -206,15 +230,25 @@ class CancelNotification(TypedDict):
 
 class InitializeRequest(TypedDict):
     clientCapabilities: 'ClientCapabilities'
+
+    # The latest protocol version supported by the client
     protocolVersion: float
+
+
+# Capabilities supported by the client
 
 
 class ClientCapabilities(TypedDict):
     fs: 'FileSystemCapability'
 
 
+# FileSystem capabilities supported by the client.
+
+
 class FileSystemCapability(TypedDict):
     readTextFile: bool
+
+    # Client supports `fs/write_text_file`
     writeTextFile: bool
 
 
@@ -246,14 +280,24 @@ class LoadSessionRequest(TypedDict):
 
 
 class PromptRequest(TypedDict):
-    prompt: List[ContentBlock]
+    prompt: List['ContentBlock']
     sessionId: str
 
 
 class InitializeResponse(TypedDict):
     agentCapabilities: 'AgentCapabilities'
+
+    # Authentication methods supported by the agent
     authMethods: List['AuthMethod']
+
+    # The protocol version the client specified if supported by the agent,
+    # or the latest protocol version supported by the agent.
+
+    # The client should disconnect, if it doesn't support this version.
     protocolVersion: float
+
+
+# Capabilities supported by the agent
 
 
 class AgentCapabilities(TypedDict):
@@ -272,10 +316,20 @@ class NewSessionResponse(TypedDict):
 
 class SessionNotification(TypedDict):
     sessionId: str
-    update: SessionUpdate
+    update: 'SessionUpdate'
+
+
+# A single entry in the execution plan.
+
+# Represents a task or goal that the assistant intends to accomplish
+# as part of fulfilling the user's request.
 
 
 class PlanEntry(TypedDict):
     content: str
+
+    # Relative importance of this task
     priority: Literal["high", "medium", "low"]
+
+    # Current progress of this task
     status: Literal["pending", "in_progress", "completed"]
