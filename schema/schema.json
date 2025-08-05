@@ -56,8 +56,8 @@
           "type": "null"
         },
         {
-          "title": "PromptResponse",
-          "type": "null"
+          "$ref": "#/$defs/PromptResponse",
+          "title": "PromptResponse"
         }
       ],
       "description": "Responses the agent sends to the client"
@@ -628,6 +628,15 @@
       "required": ["sessionId", "prompt"],
       "type": "object"
     },
+    "PromptResponse": {
+      "properties": {
+        "stopReason": {
+          "$ref": "#/$defs/StopReason"
+        }
+      },
+      "required": ["stopReason"],
+      "type": "object"
+    },
     "ProtocolVersion": {
       "description": "Protocol version identifier.\n\nThis version is only bumped for breaking changes.\nNon-breaking changes should be introduced via capabilities.",
       "format": "uint16",
@@ -922,6 +931,30 @@
         }
       ]
     },
+    "StopReason": {
+      "oneOf": [
+        {
+          "const": "end_turn",
+          "description": "The turn ended successfully.",
+          "type": "string"
+        },
+        {
+          "const": "max_tokens",
+          "description": "The turn ended because the agent reached the maximum number of tokens.",
+          "type": "string"
+        },
+        {
+          "const": "refusal",
+          "description": "The turn ended because the agent refused to continue. The user prompt\nand everything that comes after it won't be included in the next\nprompt, so this should be reflected in the UI.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "The turn was cancelled by the client.",
+          "type": "string"
+        }
+      ]
+    },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
       "properties": {
@@ -1042,22 +1075,22 @@
       "oneOf": [
         {
           "const": "pending",
-          "description": "The tool call is currently running",
+          "description": "The tool call hasn't started running yet because the input is either\nstreaming or we're awaiting approval.",
           "type": "string"
         },
         {
           "const": "in_progress",
-          "description": "The tool call is currently running",
+          "description": "The tool call is currently running.",
           "type": "string"
         },
         {
           "const": "completed",
-          "description": "The tool call completed successfully",
+          "description": "The tool call completed successfully.",
           "type": "string"
         },
         {
           "const": "failed",
-          "description": "The tool call failed",
+          "description": "The tool call failed.",
           "type": "string"
         }
       ]

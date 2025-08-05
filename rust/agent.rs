@@ -29,7 +29,10 @@ pub trait Agent {
         arguments: LoadSessionRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
-    fn prompt(&self, arguments: PromptRequest) -> impl Future<Output = Result<(), Error>>;
+    fn prompt(
+        &self,
+        arguments: PromptRequest,
+    ) -> impl Future<Output = Result<PromptResponse, Error>>;
 
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 }
@@ -62,7 +65,7 @@ pub struct InitializeResponse {
     pub auth_methods: Vec<AuthMethod>,
 }
 
-// Authenticatication
+// Authentication
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -134,6 +137,27 @@ pub struct PromptRequest {
     pub prompt: Vec<ContentBlock>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptResponse {
+    pub stop_reason: StopReason,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum StopReason {
+    /// The turn ended successfully.
+    EndTurn,
+    /// The turn ended because the agent reached the maximum number of tokens.
+    MaxTokens,
+    /// The turn ended because the agent refused to continue. The user prompt
+    /// and everything that comes after it won't be included in the next
+    /// prompt, so this should be reflected in the UI.
+    Refusal,
+    /// The turn was cancelled by the client.
+    Cancelled,
+}
+
 // Capabilities
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -191,7 +215,7 @@ pub enum AgentResponse {
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
     LoadSessionResponse,
-    PromptResponse,
+    PromptResponse(PromptResponse),
 }
 
 /// Notifications the client sends to the agent

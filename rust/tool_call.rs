@@ -68,13 +68,14 @@ pub enum ToolKind {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
-    /// The tool call is currently running
+    /// The tool call hasn't started running yet because the input is either
+    /// streaming or we're awaiting approval.
     Pending,
-    /// The tool call is currently running
+    /// The tool call is currently running.
     InProgress,
-    /// The tool call completed successfully
+    /// The tool call completed successfully.
     Completed,
-    /// The tool call failed
+    /// The tool call failed.
     Failed,
 }
 

@@ -91,7 +91,7 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
+    async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {
         self.conn
             .request(
                 SESSION_PROMPT_METHOD_NAME,
@@ -300,8 +300,8 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::LoadSessionResponse)
             }
             ClientRequest::PromptRequest(args) => {
-                self.prompt(args).await?;
-                Ok(AgentResponse::PromptResponse)
+                let response = self.prompt(args).await?;
+                Ok(AgentResponse::PromptResponse(response))
             }
         }
     }

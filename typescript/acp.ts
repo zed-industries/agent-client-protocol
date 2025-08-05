@@ -176,7 +176,7 @@ export class ClientSideConnection implements Agent {
     );
   }
 
-  async prompt(params: schema.PromptRequest): Promise<void> {
+  async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_prompt,
       params,
@@ -445,6 +445,6 @@ export interface Agent {
     params: schema.LoadSessionRequest,
   ): Promise<schema.LoadSessionResponse>;
   authenticate(params: schema.AuthenticateRequest): Promise<void>;
-  prompt(params: schema.PromptRequest): Promise<void>;
+  prompt(params: schema.PromptRequest): Promise<schema.PromptResponse>;
   cancel(params: schema.CancelNotification): Promise<void>;
 }
