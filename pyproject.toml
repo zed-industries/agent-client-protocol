@@ -9,7 +9,6 @@ authors = [{ name = "Zed Industries" }]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.11.7",
-    "ts2python",
 ]
 
 [project.urls]

@@ -4,11 +4,10 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "agent-client-protocol"
-version = "0.0.18"
+version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "pydantic" },
-    { name = "ts2python" },
 ]
 
 [package.dev-dependencies]
@@ -18,10 +17,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "ts2python", git = "https://github.com/mgsloan/ts2python?rev=3a5dbf5ce6e1128474492027a6a49f101753c5b7" },
-]
+requires-dist = [{ name = "pydantic", specifier = ">=2.11.7" }]
 
 [package.metadata.requires-dev]
 dev = [
