@@ -30,8 +30,6 @@ use crate::rpc::{MessageHandler, RpcConnection, Side};
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
 
-// todo! casing
-//
 impl fmt::Display for SessionId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
