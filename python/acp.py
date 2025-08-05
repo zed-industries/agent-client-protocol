@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union, Callable, Awaitable
 from dataclasses import dataclass
 import logging
+from pydantic import TypeAdapter, ValidationError
 
 from . import schema
 
@@ -53,6 +54,17 @@ class RequestError(Exception):
         if self.data:
             error_dict["data"] = self.data
         return {"error": error_dict}
+
+
+def validate_params(params: Any, schema_type: Any) -> Any:
+    """Validate parameters using pydantic"""
+    try:
+        adapter = TypeAdapter(schema_type)
+        return adapter.validate_python(params)
+    except ValidationError as e:
+        raise RequestError.invalid_params(str(e))
+    except Exception as e:
+        raise RequestError.invalid_params(f"Validation error: {str(e)}")
 
 
 @dataclass
@@ -211,6 +223,8 @@ class Connection:
             return {"result": result if result is not None else None}
         except RequestError as e:
             return e.to_result()
+        except ValidationError as e:
+            return RequestError.invalid_params(str(e)).to_result()
         except Exception as e:
             logger.error(f"Unexpected error in handler for {method}: {e}")
             return RequestError.internal_error(str(e)).to_result()
@@ -277,17 +291,23 @@ class AgentSideConnection(Client):
 
         async def handler(method: str, params: Any) -> Any:
             if method == schema.AGENT_METHODS["initialize"]:
-                return await self._agent.initialize(params)
+                validated_params = validate_params(params, schema.InitializeRequest)
+                return await self._agent.initialize(validated_params)
             elif method == schema.AGENT_METHODS["session_new"]:
-                return await self._agent.new_session(params)
+                validated_params = validate_params(params, schema.NewSessionRequest)
+                return await self._agent.new_session(validated_params)
             elif method == schema.AGENT_METHODS["session_load"]:
-                return await self._agent.load_session(params)
+                validated_params = validate_params(params, schema.LoadSessionRequest)
+                return await self._agent.load_session(validated_params)
             elif method == schema.AGENT_METHODS["authenticate"]:
-                return await self._agent.authenticate(params)
+                validated_params = validate_params(params, schema.AuthenticateRequest)
+                return await self._agent.authenticate(validated_params)
             elif method == schema.AGENT_METHODS["session_prompt"]:
-                return await self._agent.prompt(params)
+                validated_params = validate_params(params, schema.PromptRequest)
+                return await self._agent.prompt(validated_params)
             elif method == schema.AGENT_METHODS["session_cancel"]:
-                return await self._agent.cancel(params)
+                validated_params = validate_params(params, schema.CancelNotification)
+                return await self._agent.cancel(validated_params)
             else:
                 raise RequestError.method_not_found(method)
 
@@ -341,13 +361,17 @@ class ClientSideConnection(Agent):
             client = to_client(self)
 
             if method == schema.CLIENT_METHODS["fs_write_text_file"]:
-                return await client.write_text_file(params)
+                validated_params = validate_params(params, schema.WriteTextFileRequest)
+                return await client.write_text_file(validated_params)
             elif method == schema.CLIENT_METHODS["fs_read_text_file"]:
-                return await client.read_text_file(params)
+                validated_params = validate_params(params, schema.ReadTextFileRequest)
+                return await client.read_text_file(validated_params)
             elif method == schema.CLIENT_METHODS["session_request_permission"]:
-                return await client.request_permission(params)
+                validated_params = validate_params(params, schema.RequestPermissionRequest)
+                return await client.request_permission(validated_params)
             elif method == schema.CLIENT_METHODS["session_update"]:
-                return await client.session_update(params)
+                validated_params = validate_params(params, schema.SessionNotification)
+                return await client.session_update(validated_params)
             else:
                 raise RequestError.method_not_found(method)
 
