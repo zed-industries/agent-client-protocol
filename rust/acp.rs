@@ -300,8 +300,8 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::LoadSessionResponse)
             }
             ClientRequest::PromptRequest(args) => {
-                self.prompt(args).await?;
-                Ok(AgentResponse::PromptResponse)
+                let response = self.prompt(args).await?;
+                Ok(AgentResponse::PromptResponse(response))
             }
         }
     }

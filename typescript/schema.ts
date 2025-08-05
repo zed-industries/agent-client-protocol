@@ -52,7 +52,7 @@ export type NewSessionResponse = z.infer<typeof newSessionResponseSchema>;
 
 export type LoadSessionResponse = z.infer<typeof loadSessionResponseSchema>;
 
-export type PromptResponse = z.infer<typeof promptResponseSchema>;
+export type StopReason = z.infer<typeof stopReasonSchema>;
 
 export type ToolCallLocation = z.infer<typeof toolCallLocationSchema>;
 
@@ -75,6 +75,8 @@ export type McpServer = z.infer<typeof mcpServerSchema>;
 export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
 
 export type AuthMethod = z.infer<typeof authMethodSchema>;
+
+export type PromptResponse = z.infer<typeof promptResponseSchema>;
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
@@ -205,7 +207,11 @@ export const newSessionResponseSchema = z.object({
 
 export const loadSessionResponseSchema = z.null();
 
-export const promptResponseSchema = z.null();
+export const stopReasonSchema = z.union([
+  z.literal("end_turn"),
+  z.literal("max_tokens"),
+  z.literal("refusal"),
+]);
 
 export const toolCallLocationSchema = z.object({
   line: z.number().optional().nullable(),
@@ -263,6 +269,10 @@ export const authMethodSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+});
+
+export const promptResponseSchema = z.object({
+  stopReason: stopReasonSchema,
 });
 
 export const clientResponseSchema = z.union([

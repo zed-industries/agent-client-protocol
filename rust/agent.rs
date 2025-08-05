@@ -213,7 +213,7 @@ pub enum AgentResponse {
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
     LoadSessionResponse,
-    PromptResponse,
+    PromptResponse(PromptResponse),
 }
 
 /// Notifications the client sends to the agent
