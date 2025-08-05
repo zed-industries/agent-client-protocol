@@ -3,11 +3,18 @@ name = "agent-client-protocol"
 version = "0.0.18"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.MIT"]
+authors = [{ name = "Zed Industries" }]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.11.7",
     "ts2python",
 ]
+
+[project.urls]
+repository = "https://github.com/zed-industries/agent-client-protocol"
+issues = "https://github.com/zed-industries/agent-client-protocol/issues"
 
 [dependency-groups]
 dev = [
