@@ -1,5 +1,5 @@
 [project]
-name = "agent-client-protocol"
+name = "agent_client_protocol"
 version = "0.0.1"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
 readme = "README.md"
@@ -23,3 +23,4 @@ dev = [
 
 [tool.uv.sources]
 ts2python = { git = "https://github.com/mgsloan/ts2python", rev = "3a5dbf5ce6e1128474492027a6a49f101753c5b7" }
+# ts2python = { path = "../../../oss/ts2python", editable = true }

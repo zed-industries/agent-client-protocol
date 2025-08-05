@@ -29,13 +29,13 @@
     "example": "examples"
   },
   "scripts": {
-    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo python/__pycache__ && cargo clean && uv clean",
+    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo && cargo clean && uv --directory python clean",
     "test": "cargo test && vitest run",
     "test:ts": "vitest run",
     "test:ts:watch": "vitest",
     "generate:json-schema": "cd rust && cargo run --bin generate",
     "generate:ts-schema": "node typescript/generate.js",
-    "generate:py-schema": "uv run python/generate.py",
+    "generate:py-schema": "uv --directory python run src/generate.py",
     "generate": "npm run generate:json-schema && npm run generate:ts-schema && prettier --write typescript/*.ts schema/* && npm run generate:py-schema",
     "build": "npm run generate && tsc",
     "format": "prettier --write . && cargo fmt",
