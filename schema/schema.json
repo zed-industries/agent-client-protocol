@@ -944,6 +944,11 @@
           "type": "string"
         },
         {
+          "const": "max_turn_requests",
+          "description": "The turn ended because the agent reached the maximum number of allowed\nagent requests between user turns.",
+          "type": "string"
+        },
+        {
           "const": "refusal",
           "description": "The turn ended because the agent refused to continue. The user prompt\nand everything that comes after it won't be included in the next\nprompt, so this should be reflected in the UI.",
           "type": "string"

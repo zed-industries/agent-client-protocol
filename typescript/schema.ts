@@ -210,6 +210,7 @@ export const loadSessionResponseSchema = z.null();
 export const stopReasonSchema = z.union([
   z.literal("end_turn"),
   z.literal("max_tokens"),
+  z.literal("max_turn_requests"),
   z.literal("refusal"),
   z.literal("cancelled"),
 ]);
