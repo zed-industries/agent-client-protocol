@@ -211,6 +211,7 @@ export const stopReasonSchema = z.union([
   z.literal("end_turn"),
   z.literal("max_tokens"),
   z.literal("refusal"),
+  z.literal("cancelled"),
 ]);
 
 export const toolCallLocationSchema = z.object({

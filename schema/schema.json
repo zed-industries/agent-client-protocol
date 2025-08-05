@@ -947,6 +947,11 @@
           "const": "refusal",
           "description": "The turn ended because the agent refused to continue. The user prompt\nand everything that comes after it won't be included in the next\nprompt, so this should be reflected in the UI.",
           "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "The turn was cancelled by the client.",
+          "type": "string"
         }
       ]
     },
