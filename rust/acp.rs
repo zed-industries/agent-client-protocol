@@ -91,7 +91,7 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
+    async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {
         self.conn
             .request(
                 SESSION_PROMPT_METHOD_NAME,

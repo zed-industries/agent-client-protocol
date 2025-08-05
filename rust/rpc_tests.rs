@@ -114,12 +114,14 @@ impl Agent for TestAgent {
         Ok(())
     }
 
-    async fn prompt(&self, arguments: PromptRequest) -> Result<(), Error> {
+    async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {
         self.prompts_received
             .lock()
             .unwrap()
             .push((arguments.session_id, arguments.prompt));
-        Ok(())
+        Ok(PromptResponse {
+            stop_reason: StopReason::EndTurn,
+        })
     }
 
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error> {
