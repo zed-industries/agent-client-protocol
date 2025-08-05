@@ -1,6 +1,6 @@
 [project]
 name = "agent-client-protocol"
-version = "0.0.18"
+version = "0.0.1"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
 readme = "README.md"
 license = "MIT"
