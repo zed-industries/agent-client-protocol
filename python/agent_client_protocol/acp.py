@@ -27,6 +27,26 @@ class ErrorCode:
     # ACP-specific error codes
     AUTH_REQUIRED = -32000
 
+    @classmethod
+    def is_auth_required(cls, code: int) -> bool:
+        """Check if error code indicates authentication is required"""
+        return code == cls.AUTH_REQUIRED
+
+    @classmethod
+    def is_client_error(cls, code: int) -> bool:
+        """Check if error code indicates a client-side error (4xx equivalent)"""
+        return code in (cls.INVALID_REQUEST, cls.METHOD_NOT_FOUND, cls.INVALID_PARAMS)
+
+    @classmethod
+    def is_server_error(cls, code: int) -> bool:
+        """Check if error code indicates a server-side error (5xx equivalent)"""
+        return code == cls.INTERNAL_ERROR
+
+    @classmethod
+    def is_parse_error(cls, code: int) -> bool:
+        """Check if error code indicates a parse error"""
+        return code == cls.PARSE_ERROR
+
 
 class RequestError(Exception):
     """JSON-RPC request error"""
