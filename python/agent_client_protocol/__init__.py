@@ -13,16 +13,12 @@ from .acp import (
     AgentSideConnection,
 )
 
-from .schema import *
-
 __version__ = "0.0.1"
 
 __all__ = [
-    # Core classes
     "Client",
     "Agent",
     "RequestError",
     "ClientSideConnection",
     "AgentSideConnection",
-    # Schema exports (imported via *)
 ]
