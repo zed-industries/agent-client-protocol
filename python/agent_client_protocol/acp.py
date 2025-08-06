@@ -241,7 +241,7 @@ class Connection:
                 error = response["error"]
                 pending.future.set_exception(
                     RequestError(error["code"], error["message"],
-                               error.get("data", {}).get("details"))
+                                 error.get("data", {}).get("details"))
                 )
 
     async def send_request(self, method: str, params: Any = None) -> Any:
@@ -291,22 +291,28 @@ class AgentSideConnection(Client):
 
         async def handler(method: str, params: Any) -> Any:
             if method == schema.AGENT_METHODS["initialize"]:
-                validated_params = validate_params(params, schema.InitializeRequest)
+                validated_params = validate_params(
+                    params, schema.InitializeRequest)
                 return await self._agent.initialize(validated_params)
             elif method == schema.AGENT_METHODS["session_new"]:
-                validated_params = validate_params(params, schema.NewSessionRequest)
+                validated_params = validate_params(
+                    params, schema.NewSessionRequest)
                 return await self._agent.new_session(validated_params)
             elif method == schema.AGENT_METHODS["session_load"]:
-                validated_params = validate_params(params, schema.LoadSessionRequest)
+                validated_params = validate_params(
+                    params, schema.LoadSessionRequest)
                 return await self._agent.load_session(validated_params)
             elif method == schema.AGENT_METHODS["authenticate"]:
-                validated_params = validate_params(params, schema.AuthenticateRequest)
+                validated_params = validate_params(
+                    params, schema.AuthenticateRequest)
                 return await self._agent.authenticate(validated_params)
             elif method == schema.AGENT_METHODS["session_prompt"]:
-                validated_params = validate_params(params, schema.PromptRequest)
+                validated_params = validate_params(
+                    params, schema.PromptRequest)
                 return await self._agent.prompt(validated_params)
             elif method == schema.AGENT_METHODS["session_cancel"]:
-                validated_params = validate_params(params, schema.CancelNotification)
+                validated_params = validate_params(
+                    params, schema.CancelNotification)
                 return await self._agent.cancel(validated_params)
             else:
                 raise RequestError.method_not_found(method)
@@ -361,16 +367,20 @@ class ClientSideConnection(Agent):
             client = to_client(self)
 
             if method == schema.CLIENT_METHODS["fs_write_text_file"]:
-                validated_params = validate_params(params, schema.WriteTextFileRequest)
+                validated_params = validate_params(
+                    params, schema.WriteTextFileRequest)
                 return await client.write_text_file(validated_params)
             elif method == schema.CLIENT_METHODS["fs_read_text_file"]:
-                validated_params = validate_params(params, schema.ReadTextFileRequest)
+                validated_params = validate_params(
+                    params, schema.ReadTextFileRequest)
                 return await client.read_text_file(validated_params)
             elif method == schema.CLIENT_METHODS["session_request_permission"]:
-                validated_params = validate_params(params, schema.RequestPermissionRequest)
+                validated_params = validate_params(
+                    params, schema.RequestPermissionRequest)
                 return await client.request_permission(validated_params)
             elif method == schema.CLIENT_METHODS["session_update"]:
-                validated_params = validate_params(params, schema.SessionNotification)
+                validated_params = validate_params(
+                    params, schema.SessionNotification)
                 return await client.session_update(validated_params)
             else:
                 raise RequestError.method_not_found(method)
