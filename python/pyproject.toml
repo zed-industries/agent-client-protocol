@@ -19,6 +19,8 @@ issues = "https://github.com/zed-industries/agent-client-protocol/issues"
 dev = [
     "pyright>=1.1.403",
     "ts2python>=0.7.6",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
 ]
 
 [tool.uv.sources]
