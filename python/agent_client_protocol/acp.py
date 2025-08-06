@@ -250,6 +250,8 @@ class Connection:
         elif "id" in message:
             # It's a response
             await self._handle_response(message)
+        else:
+            logger.error(f"Invalid message received: {message}")
 
     async def _try_call_handler(self, method: str, params: Any = None) -> Dict[str, Any]:
         """Try to call the method handler and return a result or error"""
