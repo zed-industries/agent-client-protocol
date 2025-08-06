@@ -118,7 +118,7 @@ class Client(ABC):
         pass
 
     @abstractmethod
-    async def session_update(self, params: schema.SessionNotification) -> None:
+    async def session_update(self, params: schema.SessionNotification):
         pass
 
     @abstractmethod
@@ -156,15 +156,15 @@ class Agent(ABC):
         raise RequestError.method_not_found("load_session not implemented")
 
     @abstractmethod
-    async def authenticate(self, params: schema.AuthenticateRequest) -> None:
+    async def authenticate(self, params: schema.AuthenticateRequest):
         pass
 
     @abstractmethod
-    async def prompt(self, params: schema.PromptRequest) -> None:
+    async def prompt(self, params: schema.PromptRequest):
         pass
 
     @abstractmethod
-    async def cancel(self, params: schema.CancelNotification) -> None:
+    async def cancel(self, params: schema.CancelNotification):
         pass
 
 
@@ -296,7 +296,7 @@ class Connection:
 
         return await future
 
-    async def send_notification(self, method: str, params: Any = None) -> None:
+    async def send_notification(self, method: str, params: Any = None):
         """Send a JSON-RPC notification"""
         await self._send_message({
             "jsonrpc": "2.0",
@@ -358,7 +358,7 @@ class AgentSideConnection(Client):
         """Close the connection"""
         await self._connection.close()
 
-    async def session_update(self, params: schema.SessionNotification) -> None:
+    async def session_update(self, params: schema.SessionNotification):
         """Send session update notification to client"""
         await self._connection.send_notification(
             schema.CLIENT_METHODS["session_update"], params
@@ -450,19 +450,19 @@ class ClientSideConnection(Agent):
             schema.AGENT_METHODS["session_load"], params
         )
 
-    async def authenticate(self, params: schema.AuthenticateRequest) -> None:
+    async def authenticate(self, params: schema.AuthenticateRequest):
         """Authenticate with the agent"""
         await self._connection.send_request(
             schema.AGENT_METHODS["authenticate"], params
         )
 
-    async def prompt(self, params: schema.PromptRequest) -> None:
+    async def prompt(self, params: schema.PromptRequest):
         """Send a prompt to the agent"""
         await self._connection.send_request(
             schema.AGENT_METHODS["session_prompt"], params
         )
 
-    async def cancel(self, params: schema.CancelNotification) -> None:
+    async def cancel(self, params: schema.CancelNotification):
         """Cancel an operation"""
         await self._connection.send_notification(
             schema.AGENT_METHODS["session_cancel"], params
