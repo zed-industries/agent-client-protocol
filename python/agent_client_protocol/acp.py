@@ -13,6 +13,21 @@ from .schema import *
 
 logger = logging.getLogger(__name__)
 
+
+class ErrorCode:
+    """JSON-RPC error codes used by ACP"""
+
+    # Standard JSON-RPC error codes
+    PARSE_ERROR = -32700
+    INVALID_REQUEST = -32600
+    METHOD_NOT_FOUND = -32601
+    INVALID_PARAMS = -32602
+    INTERNAL_ERROR = -32603
+
+    # ACP-specific error codes
+    AUTH_REQUIRED = -32000
+
+
 class RequestError(Exception):
     """JSON-RPC request error"""
 
@@ -24,27 +39,27 @@ class RequestError(Exception):
 
     @classmethod
     def parse_error(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32700, "Parse error", details)
+        return cls(ErrorCode.PARSE_ERROR, "Parse error", details)
 
     @classmethod
     def invalid_request(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32600, "Invalid request", details)
+        return cls(ErrorCode.INVALID_REQUEST, "Invalid request", details)
 
     @classmethod
     def method_not_found(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32601, "Method not found", details)
+        return cls(ErrorCode.METHOD_NOT_FOUND, "Method not found", details)
 
     @classmethod
     def invalid_params(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32602, "Invalid params", details)
+        return cls(ErrorCode.INVALID_PARAMS, "Invalid params", details)
 
     @classmethod
     def internal_error(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32603, "Internal error", details)
+        return cls(ErrorCode.INTERNAL_ERROR, "Internal error", details)
 
     @classmethod
     def auth_required(cls, details: Optional[str] = None) -> "RequestError":
-        return cls(-32000, "Authentication required", details)
+        return cls(ErrorCode.AUTH_REQUIRED, "Authentication required", details)
 
     def to_result(self) -> Dict[str, Any]:
         error_dict = {
