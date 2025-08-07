@@ -441,6 +441,7 @@ async fn test_full_conversation_flow() {
                             line: None,
                         }],
                         raw_input: None,
+                        raw_output: None,
                     }),
                 })
                 .await
@@ -461,6 +462,7 @@ async fn test_full_conversation_flow() {
                             line: None,
                         }],
                         raw_input: None,
+                        raw_output: None,
                     },
                     options: vec![
                         PermissionOption {

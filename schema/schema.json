@@ -841,6 +841,7 @@
               "type": "array"
             },
             "rawInput": true,
+            "rawOutput": true,
             "sessionUpdate": {
               "const": "tool_call",
               "type": "string"
@@ -889,6 +890,7 @@
               "type": ["array", "null"]
             },
             "rawInput": true,
+            "rawOutput": true,
             "sessionUpdate": {
               "const": "tool_call_update",
               "type": "string"
@@ -1013,6 +1015,7 @@
           "type": "array"
         },
         "rawInput": true,
+        "rawOutput": true,
         "status": {
           "$ref": "#/$defs/ToolCallStatus"
         },
@@ -1125,6 +1128,7 @@
           "type": ["array", "null"]
         },
         "rawInput": true,
+        "rawOutput": true,
         "status": {
           "anyOf": [
             {
