@@ -78,7 +78,7 @@ impl fmt::Display for PermissionOptionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionOptionKind {
     AllowOnce,
