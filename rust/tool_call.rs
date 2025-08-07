@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ContentBlock;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCall {
     #[serde(rename = "toolCallId")]
@@ -23,7 +23,7 @@ pub struct ToolCall {
     pub raw_output: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
     #[serde(rename = "toolCallId")]
@@ -32,7 +32,7 @@ pub struct ToolCallUpdate {
     pub fields: ToolCallUpdateFields,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdateFields {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -83,7 +83,7 @@ pub enum ToolCallStatus {
     Failed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ToolCallContent {
     Content {
@@ -109,7 +109,7 @@ impl From<Diff> for ToolCallContent {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Diff {
     pub path: PathBuf,
@@ -117,7 +117,7 @@ pub struct Diff {
     pub new_text: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct ToolCallLocation {
     pub path: PathBuf,
