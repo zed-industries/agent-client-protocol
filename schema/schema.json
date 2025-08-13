@@ -720,7 +720,7 @@
           "type": "string"
         },
         "toolCall": {
-          "$ref": "#/$defs/ToolCall"
+          "$ref": "#/$defs/ToolCallUpdate"
         }
       },
       "required": ["sessionId", "toolCall", "options"],

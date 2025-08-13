@@ -451,18 +451,12 @@ async fn test_full_conversation_flow() {
             let permission_result = client_conn
                 .request_permission(RequestPermissionRequest {
                     session_id: session_id.clone(),
-                    tool_call: ToolCall {
+                    tool_call: ToolCallUpdate {
                         id: tool_call_id.clone(),
-                        title: "Read /test/data.txt".to_string(),
-                        kind: ToolKind::Read,
-                        status: ToolCallStatus::Pending,
-                        content: vec![],
-                        locations: vec![ToolCallLocation {
-                            path: std::path::PathBuf::from("/test/data.txt"),
-                            line: None,
-                        }],
-                        raw_input: None,
-                        raw_output: None,
+                        fields: ToolCallUpdateFields {
+                            title: Some("Read /test/data.txt".to_string()),
+                            ..Default::default()
+                        }
                     },
                     options: vec![
                         PermissionOption {
