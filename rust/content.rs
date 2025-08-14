@@ -36,6 +36,8 @@ pub struct ImageContent {
     pub data: String,
     #[serde(rename = "mimeType")]
     pub mime_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
 }
 
 /// Audio provided to or from an LLM.
