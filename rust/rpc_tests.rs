@@ -439,6 +439,7 @@ async fn test_full_conversation_flow() {
                         locations: vec![ToolCallLocation {
                             path: std::path::PathBuf::from("/test/data.txt"),
                             line: None,
+                            column: None,
                         }],
                         raw_input: None,
                         raw_output: None,
@@ -460,6 +461,7 @@ async fn test_full_conversation_flow() {
                         locations: vec![ToolCallLocation {
                             path: std::path::PathBuf::from("/test/data.txt"),
                             line: None,
+                            column: None,
                         }],
                         raw_input: None,
                         raw_output: None,

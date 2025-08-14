@@ -123,4 +123,6 @@ pub struct ToolCallLocation {
     pub path: PathBuf,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column: Option<u32>,
 }
