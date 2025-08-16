@@ -451,13 +451,7 @@ async fn test_full_conversation_flow() {
             let permission_result = client_conn
                 .request_permission(RequestPermissionRequest {
                     session_id: session_id.clone(),
-                    tool_call: ToolCallUpdate {
-                        id: tool_call_id.clone(),
-                        fields: ToolCallUpdateFields {
-                            title: Some("Read /test/data.txt".to_string()),
-                            ..Default::default()
-                        }
-                    },
+                    tool_call: ToolCallRef::Id(tool_call_id.clone()),
                     options: vec![
                         PermissionOption {
                             id: PermissionOptionId(Arc::from("allow-once")),

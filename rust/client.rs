@@ -6,7 +6,7 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallId, ToolCallUpdate};
 
 pub trait Client {
     fn request_permission(
@@ -56,8 +56,15 @@ pub enum SessionUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     pub session_id: SessionId,
-    pub tool_call: ToolCallUpdate,
+    pub tool_call: ToolCallRef,
     pub options: Vec<PermissionOption>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ToolCallRef {
+    Id(ToolCallId),
+    Inline(ToolCall),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
