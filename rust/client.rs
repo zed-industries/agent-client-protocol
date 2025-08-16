@@ -56,7 +56,7 @@ pub enum SessionUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     pub session_id: SessionId,
-    pub tool_call: ToolCall,
+    pub tool_call: ToolCallUpdate,
     pub options: Vec<PermissionOption>,
 }
 

@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::ContentBlock;
+use crate::{ContentBlock, Error};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -11,7 +11,9 @@ pub struct ToolCall {
     #[serde(rename = "toolCallId")]
     pub id: ToolCallId,
     pub title: String,
+    #[serde(default, skip_serializing_if = "ToolKind::is_default")]
     pub kind: ToolKind,
+    #[serde(default, skip_serializing_if = "ToolCallStatus::is_default")]
     pub status: ToolCallStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub content: Vec<ToolCallContent>,
@@ -21,6 +23,34 @@ pub struct ToolCall {
     pub raw_input: Option<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub raw_output: Option<serde_json::Value>,
+}
+
+impl ToolCall {
+    /// Update an existing tool call with the values in the provided update
+    /// fields. Fields with collections of values are overwritten, not extended.
+    pub fn update(&mut self, fields: ToolCallUpdateFields) {
+        if let Some(title) = fields.title {
+            self.title = title;
+        }
+        if let Some(kind) = fields.kind {
+            self.kind = kind;
+        }
+        if let Some(status) = fields.status {
+            self.status = status;
+        }
+        if let Some(content) = fields.content {
+            self.content = content;
+        }
+        if let Some(locations) = fields.locations {
+            self.locations = locations;
+        }
+        if let Some(raw_input) = fields.raw_input {
+            self.raw_input = Some(raw_input);
+        }
+        if let Some(raw_output) = fields.raw_output {
+            self.raw_output = Some(raw_output);
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -51,11 +81,74 @@ pub struct ToolCallUpdateFields {
     pub raw_output: Option<serde_json::Value>,
 }
 
+/// If a given tool call doesn't exist yet, allows for attempting to construct
+/// one from a tool call update if possible.
+impl TryFrom<ToolCallUpdate> for ToolCall {
+    type Error = Error;
+
+    fn try_from(update: ToolCallUpdate) -> Result<Self, Self::Error> {
+        let ToolCallUpdate {
+            id,
+            fields:
+                ToolCallUpdateFields {
+                    kind,
+                    status,
+                    title,
+                    content,
+                    locations,
+                    raw_input,
+                    raw_output,
+                },
+        } = update;
+
+        Ok(Self {
+            id,
+            title: title.ok_or_else(|| {
+                Error::invalid_params()
+                    .with_data(serde_json::json!("title is required for a tool call"))
+            })?,
+            kind: kind.unwrap_or_default(),
+            status: status.unwrap_or_default(),
+            content: content.unwrap_or_default(),
+            locations: locations.unwrap_or_default(),
+            raw_input,
+            raw_output,
+        })
+    }
+}
+
+impl From<ToolCall> for ToolCallUpdate {
+    fn from(value: ToolCall) -> Self {
+        let ToolCall {
+            id,
+            title,
+            kind,
+            status,
+            content,
+            locations,
+            raw_input,
+            raw_output,
+        } = value;
+        Self {
+            id,
+            fields: ToolCallUpdateFields {
+                kind: Some(kind),
+                status: Some(status),
+                title: Some(title),
+                content: Some(content),
+                locations: Some(locations),
+                raw_input,
+                raw_output,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolKind {
     Read,
@@ -66,14 +159,22 @@ pub enum ToolKind {
     Execute,
     Think,
     Fetch,
+    #[default]
     Other,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+impl ToolKind {
+    fn is_default(&self) -> bool {
+        matches!(self, ToolKind::Other)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
     /// The tool call hasn't started running yet because the input is either
     /// streaming or we're awaiting approval.
+    #[default]
     Pending,
     /// The tool call is currently running.
     InProgress,
@@ -81,6 +182,12 @@ pub enum ToolCallStatus {
     Completed,
     /// The tool call failed.
     Failed,
+}
+
+impl ToolCallStatus {
+    fn is_default(&self) -> bool {
+        matches!(self, ToolCallStatus::Pending)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

@@ -96,7 +96,7 @@ export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
 
-export type ToolCall = z.infer<typeof toolCallSchema>;
+export type ToolCallUpdate = z.infer<typeof toolCallUpdateSchema>;
 
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>;
 
@@ -356,14 +356,14 @@ export const toolCallContentSchema = z.union([
   }),
 ]);
 
-export const toolCallSchema = z.object({
-  content: z.array(toolCallContentSchema).optional(),
-  kind: toolKindSchema,
-  locations: z.array(toolCallLocationSchema).optional(),
+export const toolCallUpdateSchema = z.object({
+  content: z.array(toolCallContentSchema).optional().nullable(),
+  kind: toolKindSchema.optional().nullable(),
+  locations: z.array(toolCallLocationSchema).optional().nullable(),
   rawInput: z.unknown().optional(),
   rawOutput: z.unknown().optional(),
-  status: toolCallStatusSchema,
-  title: z.string(),
+  status: toolCallStatusSchema.optional().nullable(),
+  title: z.string().optional().nullable(),
   toolCallId: z.string(),
 });
 
@@ -391,12 +391,12 @@ export const sessionUpdateSchema = z.union([
   }),
   z.object({
     content: z.array(toolCallContentSchema).optional(),
-    kind: toolKindSchema,
+    kind: toolKindSchema.optional(),
     locations: z.array(toolCallLocationSchema).optional(),
     rawInput: z.unknown().optional(),
     rawOutput: z.unknown().optional(),
     sessionUpdate: z.literal("tool_call"),
-    status: toolCallStatusSchema,
+    status: toolCallStatusSchema.optional(),
     title: z.string(),
     toolCallId: z.string(),
   }),
@@ -428,7 +428,7 @@ export const agentResponseSchema = z.union([
 export const requestPermissionRequestSchema = z.object({
   options: z.array(permissionOptionSchema),
   sessionId: z.string(),
-  toolCall: toolCallSchema,
+  toolCall: toolCallUpdateSchema,
 });
 
 export const initializeRequestSchema = z.object({
