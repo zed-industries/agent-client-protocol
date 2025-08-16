@@ -137,8 +137,8 @@ impl From<ToolCall> for ToolCallUpdate {
                 title: Some(title),
                 content: Some(content),
                 locations: Some(locations),
-                raw_input: raw_input,
-                raw_output: raw_output,
+                raw_input,
+                raw_output,
             },
         }
     }
