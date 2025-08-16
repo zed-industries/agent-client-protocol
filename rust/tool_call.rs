@@ -11,7 +11,9 @@ pub struct ToolCall {
     #[serde(rename = "toolCallId")]
     pub id: ToolCallId,
     pub title: String,
+    #[serde(default, skip_serializing_if = "ToolKind::is_default")]
     pub kind: ToolKind,
+    #[serde(default, skip_serializing_if = "ToolCallStatus::is_default")]
     pub status: ToolCallStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub content: Vec<ToolCallContent>,
@@ -55,7 +57,7 @@ pub struct ToolCallUpdateFields {
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolKind {
     Read,
@@ -66,14 +68,22 @@ pub enum ToolKind {
     Execute,
     Think,
     Fetch,
+    #[default]
     Other,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+impl ToolKind {
+    fn is_default(&self) -> bool {
+        matches!(self, ToolKind::Other)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
     /// The tool call hasn't started running yet because the input is either
     /// streaming or we're awaiting approval.
+    #[default]
     Pending,
     /// The tool call is currently running.
     InProgress,
@@ -81,6 +91,12 @@ pub enum ToolCallStatus {
     Completed,
     /// The tool call failed.
     Failed,
+}
+
+impl ToolCallStatus {
+    fn is_default(&self) -> bool {
+        matches!(self, ToolCallStatus::Pending)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

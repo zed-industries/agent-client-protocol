@@ -862,13 +862,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "sessionUpdate",
-            "toolCallId",
-            "title",
-            "kind",
-            "status"
-          ],
+          "required": ["sessionUpdate", "toolCallId", "title"],
           "type": "object"
         },
         {
@@ -1032,7 +1026,7 @@
           "type": "string"
         }
       },
-      "required": ["toolCallId", "title", "kind", "status"],
+      "required": ["toolCallId", "title"],
       "type": "object"
     },
     "ToolCallContent": {
