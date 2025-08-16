@@ -318,6 +318,7 @@ export const contentBlockSchema = z.union([
     data: z.string(),
     mimeType: z.string(),
     type: z.literal("image"),
+    uri: z.string().optional().nullable(),
   }),
   z.object({
     annotations: annotationsSchema.optional().nullable(),

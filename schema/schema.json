@@ -264,6 +264,9 @@
             "type": {
               "const": "image",
               "type": "string"
+            },
+            "uri": {
+              "type": ["string", "null"]
             }
           },
           "required": ["type", "data", "mimeType"],
@@ -437,6 +440,9 @@
         },
         "mimeType": {
           "type": "string"
+        },
+        "uri": {
+          "type": ["string", "null"]
         }
       },
       "required": ["data", "mimeType"],
