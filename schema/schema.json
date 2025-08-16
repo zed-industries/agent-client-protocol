@@ -720,7 +720,7 @@
           "type": "string"
         },
         "toolCall": {
-          "$ref": "#/$defs/ToolCallRef"
+          "$ref": "#/$defs/ToolCallUpdate"
         }
       },
       "required": ["sessionId", "toolCall", "options"],
@@ -1078,18 +1078,6 @@
       },
       "required": ["path"],
       "type": "object"
-    },
-    "ToolCallRef": {
-      "anyOf": [
-        {
-          "title": "Id",
-          "type": "string"
-        },
-        {
-          "$ref": "#/$defs/ToolCall",
-          "title": "Inline"
-        }
-      ]
     },
     "ToolCallStatus": {
       "oneOf": [

@@ -24,8 +24,6 @@ export type ReadTextFileRequest = z.infer<typeof readTextFileRequestSchema>;
 
 export type PermissionOptionKind = z.infer<typeof permissionOptionKindSchema>;
 
-export type Id = z.infer<typeof idSchema>;
-
 export type Role = z.infer<typeof roleSchema>;
 
 export type TextResourceContents = z.infer<typeof textResourceContentsSchema>;
@@ -98,7 +96,7 @@ export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
 
-export type Inline = z.infer<typeof inlineSchema>;
+export type ToolCallUpdate = z.infer<typeof toolCallUpdateSchema>;
 
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>;
 
@@ -108,15 +106,13 @@ export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
 
 export type AgentResponse = z.infer<typeof agentResponseSchema>;
 
-export type ToolCallRef = z.infer<typeof toolCallRefSchema>;
+export type RequestPermissionRequest = z.infer<
+  typeof requestPermissionRequestSchema
+>;
 
 export type InitializeRequest = z.infer<typeof initializeRequestSchema>;
 
 export type SessionNotification = z.infer<typeof sessionNotificationSchema>;
-
-export type RequestPermissionRequest = z.infer<
-  typeof requestPermissionRequestSchema
->;
 
 export type ClientRequest = z.infer<typeof clientRequestSchema>;
 
@@ -145,8 +141,6 @@ export const permissionOptionKindSchema = z.union([
   z.literal("reject_once"),
   z.literal("reject_always"),
 ]);
-
-export const idSchema = z.string();
 
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
 
@@ -362,14 +356,14 @@ export const toolCallContentSchema = z.union([
   }),
 ]);
 
-export const inlineSchema = z.object({
-  content: z.array(toolCallContentSchema).optional(),
-  kind: toolKindSchema.optional(),
-  locations: z.array(toolCallLocationSchema).optional(),
+export const toolCallUpdateSchema = z.object({
+  content: z.array(toolCallContentSchema).optional().nullable(),
+  kind: toolKindSchema.optional().nullable(),
+  locations: z.array(toolCallLocationSchema).optional().nullable(),
   rawInput: z.unknown().optional(),
   rawOutput: z.unknown().optional(),
-  status: toolCallStatusSchema.optional(),
-  title: z.string(),
+  status: toolCallStatusSchema.optional().nullable(),
+  title: z.string().optional().nullable(),
   toolCallId: z.string(),
 });
 
@@ -431,7 +425,11 @@ export const agentResponseSchema = z.union([
   promptResponseSchema,
 ]);
 
-export const toolCallRefSchema = z.union([idSchema, inlineSchema]);
+export const requestPermissionRequestSchema = z.object({
+  options: z.array(permissionOptionSchema),
+  sessionId: z.string(),
+  toolCall: toolCallUpdateSchema,
+});
 
 export const initializeRequestSchema = z.object({
   clientCapabilities: clientCapabilitiesSchema,
@@ -441,12 +439,6 @@ export const initializeRequestSchema = z.object({
 export const sessionNotificationSchema = z.object({
   sessionId: z.string(),
   update: sessionUpdateSchema,
-});
-
-export const requestPermissionRequestSchema = z.object({
-  options: z.array(permissionOptionSchema),
-  sessionId: z.string(),
-  toolCall: toolCallRefSchema,
 });
 
 export const clientRequestSchema = z.union([
