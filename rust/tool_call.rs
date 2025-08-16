@@ -117,6 +117,33 @@ impl TryFrom<ToolCallUpdate> for ToolCall {
     }
 }
 
+impl From<ToolCall> for ToolCallUpdate {
+    fn from(value: ToolCall) -> Self {
+        let ToolCall {
+            id,
+            title,
+            kind,
+            status,
+            content,
+            locations,
+            raw_input,
+            raw_output,
+        } = value;
+        Self {
+            id,
+            fields: ToolCallUpdateFields {
+                kind: Some(kind),
+                status: Some(status),
+                title: Some(title),
+                content: Some(content),
+                locations: Some(locations),
+                raw_input: raw_input,
+                raw_output: raw_output,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
