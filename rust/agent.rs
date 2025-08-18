@@ -157,8 +157,9 @@ pub enum StopReason {
     /// and everything that comes after it won't be included in the next
     /// prompt, so this should be reflected in the UI.
     Refusal,
-    /// The turn was cancelled by the client.
-    Cancelled,
+    /// The turn was canceled by the client.
+    #[serde(alias = "cancelled")]
+    Canceled,
 }
 
 // Capabilities

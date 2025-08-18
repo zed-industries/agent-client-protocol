@@ -686,7 +686,7 @@
         {
           "properties": {
             "outcome": {
-              "const": "cancelled",
+              "const": "canceled",
               "type": "string"
             }
           },
@@ -956,8 +956,8 @@
           "type": "string"
         },
         {
-          "const": "cancelled",
-          "description": "The turn was cancelled by the client.",
+          "const": "canceled",
+          "description": "The turn was canceled by the client.",
           "type": "string"
         }
       ]
