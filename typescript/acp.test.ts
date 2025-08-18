@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { TransformStream } from "node:stream/web";
 import {
   Agent,
   ClientSideConnection,
@@ -26,8 +27,8 @@ import {
 } from "./acp.js";
 
 describe("Connection", () => {
-  let clientToAgent: TransformStream;
-  let agentToClient: TransformStream;
+  let clientToAgent: TransformStream<Uint8Array, Uint8Array>;
+  let agentToClient: TransformStream<Uint8Array, Uint8Array>;
 
   beforeEach(() => {
     clientToAgent = new TransformStream();
@@ -65,13 +66,13 @@ describe("Connection", () => {
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         throw new Error("Failed to create session");
       }
-      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
+      async loadSession(_: LoadSessionRequest): Promise<void> {
         throw new Error("Failed to load session");
       }
       async authenticate(_: AuthenticateRequest): Promise<void> {
         throw new Error("Authentication failed");
       }
-      async prompt(_: PromptRequest): Promise<void> {
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
         throw new Error("Prompt failed");
       }
       async cancel(_: CancelNotification): Promise<void> {
@@ -149,7 +150,7 @@ describe("Connection", () => {
       async initialize(_: InitializeRequest): Promise<InitializeResponse> {
         return {
           protocolVersion: 1,
-          agentCapabilities: {},
+          agentCapabilities: { loadSession: false },
           authMethods: [],
         };
       }
@@ -157,20 +158,14 @@ describe("Connection", () => {
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return {
           sessionId: "test-session",
-          authMethods: [],
         };
       }
-      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
-        return {
-          authMethods: [],
-          authRequired: false,
-        };
-      }
+      async loadSession(_: LoadSessionRequest): Promise<void> {}
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
-      async prompt(_: PromptRequest): Promise<void> {
-        // no-op
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
       }
       async cancel(_: CancelNotification): Promise<void> {
         // no-op
@@ -256,7 +251,7 @@ describe("Connection", () => {
       async initialize(_: InitializeRequest): Promise<InitializeResponse> {
         return {
           protocolVersion: 1,
-          agentCapabilities: {},
+          agentCapabilities: { loadSession: false },
           authMethods: [],
         };
       }
@@ -266,23 +261,17 @@ describe("Connection", () => {
         messageLog.push(`newSession called: ${request.cwd}`);
         return {
           sessionId: "test-session",
-          authMethods: [],
         };
       }
-      async loadSession(
-        params: LoadSessionRequest,
-      ): Promise<LoadSessionResponse> {
+      async loadSession(params: LoadSessionRequest): Promise<void> {
         messageLog.push(`loadSession called: ${params.sessionId}`);
-        return {
-          authMethods: [],
-          authRequired: false,
-        };
       }
       async authenticate(params: AuthenticateRequest): Promise<void> {
         messageLog.push(`authenticate called: ${params.methodId}`);
       }
-      async prompt(params: PromptRequest): Promise<void> {
+      async prompt(params: PromptRequest): Promise<PromptResponse> {
         messageLog.push(`prompt called: ${params.sessionId}`);
+        return { stopReason: "end_turn" };
       }
       async cancel(params: CancelNotification): Promise<void> {
         messageLog.push(`canceled called: ${params.sessionId}`);
@@ -399,27 +388,21 @@ describe("Connection", () => {
       async initialize(_: InitializeRequest): Promise<InitializeResponse> {
         return {
           protocolVersion: 1,
-          agentCapabilities: {},
+          agentCapabilities: { loadSession: false },
           authMethods: [],
         };
       }
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return {
           sessionId: "test-session",
-          authMethods: [],
         };
       }
-      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
-        return {
-          authMethods: [],
-          authRequired: false,
-        };
-      }
+      async loadSession(_: LoadSessionRequest): Promise<void> {}
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
-      async prompt(_: PromptRequest): Promise<void> {
-        // no-op
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
       }
       async cancel(params: CancelNotification): Promise<void> {
         notificationLog.push(`canceled: ${params.sessionId}`);
@@ -504,7 +487,7 @@ describe("Connection", () => {
           authMethods: [
             {
               id: "oauth",
-              label: "OAuth",
+              name: "OAuth",
               description: "Authenticate with OAuth",
             },
           ],
@@ -513,14 +496,12 @@ describe("Connection", () => {
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return { sessionId: "test-session" };
       }
-      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
-        return { authRequired: false, authMethods: [] };
-      }
+      async loadSession(_: LoadSessionRequest): Promise<void> {}
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
-      async prompt(_: PromptRequest): Promise<void> {
-        // no-op
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
       }
       async cancel(_: CancelNotification): Promise<void> {
         // no-op

@@ -160,9 +160,7 @@ export class ClientSideConnection implements Agent {
     );
   }
 
-  async loadSession(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse> {
+  async loadSession(params: schema.LoadSessionRequest): Promise<void> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_load,
       params,
@@ -441,9 +439,7 @@ export interface Agent {
   newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse>;
-  loadSession?(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse>;
+  loadSession?(params: schema.LoadSessionRequest): Promise<void>;
   authenticate(params: schema.AuthenticateRequest): Promise<void>;
   prompt(params: schema.PromptRequest): Promise<schema.PromptResponse>;
   cancel(params: schema.CancelNotification): Promise<void>;
