@@ -39,7 +39,7 @@ impl Client for TestClient {
         let mut responses = responses.lock().unwrap();
         let outcome = responses
             .pop()
-            .unwrap_or(RequestPermissionOutcome::Cancelled);
+            .unwrap_or(RequestPermissionOutcome::Canceled);
         Ok(RequestPermissionResponse { outcome })
     }
 
@@ -322,9 +322,9 @@ async fn test_cancel_notification() {
 
             tokio::task::yield_now().await;
 
-            let cancelled = agent.cancellations_received.lock().unwrap();
-            assert_eq!(cancelled.len(), 1);
-            assert_eq!(cancelled[0], session_id);
+            let canceled = agent.cancellations_received.lock().unwrap();
+            assert_eq!(canceled.len(), 1);
+            assert_eq!(canceled[0], session_id);
         })
         .await;
 }
