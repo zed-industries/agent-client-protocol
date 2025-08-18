@@ -1,7 +1,7 @@
 [package]
 name = "agent-client-protocol"
 authors = ["Zed <hi@zed.dev>"]
-version = "0.0.25"
+version = "0.0.26"
 edition = "2024"
 license = "MIT"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
