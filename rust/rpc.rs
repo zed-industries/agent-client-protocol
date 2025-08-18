@@ -345,13 +345,6 @@ pub trait MessageHandler<Local: Side> {
     ) -> impl Future<Output = Result<(), Error>>;
 }
 
-// pub trait Dispatcher {
-//     type Notification: DeserializeOwned;
-
-//     fn request(&self, id: i32, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
-//     fn notification(&self, method: &str, params: Option<&RawValue>) -> Result<(), Error>;
-// }
-
 #[macro_export]
 macro_rules! dispatch_request {
     ($base:expr, $id:expr, $params:expr, $request_type:ty, $method:expr, $response_wrapper:expr) => {{
