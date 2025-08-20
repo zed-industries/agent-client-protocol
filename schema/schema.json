@@ -4,11 +4,20 @@
       "properties": {
         "loadSession": {
           "default": false,
-          "description": "Agent supports `session/load`",
+          "description": "Whether the agent supports `session/load`.",
           "type": "boolean"
+        },
+        "promptCapabilities": {
+          "$ref": "#/$defs/PromptCapabilities",
+          "default": {
+            "audio": false,
+            "embeddedContext": false,
+            "image": false
+          },
+          "description": "Prompt capabilities supported by the agent."
         }
       },
-      "required": ["loadSession"],
+      "required": ["loadSession", "promptCapabilities"],
       "type": "object"
     },
     "AgentNotification": {
@@ -410,12 +419,12 @@
       "properties": {
         "readTextFile": {
           "default": false,
-          "description": "Client supports `fs/read_text_file`",
+          "description": "Whether the Client supports `fs/read_text_file` requests.",
           "type": "boolean"
         },
         "writeTextFile": {
           "default": false,
-          "description": "Client supports `fs/write_text_file`",
+          "description": "Whether the Client supports `fs/write_text_file` requests.",
           "type": "boolean"
         }
       },
@@ -458,11 +467,11 @@
               "writeTextFile": false
             }
           },
-          "description": "Capabilities supported by the client"
+          "description": "Capabilities supported by the client."
         },
         "protocolVersion": {
           "$ref": "#/$defs/ProtocolVersion",
-          "description": "The latest protocol version supported by the client"
+          "description": "The latest protocol version supported by the client."
         }
       },
       "required": ["protocolVersion", "clientCapabilities"],
@@ -473,13 +482,18 @@
         "agentCapabilities": {
           "$ref": "#/$defs/AgentCapabilities",
           "default": {
-            "loadSession": false
+            "loadSession": false,
+            "promptCapabilities": {
+              "audio": false,
+              "embeddedContext": false,
+              "image": false
+            }
           },
-          "description": "Capabilities supported by the agent"
+          "description": "Capabilities supported by the agent."
         },
         "authMethods": {
           "default": [],
-          "description": "Authentication methods supported by the agent",
+          "description": "Authentication methods supported by the agent.",
           "items": {
             "$ref": "#/$defs/AuthMethod"
           },
@@ -619,15 +633,39 @@
       "enum": ["pending", "in_progress", "completed"],
       "type": "string"
     },
+    "PromptCapabilities": {
+      "description": "Prompt capabilities supported by the agent in `session/prompt` requests.\n\nBaseline agent functionality requires support for [`ContentBlock::Text`]\nand [`ContentBlock::ResourceLink`] in prompt requests.\n\nOther variants must be explicitly opted in to.",
+      "properties": {
+        "audio": {
+          "default": false,
+          "description": "Agent supports [`ContentBlock::Audio`].",
+          "type": "boolean"
+        },
+        "embeddedContext": {
+          "default": false,
+          "description": "Agent supports embedded context in `session/prompt` requests.\n\nWhen enabled, the Client is allowed to include [`ContentBlock::EmbeddedResource`]\nin prompt requests for pieces of context that are referenced in the message.",
+          "type": "boolean"
+        },
+        "image": {
+          "default": false,
+          "description": "Agent supports [`ContentBlock::Image`].",
+          "type": "boolean"
+        }
+      },
+      "required": ["image", "audio", "embeddedContext"],
+      "type": "object"
+    },
     "PromptRequest": {
       "properties": {
         "prompt": {
+          "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\n## Context\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::EmbeddedResource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::EmbeddedResource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
           "items": {
             "$ref": "#/$defs/ContentBlock"
           },
           "type": "array"
         },
         "sessionId": {
+          "description": "The ID of the session to send this user message to",
           "type": "string"
         }
       },

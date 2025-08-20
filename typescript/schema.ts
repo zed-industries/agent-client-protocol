@@ -72,9 +72,9 @@ export type EnvVariable = z.infer<typeof envVariableSchema>;
 
 export type McpServer = z.infer<typeof mcpServerSchema>;
 
-export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
-
 export type AuthMethod = z.infer<typeof authMethodSchema>;
+
+export type PromptCapabilities = z.infer<typeof promptCapabilitiesSchema>;
 
 export type PromptResponse = z.infer<typeof promptResponseSchema>;
 
@@ -90,8 +90,6 @@ export type NewSessionRequest = z.infer<typeof newSessionRequestSchema>;
 
 export type LoadSessionRequest = z.infer<typeof loadSessionRequestSchema>;
 
-export type InitializeResponse = z.infer<typeof initializeResponseSchema>;
-
 export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
@@ -102,9 +100,9 @@ export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>;
 
 export type PromptRequest = z.infer<typeof promptRequestSchema>;
 
-export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
+export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
 
-export type AgentResponse = z.infer<typeof agentResponseSchema>;
+export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
 
 export type RequestPermissionRequest = z.infer<
   typeof requestPermissionRequestSchema
@@ -112,11 +110,15 @@ export type RequestPermissionRequest = z.infer<
 
 export type InitializeRequest = z.infer<typeof initializeRequestSchema>;
 
+export type InitializeResponse = z.infer<typeof initializeResponseSchema>;
+
 export type SessionNotification = z.infer<typeof sessionNotificationSchema>;
 
 export type ClientRequest = z.infer<typeof clientRequestSchema>;
 
 export type AgentRequest = z.infer<typeof agentRequestSchema>;
+
+export type AgentResponse = z.infer<typeof agentResponseSchema>;
 
 export type AgentNotification = z.infer<typeof agentNotificationSchema>;
 
@@ -263,14 +265,16 @@ export const mcpServerSchema = z.object({
   name: z.string(),
 });
 
-export const agentCapabilitiesSchema = z.object({
-  loadSession: z.boolean(),
-});
-
 export const authMethodSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+});
+
+export const promptCapabilitiesSchema = z.object({
+  audio: z.boolean(),
+  embeddedContext: z.boolean(),
+  image: z.boolean(),
 });
 
 export const promptResponseSchema = z.object({
@@ -299,12 +303,6 @@ export const loadSessionRequestSchema = z.object({
   cwd: z.string(),
   mcpServers: z.array(mcpServerSchema),
   sessionId: z.string(),
-});
-
-export const initializeResponseSchema = z.object({
-  agentCapabilities: agentCapabilitiesSchema,
-  authMethods: z.array(authMethodSchema),
-  protocolVersion: z.number(),
 });
 
 export const contentBlockSchema = z.union([
@@ -376,6 +374,11 @@ export const promptRequestSchema = z.object({
   sessionId: z.string(),
 });
 
+export const agentCapabilitiesSchema = z.object({
+  loadSession: z.boolean(),
+  promptCapabilities: promptCapabilitiesSchema,
+});
+
 export const sessionUpdateSchema = z.union([
   z.object({
     content: contentBlockSchema,
@@ -417,14 +420,6 @@ export const sessionUpdateSchema = z.union([
   }),
 ]);
 
-export const agentResponseSchema = z.union([
-  initializeResponseSchema,
-  authenticateResponseSchema,
-  newSessionResponseSchema,
-  loadSessionResponseSchema,
-  promptResponseSchema,
-]);
-
 export const requestPermissionRequestSchema = z.object({
   options: z.array(permissionOptionSchema),
   sessionId: z.string(),
@@ -433,6 +428,12 @@ export const requestPermissionRequestSchema = z.object({
 
 export const initializeRequestSchema = z.object({
   clientCapabilities: clientCapabilitiesSchema,
+  protocolVersion: z.number(),
+});
+
+export const initializeResponseSchema = z.object({
+  agentCapabilities: agentCapabilitiesSchema,
+  authMethods: z.array(authMethodSchema),
   protocolVersion: z.number(),
 });
 
@@ -453,6 +454,14 @@ export const agentRequestSchema = z.union([
   newSessionRequestSchema,
   loadSessionRequestSchema,
   promptRequestSchema,
+]);
+
+export const agentResponseSchema = z.union([
+  initializeResponseSchema,
+  authenticateResponseSchema,
+  newSessionResponseSchema,
+  loadSessionResponseSchema,
+  promptResponseSchema,
 ]);
 
 export const agentNotificationSchema = sessionNotificationSchema;

@@ -42,9 +42,9 @@ pub trait Agent {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
-    /// The latest protocol version supported by the client
+    /// The latest protocol version supported by the client.
     pub protocol_version: ProtocolVersion,
-    /// Capabilities supported by the client
+    /// Capabilities supported by the client.
     #[serde(default)]
     pub client_capabilities: ClientCapabilities,
 }
@@ -57,10 +57,10 @@ pub struct InitializeResponse {
     ///
     /// The client should disconnect, if it doesn't support this version.
     pub protocol_version: ProtocolVersion,
-    /// Capabilities supported by the agent
+    /// Capabilities supported by the agent.
     #[serde(default)]
     pub agent_capabilities: AgentCapabilities,
-    /// Authentication methods supported by the agent
+    /// Authentication methods supported by the agent.
     #[serde(default)]
     pub auth_methods: Vec<AuthMethod>,
 }
@@ -133,7 +133,23 @@ pub struct EnvVariable {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptRequest {
+    /// The ID of the session to send this user message to
     pub session_id: SessionId,
+    /// The blocks of content that compose the user's message.
+    ///
+    /// As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],
+    /// while other variants are optionally enabled via [`PromptCapabilities`].
+    ///
+    /// The Client MUST adapt its interface according to [`PromptCapabilities`].
+    ///
+    /// ## Context
+    ///
+    /// The client MAY include referenced pieces of context as either
+    /// [`ContentBlock::EmbeddedResource`] or [`ContentBlock::ResourceLink`].
+    ///
+    /// When available, [`ContentBlock::EmbeddedResource`] is preferred
+    /// as it avoids extra round-trips and allows the message to include
+    /// pieces of context from sources the agent may not have access to.
     pub prompt: Vec<ContentBlock>,
 }
 
@@ -167,9 +183,35 @@ pub enum StopReason {
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentCapabilities {
-    /// Agent supports `session/load`
+    /// Whether the agent supports `session/load`.
     #[serde(default)]
     load_session: bool,
+    /// Prompt capabilities supported by the agent.
+    #[serde(default)]
+    prompt_capabilities: PromptCapabilities,
+}
+
+/// Prompt capabilities supported by the agent in `session/prompt` requests.
+///
+/// Baseline agent functionality requires support for [`ContentBlock::Text`]
+/// and [`ContentBlock::ResourceLink`] in prompt requests.
+///
+/// Other variants must be explicitly opted in to.
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptCapabilities {
+    /// Agent supports [`ContentBlock::Image`].
+    #[serde(default)]
+    image: bool,
+    /// Agent supports [`ContentBlock::Audio`].
+    #[serde(default)]
+    audio: bool,
+    /// Agent supports embedded context in `session/prompt` requests.
+    ///
+    /// When enabled, the Client is allowed to include [`ContentBlock::EmbeddedResource`]
+    /// in prompt requests for pieces of context that are referenced in the message.
+    #[serde(default)]
+    embedded_context: bool,
 }
 
 // Method schema

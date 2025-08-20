@@ -146,10 +146,10 @@ pub struct ClientCapabilities {
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {
-    /// Client supports `fs/read_text_file`
+    /// Whether the Client supports `fs/read_text_file` requests.
     #[serde(default)]
     pub read_text_file: bool,
-    /// Client supports `fs/write_text_file`
+    /// Whether the Client supports `fs/write_text_file` requests.
     #[serde(default)]
     pub write_text_file: bool,
 }
