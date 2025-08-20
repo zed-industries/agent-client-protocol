@@ -197,7 +197,7 @@ pub struct AgentCapabilities {
 /// and [`ContentBlock::ResourceLink`] in prompt requests.
 ///
 /// Other variants must be explicitly opted in to.
-#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
     /// Agent supports [`ContentBlock::Image`].
