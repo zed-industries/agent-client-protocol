@@ -21,7 +21,7 @@ import {
   ReadTextFileResponse,
   RequestPermissionRequest,
   RequestPermissionResponse,
-  CancelNotification,
+  CancelledNotification,
   SessionNotification,
   PROTOCOL_VERSION,
 } from "./acp.js";
@@ -75,7 +75,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         throw new Error("Prompt failed");
       }
-      async cancel(_: CancelNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }
@@ -167,7 +167,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(_: CancelNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }
@@ -273,8 +273,8 @@ describe("Connection", () => {
         messageLog.push(`prompt called: ${params.sessionId}`);
         return { stopReason: "end_turn" };
       }
-      async cancel(params: CancelNotification): Promise<void> {
-        messageLog.push(`canceled called: ${params.sessionId}`);
+      async cancel(params: CancelledNotification): Promise<void> {
+        messageLog.push(`cancelled called: ${params.sessionId}`);
       }
     }
 
@@ -404,8 +404,8 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(params: CancelNotification): Promise<void> {
-        notificationLog.push(`canceled: ${params.sessionId}`);
+      async cancel(params: CancelledNotification): Promise<void> {
+        notificationLog.push(`cancelled: ${params.sessionId}`);
       }
     }
 
@@ -447,7 +447,7 @@ describe("Connection", () => {
 
     // Verify notifications were received
     expect(notificationLog).toContain("agent message: Hello from agent");
-    expect(notificationLog).toContain("canceled: test-session");
+    expect(notificationLog).toContain("cancelled: test-session");
   });
 
   it("handles initialize method", async () => {
@@ -503,7 +503,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(_: CancelNotification): Promise<void> {
+      async cancel(_: CancelledNotification): Promise<void> {
         // no-op
       }
     }

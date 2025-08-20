@@ -97,10 +97,11 @@ pub struct RequestPermissionResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
-    #[serde(alias = "cancelled")]
-    Canceled,
+    Cancelled,
     #[serde(rename_all = "camelCase")]
-    Selected { option_id: PermissionOptionId },
+    Selected {
+        option_id: PermissionOptionId,
+    },
 }
 
 // Write text file

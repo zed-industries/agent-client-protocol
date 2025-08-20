@@ -185,7 +185,7 @@ export const readTextFileResponseSchema = z.object({
 
 export const requestPermissionOutcomeSchema = z.union([
   z.object({
-    outcome: z.literal("canceled"),
+    outcome: z.literal("cancelled"),
   }),
   z.object({
     optionId: z.string(),
@@ -214,7 +214,7 @@ export const stopReasonSchema = z.union([
   z.literal("max_tokens"),
   z.literal("max_turn_requests"),
   z.literal("refusal"),
-  z.literal("canceled"),
+  z.literal("cancelled"),
 ]);
 
 export const toolCallLocationSchema = z.object({
