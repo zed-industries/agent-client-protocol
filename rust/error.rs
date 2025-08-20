@@ -122,7 +122,8 @@ impl Display for Error {
         }
 
         if let Some(data) = &self.data {
-            write!(f, ": {data}")?;
+            let pretty = serde_json::to_string_pretty(data).unwrap_or_else(|_| data.to_string());
+            write!(f, ": {pretty}")?;
         }
 
         Ok(())
