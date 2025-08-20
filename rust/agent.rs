@@ -185,10 +185,10 @@ pub enum StopReason {
 pub struct AgentCapabilities {
     /// Whether the agent supports `session/load`.
     #[serde(default)]
-    load_session: bool,
+    pub load_session: bool,
     /// Prompt capabilities supported by the agent.
     #[serde(default)]
-    prompt_capabilities: PromptCapabilities,
+    pub prompt_capabilities: PromptCapabilities,
 }
 
 /// Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -202,16 +202,16 @@ pub struct AgentCapabilities {
 pub struct PromptCapabilities {
     /// Agent supports [`ContentBlock::Image`].
     #[serde(default)]
-    image: bool,
+    pub image: bool,
     /// Agent supports [`ContentBlock::Audio`].
     #[serde(default)]
-    audio: bool,
+    pub audio: bool,
     /// Agent supports embedded context in `session/prompt` requests.
     ///
     /// When enabled, the Client is allowed to include [`ContentBlock::EmbeddedResource`]
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
-    embedded_context: bool,
+    pub embedded_context: bool,
 }
 
 // Method schema
