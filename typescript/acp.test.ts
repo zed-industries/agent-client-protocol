@@ -21,7 +21,7 @@ import {
   ReadTextFileResponse,
   RequestPermissionRequest,
   RequestPermissionResponse,
-  CancelledNotification,
+  CancelNotification,
   SessionNotification,
   PROTOCOL_VERSION,
 } from "./acp.js";
@@ -75,7 +75,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         throw new Error("Prompt failed");
       }
-      async cancel(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelNotification): Promise<void> {
         // no-op
       }
     }
@@ -167,7 +167,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelNotification): Promise<void> {
         // no-op
       }
     }
@@ -273,7 +273,7 @@ describe("Connection", () => {
         messageLog.push(`prompt called: ${params.sessionId}`);
         return { stopReason: "end_turn" };
       }
-      async cancel(params: CancelledNotification): Promise<void> {
+      async cancel(params: CancelNotification): Promise<void> {
         messageLog.push(`cancelled called: ${params.sessionId}`);
       }
     }
@@ -404,7 +404,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(params: CancelledNotification): Promise<void> {
+      async cancel(params: CancelNotification): Promise<void> {
         notificationLog.push(`cancelled: ${params.sessionId}`);
       }
     }
@@ -503,7 +503,7 @@ describe("Connection", () => {
       async prompt(_: PromptRequest): Promise<PromptResponse> {
         return { stopReason: "end_turn" };
       }
-      async cancel(_: CancelledNotification): Promise<void> {
+      async cancel(_: CancelNotification): Promise<void> {
         // no-op
       }
     }
