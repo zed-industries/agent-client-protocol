@@ -3,4 +3,107 @@ title: "Initialization"
 description: "How all ACP connections begin"
 ---
 
-This page will document the initialization process for the Agent Client Protocol.
+{/* todo! link to all concepts */}
+
+
+The Initialization phase allows [Clients](../overview/client) and [Agents](../overview/agent) to negotiate protocol versions, capabilities, and authentication methods.
+
+Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize method` with:
+
+- The latest protocol version supported
+- The capabilities supported
+
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "method": "initialize",
+  "params": {
+    "protocol_version": 1,
+    "client_capabilities": {
+      "fs": {
+        "read_text_file": true,
+        "write_text_file": true
+      }
+    }
+  }
+}
+```
+
+The Agent **MUST** respond with the chosen protocol version and the capabilities it supports:
+
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocol_version": 1,
+    "agent_capabilities": {
+      "load_session": true,
+      "prompt_capabilities": {
+        "image": true,
+        "audio": true,
+        "embedded_context": true
+      }
+    }
+  }
+}
+```
+
+## Protocol version
+
+The protocol versions that appear in the `initialize` requests and responses are a single integer that identifies a **MAJOR** protocol version. This version is only incremented when breaking changes are introduced.
+
+Clients and Agents **MUST** agree on a protocol version and act according to its specification.
+
+See [Capabilities](#capabilities) to learn how non-breaking features are introduced.
+
+### Version Negotiation
+
+The `initialize` request **MUST** include the latest protocol version the Client supports.
+
+If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the server **MUST** respond with latest version it supports.
+
+If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the User about it.
+
+
+## Capabilities
+
+Capabilities describe features supported by the Client and the Agent.
+
+All capabilities included in the `initialize` request are **OPTIONAL**. Clients and Agents **SHOULD** support all possible combinations of their peer's capabilities.
+
+The introduction of new capabilities is not considered a breaking change. Therefore, Clients and Agents **MUST** treat all capabilities omitted in the `initialize` request as **UNSUPPORTED**.
+
+Capabilities are high-level and are not attached to a specific base protocol concept.
+
+Capabilities may specify the availability of protocol methods, notifications, or a subset of their parameters. They may also signal behaviors of the Agent or Client implementation.
+
+
+### Client Capabilities
+
+The Client **SHOULD** specify whether it supports the following capability.
+
+#### FileSystem
+
+The Client **MAY** expose its FileSystem abstraction to various degrees. This may allow Agents to access unsaved buffer state, and Clients to track Agent changes directly.
+
+- `read_text_file`: The `fs/read_text_file` method is available.
+- `write_text_file`: The `fs/write_text_file` method is available.
+
+### Agent Capabilities
+
+The Agent **SHOULD** specify whether it supports the following capabilities.
+
+- `load_session`: The `session/load` method is available.
+- `prompt_capabilities`: Object indicating the different types of content that may be included in `session/prompt` requests.
+
+#### Prompt capabilities
+
+As a baseline, all Agents **MUST** support `session/prompt` containing the `ContentBlock::Text` and `ContentBlock::ResourceLink`, but they **MAY** opt in to richer types of content by specifying the following capabilities:
+
+- `image`: The prompt may include `ContentBlock::Image`
+- `audio`: The prompt may include `ContentBlock::Audio`
+- `embedded_context`: The prompt may include `ContentBlock::EmbeddedResource`
