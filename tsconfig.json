@@ -6,18 +6,26 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
-    "composite": true,
-    "incremental": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "es2022",
-    "types": [],
+    "types": ["node"],
     "rootDir": "typescript",
     "outDir": "dist",
     "paths": {}
   },
-  "exclude": ["**/dist/**"]
+  "include": [
+    "typescript/acp.ts",
+    "typescript/connection.ts",
+    "typescript/schemas.ts"
+  ],
+  "exclude": [
+    "**/dist/**",
+    "typescript/generate-schemas.ts",
+    "typescript/example.ts",
+    "tests/**"
+  ]
 }

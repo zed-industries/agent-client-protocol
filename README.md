@@ -7,6 +7,4 @@ we get confidence in the design by implementing it in various settings.
 
 ## Details
 
-The schema is defined in [acp.rs](./rust/acp.rs), and a type-script definition is generated to [acp.ts](./typescript/acp.ts).
-
-This repo also contains interoperable implementations of the protocol for both Typescript and Rust.
+The schema is defined in [acp.rs](./rust/acp.rs), and a TypeScript definition is generated to [acp.ts](./typescript/acp.ts).
