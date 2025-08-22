@@ -1,0 +1,34 @@
+'Code Editor': {near: top-center}
+
+'MCP Proxy': {near: center-left}
+# 'MCP Server ...': {
+#   near: center-right
+#   style: {
+#     stroke-dash: 3
+#   }
+# }
+" ---------------------------------------------- ": {
+  style: {
+    fill: transparent
+    font-color: transparent
+    stroke-width: 0
+  }
+}
+
+# Bottom row: Agent
+Agent: {near: bottom-center}
+
+# Connections
+'Code Editor' -> Agent: MCP Proxy Configuration {
+  style: {
+    stroke-dash: 3
+  }
+}
+
+# The agent connects up to the MCP servers
+Agent <-> 'MCP Proxy': MCP over stdio {direction: up}
+'MCP Proxy' <-> 'Code Editor': MCP over socket {
+  style: {
+    stroke-dash: 3
+  }
+}

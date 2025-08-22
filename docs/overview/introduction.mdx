@@ -3,9 +3,9 @@ title: "Introduction"
 description: "Get started with the Agent Client Protocol (ACP)"
 ---
 
-The Agent Client Protocol (ACP) is a protocol that standardizes communication between code editors (interactive programs for viewing and editing source code) and coding agents (programs that use generative AI to autonomously modify code).
+The Agent Client Protocol standardizes communication between code editors (IDEs, text-editors, etc.) and coding agents (programs that use generative AI to autonomously modify code).
 
-The protocol is still under heavy development, and we aim to standardize it as we get confidence in the design by implementing it in various settings.
+The protocol is still under development, but it should be complete enough to build interesting user experiences using it.
 
 ## Why ACP?
 
@@ -21,22 +21,26 @@ This decoupling allows both sides to innovate independently while giving develop
 
 ## Overview
 
-The protocol is newline-delimited JSON sent over stdin/stdout. When a code editor wants to start a session with an agent, it boots it as a sub-process (inheriting any environment variables) and sends an initialize request to get the state of the world.
+ACP assumes that the user is primarily in their editor, and wants to reach out and use agents to assist them with specific tasks.
 
-If authentication is required, it can send authenticate to allow the agent to perform any authentication actions (like an Oauth flow).
+Agents run as sub-processes of the code editor, and communicate using JSON-RPC over stdio. The protocol re-uses the JSON representations used in MCP where possible, but includes custom types for things like Diffs that are useful for agentic coding.
 
-Once the agent is ready, the client can send sendUserMessage requests with content from the user. The agent sends streamAssistantMessageChunk and related tool call messages to update the UI while handling the user's message, and finally responds when there will be no more output.
+The default format for user-readable text is Markdown, which allows enough flexibility to represent rich formatting without requiring that the code editor is capable of rendering HTML.
 
-## Architecture
+## Implementations
 
-ACP follows a simple client-server architecture where the client (typically a code editor or IDE) spawns the agent as a subprocess and communicates via standard input/output streams. The protocol uses newline-delimited JSON-RPC 2.0 messages, ensuring compatibility with existing tooling and easy debugging. The client maintains control over the agent's lifecycle and can manage multiple concurrent sessions. Each session represents an isolated conversation context where the agent can access editor-provided tools for reading files, writing changes, and requesting user permissions for sensitive operations.
+Currently ACP is supported by:
 
-```
-┌─────────────────┐                    ┌─────────────────┐
-│                 │                    │                 │
-│     Client      │    stdin/stdout    │      Agent      │
-│      (IDE)      │ ←────────────────→ │    (AI Tool)    │
-│                 │    JSON-RPC 2.0    │                 │
-│                 │                    │                 │
-└─────────────────┘                    └─────────────────┘
-```
+### Editors
+
+- [Zed](https://zed.dev)
+- [neovim](https://neovim.io) if you install the [CodeCompanion](https://codecompanion.olimorris.dev) plugin.
+
+### Agents
+
+- [Gemini](https://github.com/google-gemini/gemini-cli)
+- ... more coming soon ;)
+
+## Further reading
+
+For an overview of the architecture, see the [Architecture](./Architecture) section. For ... TODO
