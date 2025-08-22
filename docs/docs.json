@@ -42,32 +42,32 @@
       {
         "group": "Overview",
         "pages": [
-          "Introduction",
-          "architecture"
+          "overview/introduction",
+          "overview/architecture"
         ]
       },
       {
         "group": "Protocol",
         "pages": [
-          "initialization",
-          "prompt-turn",
-          "client-tools",
-          "agent-tools",
-          "schema"
+          "protocol/initialization",
+          "protocol/prompt-turn",
+          "protocol/client-tools",
+          "protocol/agent-tools",
+          "protocol/schema"
         ]
       },
       {
         "group": "Libraries",
         "pages": [
-          "typescript",
-          "rust"
+          "libraries/typescript",
+          "libraries/rust"
         ]
       },
       {
         "group": "Community",
         "pages": [
-          "contributing",
-          "versioning"
+          "community/contributing",
+          "community/versioning"
         ]
       }
     ]
