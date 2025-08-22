@@ -43,7 +43,9 @@
         "group": "Overview",
         "pages": [
           "overview/introduction",
-          "overview/architecture"
+          "overview/architecture",
+          "overview/agent",
+          "overview/client"
         ]
       },
       {
