@@ -40,24 +40,35 @@
   "navigation": {
     "groups": [
       {
-        "group": "Introduction",
-        "pages": ["Introduction"]
-      },
-      {
-        "group": "Protocol Flow",
-        "pages": ["auth", "llm-turn", "client-tools", "agent-tools"]
+        "group": "Overview",
+        "pages": [
+          "Introduction",
+          "architecture"
+        ]
       },
       {
         "group": "Protocol",
-        "pages": ["architecture", "specification", "schema"]
+        "pages": [
+          "initialization",
+          "prompt-turn",
+          "client-tools",
+          "agent-tools",
+          "schema"
+        ]
       },
       {
         "group": "Libraries",
-        "pages": ["typescript", "rust"]
+        "pages": [
+          "typescript",
+          "rust"
+        ]
       },
       {
         "group": "Community",
-        "pages": ["contributing", "versioning"]
+        "pages": [
+          "contributing",
+          "versioning"
+        ]
       }
     ]
   },
@@ -77,6 +88,9 @@
     }
   },
   "contextual": {
-    "options": ["copy", "view"]
+    "options": [
+      "copy",
+      "view"
+    ]
   }
 }
