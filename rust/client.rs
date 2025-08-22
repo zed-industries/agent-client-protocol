@@ -178,7 +178,7 @@ pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 pub const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 
 /// Requests the agent sends to the client
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
@@ -187,7 +187,7 @@ pub enum AgentRequest {
 }
 
 /// Responses the client sends to the agent
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientResponse {
     WriteTextFileResponse,
@@ -196,7 +196,7 @@ pub enum ClientResponse {
 }
 
 /// Notifications the agent sends to the client
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),

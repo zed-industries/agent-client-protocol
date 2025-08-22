@@ -25,6 +25,7 @@ use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
 
 use crate::rpc::{MessageHandler, RpcConnection, Side};
+pub use crate::rpc::{StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -51,6 +52,10 @@ impl ClientSideConnection {
     ) -> (Self, impl Future<Output = Result<()>>) {
         let (conn, io_task) = RpcConnection::new(client, outgoing_bytes, incoming_bytes, spawn);
         (Self { conn }, io_task)
+    }
+
+    pub fn subscribe(&self) -> StreamReceiver {
+        self.conn.subscribe()
     }
 }
 
@@ -108,6 +113,7 @@ impl Agent for ClientSideConnection {
     }
 }
 
+#[derive(Clone)]
 pub struct ClientSide;
 
 impl Side for ClientSide {
@@ -191,6 +197,10 @@ impl AgentSideConnection {
         let (conn, io_task) = RpcConnection::new(agent, outgoing_bytes, incoming_bytes, spawn);
         (Self { conn }, io_task)
     }
+
+    pub fn subscribe(&self) -> StreamReceiver {
+        self.conn.subscribe()
+    }
 }
 
 impl Client for AgentSideConnection {
@@ -235,6 +245,7 @@ impl Client for AgentSideConnection {
     }
 }
 
+#[derive(Clone)]
 pub struct AgentSide;
 
 impl Side for AgentSide {

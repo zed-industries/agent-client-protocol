@@ -242,7 +242,7 @@ pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 pub const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 
 /// Requests the client sends to the agent
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientRequest {
     InitializeRequest(InitializeRequest),
@@ -253,7 +253,7 @@ pub enum ClientRequest {
 }
 
 /// Responses the agent sends to the client
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
@@ -264,13 +264,13 @@ pub enum AgentResponse {
 }
 
 /// Notifications the client sends to the agent
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelNotification {
     pub session_id: SessionId,

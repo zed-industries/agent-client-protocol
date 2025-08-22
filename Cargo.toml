@@ -23,6 +23,7 @@ path = "rust/generate.rs"
 
 [dependencies]
 anyhow = "1.0"
+async-broadcast = "0.7.2"
 futures = { version = "0.3" }
 log = "0.4"
 parking_lot = "0.12"
