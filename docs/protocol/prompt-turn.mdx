@@ -80,12 +80,10 @@ If the model requested tool calls, these are also reported:
     "sessionId": "sess_abc123def456",
     "update": {
       "sessionUpdate": "tool_call",
-      "id": "call_001",
-      "name": "analyze_code",
-      "arguments": {
-        "code": "def process_data(items):\n    for item in items:\n        print(item)",
-        "language": "python"
-      }
+      "toolCallId": "call_001",
+      "title": "Analyzing Python code",
+      "kind": "other",
+      "status": "pending"
     }
   }
 }
@@ -110,6 +108,7 @@ Agents **MAY** stop the turn at any point by returning the corresponding [`StopR
 ### 5. Tool Invocation and Status Reporting
 
 If tool calls were requested, the Agent invokes each tool and reports their execution status to the Client via `session/update` notifications.
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -118,9 +117,17 @@ If tool calls were requested, the Agent invokes each tool and reports their exec
     "sessionId": "sess_abc123def456",
     "update": {
       "sessionUpdate": "tool_call_update",
-      "id": "call_001",
-      "status": "success",
-      "output": "Analysis complete:\n- No syntax errors found\n- Consider adding type hints for better clarity\n- The function could benefit from error handling for empty lists"
+      "toolCallId": "call_001",
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "Analysis complete:\n- No syntax errors found\n- Consider adding type hints for better clarity\n- The function could benefit from error handling for empty lists"
+          }
+        }
+      ]
     }
   }
 }
