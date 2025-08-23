@@ -51,17 +51,17 @@ Agents that support the `loadSession` capability allow Clients to resume previou
 
 ### Checking Support
 
-Before attempting to load a session, Clients **MUST** verify that the Agent supports this capability by checking the `loadSession` field in the initialization response:
+Before attempting to load a session, Clients **MUST** verify that the Agent supports this capability by checking the `loadSession` field in the `initialize` response:
 
-```json
+```json highlight={7}
 {
-  // …
+  "jsonrpc": "2.0",
+  "id": 0,
   "result": {
     "protocolVersion": 1,
     "agentCapabilities": {
-      "loadSession": true,  // Agent supports session/load
-      // …
-    }
+      "loadSession": true,
+    },
   }
 }
 ```
