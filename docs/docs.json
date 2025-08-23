@@ -53,7 +53,9 @@
           "protocol/initialization",
           "protocol/session-setup",
           "protocol/prompt-turn",
+          "protocol/content",
           "protocol/tool-calls",
+          "protocol/agent-plan",
           "protocol/schema"
         ]
       },
