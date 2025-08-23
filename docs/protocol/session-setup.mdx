@@ -28,7 +28,7 @@ Clients create a new session by calling the `session/new` method with:
         "args": ["--stdio"],
         "env": []
       }
-    ],
+    ]
   }
 }
 ```
@@ -91,7 +91,7 @@ To load an existing session, Clients **MUST** call the `session/load` method wit
         "args": ["--mode", "filesystem"],
         "env": []
       }
-    ],
+    ]
   }
 }
 ```
@@ -106,13 +106,13 @@ For example, a user message from the conversation history:
   "method": "session/update",
   "params": {
     "sessionId": "sess_789xyz",
-    "role": "user",
-    "content": [
-      {
+    "update": {
+      "sessionUpdate": "user_message_chunk",
+      "content": {
         "type": "text",
         "text": "What's the capital of France?"
       }
-    ]
+    }
   }
 }
 ```
@@ -125,13 +125,13 @@ Followed by the agent's response:
   "method": "session/update",
   "params": {
     "sessionId": "sess_789xyz",
-    "role": "assistant",
-    "content": [
-      {
+    "update": {
+      "sessionUpdate": "agent_message_chunk",
+      "content": {
         "type": "text",
         "text": "The capital of France is Paris."
       }
-    ]
+    }
   }
 }
 ```
