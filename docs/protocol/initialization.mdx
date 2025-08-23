@@ -65,7 +65,7 @@ See [Capabilities](#capabilities) to learn how non-breaking features are introdu
 
 The `initialize` request **MUST** include the latest protocol version the Client supports.
 
-If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the server **MUST** respond with the latest version it supports.
+If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the Agent **MUST** respond with the latest version it supports.
 
 If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the user about it.
 
