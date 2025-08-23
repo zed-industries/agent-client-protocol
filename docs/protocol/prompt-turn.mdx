@@ -176,6 +176,38 @@ When an Agent stops a turn, it must specify the corresponding `StopReason`:
 - `refusal`: The Agent refuses to continue
 - `cancelled`: The Client cancels the turn
 
+## Cancellation
+
+Clients **MAY** cancel an ongoing prompt turn at any time by sending a `session/cancel` notification:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/cancel",
+  "params": {
+    "sessionId": "sess_abc123def456"
+  }
+}
+```
+
+When the Agent receives this notification, it **SHOULD** stop all language model requests and all tool call invocations as soon as possible.
+
+After all ongoing operations have been successfully aborted, the Agent **MUST** respond to the original `session/prompt` request with the `cancelled` [stop reason](#stop-reasons).
+
+<Warning>
+  API client libraries and tools often throw an exception when their operation is aborted, which may propagate as an error response to `session/prompt`.
+
+  Agents **MUST** catch these errors and return the semantically meaningful `cancelled` stop reason, so that Clients can reliably confirm the cancellation.
+
+  Clients often display unrecognized errors from the Agent to the user, which would be undesirable for cancellations as they aren't considered errors.
+</Warning>
+
+The Agent **MAY** send `session/update` notifications with content or tool call updates after receiving the `session/cancel` notification, but it **MUST** ensure that it does so before responding to the `session/prompt` request.
+
+The Client **SHOULD** preemptively mark all non-finished tool calls pertaining to the current turn as `cancelled` as soon as it sends the `session/cancel` notification, since the Agent is not required to do so.
+
+The Client **SHOULD** still accept tool call updates received after sending `session/cancel` to prevent dropping valuable information.
+
 ---
 
 Once a prompt turn completes, the Client may send another `session/prompt` to continue the conversation, building on the context established in previous turns.
