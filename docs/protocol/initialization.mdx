@@ -65,9 +65,9 @@ See [Capabilities](#capabilities) to learn how non-breaking features are introdu
 
 The `initialize` request **MUST** include the latest protocol version the Client supports.
 
-If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the server **MUST** respond with latest version it supports.
+If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the server **MUST** respond with the latest version it supports.
 
-If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the User about it.
+If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the user about it.
 
 
 ## Capabilities
@@ -89,7 +89,7 @@ The Client **SHOULD** specify whether it supports the following capability:
 
 #### FileSystem
 
-The Client **MAY** expose its FileSystem abstraction to varying degree:
+The Client **MAY** expose its FileSystem abstraction to varying degrees:
 
 - `readTextFile`: The `fs/read_text_file` method is available.
 - `writeTextFile`: The `fs/write_text_file` method is available.

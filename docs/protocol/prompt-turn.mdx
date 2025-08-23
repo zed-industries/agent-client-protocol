@@ -40,7 +40,7 @@ The turn begins when the Client sends a `session/prompt` request containing the 
 }
 ```
 
-This message **MAY** include various types of [content](./content) including text, images, audio, references to external resources, and embedded context.
+This message **MAY** include various types of [content](./content), including text, images, audio, references to external resources, and embedded context.
 
 {/* todo! move prompt capabilities to this page */}
 Clients **MUST** only include types of content supported by the Agent according to its [Prompt Capabilities](./initialization#prompt-capabilities).
@@ -70,7 +70,7 @@ The Agent reports the model's output to the Client via `session/update` notifica
 }
 ```
 
-If the model requested tool calls, these are also reported as soon:
+If the model requested tool calls, these are also reported immediately:
 
 ```json
 {
@@ -111,7 +111,7 @@ If tool calls were requested, the Agent processes each [tool](./tool-call).
 
 Before proceeding with execution, the Agent **MAY** request permission from the Client via the `session/request_permission` method.
 
-Once permission is granted (if required), the Agent **SHOULD** invoke the tool and report a status update marking the tool as `in_progress`
+Once permission is granted (if required), the Agent **SHOULD** invoke the tool and report a status update marking the tool as `in_progress`:
 
 ```json
 {
@@ -166,7 +166,7 @@ The Agent sends the tool results back to the language model as another request.
 
 The cycle returns to [step 2](#2-agent-processing), continuing until the language model completes its response without requesting additional tool calls or the turn gets stopped by the Agent or cancelled by the Client.
 
-## Stop reasons
+## Stop Reasons
 
 When an Agent stops a turn, it must specify the corresponding `StopReason`:
 
