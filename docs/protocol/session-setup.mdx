@@ -11,7 +11,7 @@ Before creating a session, Clients **MUST** first complete the [initialization](
 
 Clients create a new session by calling the `session/new` method with:
 
-- The current working directory for the session
+- The [working directory](#working-directory) for the session
 - A list of [MCP servers](#mcp-servers) the Agent should connect to
 
 ```json
@@ -20,6 +20,7 @@ Clients create a new session by calling the `session/new` method with:
   "id": 1,
   "method": "session/new",
   "params": {
+    "cwd": "/home/user/project",
     "mcpServers": [
       {
         "name": "filesystem",
@@ -28,7 +29,6 @@ Clients create a new session by calling the `session/new` method with:
         "env": []
       }
     ],
-    "cwd": "/home/user/project"
   }
 }
 ```
@@ -45,11 +45,113 @@ The Agent **MUST** respond with a unique session ID that identifies this convers
 }
 ```
 
+## Loading Sessions
+
+Agents that support the `loadSession` capability allow Clients to resume previous conversations. This feature enables persistence across restarts and sharing sessions between different Client instances.
+
+### Checking Support
+
+Before attempting to load a session, Clients **MUST** verify that the Agent supports this capability by checking the `loadSession` field in the initialization response:
+
+```json
+{
+  // …
+  "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,  // Agent supports session/load
+      // …
+    }
+  }
+}
+```
+
+If `loadSession` is `false` or not present, the Agent does not support loading sessions and Clients **MUST NOT** attempt to call `session/load`.
+
+### Loading a Session
+
+To load an existing session, Clients **MUST** call the `session/load` method with:
+
+- The [Session ID](#session-id) to resume
+- [MCP servers](#mcp-servers) to connect to
+- The [working directory](#working-directory)
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "session/load",
+  "params": {
+    "sessionId": "sess_789xyz",
+    "cwd": "/home/user/project",
+    "mcpServers": [
+      {
+        "name": "filesystem",
+        "command": "/path/to/mcp-server",
+        "args": ["--mode", "filesystem"],
+        "env": []
+      }
+    ],
+  }
+}
+```
+
+The Agent **MUST** replay the entire conversation to the Client in the form of `session/update` notifications (like `session/prompt`).
+
+For example, a user message from the conversation history:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_789xyz",
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "What's the capital of France?"
+      }
+    ]
+  }
+}
+```
+
+Followed by the agent's response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_789xyz",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "The capital of France is Paris."
+      }
+    ]
+  }
+}
+```
+
+When **all** the conversation entries have been streamed to the Client, the Agent **MUST** respond to the original `session/load` request.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1
+}
+```
+
+The Client can then continue sending prompts as if the session was never interrupted.
+
 ## Session ID
 
 The session ID returned by `session/new` is a unique identifier for the conversation context.
 
-Clients use this session ID to:
+Clients use this ID to:
 - Send prompt requests via `session/prompt`
 - Cancel ongoing operations via `session/cancel`
 - Load previous sessions via `session/load` (if the Agent supports the `loadSession` capability)
@@ -58,8 +160,8 @@ Clients use this session ID to:
 
 The `cwd` (current working directory) parameter establishes the file system context for the session. This directory:
 
-- **SHOULD** be an absolute path in the User's file system.
-- **SHOULD** be used as the boundary for tool operations on the file system
+- **SHOULD** be an absolute path
+- **SHOULD** serve as a boundary for tool operations on the file system
 - **MUST** be used for the session regardless of where the Agent subprocess was spawned in
 
 ## MCP Servers
