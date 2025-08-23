@@ -227,6 +227,10 @@ Clients **MAY** cancel an ongoing prompt turn at any time by sending a `session/
 }
 ```
 
+The Client **SHOULD** preemptively mark all non-finished tool calls pertaining to the current turn as `cancelled` as soon as it sends the `session/cancel` notification.
+
+The Client **MUST** respond to all pending `session/request_permission` requests with the `cancelled` outcome.
+
 When the Agent receives this notification, it **SHOULD** stop all language model requests and all tool call invocations as soon as possible.
 
 After all ongoing operations have been successfully aborted, the Agent **MUST** respond to the original `session/prompt` request with the `cancelled` [stop reason](#stop-reasons).
@@ -241,9 +245,7 @@ After all ongoing operations have been successfully aborted, the Agent **MUST** 
 
 The Agent **MAY** send `session/update` notifications with content or tool call updates after receiving the `session/cancel` notification, but it **MUST** ensure that it does so before responding to the `session/prompt` request.
 
-The Client **SHOULD** preemptively mark all non-finished tool calls pertaining to the current turn as `cancelled` as soon as it sends the `session/cancel` notification, since the Agent is not required to do so.
-
-The Client **SHOULD** still accept tool call updates received after sending `session/cancel` to prevent dropping valuable information.
+The Client **SHOULD** still accept tool call updates received after sending `session/cancel`.
 
 ---
 
