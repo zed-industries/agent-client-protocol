@@ -160,9 +160,9 @@ Clients use this ID to:
 
 The `cwd` (current working directory) parameter establishes the file system context for the session. This directory:
 
-- **SHOULD** be an absolute path
-- **SHOULD** serve as a boundary for tool operations on the file system
+- **MUST** be an absolute path
 - **MUST** be used for the session regardless of where the Agent subprocess was spawned
+- **SHOULD** serve as a boundary for tool operations on the file system
 
 ## MCP Servers
 
