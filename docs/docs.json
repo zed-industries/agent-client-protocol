@@ -43,18 +43,17 @@
         "group": "Overview",
         "pages": [
           "overview/introduction",
-          "overview/architecture",
-          "overview/agent",
-          "overview/client"
+          "overview/architecture"
         ]
       },
       {
         "group": "Protocol",
         "pages": [
+          "protocol/overview",
           "protocol/initialization",
+          "protocol/session-setup",
           "protocol/prompt-turn",
-          "protocol/client-tools",
-          "protocol/agent-tools",
+          "protocol/tool-call",
           "protocol/schema"
         ]
       },

@@ -6,7 +6,7 @@ description: "How all ACP connections begin"
 {/* todo! link to all concepts */}
 
 
-The Initialization phase allows [Clients](../overview/client) and [Agents](../overview/agent) to negotiate protocol versions, capabilities, and authentication methods.
+The Initialization phase allows [Clients](./overview#client) and [Agents](./overview#agent) to negotiate protocol versions, capabilities, and authentication methods.
 
 Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
 
@@ -20,11 +20,11 @@ Before a Session can be created, Clients **MUST** initialize the connection by c
   "id": 0,
   "method": "initialize",
   "params": {
-    "protocol_version": 1,
-    "client_capabilities": {
+    "protocolVersion": 1,
+    "clientCapabilities": {
       "fs": {
-        "read_text_file": true,
-        "write_text_file": true
+        "readTextFile": true,
+        "writeTextFile": true
       }
     }
   }
@@ -39,13 +39,13 @@ The Agent **MUST** respond with the chosen [protocol version](#protocol-version)
   "jsonrpc": "2.0",
   "id": 0,
   "result": {
-    "protocol_version": 1,
-    "agent_capabilities": {
-      "load_session": true,
-      "prompt_capabilities": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
         "image": true,
         "audio": true,
-        "embedded_context": true
+        "embeddedContext": true
       }
     }
   }
@@ -90,15 +90,15 @@ The Client **SHOULD** specify whether it supports the following capability.
 
 The Client **MAY** expose its FileSystem abstraction to various degrees. This may allow Agents to access unsaved buffer state, and Clients to track Agent changes directly.
 
-- `read_text_file`: The `fs/read_text_file` method is available.
-- `write_text_file`: The `fs/write_text_file` method is available.
+- `readTextFile`: The `fs/read_text_file` method is available.
+- `writeTextFile`: The `fs/write_text_file` method is available.
 
 ### Agent Capabilities
 
 The Agent **SHOULD** specify whether it supports the following capabilities.
 
-- `load_session`: The `session/load` method is available.
-- `prompt_capabilities`: Object indicating the different types of content that may be included in `session/prompt` requests.
+- `loadSession`: The `session/load` method is available.
+- `promptCapabilities`: Object indicating the different types of content that may be included in `session/prompt` requests.
 
 #### Prompt capabilities
 
@@ -106,4 +106,4 @@ As a baseline, all Agents **MUST** support `ContentBlock::Text` and `ContentBloc
 
 - `image`: The prompt may include `ContentBlock::Image`
 - `audio`: The prompt may include `ContentBlock::Audio`
-- `embedded_context`: The prompt may include `ContentBlock::EmbeddedResource`
+- `embeddedContext`: The prompt may include `ContentBlock::EmbeddedResource`

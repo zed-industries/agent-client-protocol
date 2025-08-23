@@ -1,0 +1,83 @@
+---
+title: "Overview"
+description: "How the Agent Client Protocol works"
+---
+
+The Agent Client Protocol allows [Agents](#agent) and [Clients](#client) to communicate by exposing methods that each side can call and sending notifications to inform each other of events.
+
+## Communication Model
+
+The protocol follows [JSON-RPC 2.0](https://www.jsonrpc.org/specification) specifications with two types of messages:
+
+- **Methods**: Request-response pairs that expect a result or error
+- **Notifications**: One-way messages that don't expect a response
+
+Both sides expose methods, making the protocol symmetric - Agents can call Client methods and Clients can call Agent methods.
+
+## Message Flow
+
+A typical conversation follows this pattern:
+
+1. **Initialization Phase**
+   - Client → Agent: `initialize` to establish connection
+   - Client → Agent: `authenticate` if required by the agent
+
+2. **[Session Setup](./session-setup)** - either:
+   - Client → Agent: `session/new` to create a new session
+   - Client → Agent: `session/load` to resume an existing session if supported
+
+3. **[Prompt Turn](./prompt-turn)**
+   - Client → Agent: `session/prompt` to send user message
+   - Agent → Client: `session/update` notifications for progress updates
+   - Agent → Client: File operations or permission requests as needed
+   - Client → Agent: `session/cancel` to interrupt processing if needed
+   - Turn ends and the Agent sends the `session/prompt` response with a stop reason
+
+## Agent
+
+Agents are programs that use generative AI to autonomously modify code. They typically run as sub-processes of the Client.
+
+### Baseline Methods
+
+- `initialize` - Establish connection and negotiate capabilities
+- `authenticate` - Authenticate with the Agent (if required)
+- `session/new` - Create a new conversation session
+- `session/prompt` - Send user prompts to the Agent
+
+### Optional Methods
+
+- `session/load` - Load an existing session (requires `loadSession` capability)
+
+### Notifications
+
+- `session/cancel` - Cancel ongoing operations (no response expected)
+
+## Client
+
+Clients provide the interface between users and agents. They are typically code editors (IDEs, text editors) but can also be other UIs for interacting with agents. Clients manage the environment, handle user interactions, and control access to resources.
+
+### Baseline Methods
+
+- `session/request_permission` - Request user authorization for tool calls
+
+### Optional Methods
+
+- `fs/read_text_file` - Read file contents (requires `fs.readTextFile` capability)
+- `fs/write_text_file` - Write file contents (requires `fs.writeTextFile` capability)
+
+### Notifications
+
+- `session/update` - Send progress updates during prompt processing (no response expected)
+
+## Error Handling
+
+All methods follow standard JSON-RPC 2.0 error handling:
+
+- Successful responses include a `result` field
+- Errors include an `error` object with `code` and `message`
+- Notifications never receive responses (success or error)
+
+## Next Steps
+
+- Learn about [Initialization](./initialization) to understand capability negotiation
+- Understand [Tool Calls](./tool-call) and how Agents invoke tools
