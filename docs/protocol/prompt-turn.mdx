@@ -233,7 +233,7 @@ The Client **MUST** respond to all pending `session/request_permission` requests
 
 When the Agent receives this notification, it **SHOULD** stop all language model requests and all tool call invocations as soon as possible.
 
-After all ongoing operations have been successfully aborted, the Agent **MUST** respond to the original `session/prompt` request with the `cancelled` [stop reason](#stop-reasons).
+After all ongoing operations have been successfully aborted and pending updates have been sent, the Agent **MUST** respond to the original `session/prompt` request with the `cancelled` [stop reason](#stop-reasons).
 
 <Warning>
   API client libraries and tools often throw an exception when their operation is aborted, which may propagate as an error response to `session/prompt`.
