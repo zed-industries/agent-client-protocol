@@ -146,8 +146,6 @@ Agents **MAY** stop the turn at any point by returning the corresponding [`StopR
 
 ### 5. Tool Invocation and Status Reporting
 
-If tool calls were requested, the Agent processes each [tool](./tool-call).
-
 Before proceeding with execution, the Agent **MAY** request permission from the Client via the `session/request_permission` method.
 
 Once permission is granted (if required), the Agent **SHOULD** invoke the tool and report a status update marking the tool as `in_progress`:
