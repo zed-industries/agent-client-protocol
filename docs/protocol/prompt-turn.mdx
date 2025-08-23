@@ -70,7 +70,7 @@ The Agent reports the model's output to the Client via `session/update` notifica
 }
 ```
 
-If the model requested tool calls, these are also reported:
+If the model requested tool calls, these are also reported as soon:
 
 ```json
 {
@@ -107,7 +107,32 @@ Agents **MAY** stop the turn at any point by returning the corresponding [`StopR
 
 ### 5. Tool Invocation and Status Reporting
 
-If tool calls were requested, the Agent invokes each tool and reports their execution status to the Client via `session/update` notifications.
+If tool calls were requested, the Agent processes each [tool](./tool-call).
+
+Before proceeding with execution, the Agent **MAY** request permission from the Client via the `session/request_permission` method.
+
+Once permission is granted (if required), the Agent **SHOULD** invoke the tool and report a status update marking the tool as `in_progress`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "update": {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_001",
+      "status": "in_progress"
+    }
+  }
+}
+```
+
+As the tool runs, the Agent **MAY** send additional updates, providing real-time feedback about tool execution progress.
+
+While tools execute on the Agent, they **MAY** leverage Client capabilities such as the file system (`fs`) methods to access resources within the Client's environment.
+
+When the tool completes, the Agent sends another update with the final status and any content:
 
 ```json
 {
@@ -133,7 +158,7 @@ If tool calls were requested, the Agent invokes each tool and reports their exec
 }
 ```
 
-The Agent **MAY** send updates as the tool runs, providing real-time feedback about tool execution progress.
+[Learn more](./tool-calls) about Tool Calls.
 
 ### 6. Continue Conversation
 
