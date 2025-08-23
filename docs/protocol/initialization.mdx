@@ -84,18 +84,18 @@ Capabilities may specify the availability of protocol methods, notifications, or
 
 ### Client Capabilities
 
-The Client **SHOULD** specify whether it supports the following capability.
+The Client **SHOULD** specify whether it supports the following capability:
 
 #### FileSystem
 
-The Client **MAY** expose its FileSystem abstraction to various degrees. This may allow Agents to access unsaved buffer state, and Clients to track Agent changes directly.
+The Client **MAY** expose its FileSystem abstraction to varying degree:
 
 - `readTextFile`: The `fs/read_text_file` method is available.
 - `writeTextFile`: The `fs/write_text_file` method is available.
 
 ### Agent Capabilities
 
-The Agent **SHOULD** specify whether it supports the following capabilities.
+The Agent **SHOULD** specify whether it supports the following capabilities:
 
 - `loadSession`: The `session/load` method is available.
 - `promptCapabilities`: Object indicating the different types of content that may be included in `session/prompt` requests.
