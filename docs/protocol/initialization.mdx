@@ -5,14 +5,12 @@ description: "How all Agent Client Protocol connections begin"
 
 {/* todo! link to all concepts */}
 
-
 The Initialization phase allows [Clients](./overview#client) and [Agents](./overview#agent) to negotiate protocol versions, capabilities, and authentication methods.
 
 Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
 
 - The latest [protocol version](#protocol-version) supported
 - The [capabilities](#client-capabilities) supported
-
 
 ```json
 {
@@ -32,7 +30,6 @@ Before a Session can be created, Clients **MUST** initialize the connection by c
 ```
 
 The Agent **MUST** respond with the chosen [protocol version](#protocol-version) and the [capabilities](#agent-capabilities) it supports:
-
 
 ```json
 {
@@ -69,7 +66,6 @@ If the Agent supports the requested version, it **MUST** respond with the same v
 
 If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the user about it.
 
-
 ## Capabilities
 
 Capabilities describe features supported by the Client and the Agent.
@@ -81,7 +77,6 @@ The introduction of new capabilities is not considered a breaking change. Theref
 Capabilities are high-level and are not attached to a specific base protocol concept.
 
 Capabilities may specify the availability of protocol methods, notifications, or a subset of their parameters. They may also signal behaviors of the Agent or Client implementation.
-
 
 ### Client Capabilities
 

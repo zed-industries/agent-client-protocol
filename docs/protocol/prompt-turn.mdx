@@ -238,9 +238,10 @@ After all ongoing operations have been successfully aborted and pending updates 
 <Warning>
   API client libraries and tools often throw an exception when their operation is aborted, which may propagate as an error response to `session/prompt`.
 
-  Clients often display unrecognized errors from the Agent to the user, which would be undesirable for cancellations as they aren't considered errors.
+Clients often display unrecognized errors from the Agent to the user, which would be undesirable for cancellations as they aren't considered errors.
 
-  Agents **MUST** catch these errors and return the semantically meaningful `cancelled` stop reason, so that Clients can reliably confirm the cancellation.
+Agents **MUST** catch these errors and return the semantically meaningful `cancelled` stop reason, so that Clients can reliably confirm the cancellation.
+
 </Warning>
 
 The Agent **MAY** send `session/update` notifications with content or tool call updates after receiving the `session/cancel` notification, but it **MUST** ensure that it does so before responding to the `session/prompt` request.

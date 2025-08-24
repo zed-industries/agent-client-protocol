@@ -60,8 +60,8 @@ Before attempting to load a session, Clients **MUST** verify that the Agent supp
   "result": {
     "protocolVersion": 1,
     "agentCapabilities": {
-      "loadSession": true,
-    },
+      "loadSession": true
+    }
   }
 }
 ```
@@ -152,6 +152,7 @@ The Client can then continue sending prompts as if the session was never interru
 The session ID returned by `session/new` is a unique identifier for the conversation context.
 
 Clients use this ID to:
+
 - Send prompt requests via `session/prompt`
 - Cancel ongoing operations via `session/cancel`
 - Load previous sessions via `session/load` (if the Agent supports the `loadSession` capability)
