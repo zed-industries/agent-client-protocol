@@ -24,7 +24,10 @@
       "format": "woff2"
     }
   },
-  "favicon": "/favicon.svg",
+  "favicon": {
+    "light": "/logo/fav-light.png",
+    "dark": "/logo/fav-dark.png"
+  },
   "navbar": {
     "links": [
       {
