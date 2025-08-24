@@ -41,10 +41,7 @@
     "groups": [
       {
         "group": "Overview",
-        "pages": [
-          "overview/introduction",
-          "overview/architecture"
-        ]
+        "pages": ["overview/introduction", "overview/architecture"]
       },
       {
         "group": "Protocol",
@@ -61,17 +58,11 @@
       },
       {
         "group": "Libraries",
-        "pages": [
-          "libraries/typescript",
-          "libraries/rust"
-        ]
+        "pages": ["libraries/typescript", "libraries/rust"]
       },
       {
         "group": "Community",
-        "pages": [
-          "community/contributing",
-          "community/versioning"
-        ]
+        "pages": ["community/contributing", "community/versioning"]
       }
     ]
   },
@@ -91,9 +82,6 @@
     }
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view"
-    ]
+    "options": ["copy", "view"]
   }
 }
