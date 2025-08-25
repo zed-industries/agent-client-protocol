@@ -24,13 +24,14 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::value::RawValue;
 
-use crate::Error;
+use crate::stream_broadcast::{StreamBroadcast, StreamSender};
+use crate::{Error, StreamReceiver};
 
 pub struct RpcConnection<Local: Side, Remote: Side> {
     outgoing_tx: UnboundedSender<OutgoingMessage<Local, Remote>>,
     pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
     next_id: AtomicI32,
-    broadcast_rx: async_broadcast::InactiveReceiver<StreamMessage>,
+    broadcast: StreamBroadcast,
 }
 
 struct PendingResponse {
@@ -56,7 +57,7 @@ where
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
 
         let pending_responses = Arc::new(Mutex::new(HashMap::default()));
-        let (broadcast_tx, broadcast_rx) = async_broadcast::broadcast(1);
+        let (broadcast_tx, broadcast) = StreamBroadcast::new();
 
         let io_task = {
             let pending_responses = pending_responses.clone();
@@ -81,20 +82,14 @@ where
             outgoing_tx,
             pending_responses,
             next_id: AtomicI32::new(0),
-            broadcast_rx: broadcast_rx.deactivate(),
+            broadcast,
         };
 
         (this, io_task)
     }
 
     pub fn subscribe(&self) -> StreamReceiver {
-        let was_empty = self.broadcast_rx.receiver_count() == 0;
-        let mut new_receiver = self.broadcast_rx.activate_cloned();
-        if was_empty {
-            // Grow capacity once we actually have a receiver
-            new_receiver.set_capacity(64);
-        }
-        StreamReceiver(new_receiver)
+        self.broadcast.receiver()
     }
 
     pub fn notify(
@@ -152,7 +147,7 @@ where
         mut outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         pending_responses: Arc<Mutex<HashMap<i32, PendingResponse>>>,
-        broadcast_tx: async_broadcast::Sender<StreamMessage>,
+        broadcast: StreamSender,
     ) -> Result<()> {
         // TODO: Create nicer abstraction for broadcast
         let mut input_reader = BufReader::new(incoming_bytes);
@@ -167,10 +162,7 @@ where
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
-
-                        if broadcast_tx.receiver_count() > 0 {
-                            broadcast_tx.try_broadcast(message.into()).ok();
-                        }
+                        broadcast.outgoing(&message);
                     } else {
                         break;
                     }
@@ -188,10 +180,7 @@ where
                                     // Request
                                     match Local::decode_request(method, message.params) {
                                         Ok(request) => {
-                                            if broadcast_tx.receiver_count() > 0 {
-                                                broadcast_tx.try_broadcast(StreamMessage::incoming_request(id, method, &request)).ok();
-                                            }
-
+                                            broadcast.incoming_request(id, method, &request);
                                             incoming_tx.unbounded_send(IncomingMessage::Request { id, request }).ok();
                                         }
                                         Err(err) => {
@@ -205,34 +194,24 @@ where
                                             log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                                             outgoing_line.push(b'\n');
                                             outgoing_bytes.write_all(&outgoing_line).await.ok();
-
-                                            if broadcast_tx.receiver_count() > 0 {
-                                                broadcast_tx.try_broadcast(error_response.into()).ok();
-                                            }
+                                            broadcast.outgoing(&error_response);
                                         }
                                     }
                                 } else if let Some(pending_response) = pending_responses.lock().remove(&id) {
                                     // Response
-                                    if let Some(result) = message.result {
-                                        if broadcast_tx.receiver_count() > 0 {
-                                            broadcast_tx.try_broadcast(StreamMessage::incoming_response(id, Ok(serde_json::from_str(result.get()).unwrap_or_default()))).ok();
-                                        }
+                                    if let Some(result_value) = message.result {
+                                        broadcast.incoming_response(id, Ok(Some(result_value)));
 
-                                        let result = (pending_response.deserialize)(result);
+                                        let result = (pending_response.deserialize)(result_value);
                                         pending_response.respond.send(result).ok();
                                     } else if let Some(error) = message.error {
-                                        if broadcast_tx.receiver_count() > 0 {
-                                            broadcast_tx.try_broadcast(StreamMessage::incoming_response(id, Err(error.clone()))).ok();
-                                        }
+                                        broadcast.incoming_response(id, Err(&error));
 
                                         pending_response.respond.send(Err(error)).ok();
                                     } else {
+                                        broadcast.incoming_response(id, Ok(None));
+
                                         let result = (pending_response.deserialize)(&RawValue::from_string("null".into()).unwrap());
-
-                                        if broadcast_tx.receiver_count() > 0 {
-                                            broadcast_tx.try_broadcast(StreamMessage::incoming_response(id, Ok(None))).ok();
-                                        }
-
                                         pending_response.respond.send(result).ok();
                                     }
                                 } else {
@@ -242,10 +221,7 @@ where
                                 // Notification
                                 match Local::decode_notification(method, message.params) {
                                     Ok(notification) => {
-                                        if broadcast_tx.receiver_count() > 0 {
-                                            broadcast_tx.try_broadcast(StreamMessage::incoming_notification(method, &notification)).ok();
-                                        }
-
+                                        broadcast.incoming_notification(method, &notification);
                                         incoming_tx.unbounded_send(IncomingMessage::Notification { notification }).ok();
                                     }
                                     Err(err) => {
@@ -429,102 +405,4 @@ macro_rules! dispatch_notification {
             Err(err) => Err($crate::Error::invalid_params().with_data(err.to_string())),
         }
     }};
-}
-
-// Stream broadcast
-// TODO: Create nice abstraction
-
-pub struct StreamReceiver(async_broadcast::Receiver<StreamMessage>);
-
-impl StreamReceiver {
-    pub async fn recv(&mut self) -> Result<StreamMessage> {
-        Ok(self.0.recv().await?)
-    }
-}
-
-#[derive(Clone)]
-pub struct StreamMessage {
-    pub direction: StreamMessageDirection,
-    pub message: StreamMessageContent,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StreamMessageDirection {
-    Incoming,
-    Outgoing,
-}
-
-#[derive(Clone)]
-pub enum StreamMessageContent {
-    Request {
-        id: i32,
-        method: Arc<str>,
-        params: Option<serde_json::Value>,
-    },
-    Response {
-        id: i32,
-        result: Result<Option<serde_json::Value>, Error>,
-    },
-    Notification {
-        method: Arc<str>,
-        params: Option<serde_json::Value>,
-    },
-}
-
-impl StreamMessage {
-    pub fn incoming_request(id: i32, method: impl Into<Arc<str>>, params: &impl Serialize) -> Self {
-        Self {
-            direction: StreamMessageDirection::Incoming,
-            message: StreamMessageContent::Request {
-                id,
-                method: method.into(),
-                params: serde_json::to_value(params).ok(),
-            },
-        }
-    }
-
-    pub fn incoming_response(id: i32, result: Result<Option<serde_json::Value>, Error>) -> Self {
-        Self {
-            direction: StreamMessageDirection::Incoming,
-            message: StreamMessageContent::Response { id, result },
-        }
-    }
-
-    pub fn incoming_notification(method: impl Into<Arc<str>>, params: &impl Serialize) -> Self {
-        Self {
-            direction: StreamMessageDirection::Incoming,
-            message: StreamMessageContent::Notification {
-                method: method.into(),
-                params: serde_json::to_value(params).ok(),
-            },
-        }
-    }
-}
-
-impl<Local: Side, Remote: Side> From<OutgoingMessage<Local, Remote>> for StreamMessage {
-    fn from(message: OutgoingMessage<Local, Remote>) -> Self {
-        Self {
-            direction: StreamMessageDirection::Outgoing,
-            message: match message {
-                OutgoingMessage::Request { id, method, params } => StreamMessageContent::Request {
-                    id,
-                    method: method.into(),
-                    params: serde_json::to_value(params).ok(),
-                },
-                OutgoingMessage::Response { id, result } => StreamMessageContent::Response {
-                    id,
-                    result: match result {
-                        ResponseResult::Result(value) => Ok(serde_json::to_value(value).ok()),
-                        ResponseResult::Error(error) => Err(error),
-                    },
-                },
-                OutgoingMessage::Notification { method, params } => {
-                    StreamMessageContent::Notification {
-                        method: method.into(),
-                        params: serde_json::to_value(params).ok(),
-                    }
-                }
-            },
-        }
-    }
 }

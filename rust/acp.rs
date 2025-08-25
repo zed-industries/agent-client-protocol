@@ -6,6 +6,7 @@ mod plan;
 mod rpc;
 #[cfg(test)]
 mod rpc_tests;
+mod stream_broadcast;
 mod tool_call;
 mod version;
 
@@ -14,6 +15,9 @@ pub use client::*;
 pub use content::*;
 pub use error::*;
 pub use plan::*;
+pub use stream_broadcast::{
+    StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver,
+};
 pub use tool_call::*;
 pub use version::*;
 
@@ -25,7 +29,6 @@ use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
 
 use crate::rpc::{MessageHandler, RpcConnection, Side};
-pub use crate::rpc::{StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
