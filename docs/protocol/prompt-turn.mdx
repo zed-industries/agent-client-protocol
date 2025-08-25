@@ -9,7 +9,47 @@ Before sending prompts, Clients **MUST** first complete the [initialization](./i
 
 ## The Prompt Turn Lifecycle
 
-A prompt turn follows a structured flow that enables rich interactions between the user, Agent, and any connected tools:
+A prompt turn follows a structured flow that enables rich interactions between the user, Agent, and any connected tools.
+
+<br/>
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Agent
+
+    Note left of Client: User sends message
+    Client->>Agent: session/prompt (user message)
+    Note right of Agent: Process with LLM
+
+    loop Until completion
+        Note right of Agent: LLM responds with<br/>content/tool calls
+        Agent->>Client: session/update (plan)
+        Agent->>Client: session/update (agent_message_chunk)
+
+        opt Tool calls requested
+            Agent->>Client: session/update (tool_call)
+            opt Permission required
+                Agent->>Client: session/request_permission
+                Note left of Client: User grants/denies
+                Client-->>Agent: Permission response
+            end
+            Agent->>Client: session/update (tool_call status: in_progress)
+            Note right of Agent: Execute tool
+            Agent->>Client: session/update (tool_call status: completed)
+            Note right of Agent: Send tool results<br/>back to LLM
+        end
+    end
+
+    Agent->>Client: session/prompt response (stopReason)
+
+    opt Cancellation flow
+        Note left of Client: User cancels
+        Client->>Agent: session/cancel
+        Note right of Agent: Abort all operations
+        Agent-->>Client: session/prompt response (cancelled)
+    end
+```
 
 ### 1. User Message
 
