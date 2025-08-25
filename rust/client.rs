@@ -284,15 +284,18 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
 };
 
 /// Notification name for session updates.
-pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
+pub(crate) const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
 /// Method name for requesting user permission.
-pub const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request_permission";
+pub(crate) const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request_permission";
 /// Method name for writing text files.
-pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
+pub(crate) const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 /// Method name for reading text files.
-pub const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
+pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 
 /// All possible requests that an agent can send to a client.
+///
+/// This enum is used internally for routing RPC requests. You typically won't need
+/// to use this directly - instead, use the methods on the [`Client`] trait.
 ///
 /// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -305,6 +308,9 @@ pub enum AgentRequest {
 
 /// All possible responses that a client can send to an agent.
 ///
+/// This enum is used internally for routing RPC responses. You typically won't need
+/// to use this directly - the responses are handled automatically by the connection.
+///
 /// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
@@ -315,6 +321,9 @@ pub enum ClientResponse {
 }
 
 /// All possible notifications that an agent can send to a client.
+///
+/// This enum is used internally for routing RPC notifications. You typically won't need
+/// to use this directly - use the notification methods on the [`Client`] trait instead.
 ///
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

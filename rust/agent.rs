@@ -36,6 +36,9 @@ pub trait Agent {
     /// Called when the agent requires authentication before allowing session creation.
     /// The client provides the authentication method ID that was advertised during initialization.
     ///
+    /// After successful authentication, the client can proceed to create sessions with
+    /// `new_session` without receiving an `auth_required` error.
+    ///
     /// See: <https://agentclientprotocol.com/protocol/initialization>
     fn authenticate(
         &self,
@@ -49,6 +52,10 @@ pub trait Agent {
     /// - Create a new session context
     /// - Connect to any specified MCP servers
     /// - Return a unique session ID for future requests
+    ///
+    /// # Errors
+    ///
+    /// May return an `auth_required` error if the agent requires authentication.
     ///
     /// See: <https://agentclientprotocol.com/protocol/session-setup>
     fn new_session(
@@ -380,19 +387,22 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
 };
 
 /// Method name for the initialize request.
-pub const INITIALIZE_METHOD_NAME: &str = "initialize";
+pub(crate) const INITIALIZE_METHOD_NAME: &str = "initialize";
 /// Method name for the authenticate request.
-pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
+pub(crate) const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 /// Method name for creating a new session.
-pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
+pub(crate) const SESSION_NEW_METHOD_NAME: &str = "session/new";
 /// Method name for loading an existing session.
-pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
+pub(crate) const SESSION_LOAD_METHOD_NAME: &str = "session/load";
 /// Method name for sending a prompt.
-pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
+pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
-pub const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
+pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 
 /// All possible requests that a client can send to an agent.
+///
+/// This enum is used internally for routing RPC requests. You typically won't need
+/// to use this directly - instead, use the methods on the [`Agent`] trait.
 ///
 /// This enum encompasses all method calls from client to agent.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -407,6 +417,9 @@ pub enum ClientRequest {
 
 /// All possible responses that an agent can send to a client.
 ///
+/// This enum is used internally for routing RPC responses. You typically won't need
+/// to use this directly - the responses are handled automatically by the connection.
+///
 /// These are responses to the corresponding ClientRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
@@ -419,6 +432,9 @@ pub enum AgentResponse {
 }
 
 /// All possible notifications that a client can send to an agent.
+///
+/// This enum is used internally for routing RPC notifications. You typically won't need
+/// to use this directly - use the notification methods on the [`Agent`] trait instead.
 ///
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
