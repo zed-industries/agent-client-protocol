@@ -16,15 +16,15 @@ sequenceDiagram
 
     Note over Agent,Client: Initialized
 
-    alt Creating new session
+    alt
         Client->>Agent: session/new
-        Note right of Agent: Create session context
-        Note right of Agent: Connect to MCP servers
+        Note over Agent: Create session context
+        Note over Agent: Connect to MCP servers
         Agent-->>Client: session/new response (sessionId)
-    else Loading existing session
+    else
         Client->>Agent: session/load (sessionId)
-        Note right of Agent: Restore session context
-        Note right of Agent: Connect to MCP servers
+        Note over Agent: Restore session context
+        Note over Agent: Connect to MCP servers
         Note over Agent,Client: Replay conversation history...
         Agent->>Client: session/update
         Agent->>Client: session/update
