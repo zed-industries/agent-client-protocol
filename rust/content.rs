@@ -100,6 +100,7 @@ pub struct EmbeddedResource {
     pub resource: EmbeddedResourceResource,
 }
 
+/// Resource content that can be embedded in a message.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum EmbeddedResourceResource {
@@ -107,6 +108,7 @@ pub enum EmbeddedResourceResource {
     BlobResourceContents(BlobResourceContents),
 }
 
+/// Text-based resource contents.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 pub struct TextResourceContents {
     #[serde(rename = "mimeType", default, skip_serializing_if = "Option::is_none")]
@@ -115,6 +117,7 @@ pub struct TextResourceContents {
     pub uri: String,
 }
 
+/// Binary resource contents.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 pub struct BlobResourceContents {
     pub blob: String,
