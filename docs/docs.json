@@ -75,7 +75,7 @@
   },
   "seo": {
     "metatags": {
-      "og:image": "https://raw.githubusercontent.com/modelcontextprotocol/docs/2eb6171ddbfeefde349dc3b8d5e2b87414c26250/images/og-image.png"
+      "og:image": "https://zed.dev/img/acp/og-dark.webp"
     },
     "indexing": "navigable"
   },
