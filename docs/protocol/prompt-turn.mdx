@@ -56,7 +56,7 @@ sequenceDiagram
 
 ### 1. User Message
 
-The turn begins when the Client sends a `session/prompt` request containing the user's message:
+The turn begins when the Client sends a `session/prompt`:
 
 ```json
 {
@@ -83,10 +83,18 @@ The turn begins when the Client sends a `session/prompt` request containing the 
 }
 ```
 
-This message **MAY** include various types of [content](./content), including text, images, audio, references to external resources, and embedded context.
+<ParamField path="sessionId" type="SessionId">
+    The [ID](./session-setup#session-id) of the session to send this message to.
+</ParamField>
+<ParamField path="content" type="ContentBlock[]">
+    The contents of the user message, e.g. text, images, files, etc.
 
-{/* todo! move prompt capabilities to this page */}
-Clients **MUST** only include types of content supported by the Agent according to its [Prompt Capabilities](./initialization#prompt-capabilities).
+    Clients **MUST** restrict types of content according to the [Prompt Capabilities](./initialization#prompt-capabilities) established during [initialization](./initialization).
+
+    <Card icon="comments" horizontal href="./content">
+      Learn more about Content
+    </Card>
+</ParamField>
 
 ### 2. Agent Processing
 
@@ -130,8 +138,9 @@ The Agent reports the model's output to the Client via `session/update` notifica
   }
 }
 ```
-
-[Learn more](./plans) about how Agents use plans to communicate their approach.
+<Card icon="lightbulb" horizontal href="./agent-plan">
+Learn more about Agent Plans
+</Card>
 
 The Agent then reports text responses from the model:
 
@@ -238,7 +247,9 @@ When the tool completes, the Agent sends another update with the final status an
 }
 ```
 
-[Learn more](./tool-calls) about Tool Calls.
+<Card icon="hammer" horizontal href="./tool-calls">
+  Learn more about Tool Calls
+</Card>
 
 ### 6. Continue Conversation
 
