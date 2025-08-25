@@ -7,6 +7,22 @@ description: "How all Agent Client Protocol connections begin"
 
 The Initialization phase allows [Clients](./overview#client) and [Agents](./overview#agent) to negotiate protocol versions, capabilities, and authentication methods.
 
+<br/>
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Agent
+
+    Note over Client, Agent: Connection established
+    Client->>Agent: initialize
+    Note right of Agent: Negotiate protocol<br/>version & capabilities
+    Agent-->>Client: initialize response
+    Note over Client,Agent: Ready for session setup
+```
+
+<br/>
+
 Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
 
 - The latest [protocol version](#protocol-version) supported

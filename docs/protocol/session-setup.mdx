@@ -7,6 +7,36 @@ Sessions represent a specific conversation or thread between the [Client](./over
 
 Before creating a session, Clients **MUST** first complete the [initialization](./initialization) phase to establish protocol compatibility and capabilities.
 
+<br/>
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Agent
+
+    Note over Agent,Client: Initialized
+
+    alt Creating new session
+        Client->>Agent: session/new
+        Note right of Agent: Create session context
+        Note right of Agent: Connect to MCP servers
+        Agent-->>Client: session/new response (sessionId)
+    else Loading existing session
+        Client->>Agent: session/load (sessionId)
+        Note right of Agent: Restore session context
+        Note right of Agent: Connect to MCP servers
+        Note over Agent,Client: Replay conversation history...
+        Agent->>Client: session/update
+        Agent->>Client: session/update
+        Note over Agent,Client: All content streamed
+        Agent-->>Client: session/load response
+    end
+
+    Note over Client,Agent: Ready for prompts
+```
+
+<br/>
+
 ## Creating a Session
 
 Clients create a new session by calling the `session/new` method with:

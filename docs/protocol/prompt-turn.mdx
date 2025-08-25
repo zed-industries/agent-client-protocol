@@ -18,6 +18,8 @@ sequenceDiagram
     participant Client
     participant Agent
 
+    Note over Agent,Client: Session ready
+
     Note left of Client: User sends message
     Client->>Agent: session/prompt (user message)
     Note right of Agent: Process with LLM
