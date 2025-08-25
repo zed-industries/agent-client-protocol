@@ -3,11 +3,9 @@ title: "Agent Plan"
 description: "How Agents communicate their execution plans"
 ---
 
-Agent plans represent high-level execution strategies that language models create when processing complex user requests. When an LLM needs to break down a task into multiple steps—like refactoring code, analyzing systems, or performing multi-stage operations—it generates a plan that the Agent shares with the Client for transparency.
+Plans are execution strategies for complex tasks that require multiple steps.
 
-Agents report plans through [`session/update`](./prompt-turn#3-agent-reports-output) notifications, allowing Clients to display the Agent's thinking process and progress to users in real-time.
-
-Plans help users understand what the Agent intends to do, providing visibility into complex operations before and during execution.
+Agents may share plans with Clients through [`session/update`](./prompt-turn#3-agent-reports-output) notifications, providing real-time visibility into their thinking and progress.
 
 ## Creating
 
