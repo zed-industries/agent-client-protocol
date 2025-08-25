@@ -18,20 +18,26 @@ Both sides expose methods, making the protocol symmetric - Agents can call Clien
 
 A typical conversation follows this pattern:
 
-1. **[Initialization Phase](./initialization)**
+<Steps>
+<Step title="Initialization Phase">
    - Client → Agent: `initialize` to establish connection
    - Client → Agent: `authenticate` if required by the agent
+</Step>
 
-2. **[Session Setup](./session-setup)** - either:
+<Step title="Session Setup">
+   Either:
    - Client → Agent: `session/new` to create a new session
    - Client → Agent: `session/load` to resume an existing session if supported
+</Step>
 
-3. **[Prompt Turn](./prompt-turn)**
+<Step title="Prompt Turn">
    - Client → Agent: `session/prompt` to send user message
    - Agent → Client: `session/update` notifications for progress updates
    - Agent → Client: File operations or permission requests as needed
    - Client → Agent: `session/cancel` to interrupt processing if needed
    - Turn ends and the Agent sends the `session/prompt` response with a stop reason
+</Step>
+</Steps>
 
 ## Agent
 
@@ -39,18 +45,33 @@ Agents are programs that use generative AI to autonomously modify code. They typ
 
 ### Baseline Methods
 
-- `initialize` - Establish connection and negotiate capabilities
-- `authenticate` - Authenticate with the Agent (if required)
-- `session/new` - Create a new conversation session
-- `session/prompt` - Send user prompts to the Agent
+<ParamField path="initialize">
+    Establish connection and negotiate capabilities.
+</ParamField>
+
+<ParamField path="authenticate">
+    Authenticate with the Agent (if required).
+</ParamField>
+
+<ParamField path="session/new">
+    Create a new conversation session.
+</ParamField>
+
+<ParamField path="session/prompt">
+    Send user prompts to the Agent.
+</ParamField>
 
 ### Optional Methods
 
-- `session/load` - Load an existing session (requires `loadSession` capability)
+<ParamField path="session/load">
+    Load an existing session (requires `loadSession` capability).
+</ParamField>
 
 ### Notifications
 
-- `session/cancel` - Cancel ongoing operations (no response expected)
+<ParamField path="session/cancel">
+    Cancel ongoing operations (no response expected).
+</ParamField>
 
 ## Client
 
@@ -58,16 +79,25 @@ Clients provide the interface between users and agents. They are typically code 
 
 ### Baseline Methods
 
-- `session/request_permission` - Request user authorization for tool calls
+<ParamField path="session/request_permission">
+    Request user authorization for tool calls.
+</ParamField>
 
 ### Optional Methods
 
-- `fs/read_text_file` - Read file contents (requires `fs.readTextFile` capability)
-- `fs/write_text_file` - Write file contents (requires `fs.writeTextFile` capability)
+<ParamField path="fs/read_text_file">
+    Read file contents (requires `fs.readTextFile` capability).
+</ParamField>
+
+<ParamField path="fs/write_text_file">
+    Write file contents (requires `fs.writeTextFile` capability).
+</ParamField>
 
 ### Notifications
 
-- `session/update` - Send progress updates during prompt processing (no response expected)
+<ParamField path="session/update">
+    Send progress updates during prompt processing (no response expected).
+</ParamField>
 
 ## Error Handling
 

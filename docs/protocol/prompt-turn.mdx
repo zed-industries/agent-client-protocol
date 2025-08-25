@@ -207,11 +207,25 @@ The cycle returns to [step 2](#2-agent-processing), continuing until the languag
 
 When an Agent stops a turn, it must specify the corresponding `StopReason`:
 
-- `end_turn`: The language model finishes responding without requesting more tools
-- `max_tokens`: The maximum token limit is reached
-- `max_turn_requests`: The maximum number of model requests in a single turn is exceeded
-- `refusal`: The Agent refuses to continue
-- `cancelled`: The Client cancels the turn
+<ResponseField name="end_turn">
+  The language model finishes responding without requesting more tools
+</ResponseField>
+
+<ResponseField name="max_tokens">
+  The maximum token limit is reached
+</ResponseField>
+
+<ResponseField name="max_turn_requests">
+  The maximum number of model requests in a single turn is exceeded
+</ResponseField>
+
+<ResponseField name="refusal">
+  The Agent refuses to continue
+</ResponseField>
+
+<ResponseField name="cancelled">
+  The Client cancels the turn
+</ResponseField>
 
 ## Cancellation
 

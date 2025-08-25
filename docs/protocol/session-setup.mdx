@@ -33,7 +33,7 @@ Clients create a new session by calling the `session/new` method with:
 }
 ```
 
-The Agent **MUST** respond with a unique session ID that identifies this conversation:
+The Agent **MUST** respond with a unique [Session ID](#session-id) that identifies this conversation:
 
 ```json
 {
@@ -171,10 +171,31 @@ The [Model Context Protocol (MCP)](//modelcontextprotocol.io) allows Agents to a
 
 Each MCP server specification includes:
 
-- `name`: A human-readable identifier for the server
-- `command`: The path to the MCP server executable
-- `args`: Command-line arguments to pass to the server
-- `env`: Environment variables to set when launching the server
+<ParamField path="name" type="string" required>
+  A human-readable identifier for the server
+</ParamField>
+
+<ParamField path="command" type="string" required>
+  The path to the MCP server executable
+</ParamField>
+
+<ParamField path="args" type="array" required>
+  Command-line arguments to pass to the server
+</ParamField>
+
+<ParamField path="env" type="EnvVariable[]">
+  Environment variables to set when launching the server
+
+  <Expandable title="EnvVariable">
+      <ParamField path="name" type="string">
+        The name of the environment variable.
+      </ParamField>
+      <ParamField path="value" type="string">
+        The value of the environment variable.
+      </ParamField>
+  </Expandable>
+</ParamField>
+
 
 Agents **SHOULD** connect to all MCP servers specified by the Client.
 
