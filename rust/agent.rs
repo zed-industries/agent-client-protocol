@@ -93,10 +93,13 @@ pub trait Agent {
 
     /// Cancels ongoing operations for a session.
     ///
-    /// This is a notification (no response expected) that instructs the agent to:
-    /// - Stop all language model requests
-    /// - Abort any running tool calls
-    /// - Clean up and prepare for the next request
+    /// This is a notification sent by the client to cancel an ongoing prompt turn.
+    ///
+    /// Upon receiving this notification, the Agent SHOULD:
+    /// - Stop all language model requests as soon as possible
+    /// - Abort all tool call invocations in progress
+    /// - Send any pending `session/update` notifications
+    /// - Respond to the original `session/prompt` request with `StopReason::Cancelled`
     ///
     /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
@@ -303,7 +306,12 @@ pub enum StopReason {
     /// and everything that comes after it won't be included in the next
     /// prompt, so this should be reflected in the UI.
     Refusal,
-    /// The turn was cancelled by the client.
+    /// The turn was cancelled by the client via `session/cancel`.
+    ///
+    /// This stop reason MUST be returned when the client sends a `session/cancel`
+    /// notification, even if the cancellation causes exceptions in underlying operations.
+    /// Agents should catch these exceptions and return this semantically meaningful
+    /// response to confirm successful cancellation.
     Cancelled,
 }
 

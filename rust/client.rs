@@ -16,12 +16,17 @@ use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
     /// Called by the agent when it needs user authorization before executing
     /// a potentially sensitive operation. The client should present the options
     /// to the user and return their decision.
+    ///
+    /// If the client cancels the prompt turn via `session/cancel`, it MUST
+    /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
     /// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
     fn request_permission(
@@ -56,6 +61,10 @@ pub trait Client {
     /// This is a notification endpoint (no response expected) that receives
     /// real-time updates about session progress, including message chunks,
     /// tool calls, and execution plans.
+    ///
+    /// Note: Clients SHOULD continue accepting tool call updates even after
+    /// sending a `session/cancel` notification, as the agent may send final
+    /// updates before responding with the cancelled stop reason.
     ///
     /// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
     fn session_notification(
@@ -174,6 +183,12 @@ pub struct RequestPermissionResponse {
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
     /// The prompt turn was cancelled before the user responded.
+    ///
+    /// When a client sends a `session/cancel` notification to cancel an ongoing
+    /// prompt turn, it MUST respond to all pending `session/request_permission`
+    /// requests with this `Cancelled` outcome.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
     Cancelled,
     /// The user selected one of the provided options.
     #[serde(rename_all = "camelCase")]
