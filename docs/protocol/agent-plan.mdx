@@ -7,7 +7,7 @@ Plans are execution strategies for complex tasks that require multiple steps.
 
 Agents may share plans with Clients through [`session/update`](./prompt-turn#3-agent-reports-output) notifications, providing real-time visibility into their thinking and progress.
 
-## Creating
+## Creating Plans
 
 When the language model creates an execution plan, the Agent **SHOULD** report it to the Client:
 
@@ -71,7 +71,7 @@ Each plan entry represents a specific task or goal within the overall execution 
   - `completed`
 </ParamField>
 
-## Updating
+## Updating Plans
 
 As the Agent progresses through the plan, it **SHOULD** report updates by sending more `session/update` notifications with the same structure.
 

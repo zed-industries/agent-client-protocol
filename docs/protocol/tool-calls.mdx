@@ -120,7 +120,7 @@ The Agent **MAY** request permission from the user before executing a tool call 
   "params": {
     "sessionId": "sess_abc123def456",
     "toolCall": {
-      "toolCallId": "call_001",
+      "toolCallId": "call_001"
     },
     "options": [
       {
@@ -158,9 +158,8 @@ The Client responds with the user's decision:
   "id": 5,
   "result": {
     "outcome": {
-      "selected": {
-        "optionId": "allow-once"
-      }
+      "outcome": "selected",
+      "optionId": "allow-once"
     }
   }
 }
@@ -175,7 +174,9 @@ If the current prompt turn gets [cancelled](./prompt-turn#cancellation), the Cli
   "jsonrpc": "2.0",
   "id": 5,
   "result": {
-    "outcome": "cancelled"
+    "outcome": {
+      "outcome": "cancelled"
+    }
   }
 }
 ```
@@ -183,7 +184,7 @@ If the current prompt turn gets [cancelled](./prompt-turn#cancellation), the Cli
 <ResponseField name="outcome" type="RequestPermissionOutcome" required>
   The user's decision, either:
   - `cancelled` - The [prompt turn was cancelled](./prompt-turn#cancellation)
-  - An object with `selected.optionId` - The ID of the selected permission option
+  - `selected` with an `optionId` - The ID of the selected permission option
 </ResponseField>
 
 ### Permission Options

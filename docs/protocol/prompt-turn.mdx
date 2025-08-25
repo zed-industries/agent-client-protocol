@@ -71,11 +71,11 @@ The turn begins when the Client sends a `session/prompt`:
         "text": "Can you analyze this code for potential issues?"
       },
       {
-        "type": "embedded_resource",
+        "type": "resource",
         "resource": {
           "uri": "file:///home/user/project/main.py",
           "mimeType": "text/x-python",
-          "content": "def process_data(items):\n    for item in items:\n        print(item)"
+          "text": "def process_data(items):\n    for item in items:\n        print(item)"
         }
       }
     ]
