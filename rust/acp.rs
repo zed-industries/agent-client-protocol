@@ -1,3 +1,32 @@
+//! # Agent Client Protocol (ACP)
+//!
+//! The Agent Client Protocol standardizes communication between code editors
+//! (IDEs, text-editors, etc.) and coding agents (programs that use generative AI
+//! to autonomously modify code).
+//!
+//! ## Overview
+//!
+//! ACP assumes that the user is primarily in their editor, and wants to reach out
+//! and use agents to assist them with specific tasks. Agents run as sub-processes
+//! of the code editor, and communicate using JSON-RPC over stdio.
+//!
+//! ## Core Components
+//!
+//! - **Agent**: Programs that use generative AI to autonomously modify code
+//!   - See: <https://agentclientprotocol.com/protocol/overview#agent>
+//! - **Client**: Code editors that provide the interface between users and agents
+//!   - See: <https://agentclientprotocol.com/protocol/overview#client>
+//! - **Session**: A conversation context between a client and agent
+//!   - See: <https://agentclientprotocol.com/protocol/session-setup>
+//!
+//! ## Getting Started
+//!
+//! To understand the protocol, start by exploring the [`Agent`] and [`Client`] traits,
+//! which define the core methods and capabilities of each side of the connection.
+//!
+//! For the complete protocol specification and documentation, visit:
+//! <https://agentclientprotocol.com>
+
 mod agent;
 mod client;
 mod content;
@@ -30,6 +59,21 @@ use std::{fmt, sync::Arc};
 
 use crate::rpc::{MessageHandler, RpcConnection, Side};
 
+/// A unique identifier for a conversation session between a client and agent.
+///
+/// Sessions maintain their own context, conversation history, and state,
+/// allowing multiple independent interactions with the same agent.
+///
+/// # Example
+///
+/// ```
+/// use acp::SessionId;
+/// use std::sync::Arc;
+///
+/// let session_id = SessionId(Arc::from("sess_abc123def456"));
+/// ```
+///
+/// See: <https://agentclientprotocol.com/protocol/session-setup#session-id>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
@@ -42,11 +86,54 @@ impl fmt::Display for SessionId {
 
 // Client to Agent
 
+/// A client-side connection to an agent.
+///
+/// This struct provides the client's view of an ACP connection, allowing
+/// clients (such as code editors) to communicate with agents. It implements
+/// the [`Agent`] trait to provide methods for initializing sessions, sending
+/// prompts, and managing the agent lifecycle.
+///
+/// See: <https://agentclientprotocol.com/protocol/overview#client>
+///
+/// # Example
+///
+/// ```no_run
+/// use acp::ClientSideConnection;
+///
+/// let (connection, io_task) = ClientSideConnection::new(
+///     client_handler,
+///     outgoing_bytes,
+///     incoming_bytes,
+///     spawn_fn
+/// );
+///
+/// // Use the connection to interact with the agent
+/// tokio::spawn(io_task);
+/// ```
 pub struct ClientSideConnection {
     conn: RpcConnection<ClientSide, AgentSide>,
 }
 
 impl ClientSideConnection {
+    /// Creates a new client-side connection to an agent.
+    ///
+    /// This establishes the communication channel between a client and agent
+    /// following the ACP specification.
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - A handler that implements the [`Client`] trait to process incoming agent requests
+    /// * `outgoing_bytes` - The stream for sending data to the agent (typically stdout)
+    /// * `incoming_bytes` - The stream for receiving data from the agent (typically stdin)
+    /// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
+    ///
+    /// # Returns
+    ///
+    /// Returns a tuple containing:
+    /// - The connection instance for making requests to the agent
+    /// - An I/O future that must be spawned to handle the underlying communication
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
     pub fn new(
         client: impl MessageHandler<ClientSide> + 'static,
         outgoing_bytes: impl Unpin + AsyncWrite,
@@ -57,6 +144,14 @@ impl ClientSideConnection {
         (Self { conn }, io_task)
     }
 
+    /// Subscribe to receive stream updates from the agent.
+    ///
+    /// This allows the client to receive real-time notifications about
+    /// agent activities, such as tool calls, content updates, and progress reports.
+    ///
+    /// # Returns
+    ///
+    /// A [`StreamReceiver`] that can be used to receive stream messages.
     pub fn subscribe(&self) -> StreamReceiver {
         self.conn.subscribe()
     }
@@ -116,6 +211,12 @@ impl Agent for ClientSideConnection {
     }
 }
 
+/// Marker type representing the client side of an ACP connection.
+///
+/// This type is used by the RPC layer to determine which messages
+/// are incoming vs outgoing from the client's perspective.
+///
+/// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
 #[derive(Clone)]
 pub struct ClientSide;
 
@@ -186,11 +287,54 @@ impl<T: Client> MessageHandler<ClientSide> for T {
 
 // Agent to Client
 
+/// An agent-side connection to a client.
+///
+/// This struct provides the agent's view of an ACP connection, allowing
+/// agents to communicate with clients. It implements the [`Client`] trait
+/// to provide methods for requesting permissions, accessing the file system,
+/// and sending session updates.
+///
+/// See: <https://agentclientprotocol.com/protocol/overview#agent>
+///
+/// # Example
+///
+/// ```no_run
+/// use acp::AgentSideConnection;
+///
+/// let (connection, io_task) = AgentSideConnection::new(
+///     agent_handler,
+///     outgoing_bytes,
+///     incoming_bytes,
+///     spawn_fn
+/// );
+///
+/// // Use the connection to interact with the client
+/// tokio::spawn(io_task);
+/// ```
 pub struct AgentSideConnection {
     conn: RpcConnection<AgentSide, ClientSide>,
 }
 
 impl AgentSideConnection {
+    /// Creates a new agent-side connection to a client.
+    ///
+    /// This establishes the communication channel from the agent's perspective
+    /// following the ACP specification.
+    ///
+    /// # Arguments
+    ///
+    /// * `agent` - A handler that implements the [`Agent`] trait to process incoming client requests
+    /// * `outgoing_bytes` - The stream for sending data to the client (typically stdout)
+    /// * `incoming_bytes` - The stream for receiving data from the client (typically stdin)
+    /// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
+    ///
+    /// # Returns
+    ///
+    /// Returns a tuple containing:
+    /// - The connection instance for making requests to the client
+    /// - An I/O future that must be spawned to handle the underlying communication
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
     pub fn new(
         agent: impl MessageHandler<AgentSide> + 'static,
         outgoing_bytes: impl Unpin + AsyncWrite,
@@ -201,6 +345,14 @@ impl AgentSideConnection {
         (Self { conn }, io_task)
     }
 
+    /// Subscribe to receive stream updates from the client.
+    ///
+    /// This allows the agent to receive real-time notifications about
+    /// client activities and cancellation requests.
+    ///
+    /// # Returns
+    ///
+    /// A [`StreamReceiver`] that can be used to receive stream messages.
     pub fn subscribe(&self) -> StreamReceiver {
         self.conn.subscribe()
     }
@@ -248,6 +400,12 @@ impl Client for AgentSideConnection {
     }
 }
 
+/// Marker type representing the agent side of an ACP connection.
+///
+/// This type is used by the RPC layer to determine which messages
+/// are incoming vs outgoing from the agent's perspective.
+///
+/// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
 #[derive(Clone)]
 pub struct AgentSide;
 

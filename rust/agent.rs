@@ -261,9 +261,9 @@ pub struct PromptRequest {
     /// ## Context
     ///
     /// The client MAY include referenced pieces of context as either
-    /// [`ContentBlock::EmbeddedResource`] or [`ContentBlock::ResourceLink`].
+    /// [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].
     ///
-    /// When available, [`ContentBlock::EmbeddedResource`] is preferred
+    /// When available, [`ContentBlock::Resource`] is preferred
     /// as it avoids extra round-trips and allows the message to include
     /// pieces of context from sources the agent may not have access to.
     pub prompt: Vec<ContentBlock>,
@@ -342,7 +342,7 @@ pub struct PromptCapabilities {
     pub audio: bool,
     /// Agent supports embedded context in `session/prompt` requests.
     ///
-    /// When enabled, the Client is allowed to include [`ContentBlock::EmbeddedResource`]
+    /// When enabled, the Client is allowed to include [`ContentBlock::Resource`]
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
