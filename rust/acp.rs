@@ -4,6 +4,14 @@
 //! (IDEs, text-editors, etc.) and coding agents (programs that use generative AI
 //! to autonomously modify code).
 //!
+//! ## Protocol & Transport
+//!
+//! ACP is a JSON-RPC based protocol. While clients typically start agents as
+//! subprocesses and communicate over stdio (stdin/stdout), this crate is
+//! transport-agnostic.
+//!
+//! You can use any bidirectional stream that implements `AsyncRead` and `AsyncWrite`.
+//!
 //! ## Core Components
 //!
 //! - **Agent**: Programs that use generative AI to autonomously modify code
@@ -17,6 +25,21 @@
 //!
 //! To understand the protocol, start by exploring the [`Agent`] and [`Client`] traits,
 //! which define the core methods and capabilities of each side of the connection.
+//!
+//! ### Implementation Pattern
+//!
+//! ACP uses a symmetric design where each participant implements one trait and
+//! creates a connection that provides the complementary trait:
+//!
+//! - **Agent builders** implement the [`Agent`] trait to handle client requests
+//!   (like initialization, authentication, and prompts). They pass this implementation
+//!   to `AgentSideConnection::new`, which returns a connection providing [`Client`]
+//!   methods for requesting permissions and accessing the file system.
+//!
+//! - **Client builders** implement the [`Client`] trait to handle agent requests
+//!   (like file system operations and permission checks). They pass this implementation
+//!   to `ClientSideConnection::new`, which returns a connection providing [`Agent`]
+//!   methods for managing sessions and sending prompts.
 //!
 //! For the complete protocol specification and documentation, visit:
 //! <https://agentclientprotocol.com>

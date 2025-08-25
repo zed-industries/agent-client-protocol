@@ -1,6 +1,7 @@
 {
   "$defs": {
     "AgentCapabilities": {
+      "description": "Capabilities supported by the agent.\n\nAdvertised during initialization to inform the client about\navailable features and content types.\n\nSee: <https://agentclientprotocol.com/protocol/initialization#agent-capabilities>",
       "properties": {
         "loadSession": {
           "default": false,
@@ -27,7 +28,7 @@
           "title": "SessionNotification"
         }
       ],
-      "description": "Notifications the agent sends to the client"
+      "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response."
     },
     "AgentRequest": {
       "anyOf": [
@@ -44,7 +45,7 @@
           "title": "RequestPermissionRequest"
         }
       ],
-      "description": "Requests the agent sends to the client"
+      "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client."
     },
     "AgentResponse": {
       "anyOf": [
@@ -69,7 +70,7 @@
           "title": "PromptResponse"
         }
       ],
-      "description": "Responses the agent sends to the client"
+      "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants."
     },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
@@ -114,30 +115,41 @@
       "type": "object"
     },
     "AuthMethod": {
+      "description": "Describes an available authentication method.",
       "properties": {
         "description": {
+          "description": "Optional description providing more details about this authentication method.",
           "type": ["string", "null"]
         },
         "id": {
-          "type": "string"
+          "$ref": "#/$defs/AuthMethodId",
+          "description": "Unique identifier for this authentication method."
         },
         "name": {
+          "description": "Human-readable name of the authentication method.",
           "type": "string"
         }
       },
       "required": ["id", "name", "description"],
       "type": "object"
     },
+    "AuthMethodId": {
+      "description": "Unique identifier for an authentication method.",
+      "type": "string"
+    },
     "AuthenticateRequest": {
+      "description": "Request parameters for the authenticate method.\n\nSpecifies which authentication method to use.",
       "properties": {
         "methodId": {
-          "type": "string"
+          "$ref": "#/$defs/AuthMethodId",
+          "description": "The ID of the authentication method to use.\nMust be one of the methods advertised in the initialize response."
         }
       },
       "required": ["methodId"],
       "type": "object"
     },
     "BlobResourceContents": {
+      "description": "Binary resource contents.",
       "properties": {
         "blob": {
           "type": "string"
@@ -153,16 +165,18 @@
       "type": "object"
     },
     "CancelNotification": {
+      "description": "Notification to cancel ongoing operations for a session.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>",
       "properties": {
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session to cancel operations for."
         }
       },
       "required": ["sessionId"],
       "type": "object"
     },
     "ClientCapabilities": {
-      "description": "Capabilities supported by the client",
+      "description": "Capabilities supported by the client.\n\nAdvertised during initialization to inform the agent about\navailable features and methods.\n\nSee: <https://agentclientprotocol.com/protocol/initialization#client-capabilities>",
       "properties": {
         "fs": {
           "$ref": "#/$defs/FileSystemCapability",
@@ -170,7 +184,7 @@
             "readTextFile": false,
             "writeTextFile": false
           },
-          "description": "FileSystem capabilities supported by the client."
+          "description": "File system capabilities supported by the client.\nDetermines which file operations the agent can request."
         }
       },
       "required": ["fs"],
@@ -183,7 +197,7 @@
           "title": "CancelNotification"
         }
       ],
-      "description": "Notifications the client sends to the agent"
+      "description": "All possible notifications that a client can send to an agent.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Agent`] trait instead.\n\nNotifications do not expect a response."
     },
     "ClientRequest": {
       "anyOf": [
@@ -208,7 +222,7 @@
           "title": "PromptRequest"
         }
       ],
-      "description": "Requests the client sends to the agent"
+      "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent."
     },
     "ClientResponse": {
       "anyOf": [
@@ -225,11 +239,13 @@
           "title": "RequestPermissionResponse"
         }
       ],
-      "description": "Responses the client sends to the agent"
+      "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants."
     },
     "ContentBlock": {
+      "description": "Content blocks represent displayable information in the Agent Client Protocol.\n\nThey provide a structured way to handle various types of user-facing content—whether\nit's text from language models, images for analysis, or embedded resources for context.\n\nContent blocks appear in:\n- User prompts sent via `session/prompt`\n- Language model output streamed through `session/update` notifications\n- Progress updates and results from tool calls\n\nThis structure is compatible with the Model Context Protocol (MCP), enabling\nagents to seamlessly forward content from MCP tool outputs without transformation.\n\nSee: <https://agentclientprotocol.com/protocol/content>",
       "oneOf": [
         {
+          "description": "Plain text content\n\nAll agents MUST support text content blocks in prompts.",
           "properties": {
             "annotations": {
               "anyOf": [
@@ -253,6 +269,7 @@
           "type": "object"
         },
         {
+          "description": "Images for visual context or analysis.\n\nRequires the `image` prompt capability when included in prompts.",
           "properties": {
             "annotations": {
               "anyOf": [
@@ -282,6 +299,7 @@
           "type": "object"
         },
         {
+          "description": "Audio data for transcription or analysis.\n\nRequires the `audio` prompt capability when included in prompts.",
           "properties": {
             "annotations": {
               "anyOf": [
@@ -308,6 +326,7 @@
           "type": "object"
         },
         {
+          "description": "References to resources that the agent can access.\n\nAll agents MUST support resource links in prompts.",
           "properties": {
             "annotations": {
               "anyOf": [
@@ -347,6 +366,7 @@
           "type": "object"
         },
         {
+          "description": "Complete resource contents embedded directly in the message.\n\nPreferred for including context as it avoids extra round-trips.\n\nRequires the `embeddedContext` prompt capability when included in prompts.",
           "properties": {
             "annotations": {
               "anyOf": [
@@ -372,7 +392,7 @@
       ]
     },
     "EmbeddedResource": {
-      "description": "The contents of a resource, embedded into a prompt or tool call result.\n\nIt is up to the client how best to render embedded resources for the benefit\nof the LLM and/or the user.",
+      "description": "The contents of a resource, embedded into a prompt or tool call result.",
       "properties": {
         "annotations": {
           "anyOf": [
@@ -401,14 +421,18 @@
           "$ref": "#/$defs/BlobResourceContents",
           "title": "BlobResourceContents"
         }
-      ]
+      ],
+      "description": "Resource content that can be embedded in a message."
     },
     "EnvVariable": {
+      "description": "An environment variable to set when launching an MCP server.",
       "properties": {
         "name": {
+          "description": "The name of the environment variable.",
           "type": "string"
         },
         "value": {
+          "description": "The value to set for the environment variable.",
           "type": "string"
         }
       },
@@ -416,6 +440,7 @@
       "type": "object"
     },
     "FileSystemCapability": {
+      "description": "File system capabilities that a client may support.\n\nSee: <https://agentclientprotocol.com/protocol/initialization#filesystem>",
       "properties": {
         "readTextFile": {
           "default": false,
@@ -458,6 +483,7 @@
       "type": "object"
     },
     "InitializeRequest": {
+      "description": "Request parameters for the initialize method.\n\nSent by the client to establish connection and negotiate capabilities.\n\nSee: <https://agentclientprotocol.com/protocol/initialization>",
       "properties": {
         "clientCapabilities": {
           "$ref": "#/$defs/ClientCapabilities",
@@ -478,6 +504,7 @@
       "type": "object"
     },
     "InitializeResponse": {
+      "description": "Response from the initialize method.\n\nContains the negotiated protocol version and agent capabilities.\n\nSee: <https://agentclientprotocol.com/protocol/initialization>",
       "properties": {
         "agentCapabilities": {
           "$ref": "#/$defs/AgentCapabilities",
@@ -508,41 +535,50 @@
       "type": "object"
     },
     "LoadSessionRequest": {
+      "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee: <https://agentclientprotocol.com/protocol/session-setup#loading-sessions>",
       "properties": {
         "cwd": {
+          "description": "The working directory for this session.",
           "type": "string"
         },
         "mcpServers": {
+          "description": "List of MCP servers to connect to for this session.",
           "items": {
             "$ref": "#/$defs/McpServer"
           },
           "type": "array"
         },
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session to load."
         }
       },
       "required": ["mcpServers", "cwd", "sessionId"],
       "type": "object"
     },
     "McpServer": {
+      "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee: <https://agentclientprotocol.com/protocol/session-setup#mcp-servers>",
       "properties": {
         "args": {
+          "description": "Command-line arguments to pass to the MCP server.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "command": {
+          "description": "Path to the MCP server executable.",
           "type": "string"
         },
         "env": {
+          "description": "Environment variables to set when launching the MCP server.",
           "items": {
             "$ref": "#/$defs/EnvVariable"
           },
           "type": "array"
         },
         "name": {
+          "description": "Human-readable name identifying this MCP server.",
           "type": "string"
         }
       },
@@ -550,11 +586,14 @@
       "type": "object"
     },
     "NewSessionRequest": {
+      "description": "Request parameters for creating a new session.\n\nSee: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>",
       "properties": {
         "cwd": {
+          "description": "The working directory for this session.\nMust be an absolute path that serves as the context for file operations.",
           "type": "string"
         },
         "mcpServers": {
+          "description": "List of MCP (Model Context Protocol) servers the agent should connect to.\nThese provide tools and context to the language model.",
           "items": {
             "$ref": "#/$defs/McpServer"
           },
@@ -565,36 +604,69 @@
       "type": "object"
     },
     "NewSessionResponse": {
+      "description": "Response from creating a new session.\n\nSee: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>",
       "properties": {
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "Unique identifier for the created session.\nUsed in all subsequent requests for this conversation."
         }
       },
       "required": ["sessionId"],
       "type": "object"
     },
     "PermissionOption": {
+      "description": "An option presented to the user when requesting permission.",
       "properties": {
         "kind": {
-          "$ref": "#/$defs/PermissionOptionKind"
+          "$ref": "#/$defs/PermissionOptionKind",
+          "description": "Hint about the nature of this permission option."
         },
         "name": {
+          "description": "Human-readable label to display to the user.",
           "type": "string"
         },
         "optionId": {
-          "type": "string"
+          "$ref": "#/$defs/PermissionOptionId",
+          "description": "Unique identifier for this permission option."
         }
       },
       "required": ["optionId", "name", "kind"],
       "type": "object"
     },
-    "PermissionOptionKind": {
-      "enum": ["allow_once", "allow_always", "reject_once", "reject_always"],
+    "PermissionOptionId": {
+      "description": "Unique identifier for a permission option.",
       "type": "string"
     },
+    "PermissionOptionKind": {
+      "description": "The type of permission option being presented to the user.\n\nHelps clients choose appropriate icons and UI treatment.",
+      "oneOf": [
+        {
+          "const": "allow_once",
+          "description": "Allow this operation only this time.",
+          "type": "string"
+        },
+        {
+          "const": "allow_always",
+          "description": "Allow this operation and remember the choice.",
+          "type": "string"
+        },
+        {
+          "const": "reject_once",
+          "description": "Reject this operation only this time.",
+          "type": "string"
+        },
+        {
+          "const": "reject_always",
+          "description": "Reject this operation and remember the choice.",
+          "type": "string"
+        }
+      ]
+    },
     "Plan": {
+      "description": "An execution plan for accomplishing complex tasks.\n\nPlans consist of multiple entries representing individual tasks or goals.\nAgents report plans to clients to provide visibility into their execution strategy.\nPlans can evolve during execution as the agent discovers new requirements or completes tasks.\n\nSee: <https://agentclientprotocol.com/protocol/agent-plan>",
       "properties": {
         "entries": {
+          "description": "The list of tasks to be accomplished.\n\nWhen updating a plan, the agent must send a complete list of all entries\nwith their current status. The client replaces the entire plan with each update.",
           "items": {
             "$ref": "#/$defs/PlanEntry"
           },
@@ -605,36 +677,66 @@
       "type": "object"
     },
     "PlanEntry": {
-      "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.",
+      "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.\nSee: <https://agentclientprotocol.com/protocol/agent-plan#plan-entries>",
       "properties": {
         "content": {
-          "description": "Description of what this task aims to accomplish",
+          "description": "Human-readable description of what this task aims to accomplish.",
           "type": "string"
         },
         "priority": {
           "$ref": "#/$defs/PlanEntryPriority",
-          "description": "Relative importance of this task"
+          "description": "The relative importance of this task.\nUsed to indicate which tasks are most critical to the overall goal."
         },
         "status": {
           "$ref": "#/$defs/PlanEntryStatus",
-          "description": "Current progress of this task"
+          "description": "Current execution status of this task."
         }
       },
       "required": ["content", "priority", "status"],
       "type": "object"
     },
     "PlanEntryPriority": {
-      "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.",
-      "enum": ["high", "medium", "low"],
-      "type": "string"
+      "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.\nSee: <https://agentclientprotocol.com/protocol/agent-plan#plan-entries>",
+      "oneOf": [
+        {
+          "const": "high",
+          "description": "High priority task - critical to the overall goal.",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "description": "Medium priority task - important but not critical.",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "description": "Low priority task - nice to have but not essential.",
+          "type": "string"
+        }
+      ]
     },
     "PlanEntryStatus": {
-      "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.",
-      "enum": ["pending", "in_progress", "completed"],
-      "type": "string"
+      "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.\nSee: <https://agentclientprotocol.com/protocol/agent-plan#plan-entries>",
+      "oneOf": [
+        {
+          "const": "pending",
+          "description": "The task has not started yet.",
+          "type": "string"
+        },
+        {
+          "const": "in_progress",
+          "description": "The task is currently being worked on.",
+          "type": "string"
+        },
+        {
+          "const": "completed",
+          "description": "The task has been successfully completed.",
+          "type": "string"
+        }
+      ]
     },
     "PromptCapabilities": {
-      "description": "Prompt capabilities supported by the agent in `session/prompt` requests.\n\nBaseline agent functionality requires support for [`ContentBlock::Text`]\nand [`ContentBlock::ResourceLink`] in prompt requests.\n\nOther variants must be explicitly opted in to.",
+      "description": "Prompt capabilities supported by the agent in `session/prompt` requests.\n\nBaseline agent functionality requires support for [`ContentBlock::Text`]\nand [`ContentBlock::ResourceLink`] in prompt requests.\n\nOther variants must be explicitly opted in to.\nCapabilities for different types of content in prompt requests.\n\nIndicates which content types beyond the baseline (text and resource links)\nthe agent can process.\n\nSee: <https://agentclientprotocol.com/protocol/initialization#prompt-capabilities>",
       "properties": {
         "audio": {
           "default": false,
@@ -643,7 +745,7 @@
         },
         "embeddedContext": {
           "default": false,
-          "description": "Agent supports embedded context in `session/prompt` requests.\n\nWhen enabled, the Client is allowed to include [`ContentBlock::EmbeddedResource`]\nin prompt requests for pieces of context that are referenced in the message.",
+          "description": "Agent supports embedded context in `session/prompt` requests.\n\nWhen enabled, the Client is allowed to include [`ContentBlock::Resource`]\nin prompt requests for pieces of context that are referenced in the message.",
           "type": "boolean"
         },
         "image": {
@@ -656,26 +758,29 @@
       "type": "object"
     },
     "PromptRequest": {
+      "description": "Request parameters for sending a user prompt to the agent.\n\nContains the user's message and any additional context.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#1-user-message>",
       "properties": {
         "prompt": {
-          "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\n## Context\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::EmbeddedResource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::EmbeddedResource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
+          "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\n## Context\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::Resource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
           "items": {
             "$ref": "#/$defs/ContentBlock"
           },
           "type": "array"
         },
         "sessionId": {
-          "description": "The ID of the session to send this user message to",
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session to send this user message to"
         }
       },
       "required": ["sessionId", "prompt"],
       "type": "object"
     },
     "PromptResponse": {
+      "description": "Response from processing a user prompt.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion>",
       "properties": {
         "stopReason": {
-          "$ref": "#/$defs/StopReason"
+          "$ref": "#/$defs/StopReason",
+          "description": "Indicates why the agent stopped processing the turn."
         }
       },
       "required": ["stopReason"],
@@ -689,28 +794,34 @@
       "type": "integer"
     },
     "ReadTextFileRequest": {
+      "description": "Request to read content from a text file.\n\nOnly available if the client supports the `fs.readTextFile` capability.",
       "properties": {
         "limit": {
+          "description": "Optional maximum number of lines to read.",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "line": {
+          "description": "Optional line number to start reading from (1-based).",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "path": {
+          "description": "Path to the file to read (relative to the session's working directory).",
           "type": "string"
         },
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         }
       },
       "required": ["sessionId", "path"],
       "type": "object"
     },
     "ReadTextFileResponse": {
+      "description": "Response containing the contents of a text file.",
       "properties": {
         "content": {
           "type": "string"
@@ -720,8 +831,10 @@
       "type": "object"
     },
     "RequestPermissionOutcome": {
+      "description": "The outcome of a permission request.",
       "oneOf": [
         {
+          "description": "The prompt turn was cancelled before the user responded.",
           "properties": {
             "outcome": {
               "const": "cancelled",
@@ -732,9 +845,11 @@
           "type": "object"
         },
         {
+          "description": "The user selected one of the provided options.",
           "properties": {
             "optionId": {
-              "type": "string"
+              "$ref": "#/$defs/PermissionOptionId",
+              "description": "The ID of the option the user selected."
             },
             "outcome": {
               "const": "selected",
@@ -747,34 +862,40 @@
       ]
     },
     "RequestPermissionRequest": {
+      "description": "Request for user permission to execute a tool call.\n\nSent when the agent needs authorization before performing a sensitive operation.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>",
       "properties": {
         "options": {
+          "description": "Available permission options for the user to choose from.",
           "items": {
             "$ref": "#/$defs/PermissionOption"
           },
           "type": "array"
         },
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         },
         "toolCall": {
-          "$ref": "#/$defs/ToolCallUpdate"
+          "$ref": "#/$defs/ToolCallUpdate",
+          "description": "Details about the tool call requiring permission."
         }
       },
       "required": ["sessionId", "toolCall", "options"],
       "type": "object"
     },
     "RequestPermissionResponse": {
+      "description": "Response to a permission request.",
       "properties": {
         "outcome": {
-          "$ref": "#/$defs/RequestPermissionOutcome"
+          "$ref": "#/$defs/RequestPermissionOutcome",
+          "description": "The user's decision on the permission request."
         }
       },
       "required": ["outcome"],
       "type": "object"
     },
     "ResourceLink": {
-      "description": "A resource that the server is capable of reading, included in a prompt or tool call result.\n\nNote: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.",
+      "description": "A resource that the server is capable of reading, included in a prompt or tool call result.",
       "properties": {
         "annotations": {
           "anyOf": [
@@ -814,21 +935,30 @@
       "enum": ["assistant", "user"],
       "type": "string"
     },
+    "SessionId": {
+      "description": "A unique identifier for a conversation session between a client and agent.\n\nSessions maintain their own context, conversation history, and state,\nallowing multiple independent interactions with the same agent.\n\n# Example\n\n```\nuse agent_client_protocol::SessionId;\nuse std::sync::Arc;\n\nlet session_id = SessionId(Arc::from(\"sess_abc123def456\"));\n```\n\nSee: <https://agentclientprotocol.com/protocol/session-setup#session-id>",
+      "type": "string"
+    },
     "SessionNotification": {
+      "description": "Notification containing a session update from the agent.\n\nUsed to stream real-time progress and results during prompt processing.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>",
       "properties": {
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session this update pertains to."
         },
         "update": {
-          "$ref": "#/$defs/SessionUpdate"
+          "$ref": "#/$defs/SessionUpdate",
+          "description": "The actual update content."
         }
       },
       "required": ["sessionId", "update"],
       "type": "object"
     },
     "SessionUpdate": {
+      "description": "Different types of updates that can be sent during session processing.\n\nThese updates provide real-time feedback about the agent's progress.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>",
       "oneOf": [
         {
+          "description": "A chunk of the user's message being streamed.",
           "properties": {
             "content": {
               "$ref": "#/$defs/ContentBlock"
@@ -842,6 +972,7 @@
           "type": "object"
         },
         {
+          "description": "A chunk of the agent's response being streamed.",
           "properties": {
             "content": {
               "$ref": "#/$defs/ContentBlock"
@@ -855,6 +986,7 @@
           "type": "object"
         },
         {
+          "description": "A chunk of the agent's internal reasoning being streamed.",
           "properties": {
             "content": {
               "$ref": "#/$defs/ContentBlock"
@@ -868,44 +1000,57 @@
           "type": "object"
         },
         {
+          "description": "Notification that a new tool call has been initiated.",
           "properties": {
             "content": {
+              "description": "Content produced by the tool call.",
               "items": {
                 "$ref": "#/$defs/ToolCallContent"
               },
               "type": "array"
             },
             "kind": {
-              "$ref": "#/$defs/ToolKind"
+              "$ref": "#/$defs/ToolKind",
+              "description": "The category of tool being invoked.\nHelps clients choose appropriate icons and UI treatment."
             },
             "locations": {
+              "description": "File locations affected by this tool call.\nEnables \"follow-along\" features in clients.",
               "items": {
                 "$ref": "#/$defs/ToolCallLocation"
               },
               "type": "array"
             },
-            "rawInput": true,
-            "rawOutput": true,
+            "rawInput": {
+              "description": "Raw input parameters sent to the tool."
+            },
+            "rawOutput": {
+              "description": "Raw output returned by the tool."
+            },
             "sessionUpdate": {
               "const": "tool_call",
               "type": "string"
             },
             "status": {
-              "$ref": "#/$defs/ToolCallStatus"
+              "$ref": "#/$defs/ToolCallStatus",
+              "description": "Current execution status of the tool call."
             },
             "title": {
+              "description": "Human-readable title describing what the tool is doing.",
               "type": "string"
             },
             "toolCallId": {
-              "type": "string"
+              "$ref": "#/$defs/ToolCallId",
+              "description": "Unique identifier for this tool call within the session."
             }
           },
           "required": ["sessionUpdate", "toolCallId", "title"],
           "type": "object"
         },
         {
+          "description": "Update on the status or results of a tool call.",
           "properties": {
             "content": {
+              "description": "Replace the content collection.",
               "items": {
                 "$ref": "#/$defs/ToolCallContent"
               },
@@ -919,16 +1064,22 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Update the tool kind."
             },
             "locations": {
+              "description": "Replace the locations collection.",
               "items": {
                 "$ref": "#/$defs/ToolCallLocation"
               },
               "type": ["array", "null"]
             },
-            "rawInput": true,
-            "rawOutput": true,
+            "rawInput": {
+              "description": "Update the raw input."
+            },
+            "rawOutput": {
+              "description": "Update the raw output."
+            },
             "sessionUpdate": {
               "const": "tool_call_update",
               "type": "string"
@@ -941,21 +1092,26 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Update the execution status."
             },
             "title": {
+              "description": "Update the human-readable title.",
               "type": ["string", "null"]
             },
             "toolCallId": {
-              "type": "string"
+              "$ref": "#/$defs/ToolCallId",
+              "description": "The ID of the tool call being updated."
             }
           },
           "required": ["sessionUpdate", "toolCallId"],
           "type": "object"
         },
         {
+          "description": "The agent's execution plan for complex tasks.\nSee: <https://agentclientprotocol.com/protocol/agent-plan>",
           "properties": {
             "entries": {
+              "description": "The list of tasks to be accomplished.\n\nWhen updating a plan, the agent must send a complete list of all entries\nwith their current status. The client replaces the entire plan with each update.",
               "items": {
                 "$ref": "#/$defs/PlanEntry"
               },
@@ -972,6 +1128,7 @@
       ]
     },
     "StopReason": {
+      "description": "Reasons why an agent stops processing a prompt turn.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons>",
       "oneOf": [
         {
           "const": "end_turn",
@@ -1021,6 +1178,7 @@
       "type": "object"
     },
     "TextResourceContents": {
+      "description": "Text-based resource contents.",
       "properties": {
         "mimeType": {
           "type": ["string", "null"]
@@ -1036,43 +1194,57 @@
       "type": "object"
     },
     "ToolCall": {
+      "description": "Represents a tool call that the language model has requested.\n\nTool calls are actions that the agent executes on behalf of the language model,\nsuch as reading files, executing code, or fetching data from external sources.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls>",
       "properties": {
         "content": {
+          "description": "Content produced by the tool call.",
           "items": {
             "$ref": "#/$defs/ToolCallContent"
           },
           "type": "array"
         },
         "kind": {
-          "$ref": "#/$defs/ToolKind"
+          "$ref": "#/$defs/ToolKind",
+          "description": "The category of tool being invoked.\nHelps clients choose appropriate icons and UI treatment."
         },
         "locations": {
+          "description": "File locations affected by this tool call.\nEnables \"follow-along\" features in clients.",
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
           },
           "type": "array"
         },
-        "rawInput": true,
-        "rawOutput": true,
+        "rawInput": {
+          "description": "Raw input parameters sent to the tool."
+        },
+        "rawOutput": {
+          "description": "Raw output returned by the tool."
+        },
         "status": {
-          "$ref": "#/$defs/ToolCallStatus"
+          "$ref": "#/$defs/ToolCallStatus",
+          "description": "Current execution status of the tool call."
         },
         "title": {
+          "description": "Human-readable title describing what the tool is doing.",
           "type": "string"
         },
         "toolCallId": {
-          "type": "string"
+          "$ref": "#/$defs/ToolCallId",
+          "description": "Unique identifier for this tool call within the session."
         }
       },
       "required": ["toolCallId", "title"],
       "type": "object"
     },
     "ToolCallContent": {
+      "description": "Content produced by a tool call.\n\nTool calls can produce different types of content including\nstandard content blocks (text, images) or file diffs.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#content>",
       "oneOf": [
         {
+          "description": "Standard content block (text, images, resources).",
           "properties": {
             "content": {
-              "$ref": "#/$defs/ContentBlock"
+              "$ref": "#/$defs/ContentBlock",
+              "description": "The actual content block."
             },
             "type": {
               "const": "content",
@@ -1083,14 +1255,18 @@
           "type": "object"
         },
         {
+          "description": "File modification shown as a diff.",
           "properties": {
             "newText": {
+              "description": "The new content after modification.",
               "type": "string"
             },
             "oldText": {
+              "description": "The original content (None for new files).",
               "type": ["string", "null"]
             },
             "path": {
+              "description": "The file path being modified.",
               "type": "string"
             },
             "type": {
@@ -1103,14 +1279,21 @@
         }
       ]
     },
+    "ToolCallId": {
+      "description": "Unique identifier for a tool call within a session.",
+      "type": "string"
+    },
     "ToolCallLocation": {
+      "description": "A file location being accessed or modified by a tool.\n\nEnables clients to implement \"follow-along\" features that track\nwhich files the agent is working with in real-time.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#following-the-agent>",
       "properties": {
         "line": {
+          "description": "Optional line number within the file.",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "path": {
+          "description": "The file path being accessed or modified.",
           "type": "string"
         }
       },
@@ -1118,6 +1301,7 @@
       "type": "object"
     },
     "ToolCallStatus": {
+      "description": "Execution status of a tool call.\n\nTool calls progress through different statuses during their lifecycle.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#status>",
       "oneOf": [
         {
           "const": "pending",
@@ -1136,14 +1320,16 @@
         },
         {
           "const": "failed",
-          "description": "The tool call failed.",
+          "description": "The tool call failed with an error.",
           "type": "string"
         }
       ]
     },
     "ToolCallUpdate": {
+      "description": "An update to an existing tool call.\n\nUsed to report progress and results as tools execute. All fields except\nthe tool call ID are optional - only changed fields need to be included.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#updating>",
       "properties": {
         "content": {
+          "description": "Replace the content collection.",
           "items": {
             "$ref": "#/$defs/ToolCallContent"
           },
@@ -1157,16 +1343,22 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Update the tool kind."
         },
         "locations": {
+          "description": "Replace the locations collection.",
           "items": {
             "$ref": "#/$defs/ToolCallLocation"
           },
           "type": ["array", "null"]
         },
-        "rawInput": true,
-        "rawOutput": true,
+        "rawInput": {
+          "description": "Update the raw input."
+        },
+        "rawOutput": {
+          "description": "Update the raw output."
+        },
         "status": {
           "anyOf": [
             {
@@ -1175,42 +1367,85 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Update the execution status."
         },
         "title": {
+          "description": "Update the human-readable title.",
           "type": ["string", "null"]
         },
         "toolCallId": {
-          "type": "string"
+          "$ref": "#/$defs/ToolCallId",
+          "description": "The ID of the tool call being updated."
         }
       },
       "required": ["toolCallId"],
       "type": "object"
     },
     "ToolKind": {
-      "enum": [
-        "read",
-        "edit",
-        "delete",
-        "move",
-        "search",
-        "execute",
-        "think",
-        "fetch",
-        "other"
-      ],
-      "type": "string"
+      "description": "Categories of tools that can be invoked.\n\nTool kinds help clients choose appropriate icons and optimize how they\ndisplay tool execution progress.\n\nSee: <https://agentclientprotocol.com/protocol/tool-calls#creating>",
+      "oneOf": [
+        {
+          "const": "read",
+          "description": "Reading files or data.",
+          "type": "string"
+        },
+        {
+          "const": "edit",
+          "description": "Modifying files or content.",
+          "type": "string"
+        },
+        {
+          "const": "delete",
+          "description": "Removing files or data.",
+          "type": "string"
+        },
+        {
+          "const": "move",
+          "description": "Moving or renaming files.",
+          "type": "string"
+        },
+        {
+          "const": "search",
+          "description": "Searching for information.",
+          "type": "string"
+        },
+        {
+          "const": "execute",
+          "description": "Running commands or code.",
+          "type": "string"
+        },
+        {
+          "const": "think",
+          "description": "Internal reasoning or planning.",
+          "type": "string"
+        },
+        {
+          "const": "fetch",
+          "description": "Retrieving external data.",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "description": "Other tool types (default).",
+          "type": "string"
+        }
+      ]
     },
     "WriteTextFileRequest": {
+      "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",
       "properties": {
         "content": {
+          "description": "The text content to write to the file.\nThe text content read from the file.",
           "type": "string"
         },
         "path": {
+          "description": "Path to the file to write (relative to the session's working directory).",
           "type": "string"
         },
         "sessionId": {
-          "type": "string"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         }
       },
       "required": ["sessionId", "path", "content"],
