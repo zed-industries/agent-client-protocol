@@ -45,16 +45,6 @@ When the language model creates an execution plan, the Agent **SHOULD** report i
   An array of [plan entries](#plan-entries) representing the tasks to be accomplished
 </ParamField>
 
-## Updating
-
-As the Agent progresses through the plan, it **SHOULD** report updates by sending more `session/update` notifications with the same structure.
-
-The Agent **MUST** send a complete list of all plan entries in each update and their current status. The Client **MUST** replace the current plan completely.
-
-### Dynamic Planning
-
-Plans can evolve during execution. The Agent **MAY** add, remove, or modify plan entries as it discovers new requirements or completes tasks, allowing it to adapt based on what it learns.
-
 ## Plan Entries
 
 Each plan entry represents a specific task or goal within the overall execution strategy:
@@ -80,3 +70,13 @@ Each plan entry represents a specific task or goal within the overall execution 
   - `in_progress`
   - `completed`
 </ParamField>
+
+## Updating
+
+As the Agent progresses through the plan, it **SHOULD** report updates by sending more `session/update` notifications with the same structure.
+
+The Agent **MUST** send a complete list of all plan entries in each update and their current status. The Client **MUST** replace the current plan completely.
+
+### Dynamic Planning
+
+Plans can evolve during execution. The Agent **MAY** add, remove, or modify plan entries as it discovers new requirements or completes tasks, allowing it to adapt based on what it learns.
