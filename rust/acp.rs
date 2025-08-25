@@ -4,12 +4,6 @@
 //! (IDEs, text-editors, etc.) and coding agents (programs that use generative AI
 //! to autonomously modify code).
 //!
-//! ## Overview
-//!
-//! ACP assumes that the user is primarily in their editor, and wants to reach out
-//! and use agents to assist them with specific tasks. Agents run as sub-processes
-//! of the code editor, and communicate using JSON-RPC over stdio.
-//!
 //! ## Core Components
 //!
 //! - **Agent**: Programs that use generative AI to autonomously modify code
@@ -67,7 +61,7 @@ use crate::rpc::{MessageHandler, RpcConnection, Side};
 /// # Example
 ///
 /// ```
-/// use acp::SessionId;
+/// use agent_client_protocol::SessionId;
 /// use std::sync::Arc;
 ///
 /// let session_id = SessionId(Arc::from("sess_abc123def456"));
@@ -94,22 +88,6 @@ impl fmt::Display for SessionId {
 /// prompts, and managing the agent lifecycle.
 ///
 /// See: <https://agentclientprotocol.com/protocol/overview#client>
-///
-/// # Example
-///
-/// ```no_run
-/// use acp::ClientSideConnection;
-///
-/// let (connection, io_task) = ClientSideConnection::new(
-///     client_handler,
-///     outgoing_bytes,
-///     incoming_bytes,
-///     spawn_fn
-/// );
-///
-/// // Use the connection to interact with the agent
-/// tokio::spawn(io_task);
-/// ```
 pub struct ClientSideConnection {
     conn: RpcConnection<ClientSide, AgentSide>,
 }
@@ -295,22 +273,6 @@ impl<T: Client> MessageHandler<ClientSide> for T {
 /// and sending session updates.
 ///
 /// See: <https://agentclientprotocol.com/protocol/overview#agent>
-///
-/// # Example
-///
-/// ```no_run
-/// use acp::AgentSideConnection;
-///
-/// let (connection, io_task) = AgentSideConnection::new(
-///     agent_handler,
-///     outgoing_bytes,
-///     incoming_bytes,
-///     spawn_fn
-/// );
-///
-/// // Use the connection to interact with the client
-/// tokio::spawn(io_task);
-/// ```
 pub struct AgentSideConnection {
     conn: RpcConnection<AgentSide, ClientSide>,
 }
