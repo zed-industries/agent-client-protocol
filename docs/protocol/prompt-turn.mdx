@@ -86,7 +86,7 @@ The turn begins when the Client sends a `session/prompt`:
 <ParamField path="sessionId" type="SessionId">
     The [ID](./session-setup#session-id) of the session to send this message to.
 </ParamField>
-<ParamField path="content" type="ContentBlock[]">
+<ParamField path="prompt" type="ContentBlock[]">
     The contents of the user message, e.g. text, images, files, etc.
 
     Clients **MUST** restrict types of content according to the [Prompt Capabilities](./initialization#prompt-capabilities) established during [initialization](./initialization).
