@@ -1,0 +1,30 @@
+'Code Editor': {near: top-center}
+
+'MCP Server 1': {near: center-left}
+'MCP Server ...': {
+  near: center-right
+  style: {
+    stroke-dash: 3
+  }
+}
+" ----------------------- ": {
+  style: {
+    fill: transparent
+    font-color: transparent
+    stroke-width: 0
+  }
+}
+
+# Bottom row: Agent
+Agent: {near: bottom-center}
+
+# Connections
+'Code Editor' -> Agent: MCP Configuration {direction: down}
+
+# The agent connects up to the MCP servers
+Agent -> 'MCP Server 1': MCP {direction: up}
+Agent -> 'MCP Server ...': MCP {
+  style: {
+    stroke-dash: 3
+  }
+}

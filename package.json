@@ -41,7 +41,8 @@
     "format:check": "prettier --check . && cargo fmt -- --check",
     "lint": "cargo clippy",
     "lint:fix": "cargo clippy --fix",
-    "check": "npm run lint && npm run format:check && npm run build && npm run test"
+    "check": "npm run lint && npm run format:check && npm run build && npm run test",
+    "docs": "cd docs && npx mint dev"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",

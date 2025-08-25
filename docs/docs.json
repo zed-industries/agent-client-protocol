@@ -1,0 +1,90 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "Agent Client Protocol",
+  "description": "The Agent Client Protocol (ACP) is a protocol that standardizes communication between code editors.",
+  "colors": {
+    "primary": "#0084d1",
+    "light": "#00bcff",
+    "dark": "#0084d1"
+  },
+  "background": {
+    "color": {
+      "light": "#f8f8f6",
+      "dark": "#100f0f"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Lora",
+      "format": "woff2"
+    },
+    "body": {
+      "family": "Public Sans",
+      "format": "woff2"
+    }
+  },
+  "favicon": {
+    "light": "/logo/fav-light.png",
+    "dark": "/logo/fav-dark.png"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/zed-industries/agent-client-protocol"
+      },
+      {
+        "label": "Zed Industries",
+        "href": "https://zed.dev"
+      }
+    ]
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": ["overview/introduction", "overview/architecture"]
+      },
+      {
+        "group": "Protocol",
+        "pages": [
+          "protocol/overview",
+          "protocol/initialization",
+          "protocol/session-setup",
+          "protocol/prompt-turn",
+          "protocol/content",
+          "protocol/tool-calls",
+          "protocol/agent-plan",
+          "protocol/schema"
+        ]
+      },
+      {
+        "group": "Libraries",
+        "pages": ["libraries/typescript", "libraries/rust"]
+      },
+      {
+        "group": "Community",
+        "pages": ["community/contributing", "community/versioning"]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "seo": {
+    "metatags": {
+      "og:image": "https://raw.githubusercontent.com/modelcontextprotocol/docs/2eb6171ddbfeefde349dc3b8d5e2b87414c26250/images/og-image.png"
+    },
+    "indexing": "navigable"
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/zed-industries/agent-client-protocol"
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view"]
+  }
+}
