@@ -47,7 +47,7 @@ When the language model creates an execution plan, the Agent **SHOULD** report i
 
 ## Updating
 
-As the Agent progresses through the plan, it sends more `session/update` notifications with the same structure.
+As the Agent progresses through the plan, it **SHOULD** report updates by sending more `session/update` notifications with the same structure.
 
 The Agent **MUST** send a complete list of all plan entries in each update and their current status. The Client **MUST** replace the current plan completely.
 
