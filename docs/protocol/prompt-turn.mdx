@@ -41,16 +41,17 @@ sequenceDiagram
             Agent->>Client: session/update (tool_call status: completed)
             Note right of Agent: Send tool results<br/>back to LLM
         end
+
+      opt User cancelled during execution
+          Note left of Client: User cancels prompt
+          Client->>Agent: session/cancel
+          Note right of Agent: Abort operations
+          Agent-->>Client: session/prompt response (cancelled)
+      end
     end
 
-    Agent->>Client: session/prompt response (stopReason)
+    Agent-->>Client: session/prompt response (stopReason)
 
-    opt Cancellation flow
-        Note left of Client: User cancels
-        Client->>Agent: session/cancel
-        Note right of Agent: Abort all operations
-        Agent-->>Client: session/prompt response (cancelled)
-    end
 ```
 
 ### 1. User Message
