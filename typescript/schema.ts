@@ -22,8 +22,6 @@ export type WriteTextFileRequest = z.infer<typeof writeTextFileRequestSchema>;
 
 export type ReadTextFileRequest = z.infer<typeof readTextFileRequestSchema>;
 
-export type PermissionOptionKind = z.infer<typeof permissionOptionKindSchema>;
-
 export type Role = z.infer<typeof roleSchema>;
 
 export type TextResourceContents = z.infer<typeof textResourceContentsSchema>;
@@ -38,13 +36,19 @@ export type WriteTextFileResponse = z.infer<typeof writeTextFileResponseSchema>;
 
 export type ReadTextFileResponse = z.infer<typeof readTextFileResponseSchema>;
 
-export type RequestPermissionOutcome = z.infer<
-  typeof requestPermissionOutcomeSchema
+export type RequestPermissionResponse = z.infer<
+  typeof requestPermissionResponseSchema
 >;
 
 export type CancelNotification = z.infer<typeof cancelNotificationSchema>;
 
 export type AuthenticateRequest = z.infer<typeof authenticateRequestSchema>;
+
+export type Annotations = z.infer<typeof annotationsSchema>;
+
+export type EmbeddedResourceResource = z.infer<
+  typeof embeddedResourceResourceSchema
+>;
 
 export type AuthenticateResponse = z.infer<typeof authenticateResponseSchema>;
 
@@ -52,19 +56,13 @@ export type NewSessionResponse = z.infer<typeof newSessionResponseSchema>;
 
 export type LoadSessionResponse = z.infer<typeof loadSessionResponseSchema>;
 
-export type StopReason = z.infer<typeof stopReasonSchema>;
-
-export type ToolCallLocation = z.infer<typeof toolCallLocationSchema>;
-
-export type PlanEntry = z.infer<typeof planEntrySchema>;
+export type PromptResponse = z.infer<typeof promptResponseSchema>;
 
 export type PermissionOption = z.infer<typeof permissionOptionSchema>;
 
-export type Annotations = z.infer<typeof annotationsSchema>;
+export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
 
-export type RequestPermissionResponse = z.infer<
-  typeof requestPermissionResponseSchema
->;
+export type ToolCallLocation = z.infer<typeof toolCallLocationSchema>;
 
 export type FileSystemCapability = z.infer<typeof fileSystemCapabilitySchema>;
 
@@ -72,37 +70,33 @@ export type EnvVariable = z.infer<typeof envVariableSchema>;
 
 export type McpServer = z.infer<typeof mcpServerSchema>;
 
+export type ContentBlock = z.infer<typeof contentBlockSchema>;
+
 export type AuthMethod = z.infer<typeof authMethodSchema>;
 
 export type PromptCapabilities = z.infer<typeof promptCapabilitiesSchema>;
 
-export type PromptResponse = z.infer<typeof promptResponseSchema>;
+export type PlanEntry = z.infer<typeof planEntrySchema>;
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
 export type ClientNotification = z.infer<typeof clientNotificationSchema>;
 
-export type EmbeddedResourceResource = z.infer<
-  typeof embeddedResourceResourceSchema
->;
-
 export type NewSessionRequest = z.infer<typeof newSessionRequestSchema>;
 
 export type LoadSessionRequest = z.infer<typeof loadSessionRequestSchema>;
 
-export type ContentBlock = z.infer<typeof contentBlockSchema>;
+export type PromptRequest = z.infer<typeof promptRequestSchema>;
 
-export type ToolCallContent = z.infer<typeof toolCallContentSchema>;
+export type SessionNotification = z.infer<typeof sessionNotificationSchema>;
 
 export type ToolCallUpdate = z.infer<typeof toolCallUpdateSchema>;
 
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>;
 
-export type PromptRequest = z.infer<typeof promptRequestSchema>;
-
 export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;
 
-export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
+export type AgentNotification = z.infer<typeof agentNotificationSchema>;
 
 export type RequestPermissionRequest = z.infer<
   typeof requestPermissionRequestSchema
@@ -112,15 +106,11 @@ export type InitializeRequest = z.infer<typeof initializeRequestSchema>;
 
 export type InitializeResponse = z.infer<typeof initializeResponseSchema>;
 
-export type SessionNotification = z.infer<typeof sessionNotificationSchema>;
-
 export type ClientRequest = z.infer<typeof clientRequestSchema>;
 
 export type AgentRequest = z.infer<typeof agentRequestSchema>;
 
 export type AgentResponse = z.infer<typeof agentResponseSchema>;
-
-export type AgentNotification = z.infer<typeof agentNotificationSchema>;
 
 export type AgentClientProtocol = z.infer<typeof agentClientProtocolSchema>;
 
@@ -136,13 +126,6 @@ export const readTextFileRequestSchema = z.object({
   path: z.string(),
   sessionId: z.string(),
 });
-
-export const permissionOptionKindSchema = z.union([
-  z.literal("allow_once"),
-  z.literal("allow_always"),
-  z.literal("reject_once"),
-  z.literal("reject_always"),
-]);
 
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
 
@@ -183,15 +166,17 @@ export const readTextFileResponseSchema = z.object({
   content: z.string(),
 });
 
-export const requestPermissionOutcomeSchema = z.union([
-  z.object({
-    outcome: z.literal("cancelled"),
-  }),
-  z.object({
-    optionId: z.string(),
-    outcome: z.literal("selected"),
-  }),
-]);
+export const requestPermissionResponseSchema = z.object({
+  outcome: z.union([
+    z.object({
+      outcome: z.literal("cancelled"),
+    }),
+    z.object({
+      optionId: z.string(),
+      outcome: z.literal("selected"),
+    }),
+  ]),
+});
 
 export const cancelNotificationSchema = z.object({
   sessionId: z.string(),
@@ -201,6 +186,17 @@ export const authenticateRequestSchema = z.object({
   methodId: z.string(),
 });
 
+export const annotationsSchema = z.object({
+  audience: z.array(roleSchema).optional().nullable(),
+  lastModified: z.string().optional().nullable(),
+  priority: z.number().optional().nullable(),
+});
+
+export const embeddedResourceResourceSchema = z.union([
+  textResourceContentsSchema,
+  blobResourceContentsSchema,
+]);
+
 export const authenticateResponseSchema = z.null();
 
 export const newSessionResponseSchema = z.object({
@@ -209,43 +205,77 @@ export const newSessionResponseSchema = z.object({
 
 export const loadSessionResponseSchema = z.null();
 
-export const stopReasonSchema = z.union([
-  z.literal("end_turn"),
-  z.literal("max_tokens"),
-  z.literal("max_turn_requests"),
-  z.literal("refusal"),
-  z.literal("cancelled"),
+export const promptResponseSchema = z.object({
+  stopReason: z.union([
+    z.literal("end_turn"),
+    z.literal("max_tokens"),
+    z.literal("max_turn_requests"),
+    z.literal("refusal"),
+    z.literal("cancelled"),
+  ]),
+});
+
+export const permissionOptionSchema = z.object({
+  kind: z.union([
+    z.literal("allow_once"),
+    z.literal("allow_always"),
+    z.literal("reject_once"),
+    z.literal("reject_always"),
+  ]),
+  name: z.string(),
+  optionId: z.string(),
+});
+
+export const toolCallContentSchema = z.union([
+  z.object({
+    content: z.union([
+      z.object({
+        annotations: annotationsSchema.optional().nullable(),
+        text: z.string(),
+        type: z.literal("text"),
+      }),
+      z.object({
+        annotations: annotationsSchema.optional().nullable(),
+        data: z.string(),
+        mimeType: z.string(),
+        type: z.literal("image"),
+        uri: z.string().optional().nullable(),
+      }),
+      z.object({
+        annotations: annotationsSchema.optional().nullable(),
+        data: z.string(),
+        mimeType: z.string(),
+        type: z.literal("audio"),
+      }),
+      z.object({
+        annotations: annotationsSchema.optional().nullable(),
+        description: z.string().optional().nullable(),
+        mimeType: z.string().optional().nullable(),
+        name: z.string(),
+        size: z.number().optional().nullable(),
+        title: z.string().optional().nullable(),
+        type: z.literal("resource_link"),
+        uri: z.string(),
+      }),
+      z.object({
+        annotations: annotationsSchema.optional().nullable(),
+        resource: embeddedResourceResourceSchema,
+        type: z.literal("resource"),
+      }),
+    ]),
+    type: z.literal("content"),
+  }),
+  z.object({
+    newText: z.string(),
+    oldText: z.string().nullable(),
+    path: z.string(),
+    type: z.literal("diff"),
+  }),
 ]);
 
 export const toolCallLocationSchema = z.object({
   line: z.number().optional().nullable(),
   path: z.string(),
-});
-
-export const planEntrySchema = z.object({
-  content: z.string(),
-  priority: z.union([z.literal("high"), z.literal("medium"), z.literal("low")]),
-  status: z.union([
-    z.literal("pending"),
-    z.literal("in_progress"),
-    z.literal("completed"),
-  ]),
-});
-
-export const permissionOptionSchema = z.object({
-  kind: permissionOptionKindSchema,
-  name: z.string(),
-  optionId: z.string(),
-});
-
-export const annotationsSchema = z.object({
-  audience: z.array(roleSchema).optional().nullable(),
-  lastModified: z.string().optional().nullable(),
-  priority: z.number().optional().nullable(),
-});
-
-export const requestPermissionResponseSchema = z.object({
-  outcome: requestPermissionOutcomeSchema,
 });
 
 export const fileSystemCapabilitySchema = z.object({
@@ -263,46 +293,6 @@ export const mcpServerSchema = z.object({
   command: z.string(),
   env: z.array(envVariableSchema),
   name: z.string(),
-});
-
-export const authMethodSchema = z.object({
-  description: z.string().nullable(),
-  id: z.string(),
-  name: z.string(),
-});
-
-export const promptCapabilitiesSchema = z.object({
-  audio: z.boolean(),
-  embeddedContext: z.boolean(),
-  image: z.boolean(),
-});
-
-export const promptResponseSchema = z.object({
-  stopReason: stopReasonSchema,
-});
-
-export const clientResponseSchema = z.union([
-  writeTextFileResponseSchema,
-  readTextFileResponseSchema,
-  requestPermissionResponseSchema,
-]);
-
-export const clientNotificationSchema = cancelNotificationSchema;
-
-export const embeddedResourceResourceSchema = z.union([
-  textResourceContentsSchema,
-  blobResourceContentsSchema,
-]);
-
-export const newSessionRequestSchema = z.object({
-  cwd: z.string(),
-  mcpServers: z.array(mcpServerSchema),
-});
-
-export const loadSessionRequestSchema = z.object({
-  cwd: z.string(),
-  mcpServers: z.array(mcpServerSchema),
-  sessionId: z.string(),
 });
 
 export const contentBlockSchema = z.union([
@@ -341,25 +331,121 @@ export const contentBlockSchema = z.union([
   }),
 ]);
 
-export const toolCallContentSchema = z.union([
-  z.object({
-    content: contentBlockSchema,
-    type: z.literal("content"),
-  }),
-  z.object({
-    newText: z.string(),
-    oldText: z.string().nullable(),
-    path: z.string(),
-    type: z.literal("diff"),
-  }),
+export const authMethodSchema = z.object({
+  description: z.string().nullable(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export const promptCapabilitiesSchema = z.object({
+  audio: z.boolean(),
+  embeddedContext: z.boolean(),
+  image: z.boolean(),
+});
+
+export const planEntrySchema = z.object({
+  content: z.string(),
+  priority: z.union([z.literal("high"), z.literal("medium"), z.literal("low")]),
+  status: z.union([
+    z.literal("pending"),
+    z.literal("in_progress"),
+    z.literal("completed"),
+  ]),
+});
+
+export const clientResponseSchema = z.union([
+  writeTextFileResponseSchema,
+  readTextFileResponseSchema,
+  requestPermissionResponseSchema,
 ]);
+
+export const clientNotificationSchema = cancelNotificationSchema;
+
+export const newSessionRequestSchema = z.object({
+  cwd: z.string(),
+  mcpServers: z.array(mcpServerSchema),
+});
+
+export const loadSessionRequestSchema = z.object({
+  cwd: z.string(),
+  mcpServers: z.array(mcpServerSchema),
+  sessionId: z.string(),
+});
+
+export const promptRequestSchema = z.object({
+  prompt: z.array(contentBlockSchema),
+  sessionId: z.string(),
+});
+
+export const sessionNotificationSchema = z.object({
+  sessionId: z.string(),
+  update: z.union([
+    z.object({
+      content: contentBlockSchema,
+      sessionUpdate: z.literal("user_message_chunk"),
+    }),
+    z.object({
+      content: contentBlockSchema,
+      sessionUpdate: z.literal("agent_message_chunk"),
+    }),
+    z.object({
+      content: contentBlockSchema,
+      sessionUpdate: z.literal("agent_thought_chunk"),
+    }),
+    z.object({
+      content: z.array(toolCallContentSchema).optional(),
+      kind: z
+        .union([
+          z.literal("read"),
+          z.literal("edit"),
+          z.literal("delete"),
+          z.literal("move"),
+          z.literal("search"),
+          z.literal("execute"),
+          z.literal("think"),
+          z.literal("fetch"),
+          z.literal("other"),
+        ])
+        .optional(),
+      locations: z.array(toolCallLocationSchema).optional(),
+      rawInput: z.record(z.unknown()).optional(),
+      rawOutput: z.record(z.unknown()).optional(),
+      sessionUpdate: z.literal("tool_call"),
+      status: z
+        .union([
+          z.literal("pending"),
+          z.literal("in_progress"),
+          z.literal("completed"),
+          z.literal("failed"),
+        ])
+        .optional(),
+      title: z.string(),
+      toolCallId: z.string(),
+    }),
+    z.object({
+      content: z.array(toolCallContentSchema).optional().nullable(),
+      kind: toolKindSchema.optional().nullable(),
+      locations: z.array(toolCallLocationSchema).optional().nullable(),
+      rawInput: z.record(z.unknown()).optional(),
+      rawOutput: z.record(z.unknown()).optional(),
+      sessionUpdate: z.literal("tool_call_update"),
+      status: toolCallStatusSchema.optional().nullable(),
+      title: z.string().optional().nullable(),
+      toolCallId: z.string(),
+    }),
+    z.object({
+      entries: z.array(planEntrySchema),
+      sessionUpdate: z.literal("plan"),
+    }),
+  ]),
+});
 
 export const toolCallUpdateSchema = z.object({
   content: z.array(toolCallContentSchema).optional().nullable(),
   kind: toolKindSchema.optional().nullable(),
   locations: z.array(toolCallLocationSchema).optional().nullable(),
-  rawInput: z.unknown().optional(),
-  rawOutput: z.unknown().optional(),
+  rawInput: z.record(z.unknown()).optional(),
+  rawOutput: z.record(z.unknown()).optional(),
   status: toolCallStatusSchema.optional().nullable(),
   title: z.string().optional().nullable(),
   toolCallId: z.string(),
@@ -369,56 +455,12 @@ export const clientCapabilitiesSchema = z.object({
   fs: fileSystemCapabilitySchema,
 });
 
-export const promptRequestSchema = z.object({
-  prompt: z.array(contentBlockSchema),
-  sessionId: z.string(),
-});
-
 export const agentCapabilitiesSchema = z.object({
   loadSession: z.boolean(),
   promptCapabilities: promptCapabilitiesSchema,
 });
 
-export const sessionUpdateSchema = z.union([
-  z.object({
-    content: contentBlockSchema,
-    sessionUpdate: z.literal("user_message_chunk"),
-  }),
-  z.object({
-    content: contentBlockSchema,
-    sessionUpdate: z.literal("agent_message_chunk"),
-  }),
-  z.object({
-    content: contentBlockSchema,
-    sessionUpdate: z.literal("agent_thought_chunk"),
-  }),
-  z.object({
-    content: z.array(toolCallContentSchema).optional(),
-    kind: toolKindSchema.optional(),
-    locations: z.array(toolCallLocationSchema).optional(),
-    rawInput: z.unknown().optional(),
-    rawOutput: z.unknown().optional(),
-    sessionUpdate: z.literal("tool_call"),
-    status: toolCallStatusSchema.optional(),
-    title: z.string(),
-    toolCallId: z.string(),
-  }),
-  z.object({
-    content: z.array(toolCallContentSchema).optional().nullable(),
-    kind: toolKindSchema.optional().nullable(),
-    locations: z.array(toolCallLocationSchema).optional().nullable(),
-    rawInput: z.unknown().optional(),
-    rawOutput: z.unknown().optional(),
-    sessionUpdate: z.literal("tool_call_update"),
-    status: toolCallStatusSchema.optional().nullable(),
-    title: z.string().optional().nullable(),
-    toolCallId: z.string(),
-  }),
-  z.object({
-    entries: z.array(planEntrySchema),
-    sessionUpdate: z.literal("plan"),
-  }),
-]);
+export const agentNotificationSchema = sessionNotificationSchema;
 
 export const requestPermissionRequestSchema = z.object({
   options: z.array(permissionOptionSchema),
@@ -435,11 +477,6 @@ export const initializeResponseSchema = z.object({
   agentCapabilities: agentCapabilitiesSchema,
   authMethods: z.array(authMethodSchema),
   protocolVersion: z.number(),
-});
-
-export const sessionNotificationSchema = z.object({
-  sessionId: z.string(),
-  update: sessionUpdateSchema,
 });
 
 export const clientRequestSchema = z.union([
@@ -463,8 +500,6 @@ export const agentResponseSchema = z.union([
   loadSessionResponseSchema,
   promptResponseSchema,
 ]);
-
-export const agentNotificationSchema = sessionNotificationSchema;
 
 export const agentClientProtocolSchema = z.union([
   clientRequestSchema,

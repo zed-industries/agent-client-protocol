@@ -834,7 +834,7 @@
       "description": "The outcome of a permission request.",
       "oneOf": [
         {
-          "description": "The prompt turn was cancelled before the user responded.",
+          "description": "The prompt turn was cancelled before the user responded.\n\nWhen a client sends a `session/cancel` notification to cancel an ongoing\nprompt turn, it MUST respond to all pending `session/request_permission`\nrequests with this `Cancelled` outcome.\n\nSee: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>",
           "properties": {
             "outcome": {
               "const": "cancelled",
@@ -1152,7 +1152,7 @@
         },
         {
           "const": "cancelled",
-          "description": "The turn was cancelled by the client.",
+          "description": "The turn was cancelled by the client via `session/cancel`.\n\nThis stop reason MUST be returned when the client sends a `session/cancel`\nnotification, even if the cancellation causes exceptions in underlying operations.\nAgents should catch these exceptions and return this semantically meaningful\nresponse to confirm successful cancellation.",
           "type": "string"
         }
       ]
