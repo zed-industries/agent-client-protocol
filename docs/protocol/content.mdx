@@ -6,6 +6,7 @@ description: "Understanding content blocks in the Agent Client Protocol"
 Content blocks represent displayable information that flows through the Agent Client Protocol. They provide a structured way to handle various types of user-facing content—whether it's text from language models, images for analysis, or embedded resources for context.
 
 Content blocks appear in:
+
 - User prompts sent via [`session/prompt`](./prompt-turn#1-user-message)
 - Language model output streamed through [`session/update`](./prompt-turn#3-agent-reports-output) notifications
 - Progress updates and results from [tool calls](./tool-calls)
@@ -34,7 +35,8 @@ All Agents **MUST** support text content blocks when included in prompts.
 </ParamField>
 
 <ParamField path="annotations" type="Annotations">
-  Optional metadata about how the content should be used or displayed. [Learn more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
+  Optional metadata about how the content should be used or displayed. [Learn
+  more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
 </ParamField>
 
 ### Image Content <Icon icon="asterisk" size="14" />
@@ -49,7 +51,8 @@ Images can be included for visual context or analysis.
 }
 ```
 
-<Icon icon="asterisk" size="14" /> Requires the `image` [prompt capability](./initialization#prompt-capabilities) when included in prompts.
+<Icon icon="asterisk" size="14" /> Requires the `image` [prompt
+capability](./initialization#prompt-capabilities) when included in prompts.
 
 <ParamField path="data" type="string" required>
   Base64-encoded image data
@@ -64,7 +67,8 @@ Images can be included for visual context or analysis.
 </ParamField>
 
 <ParamField path="annotations" type="Annotations">
-  Optional metadata about how the content should be used or displayed. [Learn more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
+  Optional metadata about how the content should be used or displayed. [Learn
+  more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
 </ParamField>
 
 ### Audio Content <Icon icon="asterisk" size="14" />
@@ -79,7 +83,8 @@ Audio data for transcription or analysis.
 }
 ```
 
-<Icon icon="asterisk" size="14" /> Requires the `audio` [prompt capability](./initialization#prompt-capabilities) when included in prompts.
+<Icon icon="asterisk" size="14" /> Requires the `audio` [prompt
+capability](./initialization#prompt-capabilities) when included in prompts.
 
 <ParamField path="data" type="string" required>
   Base64-encoded audio data
@@ -90,7 +95,8 @@ Audio data for transcription or analysis.
 </ParamField>
 
 <ParamField path="annotations" type="Annotations">
-  Optional metadata about how the content should be used or displayed. [Learn more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
+  Optional metadata about how the content should be used or displayed. [Learn
+  more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
 </ParamField>
 
 ### Embedded Resource <Icon icon="asterisk" size="14" />
@@ -112,7 +118,8 @@ This is the preferred way to include context in prompts, such as when using @-me
 
 By embedding the content directly in the request, Clients can include context from sources that the Agent may not have direct access to.
 
-<Icon icon="asterisk" size="14" /> Requires the `embeddedContext` [prompt capability](./initialization#prompt-capabilities) when included in prompts.
+<Icon icon="asterisk" size="14" /> Requires the `embeddedContext` [prompt
+capability](./initialization#prompt-capabilities) when included in prompts.
 
 <ParamField path="resource" type="EmbeddedResourceResource" required>
   The embedded resource contents, which can be either:
@@ -129,6 +136,7 @@ By embedding the content directly in the request, Clients can include context fr
     <ParamField path="mimeType" type="string">
       Optional MIME type of the text content
     </ParamField>
+
   </Expandable>
 
   <Expandable title="Blob Resource">
@@ -143,11 +151,13 @@ By embedding the content directly in the request, Clients can include context fr
     <ParamField path="mimeType" type="string">
       Optional MIME type of the blob
     </ParamField>
+
   </Expandable>
 </ParamField>
 
 <ParamField path="annotations" type="Annotations">
-  Optional metadata about how the content should be used or displayed. [Learn more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
+  Optional metadata about how the content should be used or displayed. [Learn
+  more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
 </ParamField>
 
 ### Resource Link
@@ -189,5 +199,6 @@ References to resources that the Agent can access.
 </ParamField>
 
 <ParamField path="annotations" type="Annotations">
-  Optional metadata about how the content should be used or displayed. [Learn more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
+  Optional metadata about how the content should be used or displayed. [Learn
+  more](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations).
 </ParamField>

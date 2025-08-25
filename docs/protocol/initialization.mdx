@@ -7,7 +7,7 @@ description: "How all Agent Client Protocol connections begin"
 
 The Initialization phase allows [Clients](./overview#client) and [Agents](./overview#agent) to negotiate protocol versions, capabilities, and authentication methods.
 
-<br/>
+<br />
 
 ```mermaid
 sequenceDiagram
@@ -21,7 +21,7 @@ sequenceDiagram
     Note over Client,Agent: Ready for session setup
 ```
 
-<br/>
+<br />
 
 Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
 
@@ -119,7 +119,8 @@ The Agent **SHOULD** specify whether it supports the following capabilities:
 </ResponseField>
 
 <ResponseField name="promptCapabilities" type="PromptCapabilities Object">
-  Object indicating the different types of content that may be included in `session/prompt` requests.
+  Object indicating the different types of content that may be included in
+  `session/prompt` requests.
 </ResponseField>
 
 #### Prompt capabilities
@@ -127,7 +128,6 @@ The Agent **SHOULD** specify whether it supports the following capabilities:
 As a baseline, all Agents **MUST** support `ContentBlock::Text` and `ContentBlock::ResourceLink` in `session/prompt` requests.
 
 Optionally, they **MAY** support richer types of content by specifying the following capabilities:
-
 
 <ResponseField name="image" type="boolean" post={["default: false"]}>
   The prompt may include `ContentBlock::Image`

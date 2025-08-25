@@ -41,19 +41,16 @@ When the language model requests a tool invocation, the Agent **SHOULD** report 
 <ParamField path="kind" type="ToolKind">
   The category of tool being invoked.
 
-  <Expandable title="kinds">
-    - `read` - Reading files or data
-    - `edit` - Modifying files or content
-    - `delete` - Removing files or data
-    - `move` - Moving or renaming files
-    - `search` - Searching for information
-    - `execute` - Running commands or code
-    - `think` - Internal reasoning or planning
-    - `fetch` - Retrieving external data
-    - `other` - Other tool types (default)
-  </Expandable>
+<Expandable title="kinds">
+  - `read` - Reading files or data - `edit` - Modifying files or content -
+  `delete` - Removing files or data - `move` - Moving or renaming files -
+  `search` - Searching for information - `execute` - Running commands or code -
+  `think` - Internal reasoning or planning - `fetch` - Retrieving external data
+  - `other` - Other tool types (default)
+</Expandable>
 
-  Tool kinds help Clients choose appropriate icons and optimize how they display tool execution progress.
+Tool kinds help Clients choose appropriate icons and optimize how they display tool execution progress.
+
 </ParamField>
 
 <ParamField path="status" type="ToolCallStatus">
@@ -147,7 +144,8 @@ The Agent **MAY** request permission from the user before executing a tool call 
 </ParamField>
 
 <ParamField path="options" type="PermissionOption[]" required>
-  Available [permission options](#permission-options) for the user to choose from
+  Available [permission options](#permission-options) for the user to choose
+  from
 </ParamField>
 
 The Client responds with the user's decision:
@@ -182,9 +180,9 @@ If the current prompt turn gets [cancelled](./prompt-turn#cancellation), the Cli
 ```
 
 <ResponseField name="outcome" type="RequestPermissionOutcome" required>
-  The user's decision, either:
-  - `cancelled` - The [prompt turn was cancelled](./prompt-turn#cancellation)
-  - `selected` with an `optionId` - The ID of the selected permission option
+  The user's decision, either: - `cancelled` - The [prompt turn was
+  cancelled](./prompt-turn#cancellation) - `selected` with an `optionId` - The
+  ID of the selected permission option
 </ResponseField>
 
 ### Permission Options
@@ -202,10 +200,10 @@ Each permission option provided to the Client contains:
 <ParamField path="kind" type="PermissionOptionKind" required>
   A hint to help Clients choose appropriate icons and UI treatment for each option.
 
-  - `allow_once` - Allow this operation only this time
-  - `allow_always` - Allow this operation and remember the choice
-  - `reject_once` - Reject this operation only this time
-  - `reject_always` - Reject this operation and remember the choice
+- `allow_once` - Allow this operation only this time
+- `allow_always` - Allow this operation and remember the choice
+- `reject_once` - Reject this operation only this time
+- `reject_always` - Reject this operation and remember the choice
 
 </ParamField>
 
@@ -214,7 +212,8 @@ Each permission option provided to the Client contains:
 Tool calls progress through different statuses during their lifecycle:
 
 <ResponseField name="pending">
-  The tool call hasn't started running yet because the input is either streaming or awaiting approval
+  The tool call hasn't started running yet because the input is either streaming
+  or awaiting approval
 </ResponseField>
 
 <ResponseField name="in_progress">
@@ -225,9 +224,7 @@ Tool calls progress through different statuses during their lifecycle:
   The tool call completed successfully
 </ResponseField>
 
-<ResponseField name="failed">
-  The tool call failed with an error
-</ResponseField>
+<ResponseField name="failed">The tool call failed with an error</ResponseField>
 
 ## Content
 

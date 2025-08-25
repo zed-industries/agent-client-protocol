@@ -11,7 +11,7 @@ Before sending prompts, Clients **MUST** first complete the [initialization](./i
 
 A prompt turn follows a structured flow that enables rich interactions between the user, Agent, and any connected tools.
 
-<br/>
+<br />
 
 ```mermaid
 sequenceDiagram
@@ -94,6 +94,7 @@ The turn begins when the Client sends a `session/prompt`:
     <Card icon="comments" horizontal href="./content">
       Learn more about Content
     </Card>
+
 </ParamField>
 
 ### 2. Agent Processing
@@ -138,8 +139,9 @@ The Agent reports the model's output to the Client via `session/update` notifica
   }
 }
 ```
+
 <Card icon="lightbulb" horizontal href="./agent-plan">
-Learn more about Agent Plans
+  Learn more about Agent Plans
 </Card>
 
 The Agent then reports text responses from the model:
@@ -273,13 +275,9 @@ When an Agent stops a turn, it must specify the corresponding `StopReason`:
   The maximum number of model requests in a single turn is exceeded
 </ResponseField>
 
-<ResponseField name="refusal">
-  The Agent refuses to continue
-</ResponseField>
+<ResponseField name="refusal">The Agent refuses to continue</ResponseField>
 
-<ResponseField name="cancelled">
-  The Client cancels the turn
-</ResponseField>
+<ResponseField name="cancelled">The Client cancels the turn</ResponseField>
 
 ## Cancellation
 
