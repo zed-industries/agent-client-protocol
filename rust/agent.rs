@@ -1,4 +1,7 @@
-//! Methods and notifications the agent handles/receives
+//! Methods and notifications the agent handles/receives.
+//!
+//! This module defines the Agent trait and all associated types for implementing
+//! an AI coding agent that follows the Agent Client Protocol (ACP).
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -8,37 +11,97 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
+/// The Agent trait defines the interface that all ACP-compliant agents must implement.
+///
+/// Agents are programs that use generative AI to autonomously modify code. They handle
+/// requests from clients and execute tasks using language models and tools.
 pub trait Agent {
+    /// Establishes the connection with a client and negotiates protocol capabilities.
+    ///
+    /// This method is called once at the beginning of the connection to:
+    /// - Negotiate the protocol version to use
+    /// - Exchange capability information between client and agent
+    /// - Determine available authentication methods
+    ///
+    /// The agent should respond with its supported protocol version and capabilities.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/initialization>
     fn initialize(
         &self,
         arguments: InitializeRequest,
     ) -> impl Future<Output = Result<InitializeResponse, Error>>;
 
+    /// Authenticates the client using the specified authentication method.
+    ///
+    /// Called when the agent requires authentication before allowing session creation.
+    /// The client provides the authentication method ID that was advertised during initialization.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/initialization>
     fn authenticate(
         &self,
         arguments: AuthenticateRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
+    /// Creates a new conversation session with the agent.
+    ///
+    /// Sessions represent independent conversation contexts with their own history and state.
+    /// The agent should:
+    /// - Create a new session context
+    /// - Connect to any specified MCP servers
+    /// - Return a unique session ID for future requests
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/session-setup>
     fn new_session(
         &self,
         arguments: NewSessionRequest,
     ) -> impl Future<Output = Result<NewSessionResponse, Error>>;
 
+    /// Loads an existing session to resume a previous conversation.
+    ///
+    /// This method is only available if the agent advertises the `loadSession` capability.
+    /// The agent should:
+    /// - Restore the session context and conversation history
+    /// - Connect to the specified MCP servers
+    /// - Stream the entire conversation history back to the client via notifications
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/session-setup#loading-sessions>
     fn load_session(
         &self,
         arguments: LoadSessionRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
+    /// Processes a user prompt within a session.
+    ///
+    /// This is the core interaction method where the agent:
+    /// - Receives user messages with optional context (files, images, etc.)
+    /// - Processes the prompt using language models
+    /// - Executes any requested tool calls
+    /// - Returns when the turn is complete with a stop reason
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/prompt-turn>
     fn prompt(
         &self,
         arguments: PromptRequest,
     ) -> impl Future<Output = Result<PromptResponse, Error>>;
 
+    /// Cancels ongoing operations for a session.
+    ///
+    /// This is a notification (no response expected) that instructs the agent to:
+    /// - Stop all language model requests
+    /// - Abort any running tool calls
+    /// - Clean up and prepare for the next request
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
 
+/// Request parameters for the initialize method.
+///
+/// Sent by the client to establish connection and negotiate capabilities.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
@@ -49,6 +112,11 @@ pub struct InitializeRequest {
     pub client_capabilities: ClientCapabilities,
 }
 
+/// Response from the initialize method.
+///
+/// Contains the negotiated protocol version and agent capabilities.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
@@ -67,69 +135,117 @@ pub struct InitializeResponse {
 
 // Authentication
 
+/// Request parameters for the authenticate method.
+///
+/// Specifies which authentication method to use.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateRequest {
+    /// The ID of the authentication method to use.
+    /// Must be one of the methods advertised in the initialize response.
     pub method_id: AuthMethodId,
 }
 
+/// Unique identifier for an authentication method.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct AuthMethodId(pub Arc<str>);
 
+/// Describes an available authentication method.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthMethod {
+    /// Unique identifier for this authentication method.
     pub id: AuthMethodId,
+    /// Human-readable name of the authentication method.
     pub name: String,
+    /// Optional description providing more details about this authentication method.
     pub description: Option<String>,
 }
 
 // New session
 
+/// Request parameters for creating a new session.
+///
+/// See: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionRequest {
+    /// List of MCP (Model Context Protocol) servers the agent should connect to.
+    /// These provide tools and context to the language model.
     pub mcp_servers: Vec<McpServer>,
+    /// The working directory for this session.
+    /// Must be an absolute path that serves as the context for file operations.
     pub cwd: PathBuf,
 }
 
+/// Response from creating a new session.
+///
+/// See: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
+    /// Unique identifier for the created session.
+    /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
 }
 
 // Load session
 
+/// Request parameters for loading an existing session.
+///
+/// Only available if the agent supports the `loadSession` capability.
+///
+/// See: <https://agentclientprotocol.com/protocol/session-setup#loading-sessions>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionRequest {
+    /// List of MCP servers to connect to for this session.
     pub mcp_servers: Vec<McpServer>,
+    /// The working directory for this session.
     pub cwd: PathBuf,
+    /// The ID of the session to load.
     pub session_id: SessionId,
 }
 
 // MCP
 
+/// Configuration for connecting to an MCP (Model Context Protocol) server.
+///
+/// MCP servers provide tools and context that the agent can use when
+/// processing prompts.
+///
+/// See: <https://agentclientprotocol.com/protocol/session-setup#mcp-servers>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServer {
+    /// Human-readable name identifying this MCP server.
     pub name: String,
+    /// Path to the MCP server executable.
     pub command: PathBuf,
+    /// Command-line arguments to pass to the MCP server.
     pub args: Vec<String>,
+    /// Environment variables to set when launching the MCP server.
     pub env: Vec<EnvVariable>,
 }
 
+/// An environment variable to set when launching an MCP server.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvVariable {
+    /// The name of the environment variable.
     pub name: String,
+    /// The value to set for the environment variable.
     pub value: String,
 }
 
 // Prompt
 
+/// Request parameters for sending a user prompt to the agent.
+///
+/// Contains the user's message and any additional context.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#1-user-message>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptRequest {
@@ -153,12 +269,19 @@ pub struct PromptRequest {
     pub prompt: Vec<ContentBlock>,
 }
 
+/// Response from processing a user prompt.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptResponse {
+    /// Indicates why the agent stopped processing the turn.
     pub stop_reason: StopReason,
 }
 
+/// Reasons why an agent stops processing a prompt turn.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons>
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum StopReason {
@@ -179,6 +302,12 @@ pub enum StopReason {
 
 // Capabilities
 
+/// Capabilities supported by the agent.
+///
+/// Advertised during initialization to inform the client about
+/// available features and content types.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization#agent-capabilities>
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentCapabilities {
@@ -196,6 +325,12 @@ pub struct AgentCapabilities {
 /// and [`ContentBlock::ResourceLink`] in prompt requests.
 ///
 /// Other variants must be explicitly opted in to.
+/// Capabilities for different types of content in prompt requests.
+///
+/// Indicates which content types beyond the baseline (text and resource links)
+/// the agent can process.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization#prompt-capabilities>
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
@@ -215,16 +350,26 @@ pub struct PromptCapabilities {
 
 // Method schema
 
+/// Names of all methods that agents handle.
+///
+/// Provides a centralized definition of method names used in the protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentMethodNames {
+    /// Method for initializing the connection.
     pub initialize: &'static str,
+    /// Method for authenticating with the agent.
     pub authenticate: &'static str,
+    /// Method for creating a new session.
     pub session_new: &'static str,
+    /// Method for loading an existing session.
     pub session_load: &'static str,
+    /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
+    /// Notification for cancelling operations.
     pub session_cancel: &'static str,
 }
 
+/// Constant containing all agent method names.
 pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     initialize: INITIALIZE_METHOD_NAME,
     authenticate: AUTHENTICATE_METHOD_NAME,
@@ -234,14 +379,22 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_cancel: SESSION_CANCEL_METHOD_NAME,
 };
 
+/// Method name for the initialize request.
 pub const INITIALIZE_METHOD_NAME: &str = "initialize";
+/// Method name for the authenticate request.
 pub const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
+/// Method name for creating a new session.
 pub const SESSION_NEW_METHOD_NAME: &str = "session/new";
+/// Method name for loading an existing session.
 pub const SESSION_LOAD_METHOD_NAME: &str = "session/load";
+/// Method name for sending a prompt.
 pub const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
+/// Method name for the cancel notification.
 pub const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 
-/// Requests the client sends to the agent
+/// All possible requests that a client can send to an agent.
+///
+/// This enum encompasses all method calls from client to agent.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientRequest {
@@ -252,7 +405,9 @@ pub enum ClientRequest {
     PromptRequest(PromptRequest),
 }
 
-/// Responses the agent sends to the client
+/// All possible responses that an agent can send to a client.
+///
+/// These are responses to the corresponding ClientRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentResponse {
@@ -263,15 +418,21 @@ pub enum AgentResponse {
     PromptResponse(PromptResponse),
 }
 
-/// Notifications the client sends to the agent
+/// All possible notifications that a client can send to an agent.
+///
+/// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+/// Notification to cancel ongoing operations for a session.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelNotification {
+    /// The ID of the session to cancel operations for.
     pub session_id: SessionId,
 }

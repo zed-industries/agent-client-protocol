@@ -1,4 +1,7 @@
-//! Methods and notifications the client handles/receives
+//! Methods and notifications the client handles/receives.
+//!
+//! This module defines the Client trait and all associated types for implementing
+//! a client that interacts with AI coding agents via the Agent Client Protocol (ACP).
 
 use std::{fmt, path::PathBuf, sync::Arc};
 
@@ -8,22 +11,53 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
+/// The Client trait defines the interface that ACP-compliant clients must implement.
+///
+/// Clients are typically code editors (IDEs, text editors) that provide the interface
+/// between users and AI agents. They manage the environment, handle user interactions,
+/// and control access to resources.
 pub trait Client {
+    /// Requests permission from the user for a tool call operation.
+    ///
+    /// Called by the agent when it needs user authorization before executing
+    /// a potentially sensitive operation. The client should present the options
+    /// to the user and return their decision.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
     fn request_permission(
         &self,
         args: RequestPermissionRequest,
     ) -> impl Future<Output = Result<RequestPermissionResponse, Error>>;
 
+    /// Writes content to a text file in the client's file system.
+    ///
+    /// Only available if the client advertises the `fs.writeTextFile` capability.
+    /// Allows the agent to create or modify files within the client's environment.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/overview#client>
     fn write_text_file(
         &self,
         args: WriteTextFileRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
+    /// Reads content from a text file in the client's file system.
+    ///
+    /// Only available if the client advertises the `fs.readTextFile` capability.
+    /// Allows the agent to access file contents within the client's environment.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/overview#client>
     fn read_text_file(
         &self,
         args: ReadTextFileRequest,
     ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
 
+    /// Handles session update notifications from the agent.
+    ///
+    /// This is a notification endpoint (no response expected) that receives
+    /// real-time updates about session progress, including message chunks,
+    /// tool calls, and execution plans.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
     fn session_notification(
         &self,
         args: SessionNotification,
@@ -32,42 +66,74 @@ pub trait Client {
 
 // Session updates
 
+/// Notification containing a session update from the agent.
+///
+/// Used to stream real-time progress and results during prompt processing.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
+    /// The ID of the session this update pertains to.
     pub session_id: SessionId,
+    /// The actual update content.
     pub update: SessionUpdate,
 }
 
+/// Different types of updates that can be sent during session processing.
+///
+/// These updates provide real-time feedback about the agent's progress.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "sessionUpdate", rename_all = "snake_case")]
 pub enum SessionUpdate {
+    /// A chunk of the user's message being streamed.
     UserMessageChunk { content: ContentBlock },
+    /// A chunk of the agent's response being streamed.
     AgentMessageChunk { content: ContentBlock },
+    /// A chunk of the agent's internal reasoning being streamed.
     AgentThoughtChunk { content: ContentBlock },
+    /// Notification that a new tool call has been initiated.
     ToolCall(ToolCall),
+    /// Update on the status or results of a tool call.
     ToolCallUpdate(ToolCallUpdate),
+    /// The agent's execution plan for complex tasks.
+    /// See: <https://agentclientprotocol.com/protocol/agent-plan>
     Plan(Plan),
 }
 
 // Permission
 
+/// Request for user permission to execute a tool call.
+///
+/// Sent when the agent needs authorization before performing a sensitive operation.
+///
+/// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// Details about the tool call requiring permission.
     pub tool_call: ToolCallUpdate,
+    /// Available permission options for the user to choose from.
     pub options: Vec<PermissionOption>,
 }
 
+/// An option presented to the user when requesting permission.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PermissionOption {
+    /// Unique identifier for this permission option.
     #[serde(rename = "optionId")]
     pub id: PermissionOptionId,
+    /// Human-readable label to display to the user.
     pub name: String,
+    /// Hint about the nature of this permission option.
     pub kind: PermissionOptionKind,
 }
 
+/// Unique identifier for a permission option.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
@@ -78,55 +144,83 @@ impl fmt::Display for PermissionOptionId {
     }
 }
 
+/// The type of permission option being presented to the user.
+///
+/// Helps clients choose appropriate icons and UI treatment.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionOptionKind {
+    /// Allow this operation only this time.
     AllowOnce,
+    /// Allow this operation and remember the choice.
     AllowAlways,
+    /// Reject this operation only this time.
     RejectOnce,
+    /// Reject this operation and remember the choice.
     RejectAlways,
 }
 
+/// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
+    /// The user's decision on the permission request.
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
 }
 
+/// The outcome of a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
+    /// The prompt turn was cancelled before the user responded.
     Cancelled,
+    /// The user selected one of the provided options.
     #[serde(rename_all = "camelCase")]
     Selected {
+        /// The ID of the option the user selected.
         option_id: PermissionOptionId,
     },
 }
 
 // Write text file
 
+/// Request to write content to a text file.
+///
+/// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// Path to the file to write (relative to the session's working directory).
     pub path: PathBuf,
+    /// The text content to write to the file.
+    /// The text content read from the file.
     pub content: String,
 }
 
 // Read text file
 
+/// Request to read content from a text file.
+///
+/// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// Path to the file to read (relative to the session's working directory).
     pub path: PathBuf,
+    /// Optional line number to start reading from (1-based).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
+    /// Optional maximum number of lines to read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
 }
 
+/// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
@@ -135,15 +229,24 @@ pub struct ReadTextFileResponse {
 
 // Capabilities
 
-/// Capabilities supported by the client
+/// Capabilities supported by the client.
+///
+/// Advertised during initialization to inform the agent about
+/// available features and methods.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization#client-capabilities>
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
-    /// FileSystem capabilities supported by the client.
+    /// File system capabilities supported by the client.
+    /// Determines which file operations the agent can request.
     #[serde(default)]
     pub fs: FileSystemCapability,
 }
 
+/// File system capabilities that a client may support.
+///
+/// See: <https://agentclientprotocol.com/protocol/initialization#filesystem>
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {
@@ -157,14 +260,22 @@ pub struct FileSystemCapability {
 
 // Method schema
 
+/// Names of all methods that clients handle.
+///
+/// Provides a centralized definition of method names used in the protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMethodNames {
+    /// Method for requesting permission from the user.
     pub session_request_permission: &'static str,
+    /// Notification for session updates.
     pub session_update: &'static str,
+    /// Method for writing text files.
     pub fs_write_text_file: &'static str,
+    /// Method for reading text files.
     pub fs_read_text_file: &'static str,
 }
 
+/// Constant containing all client method names.
 pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     session_update: SESSION_UPDATE_NOTIFICATION,
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
@@ -172,12 +283,18 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
 };
 
+/// Notification name for session updates.
 pub const SESSION_UPDATE_NOTIFICATION: &str = "session/update";
+/// Method name for requesting user permission.
 pub const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request_permission";
+/// Method name for writing text files.
 pub const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
+/// Method name for reading text files.
 pub const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 
-/// Requests the agent sends to the client
+/// All possible requests that an agent can send to a client.
+///
+/// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentRequest {
@@ -186,7 +303,9 @@ pub enum AgentRequest {
     RequestPermissionRequest(RequestPermissionRequest),
 }
 
-/// Responses the client sends to the agent
+/// All possible responses that a client can send to an agent.
+///
+/// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ClientResponse {
@@ -195,7 +314,9 @@ pub enum ClientResponse {
     RequestPermissionResponse(RequestPermissionResponse),
 }
 
-/// Notifications the agent sends to the client
+/// All possible notifications that an agent can send to a client.
+///
+/// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum AgentNotification {
