@@ -48,6 +48,7 @@ pub trait Agent {
     /// Creates a new conversation session with the agent.
     ///
     /// Sessions represent independent conversation contexts with their own history and state.
+    ///
     /// The agent should:
     /// - Create a new session context
     /// - Connect to any specified MCP servers
@@ -66,6 +67,7 @@ pub trait Agent {
     /// Loads an existing session to resume a previous conversation.
     ///
     /// This method is only available if the agent advertises the `loadSession` capability.
+    ///
     /// The agent should:
     /// - Restore the session context and conversation history
     /// - Connect to the specified MCP servers
@@ -79,9 +81,11 @@ pub trait Agent {
 
     /// Processes a user prompt within a session.
     ///
-    /// This is the core interaction method where the agent:
+    /// This method handles the whole lifecycle of a prompt:
     /// - Receives user messages with optional context (files, images, etc.)
     /// - Processes the prompt using language models
+    /// - Reports language model content and tool calls to the Clients
+    /// - Requests permission to run tools
     /// - Executes any requested tool calls
     /// - Returns when the turn is complete with a stop reason
     ///

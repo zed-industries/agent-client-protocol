@@ -4,9 +4,31 @@ export * from "./schema.js";
 
 import { WritableStream, ReadableStream } from "node:stream/web";
 
+/**
+ * An agent-side connection to a client.
+ *
+ * This class provides the agent's view of an ACP connection, allowing
+ * agents to communicate with clients. It implements the {@link Client} interface
+ * to provide methods for requesting permissions, accessing the file system,
+ * and sending session updates.
+ *
+ * @see {@link https://agentclientprotocol.com/protocol/overview#agent}
+ */
 export class AgentSideConnection implements Client {
   #connection: Connection;
 
+  /**
+   * Creates a new agent-side connection to a client.
+   *
+   * This establishes the communication channel from the agent's perspective
+   * following the ACP specification.
+   *
+   * @param toAgent - A function that creates an Agent handler to process incoming client requests
+   * @param input - The stream for sending data to the client (typically stdout)
+   * @param output - The stream for receiving data from the client (typically stdin)
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#communication-model}
+   */
   constructor(
     toAgent: (conn: AgentSideConnection) => Agent,
     input: WritableStream<Uint8Array>,
@@ -56,7 +78,17 @@ export class AgentSideConnection implements Client {
   }
 
   /**
-   * Streams new content to the client including text, tool calls, etc.
+   * Handles session update notifications from the agent.
+   *
+   * This is a notification endpoint (no response expected) that sends
+   * real-time updates about session progress, including message chunks,
+   * tool calls, and execution plans.
+   *
+   * Note: Clients SHOULD continue accepting tool call updates even after
+   * sending a `session/cancel` notification, as the agent may send final
+   * updates before responding with the cancelled stop reason.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output}
    */
   async sessionUpdate(params: schema.SessionNotification): Promise<void> {
     return await this.#connection.sendNotification(
@@ -66,10 +98,16 @@ export class AgentSideConnection implements Client {
   }
 
   /**
-   * Request permission before running a tool
+   * Requests permission from the user for a tool call operation.
    *
-   * The agent specifies a series of permission options with different granularity,
-   * and the client returns the chosen one.
+   * Called by the agent when it needs user authorization before executing
+   * a potentially sensitive operation. The client should present the options
+   * to the user and return their decision.
+   *
+   * If the client cancels the prompt turn via `session/cancel`, it MUST
+   * respond to this request with `RequestPermissionOutcome::Cancelled`.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/tool-calls#requesting-permission}
    */
   async requestPermission(
     params: schema.RequestPermissionRequest,
@@ -80,6 +118,14 @@ export class AgentSideConnection implements Client {
     );
   }
 
+  /**
+   * Reads content from a text file in the client's file system.
+   *
+   * Only available if the client advertises the `fs.readTextFile` capability.
+   * Allows the agent to access file contents within the client's environment.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   */
   async readTextFile(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse> {
@@ -89,6 +135,14 @@ export class AgentSideConnection implements Client {
     );
   }
 
+  /**
+   * Writes content to a text file in the client's file system.
+   *
+   * Only available if the client advertises the `fs.writeTextFile` capability.
+   * Allows the agent to create or modify files within the client's environment.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   */
   async writeTextFile(
     params: schema.WriteTextFileRequest,
   ): Promise<schema.WriteTextFileResponse> {
@@ -99,9 +153,31 @@ export class AgentSideConnection implements Client {
   }
 }
 
+/**
+ * A client-side connection to an agent.
+ *
+ * This class provides the client's view of an ACP connection, allowing
+ * clients (such as code editors) to communicate with agents. It implements
+ * the {@link Agent} interface to provide methods for initializing sessions, sending
+ * prompts, and managing the agent lifecycle.
+ *
+ * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+ */
 export class ClientSideConnection implements Agent {
   #connection: Connection;
 
+  /**
+   * Creates a new client-side connection to an agent.
+   *
+   * This establishes the communication channel between a client and agent
+   * following the ACP specification.
+   *
+   * @param toClient - A function that creates a Client handler to process incoming agent requests
+   * @param input - The stream for sending data to the agent (typically stdout)
+   * @param output - The stream for receiving data from the agent (typically stdin)
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#communication-model}
+   */
   constructor(
     toClient: (agent: Agent) => Client,
     input: WritableStream<Uint8Array>,
@@ -142,6 +218,18 @@ export class ClientSideConnection implements Agent {
     this.#connection = new Connection(handler, input, output);
   }
 
+  /**
+   * Establishes the connection with a client and negotiates protocol capabilities.
+   *
+   * This method is called once at the beginning of the connection to:
+   * - Negotiate the protocol version to use
+   * - Exchange capability information between client and agent
+   * - Determine available authentication methods
+   *
+   * The agent should respond with its supported protocol version and capabilities.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   */
   async initialize(
     params: schema.InitializeRequest,
   ): Promise<schema.InitializeResponse> {
@@ -151,6 +239,20 @@ export class ClientSideConnection implements Agent {
     );
   }
 
+  /**
+   * Creates a new conversation session with the agent.
+   *
+   * Sessions represent independent conversation contexts with their own history and state.
+   *
+   * The agent should:
+   * - Create a new session context
+   * - Connect to any specified MCP servers
+   * - Return a unique session ID for future requests
+   *
+   * @throws May return an `auth_required` error if the agent requires authentication.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/session-setup}
+   */
   async newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse> {
@@ -160,6 +262,18 @@ export class ClientSideConnection implements Agent {
     );
   }
 
+  /**
+   * Loads an existing session to resume a previous conversation.
+   *
+   * This method is only available if the agent advertises the `loadSession` capability.
+   *
+   * The agent should:
+   * - Restore the session context and conversation history
+   * - Connect to the specified MCP servers
+   * - Stream the entire conversation history back to the client via notifications
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/session-setup#loading-sessions}
+   */
   async loadSession(params: schema.LoadSessionRequest): Promise<void> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_load,
@@ -167,6 +281,17 @@ export class ClientSideConnection implements Agent {
     );
   }
 
+  /**
+   * Authenticates the client using the specified authentication method.
+   *
+   * Called when the agent requires authentication before allowing session creation.
+   * The client provides the authentication method ID that was advertised during initialization.
+   *
+   * After successful authentication, the client can proceed to create sessions with
+   * `newSession` without receiving an `auth_required` error.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   */
   async authenticate(params: schema.AuthenticateRequest): Promise<void> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.authenticate,
@@ -174,6 +299,19 @@ export class ClientSideConnection implements Agent {
     );
   }
 
+  /**
+   * Processes a user prompt within a session.
+   *
+   * This method handles the whole lifecycle of a prompt:
+   * - Receives user messages with optional context (files, images, etc.)
+   * - Processes the prompt using language models
+   * - Reports language model content and tool calls to the Clients
+   * - Requests permission to run tools
+   * - Executes any requested tool calls
+   * - Returns when the turn is complete with a stop reason
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn}
+   */
   async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_prompt,
@@ -181,6 +319,19 @@ export class ClientSideConnection implements Agent {
     );
   }
 
+  /**
+   * Cancels ongoing operations for a session.
+   *
+   * This is a notification sent by the client to cancel an ongoing prompt turn.
+   *
+   * Upon receiving this notification, the Agent SHOULD:
+   * - Stop all language model requests as soon as possible
+   * - Abort all tool call invocations in progress
+   * - Send any pending `session/update` notifications
+   * - Respond to the original `session/prompt` request with `StopReason::Cancelled`
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
+   */
   async cancel(params: schema.CancelNotification): Promise<void> {
     return await this.#connection.sendNotification(
       schema.AGENT_METHODS.session_cancel,
@@ -369,6 +520,14 @@ class Connection {
   }
 }
 
+/**
+ * JSON-RPC error object.
+ *
+ * Represents an error that occurred during method execution, following the
+ * JSON-RPC 2.0 error object specification with optional additional data.
+ *
+ * @see {@link https://www.jsonrpc.org/specification#error_object}
+ */
 export class RequestError extends Error {
   data?: { details?: string };
 
@@ -384,26 +543,44 @@ export class RequestError extends Error {
     }
   }
 
+  /**
+   * Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+   */
   static parseError(details?: string): RequestError {
     return new RequestError(-32700, "Parse error", details);
   }
 
+  /**
+   * The JSON sent is not a valid Request object.
+   */
   static invalidRequest(details?: string): RequestError {
     return new RequestError(-32600, "Invalid request", details);
   }
 
+  /**
+   * The method does not exist / is not available.
+   */
   static methodNotFound(details?: string): RequestError {
     return new RequestError(-32601, "Method not found", details);
   }
 
+  /**
+   * Invalid method parameter(s).
+   */
   static invalidParams(details?: string): RequestError {
     return new RequestError(-32602, "Invalid params", details);
   }
 
+  /**
+   * Internal JSON-RPC error.
+   */
   static internalError(details?: string): RequestError {
     return new RequestError(-32603, "Internal error", details);
   }
 
+  /**
+   * Authentication required.
+   */
   static authRequired(details?: string): RequestError {
     return new RequestError(-32000, "Authentication required", details);
   }
@@ -419,28 +596,158 @@ export class RequestError extends Error {
   }
 }
 
+/**
+ * The Client interface defines the interface that ACP-compliant clients must implement.
+ *
+ * Clients are typically code editors (IDEs, text editors) that provide the interface
+ * between users and AI agents. They manage the environment, handle user interactions,
+ * and control access to resources.
+ *
+ * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
+ */
 export interface Client {
+  /**
+   * Requests permission from the user for a tool call operation.
+   *
+   * Called by the agent when it needs user authorization before executing
+   * a potentially sensitive operation. The client should present the options
+   * to the user and return their decision.
+   *
+   * If the client cancels the prompt turn via `session/cancel`, it MUST
+   * respond to this request with `RequestPermissionOutcome::Cancelled`.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/tool-calls#requesting-permission}
+   */
   requestPermission(
     params: schema.RequestPermissionRequest,
   ): Promise<schema.RequestPermissionResponse>;
+  /**
+   * Handles session update notifications from the agent.
+   *
+   * This is a notification endpoint (no response expected) that receives
+   * real-time updates about session progress, including message chunks,
+   * tool calls, and execution plans.
+   *
+   * Note: Clients SHOULD continue accepting tool call updates even after
+   * sending a `session/cancel` notification, as the agent may send final
+   * updates before responding with the cancelled stop reason.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output}
+   */
   sessionUpdate(params: schema.SessionNotification): Promise<void>;
+  /**
+   * Writes content to a text file in the client's file system.
+   *
+   * Only available if the client advertises the `fs.writeTextFile` capability.
+   * Allows the agent to create or modify files within the client's environment.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   */
   writeTextFile(
     params: schema.WriteTextFileRequest,
   ): Promise<schema.WriteTextFileResponse>;
+  /**
+   * Reads content from a text file in the client's file system.
+   *
+   * Only available if the client advertises the `fs.readTextFile` capability.
+   * Allows the agent to access file contents within the client's environment.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   */
   readTextFile(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse>;
 }
 
+/**
+ * The Agent interface defines the interface that all ACP-compliant agents must implement.
+ *
+ * Agents are programs that use generative AI to autonomously modify code. They handle
+ * requests from clients and execute tasks using language models and tools.
+ */
 export interface Agent {
+  /**
+   * Establishes the connection with a client and negotiates protocol capabilities.
+   *
+   * This method is called once at the beginning of the connection to:
+   * - Negotiate the protocol version to use
+   * - Exchange capability information between client and agent
+   * - Determine available authentication methods
+   *
+   * The agent should respond with its supported protocol version and capabilities.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   */
   initialize(
     params: schema.InitializeRequest,
   ): Promise<schema.InitializeResponse>;
+  /**
+   * Creates a new conversation session with the agent.
+   *
+   * Sessions represent independent conversation contexts with their own history and state.
+   * The agent should:
+   * - Create a new session context
+   * - Connect to any specified MCP servers
+   * - Return a unique session ID for future requests
+   *
+   * @throws May return an `auth_required` error if the agent requires authentication.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/session-setup}
+   */
   newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse>;
+  /**
+   * Loads an existing session to resume a previous conversation.
+   *
+   * This method is only available if the agent advertises the `loadSession` capability.
+   *
+   * The agent should:
+   * - Restore the session context and conversation history
+   * - Connect to the specified MCP servers
+   * - Stream the entire conversation history back to the client via notifications
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/session-setup#loading-sessions}
+   */
   loadSession?(params: schema.LoadSessionRequest): Promise<void>;
+  /**
+   * Authenticates the client using the specified authentication method.
+   *
+   * Called when the agent requires authentication before allowing session creation.
+   * The client provides the authentication method ID that was advertised during initialization.
+   *
+   * After successful authentication, the client can proceed to create sessions with
+   * `newSession` without receiving an `auth_required` error.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   */
   authenticate(params: schema.AuthenticateRequest): Promise<void>;
+  /**
+   * Processes a user prompt within a session.
+   *
+   * This method handles the whole lifecycle of a prompt:
+   * - Receives user messages with optional context (files, images, etc.)
+   * - Processes the prompt using language models
+   * - Reports language model content and tool calls to the Clients
+   * - Requests permission to run tools
+   * - Executes any requested tool calls
+   * - Returns when the turn is complete with a stop reason
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn}
+   */
   prompt(params: schema.PromptRequest): Promise<schema.PromptResponse>;
+  /**
+   * Cancels ongoing operations for a session.
+   *
+   * This is a notification sent by the client to cancel an ongoing prompt turn.
+   *
+   * Upon receiving this notification, the Agent SHOULD:
+   * - Stop all language model requests as soon as possible
+   * - Abort all tool call invocations in progress
+   * - Send any pending `session/update` notifications
+   * - Respond to the original `session/prompt` request with `StopReason::Cancelled`
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
+   */
   cancel(params: schema.CancelNotification): Promise<void>;
 }
