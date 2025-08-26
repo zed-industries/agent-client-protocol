@@ -8,7 +8,7 @@
 //! - Errors include an `error` object with `code` and `message`
 //! - Notifications never receive responses (success or error)
 //!
-//! See: <https://agentclientprotocol.com/protocol/overview#error-handling>
+//! See: [https://agentclientprotocol.com/protocol/overview#error-handling](https://agentclientprotocol.com/protocol/overview#error-handling)
 
 use std::{fmt::Display, ops::Deref as _};
 
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 /// Represents an error that occurred during method execution, following the
 /// JSON-RPC 2.0 error object specification with optional additional data.
 ///
-/// See: <https://www.jsonrpc.org/specification#error_object>
+/// See: [https://www.jsonrpc.org/specification#error_object](https://www.jsonrpc.org/specification#error_object)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Error {
     /// A number indicating the error type that occurred.

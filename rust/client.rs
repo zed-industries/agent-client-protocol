@@ -17,7 +17,7 @@ use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+/// See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
@@ -28,7 +28,7 @@ pub trait Client {
     /// If the client cancels the prompt turn via `session/cancel`, it MUST
     /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
+    /// See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
     fn request_permission(
         &self,
         args: RequestPermissionRequest,
@@ -39,7 +39,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.writeTextFile` capability.
     /// Allows the agent to create or modify files within the client's environment.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#client>
+    /// See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
     fn write_text_file(
         &self,
         args: WriteTextFileRequest,
@@ -50,7 +50,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.readTextFile` capability.
     /// Allows the agent to access file contents within the client's environment.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#client>
+    /// See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
     fn read_text_file(
         &self,
         args: ReadTextFileRequest,
@@ -66,7 +66,7 @@ pub trait Client {
     /// sending a `session/cancel` notification, as the agent may send final
     /// updates before responding with the cancelled stop reason.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+    /// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
     fn session_notification(
         &self,
         args: SessionNotification,
@@ -79,8 +79,9 @@ pub trait Client {
 ///
 /// Used to stream real-time progress and results during prompt processing.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+/// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_session)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     /// The ID of the session this update pertains to.
@@ -93,9 +94,10 @@ pub struct SessionNotification {
 ///
 /// These updates provide real-time feedback about the agent's progress.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+/// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "sessionUpdate", rename_all = "snake_case")]
+#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[serde(rename_all = "snake_case", tag = "sessionUpdate")]
 pub enum SessionUpdate {
     /// A chunk of the user's message being streamed.
     UserMessageChunk { content: ContentBlock },
@@ -108,7 +110,7 @@ pub enum SessionUpdate {
     /// Update on the status or results of a tool call.
     ToolCallUpdate(ToolCallUpdate),
     /// The agent's execution plan for complex tasks.
-    /// See: <https://agentclientprotocol.com/protocol/agent-plan>
+    /// See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
 }
 
@@ -118,8 +120,9 @@ pub enum SessionUpdate {
 ///
 /// Sent when the agent needs authorization before performing a sensitive operation.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     /// The session ID for this request.
@@ -132,6 +135,7 @@ pub struct RequestPermissionRequest {
 
 /// An option presented to the user when requesting permission.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 pub struct PermissionOption {
     /// Unique identifier for this permission option.
     #[serde(rename = "optionId")]
@@ -144,6 +148,7 @@ pub struct PermissionOption {
 
 /// Unique identifier for a permission option.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
 
@@ -157,6 +162,7 @@ impl fmt::Display for PermissionOptionId {
 ///
 /// Helps clients choose appropriate icons and UI treatment.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionOptionKind {
     /// Allow this operation only this time.
@@ -171,6 +177,7 @@ pub enum PermissionOptionKind {
 
 /// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
@@ -180,6 +187,7 @@ pub struct RequestPermissionResponse {
 
 /// The outcome of a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
     /// The prompt turn was cancelled before the user responded.
@@ -188,7 +196,7 @@ pub enum RequestPermissionOutcome {
     /// prompt turn, it MUST respond to all pending `session/request_permission`
     /// requests with this `Cancelled` outcome.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+    /// See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     Cancelled,
     /// The user selected one of the provided options.
     #[serde(rename_all = "camelCase")]
@@ -204,6 +212,7 @@ pub enum RequestPermissionOutcome {
 ///
 /// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
@@ -220,6 +229,7 @@ pub struct WriteTextFileRequest {
 ///
 /// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
@@ -236,6 +246,7 @@ pub struct ReadTextFileRequest {
 
 /// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
@@ -248,8 +259,9 @@ pub struct ReadTextFileResponse {
 /// Advertised during initialization to inform the agent about
 /// available features and methods.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#client-capabilities>
+/// See: [https://agentclientprotocol.com/protocol/initialization#client-capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
     /// File system capabilities supported by the client.
@@ -260,8 +272,9 @@ pub struct ClientCapabilities {
 
 /// File system capabilities that a client may support.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#filesystem>
+/// See: [https://agentclientprotocol.com/protocol/initialization#filesystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {
     /// Whether the Client supports `fs/read_text_file` requests.
@@ -313,6 +326,7 @@ pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 ///
 /// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
@@ -327,6 +341,7 @@ pub enum AgentRequest {
 ///
 /// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum ClientResponse {
     WriteTextFileResponse,
@@ -341,6 +356,7 @@ pub enum ClientResponse {
 ///
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),

@@ -15,11 +15,11 @@
 //! ## Core Components
 //!
 //! - **Agent**: Programs that use generative AI to autonomously modify code
-//!   - See: <https://agentclientprotocol.com/protocol/overview#agent>
+//!   - See: [https://agentclientprotocol.com/protocol/overview#agent](https://agentclientprotocol.com/protocol/overview#agent)
 //! - **Client**: Code editors that provide the interface between users and agents
-//!   - See: <https://agentclientprotocol.com/protocol/overview#client>
+//!   - See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
 //! - **Session**: A conversation context between a client and agent
-//!   - See: <https://agentclientprotocol.com/protocol/session-setup>
+//!   - See: [https://agentclientprotocol.com/protocol/session-setup](https://agentclientprotocol.com/protocol/session-setup)
 //!
 //! ## Getting Started
 //!
@@ -42,7 +42,7 @@
 //!   methods for managing sessions and sending prompts.
 //!
 //! For the complete protocol specification and documentation, visit:
-//! <https://agentclientprotocol.com>
+//! [https://agentclientprotocol.com](https://agentclientprotocol.com)
 
 mod agent;
 mod client;
@@ -52,6 +52,7 @@ mod plan;
 mod rpc;
 #[cfg(test)]
 mod rpc_tests;
+mod schema_metadata;
 mod stream_broadcast;
 mod tool_call;
 mod version;
@@ -90,8 +91,9 @@ use crate::rpc::{MessageHandler, RpcConnection, Side};
 /// let session_id = SessionId(Arc::from("sess_abc123def456"));
 /// ```
 ///
-/// See: <https://agentclientprotocol.com/protocol/session-setup#session-id>
+/// See: [https://agentclientprotocol.com/protocol/session-setup#session-id](https://agentclientprotocol.com/protocol/session-setup#session-id)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[schemars(transform = crate::schema_metadata::add_group_session)]
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
 
@@ -110,7 +112,7 @@ impl fmt::Display for SessionId {
 /// the [`Agent`] trait to provide methods for initializing sessions, sending
 /// prompts, and managing the agent lifecycle.
 ///
-/// See: <https://agentclientprotocol.com/protocol/overview#client>
+/// See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
 pub struct ClientSideConnection {
     conn: RpcConnection<ClientSide, AgentSide>,
 }
@@ -134,7 +136,7 @@ impl ClientSideConnection {
     /// - The connection instance for making requests to the agent
     /// - An I/O future that must be spawned to handle the underlying communication
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
+    /// See: [https://agentclientprotocol.com/protocol/overview#communication-model](https://agentclientprotocol.com/protocol/overview#communication-model)
     pub fn new(
         client: impl MessageHandler<ClientSide> + 'static,
         outgoing_bytes: impl Unpin + AsyncWrite,
@@ -217,7 +219,7 @@ impl Agent for ClientSideConnection {
 /// This type is used by the RPC layer to determine which messages
 /// are incoming vs outgoing from the client's perspective.
 ///
-/// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
+/// See: [https://agentclientprotocol.com/protocol/overview#communication-model](https://agentclientprotocol.com/protocol/overview#communication-model)
 #[derive(Clone)]
 pub struct ClientSide;
 
@@ -295,7 +297,7 @@ impl<T: Client> MessageHandler<ClientSide> for T {
 /// to provide methods for requesting permissions, accessing the file system,
 /// and sending session updates.
 ///
-/// See: <https://agentclientprotocol.com/protocol/overview#agent>
+/// See: [https://agentclientprotocol.com/protocol/overview#agent](https://agentclientprotocol.com/protocol/overview#agent)
 pub struct AgentSideConnection {
     conn: RpcConnection<AgentSide, ClientSide>,
 }
@@ -319,7 +321,7 @@ impl AgentSideConnection {
     /// - The connection instance for making requests to the client
     /// - An I/O future that must be spawned to handle the underlying communication
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
+    /// See: [https://agentclientprotocol.com/protocol/overview#communication-model](https://agentclientprotocol.com/protocol/overview#communication-model)
     pub fn new(
         agent: impl MessageHandler<AgentSide> + 'static,
         outgoing_bytes: impl Unpin + AsyncWrite,
@@ -390,7 +392,7 @@ impl Client for AgentSideConnection {
 /// This type is used by the RPC layer to determine which messages
 /// are incoming vs outgoing from the agent's perspective.
 ///
-/// See: <https://agentclientprotocol.com/protocol/overview#communication-model>
+/// See: [https://agentclientprotocol.com/protocol/overview#communication-model](https://agentclientprotocol.com/protocol/overview#communication-model)
 #[derive(Clone)]
 pub struct AgentSide;
 

@@ -2,3 +2,1236 @@
 title: "Schema"
 description: "JSON Schema definitions for the Agent Client Protocol"
 ---
+
+## Message Types
+
+_Core protocol message types for communication between clients and agents._
+
+### AgentNotification
+
+All possible notifications that an agent can send to a client.
+
+This enum is used internally for routing RPC notifications. You typically won't need
+to use this directly - use the notification methods on the [`Client`] trait instead.
+
+Notifications do not expect a response.
+
+**Type:** Union
+
+**Variants:**
+
+- `SessionNotification` - SessionNotification
+
+---
+
+### AgentRequest
+
+All possible requests that an agent can send to a client.
+
+This enum is used internally for routing RPC requests. You typically won't need
+to use this directly - instead, use the methods on the [`Client`] trait.
+
+This enum encompasses all method calls from agent to client.
+
+**Type:** Union
+
+**Variants:**
+
+- `WriteTextFileRequest` - WriteTextFileRequest
+- `ReadTextFileRequest` - ReadTextFileRequest
+- `RequestPermissionRequest` - RequestPermissionRequest
+
+---
+
+### AgentResponse
+
+All possible responses that an agent can send to a client.
+
+This enum is used internally for routing RPC responses. You typically won't need
+to use this directly - the responses are handled automatically by the connection.
+
+These are responses to the corresponding ClientRequest variants.
+
+**Type:** Union
+
+**Variants:**
+
+- `InitializeResponse` - InitializeResponse
+- `AuthenticateResponse` (empty response)
+- `NewSessionResponse` - NewSessionResponse
+- `LoadSessionResponse` (empty response)
+- `PromptResponse` - PromptResponse
+
+---
+
+### ClientNotification
+
+All possible notifications that a client can send to an agent.
+
+This enum is used internally for routing RPC notifications. You typically won't need
+to use this directly - use the notification methods on the [`Agent`] trait instead.
+
+Notifications do not expect a response.
+
+**Type:** Union
+
+**Variants:**
+
+- `CancelNotification` - CancelNotification
+
+---
+
+### ClientRequest
+
+All possible requests that a client can send to an agent.
+
+This enum is used internally for routing RPC requests. You typically won't need
+to use this directly - instead, use the methods on the [`Agent`] trait.
+
+This enum encompasses all method calls from client to agent.
+
+**Type:** Union
+
+**Variants:**
+
+- `InitializeRequest` - InitializeRequest
+- `AuthenticateRequest` - AuthenticateRequest
+- `NewSessionRequest` - NewSessionRequest
+- `LoadSessionRequest` - LoadSessionRequest
+- `PromptRequest` - PromptRequest
+
+---
+
+### ClientResponse
+
+All possible responses that a client can send to an agent.
+
+This enum is used internally for routing RPC responses. You typically won't need
+to use this directly - the responses are handled automatically by the connection.
+
+These are responses to the corresponding AgentRequest variants.
+
+**Type:** Union
+
+**Variants:**
+
+- `WriteTextFileResponse` (empty response)
+- `ReadTextFileResponse` - ReadTextFileResponse
+- `RequestPermissionResponse` - RequestPermissionResponse
+
+---
+
+## Initialization & Capabilities
+
+_Types for connection setup, capability negotiation, and authentication._
+
+### AgentCapabilities
+
+Capabilities supported by the agent.
+
+Advertised during initialization to inform the client about
+available features and content types.
+
+See: [https://agentclientprotocol.com/protocol/initialization#agent-capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
+
+**Type:** Object
+
+**Properties:**
+
+| Property             | Type                 | Required | Description                                 |
+| -------------------- | -------------------- | -------- | ------------------------------------------- |
+| `loadSession`        | `boolean`            |          | Whether the agent supports `session/load`.  |
+| `promptCapabilities` | `PromptCapabilities` |          | Prompt capabilities supported by the agent. |
+
+**Property Details:**
+
+#### `loadSession`
+
+**Constraints:**
+
+- Default: `false`
+
+#### `promptCapabilities`
+
+**Constraints:**
+
+- Default: `{"audio":false,"embeddedContext":false,"image":false}`
+
+---
+
+### AuthMethod
+
+Describes an available authentication method.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                 | Required | Description                                                                   |
+| ------------- | -------------------- | -------- | ----------------------------------------------------------------------------- |
+| `description` | `string &#124; null` |          | Optional description providing more details about this authentication method. |
+| `id`          | `AuthMethodId`       | ✓        | Unique identifier for this authentication method.                             |
+| `name`        | `string`             | ✓        | Human-readable name of the authentication method.                             |
+
+---
+
+### AuthMethodId
+
+Unique identifier for an authentication method.
+
+## **Type:** `string`
+
+### AuthenticateRequest
+
+Request parameters for the authenticate method.
+
+Specifies which authentication method to use.
+
+**Type:** Object
+
+**Properties:**
+
+| Property   | Type           | Required | Description                                                                                                   |
+| ---------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `methodId` | `AuthMethodId` | ✓        | The ID of the authentication method to use. Must be one of the methods advertised in the initialize response. |
+
+---
+
+### ClientCapabilities
+
+Capabilities supported by the client.
+
+Advertised during initialization to inform the agent about
+available features and methods.
+
+See: [https://agentclientprotocol.com/protocol/initialization#client-capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
+
+**Type:** Object
+
+**Properties:**
+
+| Property | Type                   | Required | Description                                                                                               |
+| -------- | ---------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `fs`     | `FileSystemCapability` |          | File system capabilities supported by the client. Determines which file operations the agent can request. |
+
+**Property Details:**
+
+#### `fs`
+
+**Constraints:**
+
+- Default: `{"readTextFile":false,"writeTextFile":false}`
+
+---
+
+### InitializeRequest
+
+Request parameters for the initialize method.
+
+Sent by the client to establish connection and negotiate capabilities.
+
+See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
+
+**Type:** Object
+
+**Properties:**
+
+| Property             | Type                 | Required | Description                                          |
+| -------------------- | -------------------- | -------- | ---------------------------------------------------- |
+| `clientCapabilities` | `ClientCapabilities` |          | Capabilities supported by the client.                |
+| `protocolVersion`    | `ProtocolVersion`    | ✓        | The latest protocol version supported by the client. |
+
+**Property Details:**
+
+#### `clientCapabilities`
+
+**Constraints:**
+
+- Default: `{"fs":{"readTextFile":false,"writeTextFile":false}}`
+
+---
+
+### InitializeResponse
+
+Response from the initialize method.
+
+Contains the negotiated protocol version and agent capabilities.
+
+See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
+
+**Type:** Object
+
+**Properties:**
+
+| Property            | Type                | Required | Description                                                                                                                                                                                   |
+| ------------------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agentCapabilities` | `AgentCapabilities` |          | Capabilities supported by the agent.                                                                                                                                                          |
+| `authMethods`       | `AuthMethod[]`      |          | Authentication methods supported by the agent.                                                                                                                                                |
+| `protocolVersion`   | `ProtocolVersion`   | ✓        | The protocol version the client specified if supported by the agent, or the latest protocol version supported by the agent. The client should disconnect, if it doesn't support this version. |
+
+**Property Details:**
+
+#### `agentCapabilities`
+
+**Constraints:**
+
+- Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
+
+#### `authMethods`
+
+**Constraints:**
+
+- Default: `[]`
+
+---
+
+### PromptCapabilities
+
+Prompt capabilities supported by the agent in `session/prompt` requests.
+
+Baseline agent functionality requires support for [`ContentBlock::Text`]
+and [`ContentBlock::ResourceLink`] in prompt requests.
+
+Other variants must be explicitly opted in to.
+Capabilities for different types of content in prompt requests.
+
+Indicates which content types beyond the baseline (text and resource links)
+the agent can process.
+
+See: [https://agentclientprotocol.com/protocol/initialization#prompt-capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
+
+**Type:** Object
+
+**Properties:**
+
+| Property          | Type      | Required | Description                                                                                                                                                                                                          |
+| ----------------- | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audio`           | `boolean` |          | Agent supports [`ContentBlock::Audio`].                                                                                                                                                                              |
+| `embeddedContext` | `boolean` |          | Agent supports embedded context in `session/prompt` requests. When enabled, the Client is allowed to include [`ContentBlock::Resource`] in prompt requests for pieces of context that are referenced in the message. |
+| `image`           | `boolean` |          | Agent supports [`ContentBlock::Image`].                                                                                                                                                                              |
+
+**Property Details:**
+
+#### `audio`
+
+**Constraints:**
+
+- Default: `false`
+
+#### `embeddedContext`
+
+**Constraints:**
+
+- Default: `false`
+
+#### `image`
+
+**Constraints:**
+
+- Default: `false`
+
+---
+
+### ProtocolVersion
+
+Protocol version identifier.
+
+This version is only bumped for breaking changes.
+Non-breaking changes should be introduced via capabilities.
+
+**Type:** `integer (uint16)`
+
+**Constraints:**
+
+- Minimum: `0`
+- Maximum: `65535`
+
+---
+
+## Session Management
+
+_Types for managing conversation sessions and prompt handling._
+
+### CancelNotification
+
+Notification to cancel ongoing operations for a session.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type        | Required | Description                                     |
+| ----------- | ----------- | -------- | ----------------------------------------------- |
+| `sessionId` | `SessionId` | ✓        | The ID of the session to cancel operations for. |
+
+---
+
+### LoadSessionRequest
+
+Request parameters for loading an existing session.
+
+Only available if the agent supports the `loadSession` capability.
+
+See: [https://agentclientprotocol.com/protocol/session-setup#loading-sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
+
+**Type:** Object
+
+**Properties:**
+
+| Property     | Type          | Required | Description                                         |
+| ------------ | ------------- | -------- | --------------------------------------------------- |
+| `cwd`        | `string`      | ✓        | The working directory for this session.             |
+| `mcpServers` | `McpServer[]` | ✓        | List of MCP servers to connect to for this session. |
+| `sessionId`  | `SessionId`   | ✓        | The ID of the session to load.                      |
+
+---
+
+### NewSessionRequest
+
+Request parameters for creating a new session.
+
+See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
+
+**Type:** Object
+
+**Properties:**
+
+| Property     | Type          | Required | Description                                                                                                                      |
+| ------------ | ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `cwd`        | `string`      | ✓        | The working directory for this session. Must be an absolute path that serves as the context for file operations.                 |
+| `mcpServers` | `McpServer[]` | ✓        | List of MCP (Model Context Protocol) servers the agent should connect to. These provide tools and context to the language model. |
+
+---
+
+### NewSessionResponse
+
+Response from creating a new session.
+
+See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type        | Required | Description                                                                                       |
+| ----------- | ----------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `sessionId` | `SessionId` | ✓        | Unique identifier for the created session. Used in all subsequent requests for this conversation. |
+
+---
+
+### PromptRequest
+
+Request parameters for sending a user prompt to the agent.
+
+Contains the user's message and any additional context.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#1-user-message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type             | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt`    | `ContentBlock[]` | ✓        | The blocks of content that compose the user's message. As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`], while other variants are optionally enabled via [`PromptCapabilities`]. The Client MUST adapt its interface according to [`PromptCapabilities`]. ## Context The client MAY include referenced pieces of context as either [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`]. When available, [`ContentBlock::Resource`] is preferred as it avoids extra round-trips and allows the message to include pieces of context from sources the agent may not have access to. |
+| `sessionId` | `SessionId`      | ✓        | The ID of the session to send this user message to                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+
+---
+
+### PromptResponse
+
+Response from processing a user prompt.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
+
+**Type:** Object
+
+**Properties:**
+
+| Property     | Type         | Required | Description                                          |
+| ------------ | ------------ | -------- | ---------------------------------------------------- |
+| `stopReason` | `StopReason` | ✓        | Indicates why the agent stopped processing the turn. |
+
+---
+
+### SessionId
+
+A unique identifier for a conversation session between a client and agent.
+
+Sessions maintain their own context, conversation history, and state,
+allowing multiple independent interactions with the same agent.
+
+# Example
+
+```
+use agent_client_protocol::SessionId;
+use std::sync::Arc;
+
+let session_id = SessionId(Arc::from("sess_abc123def456"));
+```
+
+See: [https://agentclientprotocol.com/protocol/session-setup#session-id](https://agentclientprotocol.com/protocol/session-setup#session-id)
+
+## **Type:** `string`
+
+### SessionNotification
+
+Notification containing a session update from the agent.
+
+Used to stream real-time progress and results during prompt processing.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type            | Required | Description                                    |
+| ----------- | --------------- | -------- | ---------------------------------------------- |
+| `sessionId` | `SessionId`     | ✓        | The ID of the session this update pertains to. |
+| `update`    | `SessionUpdate` | ✓        | The actual update content.                     |
+
+---
+
+### SessionUpdate
+
+Different types of updates that can be sent during session processing.
+
+These updates provide real-time feedback about the agent's progress.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+
+**Type:** Union
+
+**Variants:**
+
+- `user_message_chunk` variant - A chunk of the user's message being streamed.
+- `agent_message_chunk` variant - A chunk of the agent's response being streamed.
+- `agent_thought_chunk` variant - A chunk of the agent's internal reasoning being streamed.
+- `tool_call` variant - Notification that a new tool call has been initiated.
+- `tool_call_update` variant - Update on the status or results of a tool call.
+- `plan` variant - The agent's execution plan for complex tasks.
+  See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
+
+---
+
+### StopReason
+
+Reasons why an agent stops processing a prompt turn.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
+
+**Type:** Union
+
+**Variants:**
+
+- `"end_turn"` - The turn ended successfully.
+- `"max_tokens"` - The turn ended because the agent reached the maximum number of tokens.
+- `"max_turn_requests"` - The turn ended because the agent reached the maximum number of allowed
+  agent requests between user turns.
+- `"refusal"` - The turn ended because the agent refused to continue. The user prompt
+  and everything that comes after it won't be included in the next
+  prompt, so this should be reflected in the UI.
+- `"cancelled"` - The turn was cancelled by the client via `session/cancel`.
+
+This stop reason MUST be returned when the client sends a `session/cancel`
+notification, even if the cancellation causes exceptions in underlying operations.
+Agents should catch these exceptions and return this semantically meaningful
+response to confirm successful cancellation.
+
+---
+
+## Content & Resources
+
+_Content blocks and resources that can be included in messages._
+
+### Annotations
+
+Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
+
+**Type:** Object
+
+**Properties:**
+
+| Property       | Type                 | Required | Description |
+| -------------- | -------------------- | -------- | ----------- |
+| `audience`     | `array &#124; null`  |          |             |
+| `lastModified` | `string &#124; null` |          |             |
+| `priority`     | `number &#124; null` |          |             |
+
+---
+
+### AudioContent
+
+Audio provided to or from an LLM.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                      | Required | Description |
+| ------------- | ------------------------- | -------- | ----------- |
+| `annotations` | `Annotations &#124; null` |          |             |
+| `data`        | `string`                  | ✓        |             |
+| `mimeType`    | `string`                  | ✓        |             |
+
+**Property Details:**
+
+#### `annotations`
+
+---
+
+### BlobResourceContents
+
+Binary resource contents.
+
+**Type:** Object
+
+**Properties:**
+
+| Property   | Type                 | Required | Description |
+| ---------- | -------------------- | -------- | ----------- |
+| `blob`     | `string`             | ✓        |             |
+| `mimeType` | `string &#124; null` |          |             |
+| `uri`      | `string`             | ✓        |             |
+
+---
+
+### ContentBlock
+
+Content blocks represent displayable information in the Agent Client Protocol.
+
+They provide a structured way to handle various types of user-facing content—whether
+it's text from language models, images for analysis, or embedded resources for context.
+
+Content blocks appear in:
+
+- User prompts sent via `session/prompt`
+- Language model output streamed through `session/update` notifications
+- Progress updates and results from tool calls
+
+This structure is compatible with the Model Context Protocol (MCP), enabling
+agents to seamlessly forward content from MCP tool outputs without transformation.
+
+See: [https://agentclientprotocol.com/protocol/content](https://agentclientprotocol.com/protocol/content)
+
+**Type:** Union
+
+**Variants:**
+
+- `text` variant - Plain text content
+
+All agents MUST support text content blocks in prompts.
+
+- `image` variant - Images for visual context or analysis.
+
+Requires the `image` prompt capability when included in prompts.
+
+- `audio` variant - Audio data for transcription or analysis.
+
+Requires the `audio` prompt capability when included in prompts.
+
+- `resource_link` variant - References to resources that the agent can access.
+
+All agents MUST support resource links in prompts.
+
+- `resource` variant - Complete resource contents embedded directly in the message.
+
+Preferred for including context as it avoids extra round-trips.
+
+## Requires the `embeddedContext` prompt capability when included in prompts.
+
+### EmbeddedResource
+
+The contents of a resource, embedded into a prompt or tool call result.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                       | Required | Description |
+| ------------- | -------------------------- | -------- | ----------- |
+| `annotations` | `Annotations &#124; null`  |          |             |
+| `resource`    | `EmbeddedResourceResource` | ✓        |             |
+
+**Property Details:**
+
+#### `annotations`
+
+---
+
+### EmbeddedResourceResource
+
+Resource content that can be embedded in a message.
+
+**Type:** Union
+
+**Variants:**
+
+- `TextResourceContents` - TextResourceContents
+- `BlobResourceContents` - BlobResourceContents
+
+---
+
+### ImageContent
+
+An image provided to or from an LLM.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                      | Required | Description |
+| ------------- | ------------------------- | -------- | ----------- |
+| `annotations` | `Annotations &#124; null` |          |             |
+| `data`        | `string`                  | ✓        |             |
+| `mimeType`    | `string`                  | ✓        |             |
+| `uri`         | `string &#124; null`      |          |             |
+
+**Property Details:**
+
+#### `annotations`
+
+---
+
+### ResourceLink
+
+A resource that the server is capable of reading, included in a prompt or tool call result.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                      | Required | Description |
+| ------------- | ------------------------- | -------- | ----------- |
+| `annotations` | `Annotations &#124; null` |          |             |
+| `description` | `string &#124; null`      |          |             |
+| `mimeType`    | `string &#124; null`      |          |             |
+| `name`        | `string`                  | ✓        |             |
+| `size`        | `integer &#124; null`     |          |             |
+| `title`       | `string &#124; null`      |          |             |
+| `uri`         | `string`                  | ✓        |             |
+
+**Property Details:**
+
+#### `annotations`
+
+---
+
+### Role
+
+The sender or recipient of messages and data in a conversation.
+
+**Type:** Enumeration
+
+**Allowed Values:**
+
+- `"assistant"`
+- `"user"`
+
+---
+
+### TextContent
+
+Text provided to or from an LLM.
+
+**Type:** Object
+
+**Properties:**
+
+| Property      | Type                      | Required | Description |
+| ------------- | ------------------------- | -------- | ----------- |
+| `annotations` | `Annotations &#124; null` |          |             |
+| `text`        | `string`                  | ✓        |             |
+
+**Property Details:**
+
+#### `annotations`
+
+---
+
+### TextResourceContents
+
+Text-based resource contents.
+
+**Type:** Object
+
+**Properties:**
+
+| Property   | Type                 | Required | Description |
+| ---------- | -------------------- | -------- | ----------- |
+| `mimeType` | `string &#124; null` |          |             |
+| `text`     | `string`             | ✓        |             |
+| `uri`      | `string`             | ✓        |             |
+
+---
+
+## Tools & Permissions
+
+_Tool execution, permissions, and planning capabilities._
+
+### PermissionOption
+
+An option presented to the user when requesting permission.
+
+**Type:** Object
+
+**Properties:**
+
+| Property   | Type                   | Required | Description                                      |
+| ---------- | ---------------------- | -------- | ------------------------------------------------ |
+| `kind`     | `PermissionOptionKind` | ✓        | Hint about the nature of this permission option. |
+| `name`     | `string`               | ✓        | Human-readable label to display to the user.     |
+| `optionId` | `PermissionOptionId`   | ✓        | Unique identifier for this permission option.    |
+
+---
+
+### PermissionOptionId
+
+Unique identifier for a permission option.
+
+## **Type:** `string`
+
+### PermissionOptionKind
+
+The type of permission option being presented to the user.
+
+Helps clients choose appropriate icons and UI treatment.
+
+**Type:** Union
+
+**Variants:**
+
+- `"allow_once"` - Allow this operation only this time.
+- `"allow_always"` - Allow this operation and remember the choice.
+- `"reject_once"` - Reject this operation only this time.
+- `"reject_always"` - Reject this operation and remember the choice.
+
+---
+
+### Plan
+
+An execution plan for accomplishing complex tasks.
+
+Plans consist of multiple entries representing individual tasks or goals.
+Agents report plans to clients to provide visibility into their execution strategy.
+Plans can evolve during execution as the agent discovers new requirements or completes tasks.
+
+See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
+
+**Type:** Object
+
+**Properties:**
+
+| Property  | Type          | Required | Description                                                                                                                                                                                     |
+| --------- | ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entries` | `PlanEntry[]` | ✓        | The list of tasks to be accomplished. When updating a plan, the agent must send a complete list of all entries with their current status. The client replaces the entire plan with each update. |
+
+---
+
+### PlanEntry
+
+A single entry in the execution plan.
+
+Represents a task or goal that the assistant intends to accomplish
+as part of fulfilling the user's request.
+See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+
+**Type:** Object
+
+**Properties:**
+
+| Property   | Type                | Required | Description                                                                                               |
+| ---------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `content`  | `string`            | ✓        | Human-readable description of what this task aims to accomplish.                                          |
+| `priority` | `PlanEntryPriority` | ✓        | The relative importance of this task. Used to indicate which tasks are most critical to the overall goal. |
+| `status`   | `PlanEntryStatus`   | ✓        | Current execution status of this task.                                                                    |
+
+---
+
+### PlanEntryPriority
+
+Priority levels for plan entries.
+
+Used to indicate the relative importance or urgency of different
+tasks in the execution plan.
+See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+
+**Type:** Union
+
+**Variants:**
+
+- `"high"` - High priority task - critical to the overall goal.
+- `"medium"` - Medium priority task - important but not critical.
+- `"low"` - Low priority task - nice to have but not essential.
+
+---
+
+### PlanEntryStatus
+
+Status of a plan entry in the execution flow.
+
+Tracks the lifecycle of each task from planning through completion.
+See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+
+**Type:** Union
+
+**Variants:**
+
+- `"pending"` - The task has not started yet.
+- `"in_progress"` - The task is currently being worked on.
+- `"completed"` - The task has been successfully completed.
+
+---
+
+### RequestPermissionOutcome
+
+The outcome of a permission request.
+
+**Type:** Union
+
+**Variants:**
+
+- `cancelled` variant - The prompt turn was cancelled before the user responded.
+
+When a client sends a `session/cancel` notification to cancel an ongoing
+prompt turn, it MUST respond to all pending `session/request_permission`
+requests with this `Cancelled` outcome.
+
+See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+
+- `selected` variant - The user selected one of the provided options.
+
+---
+
+### RequestPermissionRequest
+
+Request for user permission to execute a tool call.
+
+Sent when the agent needs authorization before performing a sensitive operation.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type                 | Required | Description                                               |
+| ----------- | -------------------- | -------- | --------------------------------------------------------- |
+| `options`   | `PermissionOption[]` | ✓        | Available permission options for the user to choose from. |
+| `sessionId` | `SessionId`          | ✓        | The session ID for this request.                          |
+| `toolCall`  | `ToolCallUpdate`     | ✓        | Details about the tool call requiring permission.         |
+
+---
+
+### RequestPermissionResponse
+
+Response to a permission request.
+
+**Type:** Object
+
+**Properties:**
+
+| Property  | Type                       | Required | Description                                    |
+| --------- | -------------------------- | -------- | ---------------------------------------------- |
+| `outcome` | `RequestPermissionOutcome` | ✓        | The user's decision on the permission request. |
+
+---
+
+### ToolCall
+
+Represents a tool call that the language model has requested.
+
+Tool calls are actions that the agent executes on behalf of the language model,
+such as reading files, executing code, or fetching data from external sources.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls](https://agentclientprotocol.com/protocol/tool-calls)
+
+**Type:** Object
+
+**Properties:**
+
+| Property     | Type                 | Required | Description                                                                                  |
+| ------------ | -------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `content`    | `ToolCallContent[]`  |          | Content produced by the tool call.                                                           |
+| `kind`       | `ToolKind`           |          | The category of tool being invoked. Helps clients choose appropriate icons and UI treatment. |
+| `locations`  | `ToolCallLocation[]` |          | File locations affected by this tool call. Enables "follow-along" features in clients.       |
+| `rawInput`   | `object`             |          | Raw input parameters sent to the tool.                                                       |
+| `rawOutput`  | `object`             |          | Raw output returned by the tool.                                                             |
+| `status`     | `ToolCallStatus`     |          | Current execution status of the tool call.                                                   |
+| `title`      | `string`             | ✓        | Human-readable title describing what the tool is doing.                                      |
+| `toolCallId` | `ToolCallId`         | ✓        | Unique identifier for this tool call within the session.                                     |
+
+---
+
+### ToolCallContent
+
+Content produced by a tool call.
+
+Tool calls can produce different types of content including
+standard content blocks (text, images) or file diffs.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agentclientprotocol.com/protocol/tool-calls#content)
+
+**Type:** Union
+
+**Variants:**
+
+- `content` variant - Standard content block (text, images, resources).
+- `diff` variant - File modification shown as a diff.
+
+---
+
+### ToolCallId
+
+Unique identifier for a tool call within a session.
+
+## **Type:** `string`
+
+### ToolCallLocation
+
+A file location being accessed or modified by a tool.
+
+Enables clients to implement "follow-along" features that track
+which files the agent is working with in real-time.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#following-the-agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
+
+**Type:** Object
+
+**Properties:**
+
+| Property | Type                  | Required | Description                               |
+| -------- | --------------------- | -------- | ----------------------------------------- |
+| `line`   | `integer &#124; null` |          | Optional line number within the file.     |
+| `path`   | `string`              | ✓        | The file path being accessed or modified. |
+
+**Property Details:**
+
+#### `line`
+
+**Constraints:**
+
+- Minimum: `0`
+
+---
+
+### ToolCallStatus
+
+Execution status of a tool call.
+
+Tool calls progress through different statuses during their lifecycle.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#status](https://agentclientprotocol.com/protocol/tool-calls#status)
+
+**Type:** Union
+
+**Variants:**
+
+- `"pending"` - The tool call hasn't started running yet because the input is either
+  streaming or we're awaiting approval.
+- `"in_progress"` - The tool call is currently running.
+- `"completed"` - The tool call completed successfully.
+- `"failed"` - The tool call failed with an error.
+
+---
+
+### ToolCallUpdate
+
+An update to an existing tool call.
+
+Used to report progress and results as tools execute. All fields except
+the tool call ID are optional - only changed fields need to be included.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#updating](https://agentclientprotocol.com/protocol/tool-calls#updating)
+
+**Type:** Object
+
+**Properties:**
+
+| Property     | Type                         | Required | Description                            |
+| ------------ | ---------------------------- | -------- | -------------------------------------- |
+| `content`    | `array &#124; null`          |          | Replace the content collection.        |
+| `kind`       | `ToolKind &#124; null`       |          | Update the tool kind.                  |
+| `locations`  | `array &#124; null`          |          | Replace the locations collection.      |
+| `rawInput`   | `object`                     |          | Update the raw input.                  |
+| `rawOutput`  | `object`                     |          | Update the raw output.                 |
+| `status`     | `ToolCallStatus &#124; null` |          | Update the execution status.           |
+| `title`      | `string &#124; null`         |          | Update the human-readable title.       |
+| `toolCallId` | `ToolCallId`                 | ✓        | The ID of the tool call being updated. |
+
+**Property Details:**
+
+#### `kind`
+
+#### `status`
+
+---
+
+### ToolKind
+
+Categories of tools that can be invoked.
+
+Tool kinds help clients choose appropriate icons and optimize how they
+display tool execution progress.
+
+See: [https://agentclientprotocol.com/protocol/tool-calls#creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
+
+**Type:** Union
+
+**Variants:**
+
+- `"read"` - Reading files or data.
+- `"edit"` - Modifying files or content.
+- `"delete"` - Removing files or data.
+- `"move"` - Moving or renaming files.
+- `"search"` - Searching for information.
+- `"execute"` - Running commands or code.
+- `"think"` - Internal reasoning or planning.
+- `"fetch"` - Retrieving external data.
+- `"other"` - Other tool types (default).
+
+---
+
+## File System Operations
+
+_File system access and manipulation operations._
+
+### FileSystemCapability
+
+File system capabilities that a client may support.
+
+See: [https://agentclientprotocol.com/protocol/initialization#filesystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
+
+**Type:** Object
+
+**Properties:**
+
+| Property        | Type      | Required | Description                                                |
+| --------------- | --------- | -------- | ---------------------------------------------------------- |
+| `readTextFile`  | `boolean` |          | Whether the Client supports `fs/read_text_file` requests.  |
+| `writeTextFile` | `boolean` |          | Whether the Client supports `fs/write_text_file` requests. |
+
+**Property Details:**
+
+#### `readTextFile`
+
+**Constraints:**
+
+- Default: `false`
+
+#### `writeTextFile`
+
+**Constraints:**
+
+- Default: `false`
+
+---
+
+### ReadTextFileRequest
+
+Request to read content from a text file.
+
+Only available if the client supports the `fs.readTextFile` capability.
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type                  | Required | Description                                           |
+| ----------- | --------------------- | -------- | ----------------------------------------------------- |
+| `limit`     | `integer &#124; null` |          | Optional maximum number of lines to read.             |
+| `line`      | `integer &#124; null` |          | Optional line number to start reading from (1-based). |
+| `path`      | `string`              | ✓        | Absolute path to the file to read.                    |
+| `sessionId` | `SessionId`           | ✓        | The session ID for this request.                      |
+
+**Property Details:**
+
+#### `limit`
+
+**Constraints:**
+
+- Minimum: `0`
+
+#### `line`
+
+**Constraints:**
+
+- Minimum: `0`
+
+---
+
+### ReadTextFileResponse
+
+Response containing the contents of a text file.
+
+**Type:** Object
+
+**Properties:**
+
+| Property  | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `content` | `string` | ✓        |             |
+
+---
+
+### WriteTextFileRequest
+
+Request to write content to a text file.
+
+Only available if the client supports the `fs.writeTextFile` capability.
+
+**Type:** Object
+
+**Properties:**
+
+| Property    | Type        | Required | Description                            |
+| ----------- | ----------- | -------- | -------------------------------------- |
+| `content`   | `string`    | ✓        | The text content to write to the file. |
+| `path`      | `string`    | ✓        | Absolute path to the file to write.    |
+| `sessionId` | `SessionId` | ✓        | The session ID for this request.       |
+
+---
+
+## MCP Server Configuration
+
+_Model Context Protocol server configuration._
+
+### EnvVariable
+
+An environment variable to set when launching an MCP server.
+
+**Type:** Object
+
+**Properties:**
+
+| Property | Type     | Required | Description                                    |
+| -------- | -------- | -------- | ---------------------------------------------- |
+| `name`   | `string` | ✓        | The name of the environment variable.          |
+| `value`  | `string` | ✓        | The value to set for the environment variable. |
+
+---
+
+### McpServer
+
+Configuration for connecting to an MCP (Model Context Protocol) server.
+
+MCP servers provide tools and context that the agent can use when
+processing prompts.
+
+See: [https://agentclientprotocol.com/protocol/session-setup#mcp-servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+
+**Type:** Object
+
+**Properties:**
+
+| Property  | Type            | Required | Description                                                 |
+| --------- | --------------- | -------- | ----------------------------------------------------------- |
+| `args`    | `string[]`      | ✓        | Command-line arguments to pass to the MCP server.           |
+| `command` | `string`        | ✓        | Path to the MCP server executable.                          |
+| `env`     | `EnvVariable[]` | ✓        | Environment variables to set when launching the MCP server. |
+| `name`    | `string`        | ✓        | Human-readable name identifying this MCP server.            |
+
+---

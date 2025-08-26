@@ -3,7 +3,7 @@
 //! When an LLM determines it needs to interact with external systems—like reading files,
 //! running code, or fetching data—it generates tool calls that the agent executes on its behalf.
 //!
-//! See: <https://agentclientprotocol.com/protocol/tool-calls>
+//! See: [https://agentclientprotocol.com/protocol/tool-calls](https://agentclientprotocol.com/protocol/tool-calls)
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -17,8 +17,9 @@ use crate::{ContentBlock, Error};
 /// Tool calls are actions that the agent executes on behalf of the language model,
 /// such as reading files, executing code, or fetching data from external sources.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls](https://agentclientprotocol.com/protocol/tool-calls)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCall {
     /// Unique identifier for this tool call within the session.
@@ -81,8 +82,9 @@ impl ToolCall {
 /// Used to report progress and results as tools execute. All fields except
 /// the tool call ID are optional - only changed fields need to be included.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#updating>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#updating](https://agentclientprotocol.com/protocol/tool-calls#updating)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
     /// The ID of the tool call being updated.
@@ -98,6 +100,7 @@ pub struct ToolCallUpdate {
 /// All fields are optional - only include the ones being changed.
 /// Collections (content, locations) are overwritten, not extended.
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdateFields {
     /// Update the tool kind.
@@ -188,6 +191,7 @@ impl From<ToolCall> for ToolCallUpdate {
 
 /// Unique identifier for a tool call within a session.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(transparent)]
 pub struct ToolCallId(pub Arc<str>);
 
@@ -196,8 +200,9 @@ pub struct ToolCallId(pub Arc<str>);
 /// Tool kinds help clients choose appropriate icons and optimize how they
 /// display tool execution progress.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#creating>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolKind {
     /// Reading files or data.
@@ -231,8 +236,9 @@ impl ToolKind {
 ///
 /// Tool calls progress through different statuses during their lifecycle.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#status>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#status](https://agentclientprotocol.com/protocol/tool-calls#status)
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
     /// The tool call hasn't started running yet because the input is either
@@ -258,8 +264,9 @@ impl ToolCallStatus {
 /// Tool calls can produce different types of content including
 /// standard content blocks (text, images) or file diffs.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#content>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agentclientprotocol.com/protocol/tool-calls#content)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ToolCallContent {
     /// Standard content block (text, images, resources).
@@ -293,8 +300,9 @@ impl From<Diff> for ToolCallContent {
 ///
 /// Shows changes to files in a format suitable for display in the client UI.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#content>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agentclientprotocol.com/protocol/tool-calls#content)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct Diff {
     /// The file path being modified.
@@ -310,8 +318,9 @@ pub struct Diff {
 /// Enables clients to implement "follow-along" features that track
 /// which files the agent is working with in real-time.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#following-the-agent>
+/// See: [https://agentclientprotocol.com/protocol/tool-calls#following-the-agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct ToolCallLocation {
     /// The file path being accessed or modified.
