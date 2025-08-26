@@ -423,6 +423,7 @@ pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 /// This enum encompasses all method calls from client to agent.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientRequest {
     InitializeRequest(InitializeRequest),
     AuthenticateRequest(AuthenticateRequest),
@@ -439,6 +440,7 @@ pub enum ClientRequest {
 /// These are responses to the corresponding ClientRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
     AuthenticateResponse,
@@ -455,6 +457,7 @@ pub enum AgentResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
 }

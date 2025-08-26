@@ -50,6 +50,14 @@ impl MarkdownGenerator {
         let mut referenced_types: Vec<(String, Value)> = Vec::new();
 
         for (name, def) in &self.definitions {
+            if def
+                .get("x-docs-ignore")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+            {
+                continue;
+            }
+
             if let Some(side) = def.get("x-side").and_then(|v| v.as_str()) {
                 let method = def.get("x-method").unwrap().as_str().unwrap();
 

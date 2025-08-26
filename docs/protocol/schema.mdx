@@ -646,57 +646,6 @@ in prompt requests for pieces of context that are referenced in the message.
   </Expandable>
 </ResponseField>
 
-## AgentNotification
-
-All possible notifications that an agent can send to a client.
-
-This enum is used internally for routing RPC notifications. You typically won't need
-to use this directly - use the notification methods on the [`Client`] trait instead.
-
-Notifications do not expect a response.
-
-**Type:** Union
-
-<ResponseField name="SessionNotification">{""}</ResponseField>
-
-## AgentRequest
-
-All possible requests that an agent can send to a client.
-
-This enum is used internally for routing RPC requests. You typically won't need
-to use this directly - instead, use the methods on the [`Client`] trait.
-
-This enum encompasses all method calls from agent to client.
-
-**Type:** Union
-
-<ResponseField name="WriteTextFileRequest">{""}</ResponseField>
-
-<ResponseField name="ReadTextFileRequest">{""}</ResponseField>
-
-<ResponseField name="RequestPermissionRequest">{""}</ResponseField>
-
-## AgentResponse
-
-All possible responses that an agent can send to a client.
-
-This enum is used internally for routing RPC responses. You typically won't need
-to use this directly - the responses are handled automatically by the connection.
-
-These are responses to the corresponding ClientRequest variants.
-
-**Type:** Union
-
-<ResponseField name="InitializeResponse">{""}</ResponseField>
-
-<ResponseField name="null">{""}</ResponseField>
-
-<ResponseField name="NewSessionResponse">{""}</ResponseField>
-
-<ResponseField name="null">{""}</ResponseField>
-
-<ResponseField name="PromptResponse">{""}</ResponseField>
-
 ## Annotations
 
 Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
@@ -802,57 +751,6 @@ Determines which file operations the agent can request.
 
   </Expandable>
 </ResponseField>
-
-## ClientNotification
-
-All possible notifications that a client can send to an agent.
-
-This enum is used internally for routing RPC notifications. You typically won't need
-to use this directly - use the notification methods on the [`Agent`] trait instead.
-
-Notifications do not expect a response.
-
-**Type:** Union
-
-<ResponseField name="CancelNotification">{""}</ResponseField>
-
-## ClientRequest
-
-All possible requests that a client can send to an agent.
-
-This enum is used internally for routing RPC requests. You typically won't need
-to use this directly - instead, use the methods on the [`Agent`] trait.
-
-This enum encompasses all method calls from client to agent.
-
-**Type:** Union
-
-<ResponseField name="InitializeRequest">{""}</ResponseField>
-
-<ResponseField name="AuthenticateRequest">{""}</ResponseField>
-
-<ResponseField name="NewSessionRequest">{""}</ResponseField>
-
-<ResponseField name="LoadSessionRequest">{""}</ResponseField>
-
-<ResponseField name="PromptRequest">{""}</ResponseField>
-
-## ClientResponse
-
-All possible responses that a client can send to an agent.
-
-This enum is used internally for routing RPC responses. You typically won't need
-to use this directly - the responses are handled automatically by the connection.
-
-These are responses to the corresponding AgentRequest variants.
-
-**Type:** Union
-
-<ResponseField name="null">{""}</ResponseField>
-
-<ResponseField name="ReadTextFileResponse">{""}</ResponseField>
-
-<ResponseField name="RequestPermissionResponse">{""}</ResponseField>
 
 ## ContentBlock
 

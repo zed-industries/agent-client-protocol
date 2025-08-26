@@ -319,6 +319,7 @@ pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 /// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
@@ -333,6 +334,7 @@ pub enum AgentRequest {
 /// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
@@ -347,6 +349,7 @@ pub enum ClientResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
 }
