@@ -17,7 +17,7 @@ use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
 ///
-/// See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+/// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
@@ -28,7 +28,7 @@ pub trait Client {
     /// If the client cancels the prompt turn via `session/cancel`, it MUST
     /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
-    /// See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
+    /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
     fn request_permission(
         &self,
         args: RequestPermissionRequest,
@@ -39,7 +39,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.writeTextFile` capability.
     /// Allows the agent to create or modify files within the client's environment.
     ///
-    /// See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
     fn write_text_file(
         &self,
         args: WriteTextFileRequest,
@@ -50,7 +50,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.readTextFile` capability.
     /// Allows the agent to access file contents within the client's environment.
     ///
-    /// See: [https://agentclientprotocol.com/protocol/overview#client](https://agentclientprotocol.com/protocol/overview#client)
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
     fn read_text_file(
         &self,
         args: ReadTextFileRequest,
@@ -66,7 +66,7 @@ pub trait Client {
     /// sending a `session/cancel` notification, as the agent may send final
     /// updates before responding with the cancelled stop reason.
     ///
-    /// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+    /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
     fn session_notification(
         &self,
         args: SessionNotification,
@@ -79,7 +79,7 @@ pub trait Client {
 ///
 /// Used to stream real-time progress and results during prompt processing.
 ///
-/// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+/// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-side" = "client", "x-method" = "session/update"))]
 #[serde(rename_all = "camelCase")]
@@ -94,7 +94,7 @@ pub struct SessionNotification {
 ///
 /// These updates provide real-time feedback about the agent's progress.
 ///
-/// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+/// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case", tag = "sessionUpdate")]
 pub enum SessionUpdate {
@@ -109,7 +109,7 @@ pub enum SessionUpdate {
     /// Update on the status or results of a tool call.
     ToolCallUpdate(ToolCallUpdate),
     /// The agent's execution plan for complex tasks.
-    /// See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
+    /// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
 }
 
@@ -119,7 +119,7 @@ pub enum SessionUpdate {
 ///
 /// Sent when the agent needs authorization before performing a sensitive operation.
 ///
-/// See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
+/// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
 #[serde(rename_all = "camelCase")]
@@ -191,7 +191,7 @@ pub enum RequestPermissionOutcome {
     /// prompt turn, it MUST respond to all pending `session/request_permission`
     /// requests with this `Cancelled` outcome.
     ///
-    /// See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+    /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     Cancelled,
     /// The user selected one of the provided options.
     #[serde(rename_all = "camelCase")]
@@ -241,7 +241,6 @@ pub struct ReadTextFileRequest {
 
 /// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
@@ -254,7 +253,7 @@ pub struct ReadTextFileResponse {
 /// Advertised during initialization to inform the agent about
 /// available features and methods.
 ///
-/// See: [https://agentclientprotocol.com/protocol/initialization#client-capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
+/// See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
@@ -266,7 +265,7 @@ pub struct ClientCapabilities {
 
 /// File system capabilities that a client may support.
 ///
-/// See: [https://agentclientprotocol.com/protocol/initialization#filesystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
+/// See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {

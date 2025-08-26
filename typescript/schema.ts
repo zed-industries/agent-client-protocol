@@ -187,7 +187,7 @@ export const blobResourceContentsSchema = z.object({
  * Tool kinds help clients choose appropriate icons and optimize how they
  * display tool execution progress.
  *
- * See: [https://agentclientprotocol.com/protocol/tool-calls#creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
+ * See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
  */
 export const toolKindSchema = z.union([
   z.literal("read"),
@@ -206,7 +206,7 @@ export const toolKindSchema = z.union([
  *
  * Tool calls progress through different statuses during their lifecycle.
  *
- * See: [https://agentclientprotocol.com/protocol/tool-calls#status](https://agentclientprotocol.com/protocol/tool-calls#status)
+ * See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#status)
  */
 export const toolCallStatusSchema = z.union([
   z.literal("pending"),
@@ -248,7 +248,7 @@ export const requestPermissionResponseSchema = z.object({
 /**
  * Notification to cancel ongoing operations for a session.
  *
- * See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+ * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
  */
 export const cancelNotificationSchema = z.object({
   /**
@@ -292,7 +292,7 @@ export const authenticateResponseSchema = z.null();
 /**
  * Response from creating a new session.
  *
- * See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
+ * See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
  */
 export const newSessionResponseSchema = z.object({
   /**
@@ -307,7 +307,7 @@ export const loadSessionResponseSchema = z.null();
 /**
  * Response from processing a user prompt.
  *
- * See: [https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
+ * See protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
  */
 export const promptResponseSchema = z.object({
   /**
@@ -351,7 +351,7 @@ export const permissionOptionSchema = z.object({
  * Tool calls can produce different types of content including
  * standard content blocks (text, images) or file diffs.
  *
- * See: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agentclientprotocol.com/protocol/tool-calls#content)
+ * See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
  */
 export const toolCallContentSchema = z.union([
   z.object({
@@ -369,7 +369,7 @@ export const toolCallContentSchema = z.union([
      * This structure is compatible with the Model Context Protocol (MCP), enabling
      * agents to seamlessly forward content from MCP tool outputs without transformation.
      *
-     * See: [https://agentclientprotocol.com/protocol/content](https://agentclientprotocol.com/protocol/content)
+     * See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
      */
     content: z.union([
       z.object({
@@ -431,7 +431,7 @@ export const toolCallContentSchema = z.union([
  * Enables clients to implement "follow-along" features that track
  * which files the agent is working with in real-time.
  *
- * See: [https://agentclientprotocol.com/protocol/tool-calls#following-the-agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
+ * See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
  */
 export const toolCallLocationSchema = z.object({
   /**
@@ -479,7 +479,7 @@ export const envVariableSchema = z.object({
  * MCP servers provide tools and context that the agent can use when
  * processing prompts.
  *
- * See: [https://agentclientprotocol.com/protocol/session-setup#mcp-servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+ * See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
  */
 export const mcpServerSchema = z.object({
   /**
@@ -514,7 +514,7 @@ export const mcpServerSchema = z.object({
  * This structure is compatible with the Model Context Protocol (MCP), enabling
  * agents to seamlessly forward content from MCP tool outputs without transformation.
  *
- * See: [https://agentclientprotocol.com/protocol/content](https://agentclientprotocol.com/protocol/content)
+ * See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
  */
 export const contentBlockSchema = z.union([
   z.object({
@@ -596,7 +596,7 @@ export const promptCapabilitiesSchema = z.object({
  *
  * Represents a task or goal that the assistant intends to accomplish
  * as part of fulfilling the user's request.
- * See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+ * See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
  */
 export const planEntrySchema = z.object({
   /**
@@ -645,7 +645,7 @@ export const clientNotificationSchema = cancelNotificationSchema;
 /**
  * Request parameters for creating a new session.
  *
- * See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
+ * See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
  */
 export const newSessionRequestSchema = z.object({
   /**
@@ -665,7 +665,7 @@ export const newSessionRequestSchema = z.object({
  *
  * Only available if the agent supports the `loadSession` capability.
  *
- * See: [https://agentclientprotocol.com/protocol/session-setup#loading-sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
+ * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
  */
 export const loadSessionRequestSchema = z.object({
   /**
@@ -687,7 +687,7 @@ export const loadSessionRequestSchema = z.object({
  *
  * Contains the user's message and any additional context.
  *
- * See: [https://agentclientprotocol.com/protocol/prompt-turn#1-user-message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
+ * See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
  */
 export const promptRequestSchema = z.object({
   /**
@@ -717,7 +717,7 @@ export const promptRequestSchema = z.object({
  *
  * Used to stream real-time progress and results during prompt processing.
  *
- * See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+ * See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
  */
 export const sessionNotificationSchema = z.object({
   /**
@@ -915,7 +915,7 @@ export const agentNotificationSchema = sessionNotificationSchema;
  *
  * Sent when the agent needs authorization before performing a sensitive operation.
  *
- * See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
+ * See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
  */
 export const requestPermissionRequestSchema = z.object({
   /**
@@ -934,7 +934,7 @@ export const requestPermissionRequestSchema = z.object({
  *
  * Sent by the client to establish connection and negotiate capabilities.
  *
- * See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
+ * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
  */
 export const initializeRequestSchema = z.object({
   clientCapabilities: clientCapabilitiesSchema.optional(),
@@ -949,7 +949,7 @@ export const initializeRequestSchema = z.object({
  *
  * Contains the negotiated protocol version and agent capabilities.
  *
- * See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
+ * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
  */
 export const initializeResponseSchema = z.object({
   agentCapabilities: agentCapabilitiesSchema.optional(),

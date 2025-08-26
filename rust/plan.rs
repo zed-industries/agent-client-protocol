@@ -3,7 +3,7 @@
 //! Plans are strategies that agents share with clients through session updates,
 //! providing real-time visibility into their thinking and progress.
 //!
-//! See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
+//! See: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 /// Agents report plans to clients to provide visibility into their execution strategy.
 /// Plans can evolve during execution as the agent discovers new requirements or completes tasks.
 ///
-/// See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
+/// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Plan {
@@ -29,7 +29,7 @@ pub struct Plan {
 ///
 /// Represents a task or goal that the assistant intends to accomplish
 /// as part of fulfilling the user's request.
-/// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+/// See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanEntry {
@@ -46,7 +46,7 @@ pub struct PlanEntry {
 ///
 /// Used to indicate the relative importance or urgency of different
 /// tasks in the execution plan.
-/// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+/// See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryPriority {
@@ -61,7 +61,7 @@ pub enum PlanEntryPriority {
 /// Status of a plan entry in the execution flow.
 ///
 /// Tracks the lifecycle of each task from planning through completion.
-/// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+/// See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryStatus {

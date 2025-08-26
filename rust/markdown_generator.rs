@@ -1,6 +1,8 @@
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
+use std::fs;
+use std::process::Command;
 
 pub struct MarkdownGenerator {
     definitions: BTreeMap<String, Value>,
@@ -67,16 +69,15 @@ impl MarkdownGenerator {
             }
         }
 
+        let side_docs = extract_side_docs();
+
         writeln!(&mut self.output, "## Agent").unwrap();
         writeln!(&mut self.output).unwrap();
-        writeln!(
-            &mut self.output,
-            "Methods and notifications handled by the Agent"
-        )
-        .unwrap();
+        writeln!(&mut self.output, "{}", side_docs.agent_trait).unwrap();
         writeln!(&mut self.output).unwrap();
+
         for (method, types) in agent_types {
-            self.generate_method(&method, types);
+            self.generate_method(&method, side_docs.agent_method_doc(&method), types);
         }
 
         writeln!(&mut self.output, "---").unwrap();
@@ -84,14 +85,10 @@ impl MarkdownGenerator {
 
         writeln!(&mut self.output, "## Client").unwrap();
         writeln!(&mut self.output).unwrap();
-        writeln!(
-            &mut self.output,
-            "Methods and notifications handled by the Client"
-        )
-        .unwrap();
+        writeln!(&mut self.output, "{}", side_docs.client_trait).unwrap();
 
         for (method, types) in client_types {
-            self.generate_method(&method, types);
+            self.generate_method(&method, side_docs.client_method_doc(&method), types);
         }
 
         writeln!(&mut self.output, "---").unwrap();
@@ -105,10 +102,15 @@ impl MarkdownGenerator {
         self.output.clone()
     }
 
-    fn generate_method(&mut self, method: &str, mut method_types: Vec<(String, Value)>) {
+    fn generate_method(
+        &mut self,
+        method: &str,
+        docs: &str,
+        mut method_types: Vec<(String, Value)>,
+    ) {
         writeln!(&mut self.output, "### Method: `{}`", method).unwrap();
         writeln!(&mut self.output).unwrap();
-        writeln!(&mut self.output, "<br/>").unwrap();
+        writeln!(&mut self.output, "{}", docs).unwrap();
         writeln!(&mut self.output).unwrap();
 
         method_types.sort_by_key(|(name, _)| name.clone());
@@ -157,9 +159,6 @@ impl MarkdownGenerator {
             .and_then(|v| v.as_array());
 
         if let Some(variants) = variants {
-            writeln!(&mut self.output, "| Variant | Description |").unwrap();
-            writeln!(&mut self.output, "| ------- | ----------- |").unwrap();
-
             for variant in variants {
                 self.document_variant_table_row(variant);
             }
@@ -168,20 +167,20 @@ impl MarkdownGenerator {
     }
 
     fn document_variant_table_row(&mut self, variant: &Value) {
-        write!(&mut self.output, "| ").unwrap();
+        write!(&mut self.output, "<ResponseField name=\"").unwrap();
 
         // Get variant name
         if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-            write!(&mut self.output, "`{}`", type_name).unwrap();
+            write!(&mut self.output, "{}", type_name).unwrap();
         } else if let Some(const_val) = variant.get("const") {
             if let Some(s) = const_val.as_str() {
-                write!(&mut self.output, "`\"{}\"`", s).unwrap();
+                write!(&mut self.output, "{}", s).unwrap();
             } else {
-                write!(&mut self.output, "`{}`", const_val).unwrap();
+                write!(&mut self.output, "{}", const_val).unwrap();
             }
         } else if variant.get("type").and_then(|v| v.as_str()) == Some("null") {
-            write!(&mut self.output, "`null`").unwrap();
+            write!(&mut self.output, "null").unwrap();
         } else if let Some(props) = variant.get("properties").and_then(|v| v.as_object()) {
             // Look for discriminator
             let discriminator = props
@@ -190,7 +189,7 @@ impl MarkdownGenerator {
                 .and_then(|(_, v)| v.get("const").and_then(|c| c.as_str()));
 
             if let Some(const_val) = discriminator {
-                write!(&mut self.output, "`{}` variant", const_val).unwrap();
+                write!(&mut self.output, "{}", const_val).unwrap();
             } else {
                 write!(&mut self.output, "Object").unwrap();
             }
@@ -198,25 +197,18 @@ impl MarkdownGenerator {
             write!(&mut self.output, "Variant").unwrap();
         }
 
-        write!(&mut self.output, " | ").unwrap();
+        write!(&mut self.output, "\">").unwrap();
 
         // Get description
-        if let Some(title) = variant.get("title").and_then(|v| v.as_str()) {
-            let escaped_title = self.escape_mdx(title);
-            write!(&mut self.output, "{}", escaped_title).unwrap();
-        } else if let Some(desc) = variant.get("description").and_then(|v| v.as_str()) {
+        if let Some(desc) = variant.get("description").and_then(|v| v.as_str()) {
             let escaped_desc = self.escape_mdx(desc);
-            write!(&mut self.output, "{}", escaped_desc).unwrap();
-        } else if variant.get("type").and_then(|v| v.as_str()) == Some("null") {
-            write!(&mut self.output, "Empty response").unwrap();
-        } else if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
-            let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-            write!(&mut self.output, "{}", type_name).unwrap();
+            write!(&mut self.output, "{{`{}`}}", escaped_desc).unwrap();
         } else {
-            write!(&mut self.output, "-").unwrap();
+            write!(&mut self.output, "{{\"\"}}").unwrap();
         }
-
-        writeln!(&mut self.output, " |").unwrap();
+        writeln!(&mut self.output).unwrap();
+        writeln!(&mut self.output, "</ResponseField>").unwrap();
+        writeln!(&mut self.output).unwrap();
     }
 
     fn document_enum_simple(&mut self, definition: &Value) {
@@ -287,7 +279,7 @@ impl MarkdownGenerator {
             if has_nested {
                 writeln!(
                     &mut self.output,
-                    "{}<ResponseField name=\"{}\" type=\"{}\" {}>",
+                    "{}<ResponseField name=\"{}\" type={{{}}} {}>",
                     indent_str,
                     prop_name,
                     type_str,
@@ -330,7 +322,7 @@ impl MarkdownGenerator {
                 // Simple field without nesting
                 writeln!(
                     &mut self.output,
-                    "{}<ResponseField name=\"{}\" type=\"{}\" {}>",
+                    "{}<ResponseField name=\"{}\" type={{{}}} {}>",
                     indent_str,
                     prop_name,
                     type_str,
@@ -517,7 +509,11 @@ impl MarkdownGenerator {
         // Check for $ref
         if let Some(ref_val) = schema.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-            return type_name.to_string();
+            return format!(
+                "<a href=\"#{}\">{}</a>",
+                type_name.to_lowercase(),
+                type_name
+            );
         }
 
         // Check for type
@@ -527,20 +523,21 @@ impl MarkdownGenerator {
                     "array" => {
                         if let Some(items) = schema.get("items") {
                             let item_type = self.get_type_string(items);
-                            format!("{}[]", item_type)
+                            format!("<><span>{}</span><span>[]</span></>", item_type)
                         } else {
-                            "array".to_string()
+                            "\"array\"".to_string()
                         }
                     }
                     "integer" => {
-                        if let Some(format) = schema.get("format").and_then(|v| v.as_str()) {
-                            format
-                        } else {
-                            type_str
-                        }
-                        .to_string()
+                        let type_str =
+                            if let Some(format) = schema.get("format").and_then(|v| v.as_str()) {
+                                format
+                            } else {
+                                type_str
+                            };
+                        format!("\"{type_str}\"")
                     }
-                    _ => type_str.to_string(),
+                    _ => format!("\"{type_str}\""),
                 };
             }
 
@@ -551,7 +548,7 @@ impl MarkdownGenerator {
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
                 if !types.is_empty() {
-                    return types.join(" | ");
+                    return format!("\"{}\"", types.join(" | "));
                 }
             }
         }
@@ -574,7 +571,10 @@ impl MarkdownGenerator {
                     }
                 }
                 if has_null && other_type.is_some() {
-                    return format!("{} | null", other_type.unwrap());
+                    return format!(
+                        "<><span>{}</span><span> | null</span></>",
+                        other_type.unwrap()
+                    );
                 }
             }
             return "union".to_string();
@@ -582,21 +582,25 @@ impl MarkdownGenerator {
 
         // Check for enum
         if schema.get("enum").is_some() {
-            return "enum".to_string();
+            return "\"enum\"".to_string();
         }
 
-        "object".to_string()
+        "\"object\"".to_string()
     }
 
     fn get_inline_variant_type(&self, variant: &Value) -> Option<String> {
         // Check for simple type
         if let Some(type_str) = variant.get("type").and_then(|v| v.as_str()) {
-            return Some(type_str.to_string());
+            return Some(format!("\"{type_str}\""));
         }
         // Check for $ref
         if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-            return Some(type_name.to_string());
+            return Some(format!(
+                "<a href=\"#{}\">{}</a>",
+                type_name.to_lowercase(),
+                type_name
+            ));
         }
         None
     }
@@ -607,6 +611,7 @@ impl MarkdownGenerator {
             .replace('>', "&gt;")
             .replace('{', "\\{")
             .replace('}', "\\}")
+            .replace('`', "\\`")
     }
 
     fn escape_description(&self, text: &str) -> String {
@@ -625,4 +630,116 @@ impl MarkdownGenerator {
             .collect();
         lines.join("\n")
     }
+}
+
+struct SideDocs {
+    agent_trait: String,
+    agent_methods: HashMap<String, String>,
+    client_trait: String,
+    client_methods: HashMap<String, String>,
+}
+
+impl SideDocs {
+    fn agent_method_doc(&self, method_name: &str) -> &String {
+        dbg!(&self.agent_methods);
+        match method_name {
+            "initialize" => self.agent_methods.get("initialize").unwrap(),
+            "authenticate" => self.agent_methods.get("authenticate").unwrap(),
+            "session/new" => self.agent_methods.get("new_session").unwrap(),
+            "session/load" => self.agent_methods.get("load_session").unwrap(),
+            "session/prompt" => self.agent_methods.get("prompt").unwrap(),
+            "session/cancel" => self.agent_methods.get("cancel").unwrap(),
+            _ => panic!("Introduced a method? Add it here :)"),
+        }
+    }
+
+    fn client_method_doc(&self, method_name: &str) -> &String {
+        match method_name {
+            "session/request_permission" => self.client_methods.get("request_permission").unwrap(),
+            "fs/write_text_file" => self.client_methods.get("write_text_file").unwrap(),
+            "fs/read_text_file" => self.client_methods.get("read_text_file").unwrap(),
+            "session/update" => self.client_methods.get("session_notification").unwrap(),
+            _ => panic!("Introduced a method? Add it here :)"),
+        }
+    }
+}
+
+fn extract_side_docs() -> SideDocs {
+    let output = Command::new("cargo")
+        .args([
+            "+nightly",
+            "rustdoc",
+            "--lib",
+            "--",
+            "-Z",
+            "unstable-options",
+            "--output-format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    if !output.status.success() {
+        panic!(
+            "Failed to generate rustdoc JSON: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    // Parse the JSON output
+    let json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("target/doc/agent_client_protocol.json");
+    let json_content = fs::read_to_string(json_path).unwrap();
+    let doc: Value = serde_json::from_str(&json_content).unwrap();
+
+    let mut side_docs = SideDocs {
+        agent_trait: String::new(),
+        agent_methods: HashMap::new(),
+        client_trait: String::new(),
+        client_methods: HashMap::new(),
+    };
+
+    if let Some(index) = doc["index"].as_object() {
+        for (_, item) in index {
+            if item["name"].as_str() == Some("Agent") {
+                if let Some(docs) = item["docs"].as_str() {
+                    side_docs.agent_trait = docs.to_string();
+                }
+
+                if let Some(items) = item["inner"]["trait"]["items"].as_array() {
+                    for method_id in items {
+                        if let Some(method) = doc["index"][method_id.to_string()].as_object()
+                            && let Some(name) = method["name"].as_str()
+                        {
+                            side_docs.agent_methods.insert(
+                                name.to_string(),
+                                method["docs"].as_str().unwrap_or_default().to_string(),
+                            );
+                        }
+                    }
+                }
+            }
+
+            if item["name"].as_str() == Some("Client") {
+                if let Some(docs) = item["docs"].as_str() {
+                    side_docs.client_trait = docs.to_string();
+                }
+
+                if let Some(items) = item["inner"]["trait"]["items"].as_array() {
+                    for method_id in items {
+                        if let Some(method) = doc["index"][method_id.to_string()].as_object()
+                            && let Some(name) = method["name"].as_str()
+                        {
+                            side_docs.client_methods.insert(
+                                name.to_string(),
+                                method["docs"].as_str().unwrap_or_default().to_string(),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    side_docs
 }
