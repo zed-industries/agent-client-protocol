@@ -42,10 +42,14 @@ When the language model requests a tool invocation, the Agent **SHOULD** report 
   The category of tool being invoked.
 
 <Expandable title="kinds">
-  - `read` - Reading files or data - `edit` - Modifying files or content -
-  `delete` - Removing files or data - `move` - Moving or renaming files -
-  `search` - Searching for information - `execute` - Running commands or code -
-  `think` - Internal reasoning or planning - `fetch` - Retrieving external data
+  - `read` - Reading files or data
+  - `edit` - Modifying files or content
+  - `delete` - Removing files or data
+  - `move` - Moving or renaming files
+  - `search` - Searching for information
+  - `execute` - Running commands or code
+  - `think` - Internal reasoning or planning
+  - `fetch` - Retrieving external data
   - `other` - Other tool types (default)
 </Expandable>
 
@@ -251,14 +255,14 @@ File modifications shown as diffs:
 ```json
 {
   "type": "diff",
-  "path": "src/config.json",
+  "path": "/home/user/project/src/config.json",
   "oldText": "{\n  \"debug\": false\n}",
   "newText": "{\n  \"debug\": true\n}"
 }
 ```
 
 <ParamField path="path" type="string" required>
-  The file path being modified
+  The absolute file path being modified
 </ParamField>
 
 <ParamField path="oldText" type="string">
@@ -275,13 +279,13 @@ Tool calls can report file locations they're working with, enabling Clients to i
 
 ```json
 {
-  "path": "src/main.py",
+  "path": "/home/user/project/src/main.py",
   "line": 42
 }
 ```
 
 <ParamField path="path" type="string" required>
-  The file path being accessed or modified
+  The absolute file path being accessed or modified
 </ParamField>
 
 <ParamField path="line" type="number">

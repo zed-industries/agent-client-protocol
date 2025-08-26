@@ -94,6 +94,11 @@ Clients provide the interface between users and agents. They are typically code 
   Send progress updates during prompt processing (no response expected).
 </ParamField>
 
+## Argument requirements
+
+- All file paths in the protocol **MUST** be absolute.
+- Line numbers are 1-based
+
 ## Error Handling
 
 All methods follow standard JSON-RPC 2.0 [error handling](https://www.jsonrpc.org/specification#error_object):

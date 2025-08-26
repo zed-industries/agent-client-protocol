@@ -809,7 +809,7 @@
           "type": ["integer", "null"]
         },
         "path": {
-          "description": "Path to the file to read (relative to the session's working directory).",
+          "description": "Absolute path to the file to read.",
           "type": "string"
         },
         "sessionId": {
@@ -1436,11 +1436,11 @@
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",
       "properties": {
         "content": {
-          "description": "The text content to write to the file.\nThe text content read from the file.",
+          "description": "The text content to write to the file.",
           "type": "string"
         },
         "path": {
-          "description": "Path to the file to write (relative to the session's working directory).",
+          "description": "Absolute path to the file to write.",
           "type": "string"
         },
         "sessionId": {
