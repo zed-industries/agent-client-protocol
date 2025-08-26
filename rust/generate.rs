@@ -19,7 +19,7 @@ enum AcpTypes {
 }
 
 fn main() {
-    let mut settings = SchemaSettings::default().for_serialize();
+    let mut settings = SchemaSettings::default();
     settings.untagged_enum_variant_titles = true;
 
     let generator = settings.into_generator();

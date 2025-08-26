@@ -18,7 +18,6 @@
           "description": "Prompt capabilities supported by the agent."
         }
       },
-      "required": ["loadSession", "promptCapabilities"],
       "type": "object"
     },
     "AgentNotification": {
@@ -130,7 +129,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "description"],
+      "required": ["id", "name"],
       "type": "object"
     },
     "AuthMethodId": {
@@ -187,7 +186,6 @@
           "description": "File system capabilities supported by the client.\nDetermines which file operations the agent can request."
         }
       },
-      "required": ["fs"],
       "type": "object"
     },
     "ClientNotification": {
@@ -453,7 +451,6 @@
           "type": "boolean"
         }
       },
-      "required": ["readTextFile", "writeTextFile"],
       "type": "object"
     },
     "ImageContent": {
@@ -500,7 +497,7 @@
           "description": "The latest protocol version supported by the client."
         }
       },
-      "required": ["protocolVersion", "clientCapabilities"],
+      "required": ["protocolVersion"],
       "type": "object"
     },
     "InitializeResponse": {
@@ -531,7 +528,7 @@
           "description": "The protocol version the client specified if supported by the agent,\nor the latest protocol version supported by the agent.\n\nThe client should disconnect, if it doesn't support this version."
         }
       },
-      "required": ["protocolVersion", "agentCapabilities", "authMethods"],
+      "required": ["protocolVersion"],
       "type": "object"
     },
     "LoadSessionRequest": {
@@ -754,7 +751,6 @@
           "type": "boolean"
         }
       },
-      "required": ["image", "audio", "embeddedContext"],
       "type": "object"
     },
     "PromptRequest": {
@@ -1274,7 +1270,7 @@
               "type": "string"
             }
           },
-          "required": ["type", "path", "oldText", "newText"],
+          "required": ["type", "path", "newText"],
           "type": "object"
         }
       ]

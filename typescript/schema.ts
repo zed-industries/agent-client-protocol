@@ -417,7 +417,7 @@ export const toolCallContentSchema = z.union([
     /**
      * The original content (None for new files).
      */
-    oldText: z.string().nullable(),
+    oldText: z.string().optional().nullable(),
     /**
      * The file path being modified.
      */
@@ -453,11 +453,11 @@ export const fileSystemCapabilitySchema = z.object({
   /**
    * Whether the Client supports `fs/read_text_file` requests.
    */
-  readTextFile: z.boolean(),
+  readTextFile: z.boolean().optional(),
   /**
    * Whether the Client supports `fs/write_text_file` requests.
    */
-  writeTextFile: z.boolean(),
+  writeTextFile: z.boolean().optional(),
 });
 
 /**
@@ -560,7 +560,7 @@ export const authMethodSchema = z.object({
   /**
    * Optional description providing more details about this authentication method.
    */
-  description: z.string().nullable(),
+  description: z.string().optional().nullable(),
   /**
    * Unique identifier for this authentication method.
    */
@@ -578,18 +578,18 @@ export const promptCapabilitiesSchema = z.object({
   /**
    * Agent supports [`ContentBlock::Audio`].
    */
-  audio: z.boolean(),
+  audio: z.boolean().optional(),
   /**
    * Agent supports embedded context in `session/prompt` requests.
    *
    * When enabled, the Client is allowed to include [`ContentBlock::Resource`]
    * in prompt requests for pieces of context that are referenced in the message.
    */
-  embeddedContext: z.boolean(),
+  embeddedContext: z.boolean().optional(),
   /**
    * Agent supports [`ContentBlock::Image`].
    */
-  image: z.boolean(),
+  image: z.boolean().optional(),
 });
 
 /**
@@ -889,7 +889,7 @@ export const toolCallUpdateSchema = z.object({
  * Capabilities supported by the client.
  */
 export const clientCapabilitiesSchema = z.object({
-  fs: fileSystemCapabilitySchema,
+  fs: fileSystemCapabilitySchema.optional(),
 });
 
 /**
@@ -899,8 +899,8 @@ export const agentCapabilitiesSchema = z.object({
   /**
    * Whether the agent supports `session/load`.
    */
-  loadSession: z.boolean(),
-  promptCapabilities: promptCapabilitiesSchema,
+  loadSession: z.boolean().optional(),
+  promptCapabilities: promptCapabilitiesSchema.optional(),
 });
 
 /**
@@ -940,7 +940,7 @@ export const requestPermissionRequestSchema = z.object({
  * See: <https://agentclientprotocol.com/protocol/initialization>
  */
 export const initializeRequestSchema = z.object({
-  clientCapabilities: clientCapabilitiesSchema,
+  clientCapabilities: clientCapabilitiesSchema.optional(),
   /**
    * The latest protocol version supported by the client.
    */
@@ -955,11 +955,11 @@ export const initializeRequestSchema = z.object({
  * See: <https://agentclientprotocol.com/protocol/initialization>
  */
 export const initializeResponseSchema = z.object({
-  agentCapabilities: agentCapabilitiesSchema,
+  agentCapabilities: agentCapabilitiesSchema.optional(),
   /**
    * Authentication methods supported by the agent.
    */
-  authMethods: z.array(authMethodSchema),
+  authMethods: z.array(authMethodSchema).optional(),
   /**
    * The protocol version the client specified if supported by the agent,
    * or the latest protocol version supported by the agent.
