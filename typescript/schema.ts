@@ -297,6 +297,7 @@ export const authenticateResponseSchema = z.null();
 export const newSessionResponseSchema = z.object({
   /**
    * Unique identifier for the created session.
+   *
    * Used in all subsequent requests for this conversation.
    */
   sessionId: z.string(),
@@ -649,13 +650,11 @@ export const clientNotificationSchema = cancelNotificationSchema;
  */
 export const newSessionRequestSchema = z.object({
   /**
-   * The working directory for this session.
-   * Must be an absolute path that serves as the context for file operations.
+   * The working directory for this session. Must be an absolute path.
    */
   cwd: z.string(),
   /**
    * List of MCP (Model Context Protocol) servers the agent should connect to.
-   * These provide tools and context to the language model.
    */
   mcpServers: z.array(mcpServerSchema),
 });

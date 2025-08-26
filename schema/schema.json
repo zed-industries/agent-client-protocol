@@ -602,18 +602,18 @@
       "description": "Request parameters for creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
         "cwd": {
-          "description": "The working directory for this session.\nMust be an absolute path that serves as the context for file operations.",
+          "description": "The working directory for this session. Must be an absolute path.",
           "type": "string"
         },
         "mcpServers": {
-          "description": "List of MCP (Model Context Protocol) servers the agent should connect to.\nThese provide tools and context to the language model.",
+          "description": "List of MCP (Model Context Protocol) servers the agent should connect to.",
           "items": {
             "$ref": "#/$defs/McpServer"
           },
           "type": "array"
         }
       },
-      "required": ["mcpServers", "cwd"],
+      "required": ["cwd", "mcpServers"],
       "type": "object",
       "x-method": "session/new",
       "x-side": "agent"
@@ -623,7 +623,7 @@
       "properties": {
         "sessionId": {
           "$ref": "#/$defs/SessionId",
-          "description": "Unique identifier for the created session.\nUsed in all subsequent requests for this conversation."
+          "description": "Unique identifier for the created session.\n\nUsed in all subsequent requests for this conversation."
         }
       },
       "required": ["sessionId"],

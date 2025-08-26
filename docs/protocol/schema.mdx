@@ -220,8 +220,7 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 **Properties:**
 
 <ResponseField name="cwd" type={"string"} required>
-  The working directory for this session. Must be an absolute path that serves
-  as the context for file operations.
+  The working directory for this session. Must be an absolute path.
 </ResponseField>
 <ResponseField
   name="mcpServers"
@@ -248,13 +247,11 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
->
-  Unique identifier for the created session. Used in all subsequent requests for
-  this conversation.
+<ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
+  Unique identifier for the created session.
+
+Used in all subsequent requests for this conversation.
+
 </ResponseField>
 
 ### <span class="font-mono">session/prompt</span>
@@ -329,8 +326,6 @@ Defines the interface that ACP-compliant clients must implement.
 Clients are typically code editors (IDEs, text editors) that provide the interface
 between users and AI agents. They manage the environment, handle user interactions,
 and control access to resources.
-
-See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 
 ### <span class="font-mono">fs/read_text_file</span>
 
