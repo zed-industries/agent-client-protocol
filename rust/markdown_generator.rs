@@ -28,21 +28,10 @@ impl MarkdownGenerator {
         writeln!(&mut self.output, "title: \"Schema\"").unwrap();
         writeln!(
             &mut self.output,
-            r#"description: "JSON Schema definitions for the Agent Client Protocol""#
+            r#"description: "Schema definitions for the Agent Client Protocol""#
         )
         .unwrap();
         writeln!(&mut self.output, "---").unwrap();
-        writeln!(&mut self.output).unwrap();
-
-        // Add introduction with callout
-        writeln!(&mut self.output, "<Info>").unwrap();
-        writeln!(&mut self.output, "  This documentation provides comprehensive schema definitions for all types used in the Agent Client Protocol.").unwrap();
-        writeln!(
-            &mut self.output,
-            "  Each type includes detailed property descriptions, constraints, and usage examples."
-        )
-        .unwrap();
-        writeln!(&mut self.output, "</Info>").unwrap();
         writeln!(&mut self.output).unwrap();
 
         let mut agent_types: BTreeMap<String, Vec<(String, Value)>> = BTreeMap::new();
@@ -88,9 +77,6 @@ impl MarkdownGenerator {
             self.generate_method(&method, side_docs.agent_method_doc(&method), types);
         }
 
-        writeln!(&mut self.output, "---").unwrap();
-        writeln!(&mut self.output).unwrap();
-
         writeln!(&mut self.output, "## Client").unwrap();
         writeln!(&mut self.output).unwrap();
         writeln!(&mut self.output, "{}", side_docs.client_trait).unwrap();
@@ -98,9 +84,6 @@ impl MarkdownGenerator {
         for (method, types) in client_types {
             self.generate_method(&method, side_docs.client_method_doc(&method), types);
         }
-
-        writeln!(&mut self.output, "---").unwrap();
-        writeln!(&mut self.output).unwrap();
 
         referenced_types.sort_by_key(|(name, _)| name.clone());
         for (name, def) in referenced_types {
@@ -116,7 +99,12 @@ impl MarkdownGenerator {
         docs: &str,
         mut method_types: Vec<(String, Value)>,
     ) {
-        writeln!(&mut self.output, "### Method: `{}`", method).unwrap();
+        writeln!(
+            &mut self.output,
+            "### <span class=\"font-mono\">{}</span>",
+            method
+        )
+        .unwrap();
         writeln!(&mut self.output).unwrap();
         writeln!(&mut self.output, "{}", docs).unwrap();
         writeln!(&mut self.output).unwrap();
@@ -126,20 +114,22 @@ impl MarkdownGenerator {
         for (name, def) in method_types {
             self.document_type(4, &name, &def);
         }
-
-        // Add horizontal rule after each major section
-        writeln!(&mut self.output, "---").unwrap();
-        writeln!(&mut self.output).unwrap();
     }
 
     fn document_type(&mut self, headline_level: usize, name: &str, definition: &Value) {
-        writeln!(&mut self.output, "{} {}", "#".repeat(headline_level), name).unwrap();
+        writeln!(
+            &mut self.output,
+            "{} <span class=\"font-mono\">{}</span>",
+            "#".repeat(headline_level),
+            name
+        )
+        .unwrap();
         writeln!(&mut self.output).unwrap();
 
         // Add main description if available
-        if let Some(desc) = definition.get("description").and_then(|v| v.as_str()) {
+        if let Some(desc) = get_def_description(definition) {
             // Escape # at the beginning of lines to prevent them from being treated as headers
-            let escaped_desc = self.escape_description(desc);
+            let escaped_desc = self.escape_description(&desc);
             writeln!(&mut self.output, "{}", escaped_desc).unwrap();
             writeln!(&mut self.output).unwrap();
         }
@@ -175,7 +165,7 @@ impl MarkdownGenerator {
     }
 
     fn document_variant_table_row(&mut self, variant: &Value) {
-        write!(&mut self.output, "<ResponseField name=\"").unwrap();
+        write!(&mut self.output, "<ParamField name=\"").unwrap();
 
         // Get variant name
         if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
@@ -205,17 +195,17 @@ impl MarkdownGenerator {
             write!(&mut self.output, "Variant").unwrap();
         }
 
-        write!(&mut self.output, "\">").unwrap();
+        writeln!(&mut self.output, "\">").unwrap();
 
         // Get description
-        if let Some(desc) = variant.get("description").and_then(|v| v.as_str()) {
-            let escaped_desc = self.escape_mdx(desc);
-            write!(&mut self.output, "{{`{}`}}", escaped_desc).unwrap();
+        if let Some(desc) = get_def_description(variant) {
+            let escaped_desc = self.escape_mdx(&desc);
+            write!(&mut self.output, "{}", escaped_desc).unwrap();
         } else {
             write!(&mut self.output, "{{\"\"}}").unwrap();
         }
         writeln!(&mut self.output).unwrap();
-        writeln!(&mut self.output, "</ResponseField>").unwrap();
+        writeln!(&mut self.output, "</ParamField>").unwrap();
         writeln!(&mut self.output).unwrap();
     }
 
@@ -280,75 +270,27 @@ impl MarkdownGenerator {
             let is_required = required.contains(&prop_name.as_str());
             let type_str = self.get_type_string(prop_schema);
 
-            // Check if this property has nested properties
-            let has_nested =
-                prop_schema.get("properties").is_some() || self.is_complex_ref(prop_schema);
+            // Simple field without nesting
+            writeln!(
+                &mut self.output,
+                "{}<ResponseField name=\"{}\" type={{{}}} {}>",
+                indent_str,
+                prop_name,
+                type_str,
+                if is_required { "required" } else { "" }
+            )
+            .unwrap();
 
-            if has_nested {
-                writeln!(
-                    &mut self.output,
-                    "{}<ResponseField name=\"{}\" type={{{}}} {}>",
-                    indent_str,
-                    prop_name,
-                    type_str,
-                    if is_required { "required" } else { "" }
-                )
-                .unwrap();
-
-                // Add description if available
-                if let Some(desc) = prop_schema.get("description").and_then(|v| v.as_str()) {
-                    let escaped_desc = self.escape_mdx(desc);
-                    writeln!(&mut self.output, "{}  {}", indent_str, escaped_desc).unwrap();
-                    writeln!(&mut self.output).unwrap();
-                }
-
-                // Add expandable for nested properties
-                writeln!(
-                    &mut self.output,
-                    "{}  <Expandable title=\"properties\">",
-                    indent_str
-                )
-                .unwrap();
-
-                if let Some(nested_props) =
-                    prop_schema.get("properties").and_then(|v| v.as_object())
-                {
-                    self.document_properties_as_fields(nested_props, prop_schema, indent + 4);
-                } else if let Some(ref_val) = prop_schema.get("$ref").and_then(|v| v.as_str()) {
-                    let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-                    if let Some(ref_def) = self.definitions.get(type_name).cloned()
-                        && let Some(nested_props) =
-                            ref_def.get("properties").and_then(|v| v.as_object())
-                    {
-                        self.document_properties_as_fields(nested_props, &ref_def, indent + 4);
-                    }
-                }
-
-                writeln!(&mut self.output, "{}  </Expandable>", indent_str).unwrap();
-                writeln!(&mut self.output, "{}</ResponseField>", indent_str).unwrap();
-            } else {
-                // Simple field without nesting
-                writeln!(
-                    &mut self.output,
-                    "{}<ResponseField name=\"{}\" type={{{}}} {}>",
-                    indent_str,
-                    prop_name,
-                    type_str,
-                    if is_required { "required" } else { "" }
-                )
-                .unwrap();
-
-                // Add description if available
-                if let Some(desc) = prop_schema.get("description").and_then(|v| v.as_str()) {
-                    let escaped_desc = self.escape_mdx(desc);
-                    writeln!(&mut self.output, "{}  {}", indent_str, escaped_desc).unwrap();
-                }
-
-                // Add constraints if any
-                self.document_field_constraints(prop_schema, indent + 2);
-
-                writeln!(&mut self.output, "{}</ResponseField>", indent_str).unwrap();
+            // Add description if available
+            if let Some(desc) = get_def_description(prop_schema) {
+                let escaped_desc = self.escape_mdx(&desc);
+                writeln!(&mut self.output, "{}  {}", indent_str, escaped_desc).unwrap();
             }
+
+            // Add constraints if any
+            self.document_field_constraints(prop_schema, indent + 2);
+
+            writeln!(&mut self.output, "{}</ResponseField>", indent_str).unwrap();
         }
     }
 
@@ -406,16 +348,6 @@ impl MarkdownGenerator {
                 }
             }
         }
-    }
-
-    fn is_complex_ref(&self, schema: &Value) -> bool {
-        if let Some(ref_val) = schema.get("$ref").and_then(|v| v.as_str()) {
-            let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
-            if let Some(def) = self.definitions.get(type_name) {
-                return def.get("properties").is_some();
-            }
-        }
-        false
     }
 
     fn document_simple_type(&mut self, type_name: &str, definition: &Value) {
@@ -619,7 +551,6 @@ impl MarkdownGenerator {
             .replace('>', "&gt;")
             .replace('{', "\\{")
             .replace('}', "\\}")
-            .replace('`', "\\`")
     }
 
     fn escape_description(&self, text: &str) -> String {
@@ -640,6 +571,15 @@ impl MarkdownGenerator {
     }
 }
 
+fn get_def_description(def: &Value) -> Option<String> {
+    let desc = def
+        .get("description")?
+        .as_str()?
+        .replace("[`", "`")
+        .replace("`]", "`");
+    Some(desc)
+}
+
 struct SideDocs {
     agent_trait: String,
     agent_methods: HashMap<String, String>,
@@ -649,7 +589,6 @@ struct SideDocs {
 
 impl SideDocs {
     fn agent_method_doc(&self, method_name: &str) -> &String {
-        dbg!(&self.agent_methods);
         match method_name {
             "initialize" => self.agent_methods.get("initialize").unwrap(),
             "authenticate" => self.agent_methods.get("authenticate").unwrap(),

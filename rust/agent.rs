@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
-/// The Agent trait defines the interface that all ACP-compliant agents must implement.
+/// Defines the interface that all ACP-compliant agents must implement.
 ///
 /// Agents are programs that use generative AI to autonomously modify code. They handle
 /// requests from clients and execute tasks using language models and tools.

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
-/// The Client trait defines the interface that ACP-compliant clients must implement.
+/// Defines the interface that ACP-compliant clients must implement.
 ///
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,

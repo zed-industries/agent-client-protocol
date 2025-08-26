@@ -1,22 +1,16 @@
 ---
 title: "Schema"
-description: "JSON Schema definitions for the Agent Client Protocol"
+description: "Schema definitions for the Agent Client Protocol"
 ---
-
-<Info>
-  This documentation provides comprehensive schema definitions for all types
-  used in the Agent Client Protocol. Each type includes detailed property
-  descriptions, constraints, and usage examples.
-</Info>
 
 ## Agent
 
-The Agent trait defines the interface that all ACP-compliant agents must implement.
+Defines the interface that all ACP-compliant agents must implement.
 
 Agents are programs that use generative AI to autonomously modify code. They handle
 requests from clients and execute tasks using language models and tools.
 
-### Method: `authenticate`
+### <span class="font-mono">authenticate</span>
 
 Authenticates the client using the specified authentication method.
 
@@ -28,7 +22,7 @@ After successful authentication, the client can proceed to create sessions with
 
 See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 
-#### AuthenticateRequest
+#### <span class="font-mono">AuthenticateRequest</span>
 
 Request parameters for the authenticate method.
 
@@ -47,9 +41,7 @@ Specifies which authentication method to use.
   advertised in the initialize response.
 </ResponseField>
 
----
-
-### Method: `initialize`
+### <span class="font-mono">initialize</span>
 
 Establishes the connection with a client and negotiates protocol capabilities.
 
@@ -63,7 +55,7 @@ The agent should respond with its supported protocol version and capabilities.
 
 See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 
-#### InitializeRequest
+#### <span class="font-mono">InitializeRequest</span>
 
 Request parameters for the initialize method.
 
@@ -78,32 +70,14 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="clientCapabilities" type={<a href="#clientcapabilities">ClientCapabilities</a>} >
   Capabilities supported by the client.
 
-  <Expandable title="properties">
-    <ResponseField name="fs" type={<a href="#filesystemcapability">FileSystemCapability</a>} >
-      File system capabilities supported by the client.
-Determines which file operations the agent can request.
+    - Default: `{"fs":{"readTextFile":false,"writeTextFile":false}}`
 
-      <Expandable title="properties">
-        <ResponseField name="readTextFile" type={"boolean"} >
-          Whether the Client supports \`fs/read_text_file\` requests.
-
-            - Default: `false`
-        </ResponseField>
-        <ResponseField name="writeTextFile" type={"boolean"} >
-          Whether the Client supports \`fs/write_text_file\` requests.
-
-            - Default: `false`
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-
-  </Expandable>
 </ResponseField>
 <ResponseField name="protocolVersion" type={<a href="#protocolversion">ProtocolVersion</a>} required>
   The latest protocol version supported by the client.
 </ResponseField>
 
-#### InitializeResponse
+#### <span class="font-mono">InitializeResponse</span>
 
 Response from the initialize method.
 
@@ -118,38 +92,8 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
-  <Expandable title="properties">
-    <ResponseField name="loadSession" type={"boolean"} >
-      Whether the agent supports \`session/load\`.
+    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
 
-        - Default: `false`
-    </ResponseField>
-    <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
-      Prompt capabilities supported by the agent.
-
-      <Expandable title="properties">
-        <ResponseField name="audio" type={"boolean"} >
-          Agent supports [\`ContentBlock::Audio\`].
-
-            - Default: `false`
-        </ResponseField>
-        <ResponseField name="embeddedContext" type={"boolean"} >
-          Agent supports embedded context in \`session/prompt\` requests.
-
-When enabled, the Client is allowed to include [\`ContentBlock::Resource\`]
-in prompt requests for pieces of context that are referenced in the message.
-
-            - Default: `false`
-        </ResponseField>
-        <ResponseField name="image" type={"boolean"} >
-          Agent supports [\`ContentBlock::Image\`].
-
-            - Default: `false`
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-
-  </Expandable>
 </ResponseField>
 <ResponseField name="authMethods" type={<><span><a href="#authmethod">AuthMethod</a></span><span>[]</span></>} >
   Authentication methods supported by the agent.
@@ -165,9 +109,7 @@ The client should disconnect, if it doesn't support this version.
 
 </ResponseField>
 
----
-
-### Method: `session/cancel`
+### <span class="font-mono">session/cancel</span>
 
 Cancels ongoing operations for a session.
 
@@ -182,7 +124,7 @@ Upon receiving this notification, the Agent SHOULD:
 
 See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 
-#### CancelNotification
+#### <span class="font-mono">CancelNotification</span>
 
 Notification to cancel ongoing operations for a session.
 
@@ -200,9 +142,7 @@ See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/promp
   The ID of the session to cancel operations for.
 </ResponseField>
 
----
-
-### Method: `session/load`
+### <span class="font-mono">session/load</span>
 
 Loads an existing session to resume a previous conversation.
 
@@ -216,7 +156,7 @@ The agent should:
 
 See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 
-#### LoadSessionRequest
+#### <span class="font-mono">LoadSessionRequest</span>
 
 Request parameters for loading an existing session.
 
@@ -253,9 +193,7 @@ See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/s
   The ID of the session to load.
 </ResponseField>
 
----
-
-### Method: `session/new`
+### <span class="font-mono">session/new</span>
 
 Creates a new conversation session with the agent.
 
@@ -271,7 +209,7 @@ May return an `auth_required` error if the agent requires authentication.
 
 See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
 
-#### NewSessionRequest
+#### <span class="font-mono">NewSessionRequest</span>
 
 Request parameters for creating a new session.
 
@@ -301,7 +239,7 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
   These provide tools and context to the language model.
 </ResponseField>
 
-#### NewSessionResponse
+#### <span class="font-mono">NewSessionResponse</span>
 
 Response from creating a new session.
 
@@ -320,9 +258,7 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
   this conversation.
 </ResponseField>
 
----
-
-### Method: `session/prompt`
+### <span class="font-mono">session/prompt</span>
 
 Processes a user prompt within a session.
 
@@ -337,7 +273,7 @@ This method handles the whole lifecycle of a prompt:
 
 See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
 
-#### PromptRequest
+#### <span class="font-mono">PromptRequest</span>
 
 Request parameters for sending a user prompt to the agent.
 
@@ -352,15 +288,15 @@ See protocol docs: [User Message](https://agentclientprotocol.com/protocol/promp
 <ResponseField name="prompt" type={<><span><a href="#contentblock">ContentBlock</a></span><span>[]</span></>} required>
   The blocks of content that compose the user's message.
 
-As a baseline, the Agent MUST support [\`ContentBlock::Text\`] and [\`ContentBlock::ResourceLink\`],
-while other variants are optionally enabled via [\`PromptCapabilities\`].
+As a baseline, the Agent MUST support `ContentBlock::Text` and `ContentBlock::ResourceLink`,
+while other variants are optionally enabled via `PromptCapabilities`.
 
-The Client MUST adapt its interface according to [\`PromptCapabilities\`].
+The Client MUST adapt its interface according to `PromptCapabilities`.
 
 The client MAY include referenced pieces of context as either
-[\`ContentBlock::Resource\`] or [\`ContentBlock::ResourceLink\`].
+`ContentBlock::Resource` or `ContentBlock::ResourceLink`.
 
-When available, [\`ContentBlock::Resource\`] is preferred
+When available, `ContentBlock::Resource` is preferred
 as it avoids extra round-trips and allows the message to include
 pieces of context from sources the agent may not have access to.
 
@@ -369,7 +305,7 @@ pieces of context from sources the agent may not have access to.
   The ID of the session to send this user message to
 </ResponseField>
 
-#### PromptResponse
+#### <span class="font-mono">PromptResponse</span>
 
 Response from processing a user prompt.
 
@@ -387,13 +323,9 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
   Indicates why the agent stopped processing the turn.
 </ResponseField>
 
----
-
----
-
 ## Client
 
-The Client trait defines the interface that ACP-compliant clients must implement.
+Defines the interface that ACP-compliant clients must implement.
 
 Clients are typically code editors (IDEs, text editors) that provide the interface
 between users and AI agents. They manage the environment, handle user interactions,
@@ -401,7 +333,7 @@ and control access to resources.
 
 See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 
-### Method: `fs/read_text_file`
+### <span class="font-mono">fs/read_text_file</span>
 
 Reads content from a text file in the client's file system.
 
@@ -410,7 +342,7 @@ Allows the agent to access file contents within the client's environment.
 
 See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
 
-#### ReadTextFileRequest
+#### <span class="font-mono">ReadTextFileRequest</span>
 
 Request to read content from a text file.
 
@@ -439,9 +371,7 @@ Only available if the client supports the `fs.readTextFile` capability.
   The session ID for this request.
 </ResponseField>
 
----
-
-### Method: `fs/write_text_file`
+### <span class="font-mono">fs/write_text_file</span>
 
 Writes content to a text file in the client's file system.
 
@@ -450,7 +380,7 @@ Allows the agent to create or modify files within the client's environment.
 
 See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
 
-#### WriteTextFileRequest
+#### <span class="font-mono">WriteTextFileRequest</span>
 
 Request to write content to a text file.
 
@@ -474,9 +404,7 @@ Only available if the client supports the `fs.writeTextFile` capability.
   The session ID for this request.
 </ResponseField>
 
----
-
-### Method: `session/request_permission`
+### <span class="font-mono">session/request_permission</span>
 
 Requests permission from the user for a tool call operation.
 
@@ -489,7 +417,7 @@ respond to this request with `RequestPermissionOutcome::Cancelled`.
 
 See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 
-#### RequestPermissionRequest
+#### <span class="font-mono">RequestPermissionRequest</span>
 
 Request for user permission to execute a tool call.
 
@@ -501,44 +429,36 @@ See protocol docs: [Requesting Permission](https://agentclientprotocol.com/proto
 
 **Properties:**
 
-<ResponseField name="options" type={<><span><a href="#permissionoption">PermissionOption</a></span><span>[]</span></>} required>
+<ResponseField
+  name="options"
+  type={
+    <>
+      <span>
+        <a href="#permissionoption">PermissionOption</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+>
   Available permission options for the user to choose from.
 </ResponseField>
-<ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
   The session ID for this request.
 </ResponseField>
-<ResponseField name="toolCall" type={<a href="#toolcallupdate">ToolCallUpdate</a>} required>
+<ResponseField
+  name="toolCall"
+  type={<a href="#toolcallupdate">ToolCallUpdate</a>}
+  required
+>
   Details about the tool call requiring permission.
-
-  <Expandable title="properties">
-    <ResponseField name="content" type={"array | null"} >
-      Replace the content collection.
-    </ResponseField>
-    <ResponseField name="kind" type={<><span><a href="#toolkind">ToolKind</a></span><span> | null</span></>} >
-      Update the tool kind.
-    </ResponseField>
-    <ResponseField name="locations" type={"array | null"} >
-      Replace the locations collection.
-    </ResponseField>
-    <ResponseField name="rawInput" type={"object"} >
-      Update the raw input.
-    </ResponseField>
-    <ResponseField name="rawOutput" type={"object"} >
-      Update the raw output.
-    </ResponseField>
-    <ResponseField name="status" type={<><span><a href="#toolcallstatus">ToolCallStatus</a></span><span> | null</span></>} >
-      Update the execution status.
-    </ResponseField>
-    <ResponseField name="title" type={"string | null"} >
-      Update the human-readable title.
-    </ResponseField>
-    <ResponseField name="toolCallId" type={<a href="#toolcallid">ToolCallId</a>} required>
-      The ID of the tool call being updated.
-    </ResponseField>
-  </Expandable>
 </ResponseField>
 
-#### RequestPermissionResponse
+#### <span class="font-mono">RequestPermissionResponse</span>
 
 Response to a permission request.
 
@@ -554,9 +474,7 @@ Response to a permission request.
   The user's decision on the permission request.
 </ResponseField>
 
----
-
-### Method: `session/update`
+### <span class="font-mono">session/update</span>
 
 Handles session update notifications from the agent.
 
@@ -570,7 +488,7 @@ updates before responding with the cancelled stop reason.
 
 See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 
-#### SessionNotification
+#### <span class="font-mono">SessionNotification</span>
 
 Notification containing a session update from the agent.
 
@@ -597,11 +515,7 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
   The actual update content.
 </ResponseField>
 
----
-
----
-
-## AgentCapabilities
+## <span class="font-mono">AgentCapabilities</span>
 
 Capabilities supported by the agent.
 
@@ -615,7 +529,7 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 **Properties:**
 
 <ResponseField name="loadSession" type={"boolean"} >
-  Whether the agent supports \`session/load\`.
+  Whether the agent supports `session/load`.
 
     - Default: `false`
 
@@ -623,30 +537,11 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
   Prompt capabilities supported by the agent.
 
-  <Expandable title="properties">
-    <ResponseField name="audio" type={"boolean"} >
-      Agent supports [\`ContentBlock::Audio\`].
+    - Default: `{"audio":false,"embeddedContext":false,"image":false}`
 
-        - Default: `false`
-    </ResponseField>
-    <ResponseField name="embeddedContext" type={"boolean"} >
-      Agent supports embedded context in \`session/prompt\` requests.
-
-When enabled, the Client is allowed to include [\`ContentBlock::Resource\`]
-in prompt requests for pieces of context that are referenced in the message.
-
-        - Default: `false`
-    </ResponseField>
-    <ResponseField name="image" type={"boolean"} >
-      Agent supports [\`ContentBlock::Image\`].
-
-        - Default: `false`
-    </ResponseField>
-
-  </Expandable>
 </ResponseField>
 
-## Annotations
+## <span class="font-mono">Annotations</span>
 
 Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 
@@ -658,7 +553,7 @@ Optional annotations for the client. The client can use annotations to inform ho
 <ResponseField name="lastModified" type={"string | null"}></ResponseField>
 <ResponseField name="priority" type={"number | null"}></ResponseField>
 
-## AudioContent
+## <span class="font-mono">AudioContent</span>
 
 Audio provided to or from an LLM.
 
@@ -680,7 +575,7 @@ Audio provided to or from an LLM.
 <ResponseField name="data" type={"string"} required></ResponseField>
 <ResponseField name="mimeType" type={"string"} required></ResponseField>
 
-## AuthMethod
+## <span class="font-mono">AuthMethod</span>
 
 Describes an available authentication method.
 
@@ -702,13 +597,13 @@ Describes an available authentication method.
   Human-readable name of the authentication method.
 </ResponseField>
 
-## AuthMethodId
+## <span class="font-mono">AuthMethodId</span>
 
 Unique identifier for an authentication method.
 
 **Type:** `string`
 
-## BlobResourceContents
+## <span class="font-mono">BlobResourceContents</span>
 
 Binary resource contents.
 
@@ -720,7 +615,7 @@ Binary resource contents.
 <ResponseField name="mimeType" type={"string | null"}></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
 
-## ClientCapabilities
+## <span class="font-mono">ClientCapabilities</span>
 
 Capabilities supported by the client.
 
@@ -737,22 +632,11 @@ See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protoco
   File system capabilities supported by the client.
 Determines which file operations the agent can request.
 
-  <Expandable title="properties">
-    <ResponseField name="readTextFile" type={"boolean"} >
-      Whether the Client supports \`fs/read_text_file\` requests.
+    - Default: `{"readTextFile":false,"writeTextFile":false}`
 
-        - Default: `false`
-    </ResponseField>
-    <ResponseField name="writeTextFile" type={"boolean"} >
-      Whether the Client supports \`fs/write_text_file\` requests.
-
-        - Default: `false`
-    </ResponseField>
-
-  </Expandable>
 </ResponseField>
 
-## ContentBlock
+## <span class="font-mono">ContentBlock</span>
 
 Content blocks represent displayable information in the Agent Client Protocol.
 
@@ -772,39 +656,44 @@ See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
 
 **Type:** Union
 
-<ResponseField name="text">{`Plain text content
+<ParamField name="text">
+Plain text content
 
-All agents MUST support text content blocks in prompts.`}
+All agents MUST support text content blocks in prompts.
 
-</ResponseField>
+</ParamField>
 
-<ResponseField name="image">{`Images for visual context or analysis.
+<ParamField name="image">
+Images for visual context or analysis.
 
-Requires the \`image\` prompt capability when included in prompts.`}
+Requires the `image` prompt capability when included in prompts.
 
-</ResponseField>
+</ParamField>
 
-<ResponseField name="audio">{`Audio data for transcription or analysis.
+<ParamField name="audio">
+Audio data for transcription or analysis.
 
-Requires the \`audio\` prompt capability when included in prompts.`}
+Requires the `audio` prompt capability when included in prompts.
 
-</ResponseField>
+</ParamField>
 
-<ResponseField name="resource_link">{`References to resources that the agent can access.
+<ParamField name="resource_link">
+References to resources that the agent can access.
 
-All agents MUST support resource links in prompts.`}
+All agents MUST support resource links in prompts.
 
-</ResponseField>
+</ParamField>
 
-<ResponseField name="resource">{`Complete resource contents embedded directly in the message.
+<ParamField name="resource">
+Complete resource contents embedded directly in the message.
 
 Preferred for including context as it avoids extra round-trips.
 
-Requires the \`embeddedContext\` prompt capability when included in prompts.`}
+Requires the `embeddedContext` prompt capability when included in prompts.
 
-</ResponseField>
+</ParamField>
 
-## EmbeddedResource
+## <span class="font-mono">EmbeddedResource</span>
 
 The contents of a resource, embedded into a prompt or tool call result.
 
@@ -829,17 +718,17 @@ The contents of a resource, embedded into a prompt or tool call result.
   required
 ></ResponseField>
 
-## EmbeddedResourceResource
+## <span class="font-mono">EmbeddedResourceResource</span>
 
 Resource content that can be embedded in a message.
 
 **Type:** Union
 
-<ResponseField name="TextResourceContents">{""}</ResponseField>
+<ParamField name="TextResourceContents">{""}</ParamField>
 
-<ResponseField name="BlobResourceContents">{""}</ResponseField>
+<ParamField name="BlobResourceContents">{""}</ParamField>
 
-## EnvVariable
+## <span class="font-mono">EnvVariable</span>
 
 An environment variable to set when launching an MCP server.
 
@@ -854,7 +743,7 @@ An environment variable to set when launching an MCP server.
   The value to set for the environment variable.
 </ResponseField>
 
-## FileSystemCapability
+## <span class="font-mono">FileSystemCapability</span>
 
 File system capabilities that a client may support.
 
@@ -865,19 +754,19 @@ See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initial
 **Properties:**
 
 <ResponseField name="readTextFile" type={"boolean"} >
-  Whether the Client supports \`fs/read_text_file\` requests.
+  Whether the Client supports `fs/read_text_file` requests.
 
     - Default: `false`
 
 </ResponseField>
 <ResponseField name="writeTextFile" type={"boolean"} >
-  Whether the Client supports \`fs/write_text_file\` requests.
+  Whether the Client supports `fs/write_text_file` requests.
 
     - Default: `false`
 
 </ResponseField>
 
-## ImageContent
+## <span class="font-mono">ImageContent</span>
 
 An image provided to or from an LLM.
 
@@ -900,7 +789,7 @@ An image provided to or from an LLM.
 <ResponseField name="mimeType" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string | null"}></ResponseField>
 
-## McpServer
+## <span class="font-mono">McpServer</span>
 
 Configuration for connecting to an MCP (Model Context Protocol) server.
 
@@ -946,7 +835,7 @@ See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/sessio
   Human-readable name identifying this MCP server.
 </ResponseField>
 
-## PermissionOption
+## <span class="font-mono">PermissionOption</span>
 
 An option presented to the user when requesting permission.
 
@@ -972,13 +861,13 @@ An option presented to the user when requesting permission.
   Unique identifier for this permission option.
 </ResponseField>
 
-## PermissionOptionId
+## <span class="font-mono">PermissionOptionId</span>
 
 Unique identifier for a permission option.
 
 **Type:** `string`
 
-## PermissionOptionKind
+## <span class="font-mono">PermissionOptionKind</span>
 
 The type of permission option being presented to the user.
 
@@ -986,23 +875,21 @@ Helps clients choose appropriate icons and UI treatment.
 
 **Type:** Union
 
-<ResponseField name="allow_once">
-  {`Allow this operation only this time.`}
-</ResponseField>
+<ParamField name="allow_once">Allow this operation only this time.</ParamField>
 
-<ResponseField name="allow_always">
-  {`Allow this operation and remember the choice.`}
-</ResponseField>
+<ParamField name="allow_always">
+  Allow this operation and remember the choice.
+</ParamField>
 
-<ResponseField name="reject_once">
-  {`Reject this operation only this time.`}
-</ResponseField>
+<ParamField name="reject_once">
+  Reject this operation only this time.
+</ParamField>
 
-<ResponseField name="reject_always">
-  {`Reject this operation and remember the choice.`}
-</ResponseField>
+<ParamField name="reject_always">
+  Reject this operation and remember the choice.
+</ParamField>
 
-## Plan
+## <span class="font-mono">Plan</span>
 
 An execution plan for accomplishing complex tasks.
 
@@ -1024,7 +911,7 @@ with their current status. The client replaces the entire plan with each update.
 
 </ResponseField>
 
-## PlanEntry
+## <span class="font-mono">PlanEntry</span>
 
 A single entry in the execution plan.
 
@@ -1055,7 +942,7 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
   Current execution status of this task.
 </ResponseField>
 
-## PlanEntryPriority
+## <span class="font-mono">PlanEntryPriority</span>
 
 Priority levels for plan entries.
 
@@ -1065,19 +952,19 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
 
 **Type:** Union
 
-<ResponseField name="high">
-  {`High priority task - critical to the overall goal.`}
-</ResponseField>
+<ParamField name="high">
+  High priority task - critical to the overall goal.
+</ParamField>
 
-<ResponseField name="medium">
-  {`Medium priority task - important but not critical.`}
-</ResponseField>
+<ParamField name="medium">
+  Medium priority task - important but not critical.
+</ParamField>
 
-<ResponseField name="low">
-  {`Low priority task - nice to have but not essential.`}
-</ResponseField>
+<ParamField name="low">
+  Low priority task - nice to have but not essential.
+</ParamField>
 
-## PlanEntryStatus
+## <span class="font-mono">PlanEntryStatus</span>
 
 Status of a plan entry in the execution flow.
 
@@ -1086,22 +973,22 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
 
 **Type:** Union
 
-<ResponseField name="pending">{`The task has not started yet.`}</ResponseField>
+<ParamField name="pending">The task has not started yet.</ParamField>
 
-<ResponseField name="in_progress">
-  {`The task is currently being worked on.`}
-</ResponseField>
+<ParamField name="in_progress">
+  The task is currently being worked on.
+</ParamField>
 
-<ResponseField name="completed">
-  {`The task has been successfully completed.`}
-</ResponseField>
+<ParamField name="completed">
+  The task has been successfully completed.
+</ParamField>
 
-## PromptCapabilities
+## <span class="font-mono">PromptCapabilities</span>
 
 Prompt capabilities supported by the agent in `session/prompt` requests.
 
-Baseline agent functionality requires support for [`ContentBlock::Text`]
-and [`ContentBlock::ResourceLink`] in prompt requests.
+Baseline agent functionality requires support for `ContentBlock::Text`
+and `ContentBlock::ResourceLink` in prompt requests.
 
 Other variants must be explicitly opted in to.
 Capabilities for different types of content in prompt requests.
@@ -1116,28 +1003,28 @@ See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protoco
 **Properties:**
 
 <ResponseField name="audio" type={"boolean"} >
-  Agent supports [\`ContentBlock::Audio\`].
+  Agent supports `ContentBlock::Audio`.
 
     - Default: `false`
 
 </ResponseField>
 <ResponseField name="embeddedContext" type={"boolean"} >
-  Agent supports embedded context in \`session/prompt\` requests.
+  Agent supports embedded context in `session/prompt` requests.
 
-When enabled, the Client is allowed to include [\`ContentBlock::Resource\`]
+When enabled, the Client is allowed to include `ContentBlock::Resource`
 in prompt requests for pieces of context that are referenced in the message.
 
     - Default: `false`
 
 </ResponseField>
 <ResponseField name="image" type={"boolean"} >
-  Agent supports [\`ContentBlock::Image\`].
+  Agent supports `ContentBlock::Image`.
 
     - Default: `false`
 
 </ResponseField>
 
-## ProtocolVersion
+## <span class="font-mono">ProtocolVersion</span>
 
 Protocol version identifier.
 
@@ -1151,7 +1038,7 @@ Non-breaking changes should be introduced via capabilities.
 | Minimum    | `0`     |
 | Maximum    | `65535` |
 
-## ReadTextFileResponse
+## <span class="font-mono">ReadTextFileResponse</span>
 
 Response containing the contents of a text file.
 
@@ -1161,27 +1048,28 @@ Response containing the contents of a text file.
 
 <ResponseField name="content" type={"string"} required></ResponseField>
 
-## RequestPermissionOutcome
+## <span class="font-mono">RequestPermissionOutcome</span>
 
 The outcome of a permission request.
 
 **Type:** Union
 
-<ResponseField name="cancelled">{`The prompt turn was cancelled before the user responded.
+<ParamField name="cancelled">
+The prompt turn was cancelled before the user responded.
 
-When a client sends a \`session/cancel\` notification to cancel an ongoing
-prompt turn, it MUST respond to all pending \`session/request_permission\`
-requests with this \`Cancelled\` outcome.
+When a client sends a `session/cancel` notification to cancel an ongoing
+prompt turn, it MUST respond to all pending `session/request_permission`
+requests with this `Cancelled` outcome.
 
-See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)`}
+See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 
-</ResponseField>
+</ParamField>
 
-<ResponseField name="selected">
-  {`The user selected one of the provided options.`}
-</ResponseField>
+<ParamField name="selected">
+  The user selected one of the provided options.
+</ParamField>
 
-## ResourceLink
+## <span class="font-mono">ResourceLink</span>
 
 A resource that the server is capable of reading, included in a prompt or tool call result.
 
@@ -1207,7 +1095,7 @@ A resource that the server is capable of reading, included in a prompt or tool c
 <ResponseField name="title" type={"string | null"}></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
 
-## Role
+## <span class="font-mono">Role</span>
 
 The sender or recipient of messages and data in a conversation.
 
@@ -1218,7 +1106,7 @@ The sender or recipient of messages and data in a conversation.
 | `"assistant"` |
 | `"user"`      |
 
-## SessionId
+## <span class="font-mono">SessionId</span>
 
 A unique identifier for a conversation session between a client and agent.
 
@@ -1238,7 +1126,7 @@ See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session
 
 **Type:** `string`
 
-## SessionUpdate
+## <span class="font-mono">SessionUpdate</span>
 
 Different types of updates that can be sent during session processing.
 
@@ -1248,32 +1136,32 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
 
 **Type:** Union
 
-<ResponseField name="user_message_chunk">
-  {`A chunk of the user's message being streamed.`}
-</ResponseField>
+<ParamField name="user_message_chunk">
+  A chunk of the user's message being streamed.
+</ParamField>
 
-<ResponseField name="agent_message_chunk">
-  {`A chunk of the agent's response being streamed.`}
-</ResponseField>
+<ParamField name="agent_message_chunk">
+  A chunk of the agent's response being streamed.
+</ParamField>
 
-<ResponseField name="agent_thought_chunk">
-  {`A chunk of the agent's internal reasoning being streamed.`}
-</ResponseField>
+<ParamField name="agent_thought_chunk">
+  A chunk of the agent's internal reasoning being streamed.
+</ParamField>
 
-<ResponseField name="tool_call">
-  {`Notification that a new tool call has been initiated.`}
-</ResponseField>
+<ParamField name="tool_call">
+  Notification that a new tool call has been initiated.
+</ParamField>
 
-<ResponseField name="tool_call_update">
-  {`Update on the status or results of a tool call.`}
-</ResponseField>
+<ParamField name="tool_call_update">
+  Update on the status or results of a tool call.
+</ParamField>
 
-<ResponseField name="plan">
-  {`The agent's execution plan for complex tasks.
-See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)`}
-</ResponseField>
+<ParamField name="plan">
+  The agent's execution plan for complex tasks. See protocol docs: [Agent
+  Plan](https://agentclientprotocol.com/protocol/agent-plan)
+</ParamField>
 
-## StopReason
+## <span class="font-mono">StopReason</span>
 
 Reasons why an agent stops processing a prompt turn.
 
@@ -1281,33 +1169,34 @@ See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/promp
 
 **Type:** Union
 
-<ResponseField name="end_turn">{`The turn ended successfully.`}</ResponseField>
+<ParamField name="end_turn">The turn ended successfully.</ParamField>
 
-<ResponseField name="max_tokens">
-  {`The turn ended because the agent reached the maximum number of tokens.`}
-</ResponseField>
+<ParamField name="max_tokens">
+  The turn ended because the agent reached the maximum number of tokens.
+</ParamField>
 
-<ResponseField name="max_turn_requests">
-  {`The turn ended because the agent reached the maximum number of allowed
-agent requests between user turns.`}
-</ResponseField>
+<ParamField name="max_turn_requests">
+  The turn ended because the agent reached the maximum number of allowed agent
+  requests between user turns.
+</ParamField>
 
-<ResponseField name="refusal">
-  {`The turn ended because the agent refused to continue. The user prompt
-and everything that comes after it won't be included in the next
-prompt, so this should be reflected in the UI.`}
-</ResponseField>
+<ParamField name="refusal">
+  The turn ended because the agent refused to continue. The user prompt and
+  everything that comes after it won't be included in the next prompt, so this
+  should be reflected in the UI.
+</ParamField>
 
-<ResponseField name="cancelled">{`The turn was cancelled by the client via \`session/cancel\`.
+<ParamField name="cancelled">
+The turn was cancelled by the client via `session/cancel`.
 
-This stop reason MUST be returned when the client sends a \`session/cancel\`
+This stop reason MUST be returned when the client sends a `session/cancel`
 notification, even if the cancellation causes exceptions in underlying operations.
 Agents should catch these exceptions and return this semantically meaningful
-response to confirm successful cancellation.`}
+response to confirm successful cancellation.
 
-</ResponseField>
+</ParamField>
 
-## TextContent
+## <span class="font-mono">TextContent</span>
 
 Text provided to or from an LLM.
 
@@ -1328,7 +1217,7 @@ Text provided to or from an LLM.
 ></ResponseField>
 <ResponseField name="text" type={"string"} required></ResponseField>
 
-## TextResourceContents
+## <span class="font-mono">TextResourceContents</span>
 
 Text-based resource contents.
 
@@ -1340,7 +1229,7 @@ Text-based resource contents.
 <ResponseField name="text" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
 
-## ToolCall
+## <span class="font-mono">ToolCall</span>
 
 Represents a tool call that the language model has requested.
 
@@ -1407,7 +1296,7 @@ See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-ca
   Unique identifier for this tool call within the session.
 </ResponseField>
 
-## ToolCallContent
+## <span class="font-mono">ToolCallContent</span>
 
 Content produced by a tool call.
 
@@ -1418,21 +1307,19 @@ See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls
 
 **Type:** Union
 
-<ResponseField name="content">
-  {`Standard content block (text, images, resources).`}
-</ResponseField>
+<ParamField name="content">
+  Standard content block (text, images, resources).
+</ParamField>
 
-<ResponseField name="diff">
-  {`File modification shown as a diff.`}
-</ResponseField>
+<ParamField name="diff">File modification shown as a diff.</ParamField>
 
-## ToolCallId
+## <span class="font-mono">ToolCallId</span>
 
 Unique identifier for a tool call within a session.
 
 **Type:** `string`
 
-## ToolCallLocation
+## <span class="font-mono">ToolCallLocation</span>
 
 A file location being accessed or modified by a tool.
 
@@ -1455,7 +1342,7 @@ See protocol docs: [Following the Agent](https://agentclientprotocol.com/protoco
   The file path being accessed or modified.
 </ResponseField>
 
-## ToolCallStatus
+## <span class="font-mono">ToolCallStatus</span>
 
 Execution status of a tool call.
 
@@ -1465,24 +1352,18 @@ See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#
 
 **Type:** Union
 
-<ResponseField name="pending">
-  {`The tool call hasn't started running yet because the input is either
-streaming or we're awaiting approval.`}
-</ResponseField>
+<ParamField name="pending">
+  The tool call hasn't started running yet because the input is either streaming
+  or we're awaiting approval.
+</ParamField>
 
-<ResponseField name="in_progress">
-  {`The tool call is currently running.`}
-</ResponseField>
+<ParamField name="in_progress">The tool call is currently running.</ParamField>
 
-<ResponseField name="completed">
-  {`The tool call completed successfully.`}
-</ResponseField>
+<ParamField name="completed">The tool call completed successfully.</ParamField>
 
-<ResponseField name="failed">
-  {`The tool call failed with an error.`}
-</ResponseField>
+<ParamField name="failed">The tool call failed with an error.</ParamField>
 
-## ToolCallUpdate
+## <span class="font-mono">ToolCallUpdate</span>
 
 An update to an existing tool call.
 
@@ -1544,7 +1425,7 @@ See protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-call
   The ID of the tool call being updated.
 </ResponseField>
 
-## ToolKind
+## <span class="font-mono">ToolKind</span>
 
 Categories of tools that can be invoked.
 
@@ -1555,20 +1436,20 @@ See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-call
 
 **Type:** Union
 
-<ResponseField name="read">{`Reading files or data.`}</ResponseField>
+<ParamField name="read">Reading files or data.</ParamField>
 
-<ResponseField name="edit">{`Modifying files or content.`}</ResponseField>
+<ParamField name="edit">Modifying files or content.</ParamField>
 
-<ResponseField name="delete">{`Removing files or data.`}</ResponseField>
+<ParamField name="delete">Removing files or data.</ParamField>
 
-<ResponseField name="move">{`Moving or renaming files.`}</ResponseField>
+<ParamField name="move">Moving or renaming files.</ParamField>
 
-<ResponseField name="search">{`Searching for information.`}</ResponseField>
+<ParamField name="search">Searching for information.</ParamField>
 
-<ResponseField name="execute">{`Running commands or code.`}</ResponseField>
+<ParamField name="execute">Running commands or code.</ParamField>
 
-<ResponseField name="think">{`Internal reasoning or planning.`}</ResponseField>
+<ParamField name="think">Internal reasoning or planning.</ParamField>
 
-<ResponseField name="fetch">{`Retrieving external data.`}</ResponseField>
+<ParamField name="fetch">Retrieving external data.</ParamField>
 
-<ResponseField name="other">{`Other tool types (default).`}</ResponseField>
+<ParamField name="other">Other tool types (default).</ParamField>
