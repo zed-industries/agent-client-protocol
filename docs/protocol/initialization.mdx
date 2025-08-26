@@ -100,7 +100,7 @@ The Client **SHOULD** specify whether it supports the following capability:
 
 #### FileSystem
 
-The Client **MAY** expose its FileSystem abstraction to varying degrees:
+The Client **MAY** expose its [File System](./file-system) abstraction to varying degrees:
 
 <ParamField path="readTextFile" type="boolean">
   The `fs/read_text_file` method is available.
@@ -115,11 +115,11 @@ The Client **MAY** expose its FileSystem abstraction to varying degrees:
 The Agent **SHOULD** specify whether it supports the following capabilities:
 
 <ResponseField name="loadSession" type="boolean" post={["default: false"]}>
-  The `session/load` method is available.
+  The [`session/load`](./session-setup#loading-sessions) method is available.
 </ResponseField>
 
 <ResponseField name="promptCapabilities" type="PromptCapabilities Object">
-  Object indicating the different types of content that may be included in
+  Object indicating the different types of [content](./content) that may be included in
   `session/prompt` requests.
 </ResponseField>
 
@@ -127,7 +127,7 @@ The Agent **SHOULD** specify whether it supports the following capabilities:
 
 As a baseline, all Agents **MUST** support `ContentBlock::Text` and `ContentBlock::ResourceLink` in `session/prompt` requests.
 
-Optionally, they **MAY** support richer types of content by specifying the following capabilities:
+Optionally, they **MAY** support richer types of [content](./content) by specifying the following capabilities:
 
 <ResponseField name="image" type="boolean" post={["default: false"]}>
   The prompt may include `ContentBlock::Image`
@@ -138,7 +138,7 @@ Optionally, they **MAY** support richer types of content by specifying the follo
 </ResponseField>
 
 <ResponseField name="embeddedContext" type="boolean" post={["default: false"]}>
-  The prompt may include `ContentBlock::EmbeddedResource`
+  The prompt may include `ContentBlock::Resource`
 </ResponseField>
 
 ---

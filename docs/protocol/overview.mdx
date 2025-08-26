@@ -25,8 +25,9 @@ A typical conversation follows this pattern:
 </Step>
 
 <Step title="Session Setup">
-  Either: - Client → Agent: `session/new` to create a new session - Client →
-  Agent: `session/load` to resume an existing session if supported
+  Either:
+  - Client → Agent: `session/new` to create a new session
+  - Client → Agent: `session/load` to resume an existing session if supported
 </Step>
 
 <Step title="Prompt Turn">
@@ -45,27 +46,31 @@ Agents are programs that use generative AI to autonomously modify code. They typ
 ### Baseline Methods
 
 <ParamField path="initialize">
-  Establish connection and negotiate capabilities.
+  [Negotiate versions and exchange capabilities.](./initialization)
 </ParamField>
 
 <ParamField path="authenticate">
   Authenticate with the Agent (if required).
 </ParamField>
 
-<ParamField path="session/new">Create a new conversation session.</ParamField>
+<ParamField path="session/new">
+  [Create a new conversation session](./session-setup#creating-a-session).
+</ParamField>
 
-<ParamField path="session/prompt">Send user prompts to the Agent.</ParamField>
+<ParamField path="session/prompt">
+  [Send user prompts](./prompt-turn#1-user-message) to the Agent.
+</ParamField>
 
 ### Optional Methods
 
 <ParamField path="session/load">
-  Load an existing session (requires `loadSession` capability).
+  [Load an existing session](./session-setup#loading-sessions) (requires `loadSession` capability).
 </ParamField>
 
 ### Notifications
 
 <ParamField path="session/cancel">
-  Cancel ongoing operations (no response expected).
+  [Cancel ongoing operations](./prompt-turn#cancellation) (no response expected).
 </ParamField>
 
 ## Client
@@ -75,23 +80,23 @@ Clients provide the interface between users and agents. They are typically code 
 ### Baseline Methods
 
 <ParamField path="session/request_permission">
-  Request user authorization for tool calls.
+  [Request user authorization](./tool-calls#requesting-permission) for tool calls.
 </ParamField>
 
 ### Optional Methods
 
 <ParamField path="fs/read_text_file">
-  Read file contents (requires `fs.readTextFile` capability).
+  [Read file contents](./file-system#reading-files) (requires `fs.readTextFile` capability).
 </ParamField>
 
 <ParamField path="fs/write_text_file">
-  Write file contents (requires `fs.writeTextFile` capability).
+  [Write file contents](./file-system#writing-files) (requires `fs.writeTextFile` capability).
 </ParamField>
 
 ### Notifications
 
 <ParamField path="session/update">
-  Send progress updates during prompt processing (no response expected).
+  [Send progress updates](./prompt-turn#3-agent-reports-output) during prompt processing (no response expected).
 </ParamField>
 
 ## Error Handling
