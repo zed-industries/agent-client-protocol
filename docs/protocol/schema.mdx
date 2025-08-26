@@ -3,9 +3,44 @@ title: "Schema"
 description: "JSON Schema definitions for the Agent Client Protocol"
 ---
 
+<Info>
+  This documentation provides comprehensive schema definitions for all types
+  used in the Agent Client Protocol. Each type includes detailed property
+  descriptions, constraints, and usage examples.
+</Info>
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Message Types" icon="message" href="#message-types">
+    Core protocol message types for client-agent communication
+  </Card>
+  <Card
+    title="Initialization"
+    icon="rocket"
+    href="#initialization--capabilities"
+  >
+    Connection setup, capability negotiation, and authentication
+  </Card>
+  <Card title="Session Management" icon="users" href="#session-management">
+    Managing conversation sessions and prompts
+  </Card>
+  <Card title="Content & Resources" icon="file-text" href="#content--resources">
+    Content blocks and resources in messages
+  </Card>
+  <Card title="Tools & Permissions" icon="tool" href="#tools--permissions">
+    Tool execution and permission management
+  </Card>
+  <Card title="File System" icon="folder" href="#file-system-operations">
+    File system access and manipulation
+  </Card>
+</CardGroup>
+
 ## Message Types
 
-_Core protocol message types for communication between clients and agents._
+<Info>
+  Core protocol message types for communication between clients and agents.
+</Info>
 
 ### AgentNotification
 
@@ -18,11 +53,9 @@ Notifications do not expect a response.
 
 **Type:** Union
 
-**Variants:**
-
-- `SessionNotification` - SessionNotification
-
----
+| Variant               | Description         |
+| --------------------- | ------------------- |
+| `SessionNotification` | SessionNotification |
 
 ### AgentRequest
 
@@ -35,13 +68,11 @@ This enum encompasses all method calls from agent to client.
 
 **Type:** Union
 
-**Variants:**
-
-- `WriteTextFileRequest` - WriteTextFileRequest
-- `ReadTextFileRequest` - ReadTextFileRequest
-- `RequestPermissionRequest` - RequestPermissionRequest
-
----
+| Variant                    | Description              |
+| -------------------------- | ------------------------ |
+| `WriteTextFileRequest`     | WriteTextFileRequest     |
+| `ReadTextFileRequest`      | ReadTextFileRequest      |
+| `RequestPermissionRequest` | RequestPermissionRequest |
 
 ### AgentResponse
 
@@ -54,15 +85,13 @@ These are responses to the corresponding ClientRequest variants.
 
 **Type:** Union
 
-**Variants:**
-
-- `InitializeResponse` - InitializeResponse
-- `AuthenticateResponse` (empty response)
-- `NewSessionResponse` - NewSessionResponse
-- `LoadSessionResponse` (empty response)
-- `PromptResponse` - PromptResponse
-
----
+| Variant              | Description          |
+| -------------------- | -------------------- |
+| `InitializeResponse` | InitializeResponse   |
+| `null`               | AuthenticateResponse |
+| `NewSessionResponse` | NewSessionResponse   |
+| `null`               | LoadSessionResponse  |
+| `PromptResponse`     | PromptResponse       |
 
 ### ClientNotification
 
@@ -75,11 +104,9 @@ Notifications do not expect a response.
 
 **Type:** Union
 
-**Variants:**
-
-- `CancelNotification` - CancelNotification
-
----
+| Variant              | Description        |
+| -------------------- | ------------------ |
+| `CancelNotification` | CancelNotification |
 
 ### ClientRequest
 
@@ -92,15 +119,13 @@ This enum encompasses all method calls from client to agent.
 
 **Type:** Union
 
-**Variants:**
-
-- `InitializeRequest` - InitializeRequest
-- `AuthenticateRequest` - AuthenticateRequest
-- `NewSessionRequest` - NewSessionRequest
-- `LoadSessionRequest` - LoadSessionRequest
-- `PromptRequest` - PromptRequest
-
----
+| Variant               | Description         |
+| --------------------- | ------------------- |
+| `InitializeRequest`   | InitializeRequest   |
+| `AuthenticateRequest` | AuthenticateRequest |
+| `NewSessionRequest`   | NewSessionRequest   |
+| `LoadSessionRequest`  | LoadSessionRequest  |
+| `PromptRequest`       | PromptRequest       |
 
 ### ClientResponse
 
@@ -113,17 +138,19 @@ These are responses to the corresponding AgentRequest variants.
 
 **Type:** Union
 
-**Variants:**
-
-- `WriteTextFileResponse` (empty response)
-- `ReadTextFileResponse` - ReadTextFileResponse
-- `RequestPermissionResponse` - RequestPermissionResponse
+| Variant                     | Description               |
+| --------------------------- | ------------------------- |
+| `null`                      | WriteTextFileResponse     |
+| `ReadTextFileResponse`      | ReadTextFileResponse      |
+| `RequestPermissionResponse` | RequestPermissionResponse |
 
 ---
 
 ## Initialization & Capabilities
 
-_Types for connection setup, capability negotiation, and authentication._
+<Info>
+  Types for connection setup, capability negotiation, and authentication.
+</Info>
 
 ### AgentCapabilities
 
@@ -138,26 +165,37 @@ See: [https://agentclientprotocol.com/protocol/initialization#agent-capabilities
 
 **Properties:**
 
-| Property             | Type                 | Required | Description                                 |
-| -------------------- | -------------------- | -------- | ------------------------------------------- |
-| `loadSession`        | `boolean`            |          | Whether the agent supports `session/load`.  |
-| `promptCapabilities` | `PromptCapabilities` |          | Prompt capabilities supported by the agent. |
+<ResponseField name="loadSession" type="boolean" >
+  Whether the agent supports `session/load`.
 
-**Property Details:**
+    - Default: `false`
 
-#### `loadSession`
+</ResponseField>
+<ResponseField name="promptCapabilities" type="PromptCapabilities" >
+  Prompt capabilities supported by the agent.
 
-**Constraints:**
+  <Expandable title="properties">
+    <ResponseField name="audio" type="boolean" >
+      Agent supports [`ContentBlock::Audio`].
 
-- Default: `false`
+        - Default: `false`
+    </ResponseField>
+    <ResponseField name="embeddedContext" type="boolean" >
+      Agent supports embedded context in `session/prompt` requests.
 
-#### `promptCapabilities`
+When enabled, the Client is allowed to include [`ContentBlock::Resource`]
+in prompt requests for pieces of context that are referenced in the message.
 
-**Constraints:**
+        - Default: `false`
+    </ResponseField>
+    <ResponseField name="image" type="boolean" >
+      Agent supports [`ContentBlock::Image`].
 
-- Default: `{"audio":false,"embeddedContext":false,"image":false}`
+        - Default: `false`
+    </ResponseField>
 
----
+  </Expandable>
+</ResponseField>
 
 ### AuthMethod
 
@@ -167,19 +205,21 @@ Describes an available authentication method.
 
 **Properties:**
 
-| Property      | Type                 | Required | Description                                                                   |
-| ------------- | -------------------- | -------- | ----------------------------------------------------------------------------- |
-| `description` | `string &#124; null` |          | Optional description providing more details about this authentication method. |
-| `id`          | `AuthMethodId`       | ✓        | Unique identifier for this authentication method.                             |
-| `name`        | `string`             | ✓        | Human-readable name of the authentication method.                             |
-
----
+<ResponseField name="description" type="string | null">
+  Optional description providing more details about this authentication method.
+</ResponseField>
+<ResponseField name="id" type="AuthMethodId" required>
+  Unique identifier for this authentication method.
+</ResponseField>
+<ResponseField name="name" type="string" required>
+  Human-readable name of the authentication method.
+</ResponseField>
 
 ### AuthMethodId
 
 Unique identifier for an authentication method.
 
-## **Type:** `string`
+**Type:** `string`
 
 ### AuthenticateRequest
 
@@ -191,11 +231,10 @@ Specifies which authentication method to use.
 
 **Properties:**
 
-| Property   | Type           | Required | Description                                                                                                   |
-| ---------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| `methodId` | `AuthMethodId` | ✓        | The ID of the authentication method to use. Must be one of the methods advertised in the initialize response. |
-
----
+<ResponseField name="methodId" type="AuthMethodId" required>
+  The ID of the authentication method to use. Must be one of the methods
+  advertised in the initialize response.
+</ResponseField>
 
 ### ClientCapabilities
 
@@ -210,19 +249,24 @@ See: [https://agentclientprotocol.com/protocol/initialization#client-capabilitie
 
 **Properties:**
 
-| Property | Type                   | Required | Description                                                                                               |
-| -------- | ---------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| `fs`     | `FileSystemCapability` |          | File system capabilities supported by the client. Determines which file operations the agent can request. |
+<ResponseField name="fs" type="FileSystemCapability" >
+  File system capabilities supported by the client.
+Determines which file operations the agent can request.
 
-**Property Details:**
+  <Expandable title="properties">
+    <ResponseField name="readTextFile" type="boolean" >
+      Whether the Client supports `fs/read_text_file` requests.
 
-#### `fs`
+        - Default: `false`
+    </ResponseField>
+    <ResponseField name="writeTextFile" type="boolean" >
+      Whether the Client supports `fs/write_text_file` requests.
 
-**Constraints:**
+        - Default: `false`
+    </ResponseField>
 
-- Default: `{"readTextFile":false,"writeTextFile":false}`
-
----
+  </Expandable>
+</ResponseField>
 
 ### InitializeRequest
 
@@ -236,20 +280,33 @@ See: [https://agentclientprotocol.com/protocol/initialization](https://agentclie
 
 **Properties:**
 
-| Property             | Type                 | Required | Description                                          |
-| -------------------- | -------------------- | -------- | ---------------------------------------------------- |
-| `clientCapabilities` | `ClientCapabilities` |          | Capabilities supported by the client.                |
-| `protocolVersion`    | `ProtocolVersion`    | ✓        | The latest protocol version supported by the client. |
+<ResponseField name="clientCapabilities" type="ClientCapabilities" >
+  Capabilities supported by the client.
 
-**Property Details:**
+  <Expandable title="properties">
+    <ResponseField name="fs" type="FileSystemCapability" >
+      File system capabilities supported by the client.
+Determines which file operations the agent can request.
 
-#### `clientCapabilities`
+      <Expandable title="properties">
+        <ResponseField name="readTextFile" type="boolean" >
+          Whether the Client supports `fs/read_text_file` requests.
 
-**Constraints:**
+            - Default: `false`
+        </ResponseField>
+        <ResponseField name="writeTextFile" type="boolean" >
+          Whether the Client supports `fs/write_text_file` requests.
 
-- Default: `{"fs":{"readTextFile":false,"writeTextFile":false}}`
+            - Default: `false`
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
 
----
+  </Expandable>
+</ResponseField>
+<ResponseField name="protocolVersion" type="ProtocolVersion" required>
+  The latest protocol version supported by the client.
+</ResponseField>
 
 ### InitializeResponse
 
@@ -263,27 +320,55 @@ See: [https://agentclientprotocol.com/protocol/initialization](https://agentclie
 
 **Properties:**
 
-| Property            | Type                | Required | Description                                                                                                                                                                                   |
-| ------------------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agentCapabilities` | `AgentCapabilities` |          | Capabilities supported by the agent.                                                                                                                                                          |
-| `authMethods`       | `AuthMethod[]`      |          | Authentication methods supported by the agent.                                                                                                                                                |
-| `protocolVersion`   | `ProtocolVersion`   | ✓        | The protocol version the client specified if supported by the agent, or the latest protocol version supported by the agent. The client should disconnect, if it doesn't support this version. |
+<ResponseField name="agentCapabilities" type="AgentCapabilities" >
+  Capabilities supported by the agent.
 
-**Property Details:**
+  <Expandable title="properties">
+    <ResponseField name="loadSession" type="boolean" >
+      Whether the agent supports `session/load`.
 
-#### `agentCapabilities`
+        - Default: `false`
+    </ResponseField>
+    <ResponseField name="promptCapabilities" type="PromptCapabilities" >
+      Prompt capabilities supported by the agent.
 
-**Constraints:**
+      <Expandable title="properties">
+        <ResponseField name="audio" type="boolean" >
+          Agent supports [`ContentBlock::Audio`].
 
-- Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
+            - Default: `false`
+        </ResponseField>
+        <ResponseField name="embeddedContext" type="boolean" >
+          Agent supports embedded context in `session/prompt` requests.
 
-#### `authMethods`
+When enabled, the Client is allowed to include [`ContentBlock::Resource`]
+in prompt requests for pieces of context that are referenced in the message.
 
-**Constraints:**
+            - Default: `false`
+        </ResponseField>
+        <ResponseField name="image" type="boolean" >
+          Agent supports [`ContentBlock::Image`].
 
-- Default: `[]`
+            - Default: `false`
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
 
----
+  </Expandable>
+</ResponseField>
+<ResponseField name="authMethods" type="AuthMethod[]" >
+  Authentication methods supported by the agent.
+
+    - Default: `[]`
+
+</ResponseField>
+<ResponseField name="protocolVersion" type="ProtocolVersion" required>
+  The protocol version the client specified if supported by the agent,
+or the latest protocol version supported by the agent.
+
+The client should disconnect, if it doesn't support this version.
+
+</ResponseField>
 
 ### PromptCapabilities
 
@@ -304,33 +389,27 @@ See: [https://agentclientprotocol.com/protocol/initialization#prompt-capabilitie
 
 **Properties:**
 
-| Property          | Type      | Required | Description                                                                                                                                                                                                          |
-| ----------------- | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `audio`           | `boolean` |          | Agent supports [`ContentBlock::Audio`].                                                                                                                                                                              |
-| `embeddedContext` | `boolean` |          | Agent supports embedded context in `session/prompt` requests. When enabled, the Client is allowed to include [`ContentBlock::Resource`] in prompt requests for pieces of context that are referenced in the message. |
-| `image`           | `boolean` |          | Agent supports [`ContentBlock::Image`].                                                                                                                                                                              |
+<ResponseField name="audio" type="boolean" >
+  Agent supports [`ContentBlock::Audio`].
 
-**Property Details:**
+    - Default: `false`
 
-#### `audio`
+</ResponseField>
+<ResponseField name="embeddedContext" type="boolean" >
+  Agent supports embedded context in `session/prompt` requests.
 
-**Constraints:**
+When enabled, the Client is allowed to include [`ContentBlock::Resource`]
+in prompt requests for pieces of context that are referenced in the message.
 
-- Default: `false`
+    - Default: `false`
 
-#### `embeddedContext`
+</ResponseField>
+<ResponseField name="image" type="boolean" >
+  Agent supports [`ContentBlock::Image`].
 
-**Constraints:**
+    - Default: `false`
 
-- Default: `false`
-
-#### `image`
-
-**Constraints:**
-
-- Default: `false`
-
----
+</ResponseField>
 
 ### ProtocolVersion
 
@@ -341,16 +420,16 @@ Non-breaking changes should be introduced via capabilities.
 
 **Type:** `integer (uint16)`
 
-**Constraints:**
-
-- Minimum: `0`
-- Maximum: `65535`
+| Constraint | Value   |
+| ---------- | ------- |
+| Minimum    | `0`     |
+| Maximum    | `65535` |
 
 ---
 
 ## Session Management
 
-_Types for managing conversation sessions and prompt handling._
+<Info>Types for managing conversation sessions and prompt handling.</Info>
 
 ### CancelNotification
 
@@ -362,11 +441,9 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https:/
 
 **Properties:**
 
-| Property    | Type        | Required | Description                                     |
-| ----------- | ----------- | -------- | ----------------------------------------------- |
-| `sessionId` | `SessionId` | ✓        | The ID of the session to cancel operations for. |
-
----
+<ResponseField name="sessionId" type="SessionId" required>
+  The ID of the session to cancel operations for.
+</ResponseField>
 
 ### LoadSessionRequest
 
@@ -380,13 +457,15 @@ See: [https://agentclientprotocol.com/protocol/session-setup#loading-sessions](h
 
 **Properties:**
 
-| Property     | Type          | Required | Description                                         |
-| ------------ | ------------- | -------- | --------------------------------------------------- |
-| `cwd`        | `string`      | ✓        | The working directory for this session.             |
-| `mcpServers` | `McpServer[]` | ✓        | List of MCP servers to connect to for this session. |
-| `sessionId`  | `SessionId`   | ✓        | The ID of the session to load.                      |
-
----
+<ResponseField name="cwd" type="string" required>
+  The working directory for this session.
+</ResponseField>
+<ResponseField name="mcpServers" type="McpServer[]" required>
+  List of MCP servers to connect to for this session.
+</ResponseField>
+<ResponseField name="sessionId" type="SessionId" required>
+  The ID of the session to load.
+</ResponseField>
 
 ### NewSessionRequest
 
@@ -398,12 +477,14 @@ See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session]
 
 **Properties:**
 
-| Property     | Type          | Required | Description                                                                                                                      |
-| ------------ | ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `cwd`        | `string`      | ✓        | The working directory for this session. Must be an absolute path that serves as the context for file operations.                 |
-| `mcpServers` | `McpServer[]` | ✓        | List of MCP (Model Context Protocol) servers the agent should connect to. These provide tools and context to the language model. |
-
----
+<ResponseField name="cwd" type="string" required>
+  The working directory for this session. Must be an absolute path that serves
+  as the context for file operations.
+</ResponseField>
+<ResponseField name="mcpServers" type="McpServer[]" required>
+  List of MCP (Model Context Protocol) servers the agent should connect to.
+  These provide tools and context to the language model.
+</ResponseField>
 
 ### NewSessionResponse
 
@@ -415,11 +496,10 @@ See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session]
 
 **Properties:**
 
-| Property    | Type        | Required | Description                                                                                       |
-| ----------- | ----------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `sessionId` | `SessionId` | ✓        | Unique identifier for the created session. Used in all subsequent requests for this conversation. |
-
----
+<ResponseField name="sessionId" type="SessionId" required>
+  Unique identifier for the created session. Used in all subsequent requests for
+  this conversation.
+</ResponseField>
 
 ### PromptRequest
 
@@ -433,12 +513,27 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#1-user-message](https
 
 **Properties:**
 
-| Property    | Type             | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prompt`    | `ContentBlock[]` | ✓        | The blocks of content that compose the user's message. As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`], while other variants are optionally enabled via [`PromptCapabilities`]. The Client MUST adapt its interface according to [`PromptCapabilities`]. ## Context The client MAY include referenced pieces of context as either [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`]. When available, [`ContentBlock::Resource`] is preferred as it avoids extra round-trips and allows the message to include pieces of context from sources the agent may not have access to. |
-| `sessionId` | `SessionId`      | ✓        | The ID of the session to send this user message to                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+<ResponseField name="prompt" type="ContentBlock[]" required>
+  The blocks of content that compose the user's message.
 
----
+As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],
+while other variants are optionally enabled via [`PromptCapabilities`].
+
+The Client MUST adapt its interface according to [`PromptCapabilities`].
+
+## Context
+
+The client MAY include referenced pieces of context as either
+[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].
+
+When available, [`ContentBlock::Resource`] is preferred
+as it avoids extra round-trips and allows the message to include
+pieces of context from sources the agent may not have access to.
+
+</ResponseField>
+<ResponseField name="sessionId" type="SessionId" required>
+  The ID of the session to send this user message to
+</ResponseField>
 
 ### PromptResponse
 
@@ -450,11 +545,9 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completio
 
 **Properties:**
 
-| Property     | Type         | Required | Description                                          |
-| ------------ | ------------ | -------- | ---------------------------------------------------- |
-| `stopReason` | `StopReason` | ✓        | Indicates why the agent stopped processing the turn. |
-
----
+<ResponseField name="stopReason" type="StopReason" required>
+  Indicates why the agent stopped processing the turn.
+</ResponseField>
 
 ### SessionId
 
@@ -463,7 +556,7 @@ A unique identifier for a conversation session between a client and agent.
 Sessions maintain their own context, conversation history, and state,
 allowing multiple independent interactions with the same agent.
 
-# Example
+\# Example
 
 ```
 use agent_client_protocol::SessionId;
@@ -474,7 +567,7 @@ let session_id = SessionId(Arc::from("sess_abc123def456"));
 
 See: [https://agentclientprotocol.com/protocol/session-setup#session-id](https://agentclientprotocol.com/protocol/session-setup#session-id)
 
-## **Type:** `string`
+**Type:** `string`
 
 ### SessionNotification
 
@@ -488,12 +581,12 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-outpu
 
 **Properties:**
 
-| Property    | Type            | Required | Description                                    |
-| ----------- | --------------- | -------- | ---------------------------------------------- |
-| `sessionId` | `SessionId`     | ✓        | The ID of the session this update pertains to. |
-| `update`    | `SessionUpdate` | ✓        | The actual update content.                     |
-
----
+<ResponseField name="sessionId" type="SessionId" required>
+  The ID of the session this update pertains to.
+</ResponseField>
+<ResponseField name="update" type="SessionUpdate" required>
+  The actual update content.
+</ResponseField>
 
 ### SessionUpdate
 
@@ -505,17 +598,15 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-outpu
 
 **Type:** Union
 
-**Variants:**
-
-- `user_message_chunk` variant - A chunk of the user's message being streamed.
-- `agent_message_chunk` variant - A chunk of the agent's response being streamed.
-- `agent_thought_chunk` variant - A chunk of the agent's internal reasoning being streamed.
-- `tool_call` variant - Notification that a new tool call has been initiated.
-- `tool_call_update` variant - Update on the status or results of a tool call.
-- `plan` variant - The agent's execution plan for complex tasks.
-  See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
-
----
+| Variant                                                                                                         | Description                                               |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `user_message_chunk` variant                                                                                    | A chunk of the user's message being streamed.             |
+| `agent_message_chunk` variant                                                                                   | A chunk of the agent's response being streamed.           |
+| `agent_thought_chunk` variant                                                                                   | A chunk of the agent's internal reasoning being streamed. |
+| `tool_call` variant                                                                                             | Notification that a new tool call has been initiated.     |
+| `tool_call_update` variant                                                                                      | Update on the status or results of a tool call.           |
+| `plan` variant                                                                                                  | The agent's execution plan for complex tasks.             |
+| See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan) |
 
 ### StopReason
 
@@ -525,27 +616,28 @@ See: [https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons](https:/
 
 **Type:** Union
 
-**Variants:**
+| Variant                            | Description                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `"end_turn"`                       | The turn ended successfully.                                           |
+| `"max_tokens"`                     | The turn ended because the agent reached the maximum number of tokens. |
+| `"max_turn_requests"`              | The turn ended because the agent reached the maximum number of allowed |
+| agent requests between user turns. |
+| `"refusal"`                        | The turn ended because the agent refused to continue. The user prompt  |
 
-- `"end_turn"` - The turn ended successfully.
-- `"max_tokens"` - The turn ended because the agent reached the maximum number of tokens.
-- `"max_turn_requests"` - The turn ended because the agent reached the maximum number of allowed
-  agent requests between user turns.
-- `"refusal"` - The turn ended because the agent refused to continue. The user prompt
-  and everything that comes after it won't be included in the next
-  prompt, so this should be reflected in the UI.
-- `"cancelled"` - The turn was cancelled by the client via `session/cancel`.
+and everything that comes after it won't be included in the next
+prompt, so this should be reflected in the UI. |
+| `"cancelled"` | The turn was cancelled by the client via `session/cancel`.
 
 This stop reason MUST be returned when the client sends a `session/cancel`
 notification, even if the cancellation causes exceptions in underlying operations.
 Agents should catch these exceptions and return this semantically meaningful
-response to confirm successful cancellation.
+response to confirm successful cancellation. |
 
 ---
 
 ## Content & Resources
 
-_Content blocks and resources that can be included in messages._
+<Info>Content blocks and resources that can be included in messages.</Info>
 
 ### Annotations
 
@@ -555,13 +647,9 @@ Optional annotations for the client. The client can use annotations to inform ho
 
 **Properties:**
 
-| Property       | Type                 | Required | Description |
-| -------------- | -------------------- | -------- | ----------- |
-| `audience`     | `array &#124; null`  |          |             |
-| `lastModified` | `string &#124; null` |          |             |
-| `priority`     | `number &#124; null` |          |             |
-
----
+<ResponseField name="audience" type="array | null"></ResponseField>
+<ResponseField name="lastModified" type="string | null"></ResponseField>
+<ResponseField name="priority" type="number | null"></ResponseField>
 
 ### AudioContent
 
@@ -571,17 +659,9 @@ Audio provided to or from an LLM.
 
 **Properties:**
 
-| Property      | Type                      | Required | Description |
-| ------------- | ------------------------- | -------- | ----------- |
-| `annotations` | `Annotations &#124; null` |          |             |
-| `data`        | `string`                  | ✓        |             |
-| `mimeType`    | `string`                  | ✓        |             |
-
-**Property Details:**
-
-#### `annotations`
-
----
+<ResponseField name="annotations" type="Annotations | null"></ResponseField>
+<ResponseField name="data" type="string" required></ResponseField>
+<ResponseField name="mimeType" type="string" required></ResponseField>
 
 ### BlobResourceContents
 
@@ -591,13 +671,9 @@ Binary resource contents.
 
 **Properties:**
 
-| Property   | Type                 | Required | Description |
-| ---------- | -------------------- | -------- | ----------- |
-| `blob`     | `string`             | ✓        |             |
-| `mimeType` | `string &#124; null` |          |             |
-| `uri`      | `string`             | ✓        |             |
-
----
+<ResponseField name="blob" type="string" required></ResponseField>
+<ResponseField name="mimeType" type="string | null"></ResponseField>
+<ResponseField name="uri" type="string" required></ResponseField>
 
 ### ContentBlock
 
@@ -619,29 +695,25 @@ See: [https://agentclientprotocol.com/protocol/content](https://agentclientproto
 
 **Type:** Union
 
-**Variants:**
+| Variant        | Description        |
+| -------------- | ------------------ |
+| `text` variant | Plain text content |
 
-- `text` variant - Plain text content
+All agents MUST support text content blocks in prompts. |
+| `image` variant | Images for visual context or analysis.
 
-All agents MUST support text content blocks in prompts.
+Requires the `image` prompt capability when included in prompts. |
+| `audio` variant | Audio data for transcription or analysis.
 
-- `image` variant - Images for visual context or analysis.
+Requires the `audio` prompt capability when included in prompts. |
+| `resource_link` variant | References to resources that the agent can access.
 
-Requires the `image` prompt capability when included in prompts.
-
-- `audio` variant - Audio data for transcription or analysis.
-
-Requires the `audio` prompt capability when included in prompts.
-
-- `resource_link` variant - References to resources that the agent can access.
-
-All agents MUST support resource links in prompts.
-
-- `resource` variant - Complete resource contents embedded directly in the message.
+All agents MUST support resource links in prompts. |
+| `resource` variant | Complete resource contents embedded directly in the message.
 
 Preferred for including context as it avoids extra round-trips.
 
-## Requires the `embeddedContext` prompt capability when included in prompts.
+Requires the `embeddedContext` prompt capability when included in prompts. |
 
 ### EmbeddedResource
 
@@ -651,16 +723,12 @@ The contents of a resource, embedded into a prompt or tool call result.
 
 **Properties:**
 
-| Property      | Type                       | Required | Description |
-| ------------- | -------------------------- | -------- | ----------- |
-| `annotations` | `Annotations &#124; null`  |          |             |
-| `resource`    | `EmbeddedResourceResource` | ✓        |             |
-
-**Property Details:**
-
-#### `annotations`
-
----
+<ResponseField name="annotations" type="Annotations | null"></ResponseField>
+<ResponseField
+  name="resource"
+  type="EmbeddedResourceResource"
+  required
+></ResponseField>
 
 ### EmbeddedResourceResource
 
@@ -668,12 +736,10 @@ Resource content that can be embedded in a message.
 
 **Type:** Union
 
-**Variants:**
-
-- `TextResourceContents` - TextResourceContents
-- `BlobResourceContents` - BlobResourceContents
-
----
+| Variant                | Description          |
+| ---------------------- | -------------------- |
+| `TextResourceContents` | TextResourceContents |
+| `BlobResourceContents` | BlobResourceContents |
 
 ### ImageContent
 
@@ -683,18 +749,10 @@ An image provided to or from an LLM.
 
 **Properties:**
 
-| Property      | Type                      | Required | Description |
-| ------------- | ------------------------- | -------- | ----------- |
-| `annotations` | `Annotations &#124; null` |          |             |
-| `data`        | `string`                  | ✓        |             |
-| `mimeType`    | `string`                  | ✓        |             |
-| `uri`         | `string &#124; null`      |          |             |
-
-**Property Details:**
-
-#### `annotations`
-
----
+<ResponseField name="annotations" type="Annotations | null"></ResponseField>
+<ResponseField name="data" type="string" required></ResponseField>
+<ResponseField name="mimeType" type="string" required></ResponseField>
+<ResponseField name="uri" type="string | null"></ResponseField>
 
 ### ResourceLink
 
@@ -704,21 +762,13 @@ A resource that the server is capable of reading, included in a prompt or tool c
 
 **Properties:**
 
-| Property      | Type                      | Required | Description |
-| ------------- | ------------------------- | -------- | ----------- |
-| `annotations` | `Annotations &#124; null` |          |             |
-| `description` | `string &#124; null`      |          |             |
-| `mimeType`    | `string &#124; null`      |          |             |
-| `name`        | `string`                  | ✓        |             |
-| `size`        | `integer &#124; null`     |          |             |
-| `title`       | `string &#124; null`      |          |             |
-| `uri`         | `string`                  | ✓        |             |
-
-**Property Details:**
-
-#### `annotations`
-
----
+<ResponseField name="annotations" type="Annotations | null"></ResponseField>
+<ResponseField name="description" type="string | null"></ResponseField>
+<ResponseField name="mimeType" type="string | null"></ResponseField>
+<ResponseField name="name" type="string" required></ResponseField>
+<ResponseField name="size" type="integer | null"></ResponseField>
+<ResponseField name="title" type="string | null"></ResponseField>
+<ResponseField name="uri" type="string" required></ResponseField>
 
 ### Role
 
@@ -726,12 +776,10 @@ The sender or recipient of messages and data in a conversation.
 
 **Type:** Enumeration
 
-**Allowed Values:**
-
-- `"assistant"`
-- `"user"`
-
----
+| Value         |
+| ------------- |
+| `"assistant"` |
+| `"user"`      |
 
 ### TextContent
 
@@ -741,16 +789,8 @@ Text provided to or from an LLM.
 
 **Properties:**
 
-| Property      | Type                      | Required | Description |
-| ------------- | ------------------------- | -------- | ----------- |
-| `annotations` | `Annotations &#124; null` |          |             |
-| `text`        | `string`                  | ✓        |             |
-
-**Property Details:**
-
-#### `annotations`
-
----
+<ResponseField name="annotations" type="Annotations | null"></ResponseField>
+<ResponseField name="text" type="string" required></ResponseField>
 
 ### TextResourceContents
 
@@ -760,17 +800,15 @@ Text-based resource contents.
 
 **Properties:**
 
-| Property   | Type                 | Required | Description |
-| ---------- | -------------------- | -------- | ----------- |
-| `mimeType` | `string &#124; null` |          |             |
-| `text`     | `string`             | ✓        |             |
-| `uri`      | `string`             | ✓        |             |
+<ResponseField name="mimeType" type="string | null"></ResponseField>
+<ResponseField name="text" type="string" required></ResponseField>
+<ResponseField name="uri" type="string" required></ResponseField>
 
 ---
 
 ## Tools & Permissions
 
-_Tool execution, permissions, and planning capabilities._
+<Info>Tool execution, permissions, and planning capabilities.</Info>
 
 ### PermissionOption
 
@@ -780,19 +818,21 @@ An option presented to the user when requesting permission.
 
 **Properties:**
 
-| Property   | Type                   | Required | Description                                      |
-| ---------- | ---------------------- | -------- | ------------------------------------------------ |
-| `kind`     | `PermissionOptionKind` | ✓        | Hint about the nature of this permission option. |
-| `name`     | `string`               | ✓        | Human-readable label to display to the user.     |
-| `optionId` | `PermissionOptionId`   | ✓        | Unique identifier for this permission option.    |
-
----
+<ResponseField name="kind" type="PermissionOptionKind" required>
+  Hint about the nature of this permission option.
+</ResponseField>
+<ResponseField name="name" type="string" required>
+  Human-readable label to display to the user.
+</ResponseField>
+<ResponseField name="optionId" type="PermissionOptionId" required>
+  Unique identifier for this permission option.
+</ResponseField>
 
 ### PermissionOptionId
 
 Unique identifier for a permission option.
 
-## **Type:** `string`
+**Type:** `string`
 
 ### PermissionOptionKind
 
@@ -802,14 +842,12 @@ Helps clients choose appropriate icons and UI treatment.
 
 **Type:** Union
 
-**Variants:**
-
-- `"allow_once"` - Allow this operation only this time.
-- `"allow_always"` - Allow this operation and remember the choice.
-- `"reject_once"` - Reject this operation only this time.
-- `"reject_always"` - Reject this operation and remember the choice.
-
----
+| Variant           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `"allow_once"`    | Allow this operation only this time.           |
+| `"allow_always"`  | Allow this operation and remember the choice.  |
+| `"reject_once"`   | Reject this operation only this time.          |
+| `"reject_always"` | Reject this operation and remember the choice. |
 
 ### Plan
 
@@ -825,11 +863,13 @@ See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientpr
 
 **Properties:**
 
-| Property  | Type          | Required | Description                                                                                                                                                                                     |
-| --------- | ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `entries` | `PlanEntry[]` | ✓        | The list of tasks to be accomplished. When updating a plan, the agent must send a complete list of all entries with their current status. The client replaces the entire plan with each update. |
+<ResponseField name="entries" type="PlanEntry[]" required>
+  The list of tasks to be accomplished.
 
----
+When updating a plan, the agent must send a complete list of all entries
+with their current status. The client replaces the entire plan with each update.
+
+</ResponseField>
 
 ### PlanEntry
 
@@ -843,13 +883,16 @@ See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://
 
 **Properties:**
 
-| Property   | Type                | Required | Description                                                                                               |
-| ---------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| `content`  | `string`            | ✓        | Human-readable description of what this task aims to accomplish.                                          |
-| `priority` | `PlanEntryPriority` | ✓        | The relative importance of this task. Used to indicate which tasks are most critical to the overall goal. |
-| `status`   | `PlanEntryStatus`   | ✓        | Current execution status of this task.                                                                    |
-
----
+<ResponseField name="content" type="string" required>
+  Human-readable description of what this task aims to accomplish.
+</ResponseField>
+<ResponseField name="priority" type="PlanEntryPriority" required>
+  The relative importance of this task. Used to indicate which tasks are most
+  critical to the overall goal.
+</ResponseField>
+<ResponseField name="status" type="PlanEntryStatus" required>
+  Current execution status of this task.
+</ResponseField>
 
 ### PlanEntryPriority
 
@@ -861,13 +904,11 @@ See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://
 
 **Type:** Union
 
-**Variants:**
-
-- `"high"` - High priority task - critical to the overall goal.
-- `"medium"` - Medium priority task - important but not critical.
-- `"low"` - Low priority task - nice to have but not essential.
-
----
+| Variant    | Description                                         |
+| ---------- | --------------------------------------------------- |
+| `"high"`   | High priority task - critical to the overall goal.  |
+| `"medium"` | Medium priority task - important but not critical.  |
+| `"low"`    | Low priority task - nice to have but not essential. |
 
 ### PlanEntryStatus
 
@@ -878,13 +919,11 @@ See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://
 
 **Type:** Union
 
-**Variants:**
-
-- `"pending"` - The task has not started yet.
-- `"in_progress"` - The task is currently being worked on.
-- `"completed"` - The task has been successfully completed.
-
----
+| Variant         | Description                               |
+| --------------- | ----------------------------------------- |
+| `"pending"`     | The task has not started yet.             |
+| `"in_progress"` | The task is currently being worked on.    |
+| `"completed"`   | The task has been successfully completed. |
 
 ### RequestPermissionOutcome
 
@@ -892,19 +931,16 @@ The outcome of a permission request.
 
 **Type:** Union
 
-**Variants:**
-
-- `cancelled` variant - The prompt turn was cancelled before the user responded.
+| Variant             | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `cancelled` variant | The prompt turn was cancelled before the user responded. |
 
 When a client sends a `session/cancel` notification to cancel an ongoing
 prompt turn, it MUST respond to all pending `session/request_permission`
 requests with this `Cancelled` outcome.
 
-See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
-
-- `selected` variant - The user selected one of the provided options.
-
----
+See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation) |
+| `selected` variant | The user selected one of the provided options. |
 
 ### RequestPermissionRequest
 
@@ -918,13 +954,42 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission]
 
 **Properties:**
 
-| Property    | Type                 | Required | Description                                               |
-| ----------- | -------------------- | -------- | --------------------------------------------------------- |
-| `options`   | `PermissionOption[]` | ✓        | Available permission options for the user to choose from. |
-| `sessionId` | `SessionId`          | ✓        | The session ID for this request.                          |
-| `toolCall`  | `ToolCallUpdate`     | ✓        | Details about the tool call requiring permission.         |
+<ResponseField name="options" type="PermissionOption[]" required>
+  Available permission options for the user to choose from.
+</ResponseField>
+<ResponseField name="sessionId" type="SessionId" required>
+  The session ID for this request.
+</ResponseField>
+<ResponseField name="toolCall" type="ToolCallUpdate" required>
+  Details about the tool call requiring permission.
 
----
+  <Expandable title="properties">
+    <ResponseField name="content" type="array | null" >
+      Replace the content collection.
+    </ResponseField>
+    <ResponseField name="kind" type="ToolKind | null" >
+      Update the tool kind.
+    </ResponseField>
+    <ResponseField name="locations" type="array | null" >
+      Replace the locations collection.
+    </ResponseField>
+    <ResponseField name="rawInput" type="object" >
+      Update the raw input.
+    </ResponseField>
+    <ResponseField name="rawOutput" type="object" >
+      Update the raw output.
+    </ResponseField>
+    <ResponseField name="status" type="ToolCallStatus | null" >
+      Update the execution status.
+    </ResponseField>
+    <ResponseField name="title" type="string | null" >
+      Update the human-readable title.
+    </ResponseField>
+    <ResponseField name="toolCallId" type="ToolCallId" required>
+      The ID of the tool call being updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
 
 ### RequestPermissionResponse
 
@@ -934,11 +999,9 @@ Response to a permission request.
 
 **Properties:**
 
-| Property  | Type                       | Required | Description                                    |
-| --------- | -------------------------- | -------- | ---------------------------------------------- |
-| `outcome` | `RequestPermissionOutcome` | ✓        | The user's decision on the permission request. |
-
----
+<ResponseField name="outcome" type="RequestPermissionOutcome" required>
+  The user's decision on the permission request.
+</ResponseField>
 
 ### ToolCall
 
@@ -953,18 +1016,32 @@ See: [https://agentclientprotocol.com/protocol/tool-calls](https://agentclientpr
 
 **Properties:**
 
-| Property     | Type                 | Required | Description                                                                                  |
-| ------------ | -------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `content`    | `ToolCallContent[]`  |          | Content produced by the tool call.                                                           |
-| `kind`       | `ToolKind`           |          | The category of tool being invoked. Helps clients choose appropriate icons and UI treatment. |
-| `locations`  | `ToolCallLocation[]` |          | File locations affected by this tool call. Enables "follow-along" features in clients.       |
-| `rawInput`   | `object`             |          | Raw input parameters sent to the tool.                                                       |
-| `rawOutput`  | `object`             |          | Raw output returned by the tool.                                                             |
-| `status`     | `ToolCallStatus`     |          | Current execution status of the tool call.                                                   |
-| `title`      | `string`             | ✓        | Human-readable title describing what the tool is doing.                                      |
-| `toolCallId` | `ToolCallId`         | ✓        | Unique identifier for this tool call within the session.                                     |
-
----
+<ResponseField name="content" type="ToolCallContent[]">
+  Content produced by the tool call.
+</ResponseField>
+<ResponseField name="kind" type="ToolKind">
+  The category of tool being invoked. Helps clients choose appropriate icons and
+  UI treatment.
+</ResponseField>
+<ResponseField name="locations" type="ToolCallLocation[]">
+  File locations affected by this tool call. Enables "follow-along" features in
+  clients.
+</ResponseField>
+<ResponseField name="rawInput" type="object">
+  Raw input parameters sent to the tool.
+</ResponseField>
+<ResponseField name="rawOutput" type="object">
+  Raw output returned by the tool.
+</ResponseField>
+<ResponseField name="status" type="ToolCallStatus">
+  Current execution status of the tool call.
+</ResponseField>
+<ResponseField name="title" type="string" required>
+  Human-readable title describing what the tool is doing.
+</ResponseField>
+<ResponseField name="toolCallId" type="ToolCallId" required>
+  Unique identifier for this tool call within the session.
+</ResponseField>
 
 ### ToolCallContent
 
@@ -977,18 +1054,16 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agent
 
 **Type:** Union
 
-**Variants:**
-
-- `content` variant - Standard content block (text, images, resources).
-- `diff` variant - File modification shown as a diff.
-
----
+| Variant           | Description                                       |
+| ----------------- | ------------------------------------------------- |
+| `content` variant | Standard content block (text, images, resources). |
+| `diff` variant    | File modification shown as a diff.                |
 
 ### ToolCallId
 
 Unique identifier for a tool call within a session.
 
-## **Type:** `string`
+**Type:** `string`
 
 ### ToolCallLocation
 
@@ -1003,20 +1078,15 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#following-the-agent](h
 
 **Properties:**
 
-| Property | Type                  | Required | Description                               |
-| -------- | --------------------- | -------- | ----------------------------------------- |
-| `line`   | `integer &#124; null` |          | Optional line number within the file.     |
-| `path`   | `string`              | ✓        | The file path being accessed or modified. |
+<ResponseField name="line" type="integer | null" >
+  Optional line number within the file.
 
-**Property Details:**
+    - Minimum: `0`
 
-#### `line`
-
-**Constraints:**
-
-- Minimum: `0`
-
----
+</ResponseField>
+<ResponseField name="path" type="string" required>
+  The file path being accessed or modified.
+</ResponseField>
 
 ### ToolCallStatus
 
@@ -1028,15 +1098,13 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#status](https://agentc
 
 **Type:** Union
 
-**Variants:**
-
-- `"pending"` - The tool call hasn't started running yet because the input is either
-  streaming or we're awaiting approval.
-- `"in_progress"` - The tool call is currently running.
-- `"completed"` - The tool call completed successfully.
-- `"failed"` - The tool call failed with an error.
-
----
+| Variant                               | Description                                                          |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| `"pending"`                           | The tool call hasn't started running yet because the input is either |
+| streaming or we're awaiting approval. |
+| `"in_progress"`                       | The tool call is currently running.                                  |
+| `"completed"`                         | The tool call completed successfully.                                |
+| `"failed"`                            | The tool call failed with an error.                                  |
 
 ### ToolCallUpdate
 
@@ -1051,24 +1119,30 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#updating](https://agen
 
 **Properties:**
 
-| Property     | Type                         | Required | Description                            |
-| ------------ | ---------------------------- | -------- | -------------------------------------- |
-| `content`    | `array &#124; null`          |          | Replace the content collection.        |
-| `kind`       | `ToolKind &#124; null`       |          | Update the tool kind.                  |
-| `locations`  | `array &#124; null`          |          | Replace the locations collection.      |
-| `rawInput`   | `object`                     |          | Update the raw input.                  |
-| `rawOutput`  | `object`                     |          | Update the raw output.                 |
-| `status`     | `ToolCallStatus &#124; null` |          | Update the execution status.           |
-| `title`      | `string &#124; null`         |          | Update the human-readable title.       |
-| `toolCallId` | `ToolCallId`                 | ✓        | The ID of the tool call being updated. |
-
-**Property Details:**
-
-#### `kind`
-
-#### `status`
-
----
+<ResponseField name="content" type="array | null">
+  Replace the content collection.
+</ResponseField>
+<ResponseField name="kind" type="ToolKind | null">
+  Update the tool kind.
+</ResponseField>
+<ResponseField name="locations" type="array | null">
+  Replace the locations collection.
+</ResponseField>
+<ResponseField name="rawInput" type="object">
+  Update the raw input.
+</ResponseField>
+<ResponseField name="rawOutput" type="object">
+  Update the raw output.
+</ResponseField>
+<ResponseField name="status" type="ToolCallStatus | null">
+  Update the execution status.
+</ResponseField>
+<ResponseField name="title" type="string | null">
+  Update the human-readable title.
+</ResponseField>
+<ResponseField name="toolCallId" type="ToolCallId" required>
+  The ID of the tool call being updated.
+</ResponseField>
 
 ### ToolKind
 
@@ -1081,23 +1155,23 @@ See: [https://agentclientprotocol.com/protocol/tool-calls#creating](https://agen
 
 **Type:** Union
 
-**Variants:**
-
-- `"read"` - Reading files or data.
-- `"edit"` - Modifying files or content.
-- `"delete"` - Removing files or data.
-- `"move"` - Moving or renaming files.
-- `"search"` - Searching for information.
-- `"execute"` - Running commands or code.
-- `"think"` - Internal reasoning or planning.
-- `"fetch"` - Retrieving external data.
-- `"other"` - Other tool types (default).
+| Variant     | Description                     |
+| ----------- | ------------------------------- |
+| `"read"`    | Reading files or data.          |
+| `"edit"`    | Modifying files or content.     |
+| `"delete"`  | Removing files or data.         |
+| `"move"`    | Moving or renaming files.       |
+| `"search"`  | Searching for information.      |
+| `"execute"` | Running commands or code.       |
+| `"think"`   | Internal reasoning or planning. |
+| `"fetch"`   | Retrieving external data.       |
+| `"other"`   | Other tool types (default).     |
 
 ---
 
 ## File System Operations
 
-_File system access and manipulation operations._
+<Info>File system access and manipulation operations.</Info>
 
 ### FileSystemCapability
 
@@ -1109,26 +1183,18 @@ See: [https://agentclientprotocol.com/protocol/initialization#filesystem](https:
 
 **Properties:**
 
-| Property        | Type      | Required | Description                                                |
-| --------------- | --------- | -------- | ---------------------------------------------------------- |
-| `readTextFile`  | `boolean` |          | Whether the Client supports `fs/read_text_file` requests.  |
-| `writeTextFile` | `boolean` |          | Whether the Client supports `fs/write_text_file` requests. |
+<ResponseField name="readTextFile" type="boolean" >
+  Whether the Client supports `fs/read_text_file` requests.
 
-**Property Details:**
+    - Default: `false`
 
-#### `readTextFile`
+</ResponseField>
+<ResponseField name="writeTextFile" type="boolean" >
+  Whether the Client supports `fs/write_text_file` requests.
 
-**Constraints:**
+    - Default: `false`
 
-- Default: `false`
-
-#### `writeTextFile`
-
-**Constraints:**
-
-- Default: `false`
-
----
+</ResponseField>
 
 ### ReadTextFileRequest
 
@@ -1140,28 +1206,24 @@ Only available if the client supports the `fs.readTextFile` capability.
 
 **Properties:**
 
-| Property    | Type                  | Required | Description                                           |
-| ----------- | --------------------- | -------- | ----------------------------------------------------- |
-| `limit`     | `integer &#124; null` |          | Optional maximum number of lines to read.             |
-| `line`      | `integer &#124; null` |          | Optional line number to start reading from (1-based). |
-| `path`      | `string`              | ✓        | Absolute path to the file to read.                    |
-| `sessionId` | `SessionId`           | ✓        | The session ID for this request.                      |
+<ResponseField name="limit" type="integer | null" >
+  Optional maximum number of lines to read.
 
-**Property Details:**
+    - Minimum: `0`
 
-#### `limit`
+</ResponseField>
+<ResponseField name="line" type="integer | null" >
+  Optional line number to start reading from (1-based).
 
-**Constraints:**
+    - Minimum: `0`
 
-- Minimum: `0`
-
-#### `line`
-
-**Constraints:**
-
-- Minimum: `0`
-
----
+</ResponseField>
+<ResponseField name="path" type="string" required>
+  Absolute path to the file to read.
+</ResponseField>
+<ResponseField name="sessionId" type="SessionId" required>
+  The session ID for this request.
+</ResponseField>
 
 ### ReadTextFileResponse
 
@@ -1171,11 +1233,7 @@ Response containing the contents of a text file.
 
 **Properties:**
 
-| Property  | Type     | Required | Description |
-| --------- | -------- | -------- | ----------- |
-| `content` | `string` | ✓        |             |
-
----
+<ResponseField name="content" type="string" required></ResponseField>
 
 ### WriteTextFileRequest
 
@@ -1187,17 +1245,21 @@ Only available if the client supports the `fs.writeTextFile` capability.
 
 **Properties:**
 
-| Property    | Type        | Required | Description                            |
-| ----------- | ----------- | -------- | -------------------------------------- |
-| `content`   | `string`    | ✓        | The text content to write to the file. |
-| `path`      | `string`    | ✓        | Absolute path to the file to write.    |
-| `sessionId` | `SessionId` | ✓        | The session ID for this request.       |
+<ResponseField name="content" type="string" required>
+  The text content to write to the file.
+</ResponseField>
+<ResponseField name="path" type="string" required>
+  Absolute path to the file to write.
+</ResponseField>
+<ResponseField name="sessionId" type="SessionId" required>
+  The session ID for this request.
+</ResponseField>
 
 ---
 
 ## MCP Server Configuration
 
-_Model Context Protocol server configuration._
+<Info>Model Context Protocol server configuration.</Info>
 
 ### EnvVariable
 
@@ -1207,12 +1269,12 @@ An environment variable to set when launching an MCP server.
 
 **Properties:**
 
-| Property | Type     | Required | Description                                    |
-| -------- | -------- | -------- | ---------------------------------------------- |
-| `name`   | `string` | ✓        | The name of the environment variable.          |
-| `value`  | `string` | ✓        | The value to set for the environment variable. |
-
----
+<ResponseField name="name" type="string" required>
+  The name of the environment variable.
+</ResponseField>
+<ResponseField name="value" type="string" required>
+  The value to set for the environment variable.
+</ResponseField>
 
 ### McpServer
 
@@ -1227,11 +1289,17 @@ See: [https://agentclientprotocol.com/protocol/session-setup#mcp-servers](https:
 
 **Properties:**
 
-| Property  | Type            | Required | Description                                                 |
-| --------- | --------------- | -------- | ----------------------------------------------------------- |
-| `args`    | `string[]`      | ✓        | Command-line arguments to pass to the MCP server.           |
-| `command` | `string`        | ✓        | Path to the MCP server executable.                          |
-| `env`     | `EnvVariable[]` | ✓        | Environment variables to set when launching the MCP server. |
-| `name`    | `string`        | ✓        | Human-readable name identifying this MCP server.            |
+<ResponseField name="args" type="string[]" required>
+  Command-line arguments to pass to the MCP server.
+</ResponseField>
+<ResponseField name="command" type="string" required>
+  Path to the MCP server executable.
+</ResponseField>
+<ResponseField name="env" type="EnvVariable[]" required>
+  Environment variables to set when launching the MCP server.
+</ResponseField>
+<ResponseField name="name" type="string" required>
+  Human-readable name identifying this MCP server.
+</ResponseField>
 
 ---
