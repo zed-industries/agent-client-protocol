@@ -23,6 +23,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48
         with:
+          toolchain: nightly,stable
           components: rustfmt
 
       - name: Install dependencies

@@ -7,7 +7,7 @@
 //! The content block structure is designed to be compatible with the Model Context Protocol (MCP),
 //! allowing seamless integration between ACP and MCP-based tools.
 //!
-//! See: <https://agentclientprotocol.com/protocol/content>
+//! See: [Content](https://agentclientprotocol.com/protocol/content)
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// This structure is compatible with the Model Context Protocol (MCP), enabling
 /// agents to seamlessly forward content from MCP tool outputs without transformation.
 ///
-/// See: <https://agentclientprotocol.com/protocol/content>
+/// See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {

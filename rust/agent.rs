@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
-/// The Agent trait defines the interface that all ACP-compliant agents must implement.
+/// Defines the interface that all ACP-compliant agents must implement.
 ///
 /// Agents are programs that use generative AI to autonomously modify code. They handle
 /// requests from clients and execute tasks using language models and tools.
@@ -25,7 +25,7 @@ pub trait Agent {
     ///
     /// The agent should respond with its supported protocol version and capabilities.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/initialization>
+    /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     fn initialize(
         &self,
         arguments: InitializeRequest,
@@ -39,7 +39,7 @@ pub trait Agent {
     /// After successful authentication, the client can proceed to create sessions with
     /// `new_session` without receiving an `auth_required` error.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/initialization>
+    /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     fn authenticate(
         &self,
         arguments: AuthenticateRequest,
@@ -54,11 +54,9 @@ pub trait Agent {
     /// - Connect to any specified MCP servers
     /// - Return a unique session ID for future requests
     ///
-    /// # Errors
-    ///
     /// May return an `auth_required` error if the agent requires authentication.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/session-setup>
+    /// See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
     fn new_session(
         &self,
         arguments: NewSessionRequest,
@@ -73,7 +71,7 @@ pub trait Agent {
     /// - Connect to the specified MCP servers
     /// - Stream the entire conversation history back to the client via notifications
     ///
-    /// See: <https://agentclientprotocol.com/protocol/session-setup#loading-sessions>
+    /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
     fn load_session(
         &self,
         arguments: LoadSessionRequest,
@@ -89,7 +87,7 @@ pub trait Agent {
     /// - Executes any requested tool calls
     /// - Returns when the turn is complete with a stop reason
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn>
+    /// See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
     fn prompt(
         &self,
         arguments: PromptRequest,
@@ -105,7 +103,7 @@ pub trait Agent {
     /// - Send any pending `session/update` notifications
     /// - Respond to the original `session/prompt` request with `StopReason::Cancelled`
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+    /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
@@ -115,8 +113,9 @@ pub trait Agent {
 ///
 /// Sent by the client to establish connection and negotiate capabilities.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization>
+/// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
     /// The latest protocol version supported by the client.
@@ -130,8 +129,9 @@ pub struct InitializeRequest {
 ///
 /// Contains the negotiated protocol version and agent capabilities.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization>
+/// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
     /// The protocol version the client specified if supported by the agent,
@@ -153,6 +153,7 @@ pub struct InitializeResponse {
 ///
 /// Specifies which authentication method to use.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "authenticate"))]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateRequest {
     /// The ID of the authentication method to use.
@@ -181,8 +182,9 @@ pub struct AuthMethod {
 
 /// Request parameters for creating a new session.
 ///
-/// See: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>
+/// See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionRequest {
     /// List of MCP (Model Context Protocol) servers the agent should connect to.
@@ -195,8 +197,9 @@ pub struct NewSessionRequest {
 
 /// Response from creating a new session.
 ///
-/// See: <https://agentclientprotocol.com/protocol/session-setup#creating-a-session>
+/// See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
     /// Unique identifier for the created session.
@@ -210,8 +213,9 @@ pub struct NewSessionResponse {
 ///
 /// Only available if the agent supports the `loadSession` capability.
 ///
-/// See: <https://agentclientprotocol.com/protocol/session-setup#loading-sessions>
+/// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/load"))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionRequest {
     /// List of MCP servers to connect to for this session.
@@ -229,7 +233,7 @@ pub struct LoadSessionRequest {
 /// MCP servers provide tools and context that the agent can use when
 /// processing prompts.
 ///
-/// See: <https://agentclientprotocol.com/protocol/session-setup#mcp-servers>
+/// See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServer {
@@ -259,8 +263,9 @@ pub struct EnvVariable {
 ///
 /// Contains the user's message and any additional context.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#1-user-message>
+/// See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
@@ -271,8 +276,6 @@ pub struct PromptRequest {
     /// while other variants are optionally enabled via [`PromptCapabilities`].
     ///
     /// The Client MUST adapt its interface according to [`PromptCapabilities`].
-    ///
-    /// ## Context
     ///
     /// The client MAY include referenced pieces of context as either
     /// [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].
@@ -285,8 +288,9 @@ pub struct PromptRequest {
 
 /// Response from processing a user prompt.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion>
+/// See protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptResponse {
     /// Indicates why the agent stopped processing the turn.
@@ -295,7 +299,7 @@ pub struct PromptResponse {
 
 /// Reasons why an agent stops processing a prompt turn.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons>
+/// See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum StopReason {
@@ -326,7 +330,7 @@ pub enum StopReason {
 /// Advertised during initialization to inform the client about
 /// available features and content types.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#agent-capabilities>
+/// See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentCapabilities {
@@ -349,7 +353,7 @@ pub struct AgentCapabilities {
 /// Indicates which content types beyond the baseline (text and resource links)
 /// the agent can process.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#prompt-capabilities>
+/// See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
@@ -419,6 +423,7 @@ pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 /// This enum encompasses all method calls from client to agent.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientRequest {
     InitializeRequest(InitializeRequest),
     AuthenticateRequest(AuthenticateRequest),
@@ -435,6 +440,7 @@ pub enum ClientRequest {
 /// These are responses to the corresponding ClientRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
     AuthenticateResponse,
@@ -451,14 +457,16 @@ pub enum AgentResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
 }
 
 /// Notification to cancel ongoing operations for a session.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+/// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/cancel"))]
 #[serde(rename_all = "camelCase")]
 pub struct CancelNotification {
     /// The ID of the session to cancel operations for.

@@ -6,6 +6,9 @@ use schemars::{JsonSchema, generate::SchemaSettings};
 use serde_json::Value;
 use std::{fs, path::Path};
 
+mod markdown_generator;
+use markdown_generator::MarkdownGenerator;
+
 #[allow(dead_code)]
 #[derive(JsonSchema)]
 #[serde(untagged)]
@@ -37,8 +40,10 @@ fn main() {
 
     let root = env!("CARGO_MANIFEST_DIR");
     let schema_dir = Path::new(root).join("schema");
+    let docs_protocol_dir = Path::new(root).join("docs").join("protocol");
 
     fs::create_dir_all(schema_dir.clone()).unwrap();
+    fs::create_dir_all(docs_protocol_dir.clone()).unwrap();
 
     fs::write(
         schema_dir.join("schema.json"),
@@ -58,6 +63,17 @@ fn main() {
         serde_json::to_string_pretty(&metadata).unwrap(),
     )
     .expect("Failed to write meta.json");
+
+    // Generate markdown documentation
+    let mut markdown_gen = MarkdownGenerator::new();
+    let markdown_doc = markdown_gen.generate(&schema_value);
+
+    fs::write(docs_protocol_dir.join("schema.mdx"), markdown_doc)
+        .expect("Failed to write schema.mdx");
+
+    println!("✓ Generated schema.json");
+    println!("✓ Generated meta.json");
+    println!("✓ Generated schema.mdx");
 }
 
 fn inline_enum_variants(schema: &mut Value, enum_name: &str) {

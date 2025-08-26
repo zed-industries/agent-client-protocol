@@ -3,8 +3,7 @@
 //! When an LLM determines it needs to interact with external systems—like reading files,
 //! running code, or fetching data—it generates tool calls that the agent executes on its behalf.
 //!
-//! See: <https://agentclientprotocol.com/protocol/tool-calls>
-
+/// See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-calls)
 use std::{path::PathBuf, sync::Arc};
 
 use schemars::JsonSchema;
@@ -17,7 +16,7 @@ use crate::{ContentBlock, Error};
 /// Tool calls are actions that the agent executes on behalf of the language model,
 /// such as reading files, executing code, or fetching data from external sources.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls>
+/// See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-calls)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCall {
@@ -81,7 +80,7 @@ impl ToolCall {
 /// Used to report progress and results as tools execute. All fields except
 /// the tool call ID are optional - only changed fields need to be included.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#updating>
+/// See protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-calls#updating)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdate {
@@ -97,6 +96,8 @@ pub struct ToolCallUpdate {
 ///
 /// All fields are optional - only include the ones being changed.
 /// Collections (content, locations) are overwritten, not extended.
+///
+/// See protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-calls#updating)
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallUpdateFields {
@@ -196,7 +197,7 @@ pub struct ToolCallId(pub Arc<str>);
 /// Tool kinds help clients choose appropriate icons and optimize how they
 /// display tool execution progress.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#creating>
+/// See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolKind {
@@ -231,7 +232,7 @@ impl ToolKind {
 ///
 /// Tool calls progress through different statuses during their lifecycle.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#status>
+/// See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#status)
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
@@ -258,7 +259,7 @@ impl ToolCallStatus {
 /// Tool calls can produce different types of content including
 /// standard content blocks (text, images) or file diffs.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#content>
+/// See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ToolCallContent {
@@ -293,7 +294,7 @@ impl From<Diff> for ToolCallContent {
 ///
 /// Shows changes to files in a format suitable for display in the client UI.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#content>
+/// See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Diff {
@@ -310,7 +311,7 @@ pub struct Diff {
 /// Enables clients to implement "follow-along" features that track
 /// which files the agent is working with in real-time.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#following-the-agent>
+/// See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct ToolCallLocation {

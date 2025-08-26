@@ -11,13 +11,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
-/// The Client trait defines the interface that ACP-compliant clients must implement.
+/// Defines the interface that ACP-compliant clients must implement.
 ///
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+/// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
@@ -28,7 +28,7 @@ pub trait Client {
     /// If the client cancels the prompt turn via `session/cancel`, it MUST
     /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
+    /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
     fn request_permission(
         &self,
         args: RequestPermissionRequest,
@@ -39,7 +39,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.writeTextFile` capability.
     /// Allows the agent to create or modify files within the client's environment.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#client>
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
     fn write_text_file(
         &self,
         args: WriteTextFileRequest,
@@ -50,7 +50,7 @@ pub trait Client {
     /// Only available if the client advertises the `fs.readTextFile` capability.
     /// Allows the agent to access file contents within the client's environment.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/overview#client>
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
     fn read_text_file(
         &self,
         args: ReadTextFileRequest,
@@ -66,7 +66,7 @@ pub trait Client {
     /// sending a `session/cancel` notification, as the agent may send final
     /// updates before responding with the cancelled stop reason.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+    /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
     fn session_notification(
         &self,
         args: SessionNotification,
@@ -79,8 +79,9 @@ pub trait Client {
 ///
 /// Used to stream real-time progress and results during prompt processing.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+/// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/update"))]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     /// The ID of the session this update pertains to.
@@ -93,9 +94,9 @@ pub struct SessionNotification {
 ///
 /// These updates provide real-time feedback about the agent's progress.
 ///
-/// See: <https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output>
+/// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "sessionUpdate", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", tag = "sessionUpdate")]
 pub enum SessionUpdate {
     /// A chunk of the user's message being streamed.
     UserMessageChunk { content: ContentBlock },
@@ -108,7 +109,7 @@ pub enum SessionUpdate {
     /// Update on the status or results of a tool call.
     ToolCallUpdate(ToolCallUpdate),
     /// The agent's execution plan for complex tasks.
-    /// See: <https://agentclientprotocol.com/protocol/agent-plan>
+    /// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
 }
 
@@ -118,8 +119,9 @@ pub enum SessionUpdate {
 ///
 /// Sent when the agent needs authorization before performing a sensitive operation.
 ///
-/// See: <https://agentclientprotocol.com/protocol/tool-calls#requesting-permission>
+/// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     /// The session ID for this request.
@@ -171,6 +173,7 @@ pub enum PermissionOptionKind {
 
 /// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
@@ -188,7 +191,7 @@ pub enum RequestPermissionOutcome {
     /// prompt turn, it MUST respond to all pending `session/request_permission`
     /// requests with this `Cancelled` outcome.
     ///
-    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#cancellation>
+    /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     Cancelled,
     /// The user selected one of the provided options.
     #[serde(rename_all = "camelCase")]
@@ -204,6 +207,7 @@ pub enum RequestPermissionOutcome {
 ///
 /// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "fs/write_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
@@ -220,6 +224,7 @@ pub struct WriteTextFileRequest {
 ///
 /// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
@@ -248,7 +253,7 @@ pub struct ReadTextFileResponse {
 /// Advertised during initialization to inform the agent about
 /// available features and methods.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#client-capabilities>
+/// See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
@@ -260,7 +265,7 @@ pub struct ClientCapabilities {
 
 /// File system capabilities that a client may support.
 ///
-/// See: <https://agentclientprotocol.com/protocol/initialization#filesystem>
+/// See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {
@@ -314,6 +319,7 @@ pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 /// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
@@ -328,6 +334,7 @@ pub enum AgentRequest {
 /// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
@@ -342,6 +349,7 @@ pub enum ClientResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
 }
