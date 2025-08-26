@@ -1,5 +1,6 @@
 name: Accepted Protocol Changes [Staff Only]
 description: Zed Staff Only
+type: "Feature"
 body:
   - type: textarea
     attributes:

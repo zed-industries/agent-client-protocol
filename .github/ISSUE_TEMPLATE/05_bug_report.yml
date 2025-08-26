@@ -1,6 +1,6 @@
 name: Bug Report
 description: |
-  Something is not working as expected in ACP.
+  Something is not working as expected in ACP
 type: "Bug"
 body:
   - type: textarea
@@ -17,12 +17,6 @@ body:
         -->
 
         DESCRIPTION_HERE
-
-        Steps to reproduce:
-        1.
-        2.
-        3.
-        4.
 
         **Expected Behavior**:
         **Actual Behavior**:
