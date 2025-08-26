@@ -1,4 +1,22 @@
 ---
 title: "Rust"
-description: "Rust library for the Agent Client Protocol"
+description: "Rust library for ACP"
 ---
+
+The [agent-client-protocol](https://crates.io/crates/agent-client-protocol)
+Rust library provides implementations of both sides of the Agent Client Protocol
+that you can use to build your own agent server or client. To get started, add
+the dependency to your project's `Cargo.toml`:
+
+```console
+cargo add agent-client-protocol
+```
+
+Then implement the
+[Agent](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Agent.html)
+or
+[Client](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Client.html)
+trait based on the kind of tool you're building.
+
+You can read the full documentation for the library on
+[docs.rs](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/).
