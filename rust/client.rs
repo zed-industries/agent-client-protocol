@@ -208,10 +208,9 @@ pub enum RequestPermissionOutcome {
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
     pub session_id: SessionId,
-    /// Path to the file to write (relative to the session's working directory).
+    /// Absolute path to the file to write.
     pub path: PathBuf,
     /// The text content to write to the file.
-    /// The text content read from the file.
     pub content: String,
 }
 
@@ -225,7 +224,7 @@ pub struct WriteTextFileRequest {
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
     pub session_id: SessionId,
-    /// Path to the file to read (relative to the session's working directory).
+    /// Absolute path to the file to read.
     pub path: PathBuf,
     /// Optional line number to start reading from (1-based).
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -122,11 +122,10 @@ export type AgentClientProtocol = z.infer<typeof agentClientProtocolSchema>;
 export const writeTextFileRequestSchema = z.object({
   /**
    * The text content to write to the file.
-   * The text content read from the file.
    */
   content: z.string(),
   /**
-   * Path to the file to write (relative to the session's working directory).
+   * Absolute path to the file to write.
    */
   path: z.string(),
   /**
@@ -150,7 +149,7 @@ export const readTextFileRequestSchema = z.object({
    */
   line: z.number().optional().nullable(),
   /**
-   * Path to the file to read (relative to the session's working directory).
+   * Absolute path to the file to read.
    */
   path: z.string(),
   /**
