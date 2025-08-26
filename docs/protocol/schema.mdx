@@ -658,42 +658,139 @@ See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
 
 **Type:** Union
 
-<ParamField name="text">
+<ResponseField name="text">
 Plain text content
 
 All agents MUST support text content blocks in prompts.
 
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="image">
+<ResponseField
+  name="annotations"
+  type={
+    <>
+      <span>
+        <a href="#annotations">Annotations</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="text" type={"string"} required></ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="image">
 Images for visual context or analysis.
 
 Requires the `image` prompt capability when included in prompts.
 
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="audio">
+<ResponseField
+  name="annotations"
+  type={
+    <>
+      <span>
+        <a href="#annotations">Annotations</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="data" type={"string"} required></ResponseField>
+<ResponseField name="mimeType" type={"string"} required></ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+<ResponseField name="uri" type={"string | null"}></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="audio">
 Audio data for transcription or analysis.
 
 Requires the `audio` prompt capability when included in prompts.
 
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="resource_link">
+<ResponseField
+  name="annotations"
+  type={
+    <>
+      <span>
+        <a href="#annotations">Annotations</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="data" type={"string"} required></ResponseField>
+<ResponseField name="mimeType" type={"string"} required></ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="resource_link">
 References to resources that the agent can access.
 
 All agents MUST support resource links in prompts.
 
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="resource">
+<ResponseField
+  name="annotations"
+  type={
+    <>
+      <span>
+        <a href="#annotations">Annotations</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="description" type={"string | null"}></ResponseField>
+<ResponseField name="mimeType" type={"string | null"}></ResponseField>
+<ResponseField name="name" type={"string"} required></ResponseField>
+<ResponseField name="size" type={"integer | null"}></ResponseField>
+<ResponseField name="title" type={"string | null"}></ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+<ResponseField name="uri" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="resource">
 Complete resource contents embedded directly in the message.
 
 Preferred for including context as it avoids extra round-trips.
 
 Requires the `embeddedContext` prompt capability when included in prompts.
 
-</ParamField>
+<Expandable title="Properties">
+
+<ResponseField
+  name="annotations"
+  type={
+    <>
+      <span>
+        <a href="#annotations">Annotations</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField
+  name="resource"
+  type={<a href="#embeddedresourceresource">EmbeddedResourceResource</a>}
+  required
+></ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">EmbeddedResource</span>
 
@@ -726,9 +823,29 @@ Resource content that can be embedded in a message.
 
 **Type:** Union
 
-<ParamField name="TextResourceContents">{""}</ParamField>
+<ResponseField name="TextResourceContents">
+{""}
 
-<ParamField name="BlobResourceContents">{""}</ParamField>
+<Expandable title="Properties">
+
+<ResponseField name="mimeType" type={"string | null"}></ResponseField>
+<ResponseField name="text" type={"string"} required></ResponseField>
+<ResponseField name="uri" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="BlobResourceContents">
+{""}
+
+<Expandable title="Properties">
+
+<ResponseField name="blob" type={"string"} required></ResponseField>
+<ResponseField name="mimeType" type={"string | null"}></ResponseField>
+<ResponseField name="uri" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">EnvVariable</span>
 
@@ -877,19 +994,21 @@ Helps clients choose appropriate icons and UI treatment.
 
 **Type:** Union
 
-<ParamField name="allow_once">Allow this operation only this time.</ParamField>
+<ResponseField name="allow_once">
+  Allow this operation only this time.
+</ResponseField>
 
-<ParamField name="allow_always">
+<ResponseField name="allow_always">
   Allow this operation and remember the choice.
-</ParamField>
+</ResponseField>
 
-<ParamField name="reject_once">
+<ResponseField name="reject_once">
   Reject this operation only this time.
-</ParamField>
+</ResponseField>
 
-<ParamField name="reject_always">
+<ResponseField name="reject_always">
   Reject this operation and remember the choice.
-</ParamField>
+</ResponseField>
 
 ## <span class="font-mono">Plan</span>
 
@@ -954,17 +1073,17 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
 
 **Type:** Union
 
-<ParamField name="high">
+<ResponseField name="high">
   High priority task - critical to the overall goal.
-</ParamField>
+</ResponseField>
 
-<ParamField name="medium">
+<ResponseField name="medium">
   Medium priority task - important but not critical.
-</ParamField>
+</ResponseField>
 
-<ParamField name="low">
+<ResponseField name="low">
   Low priority task - nice to have but not essential.
-</ParamField>
+</ResponseField>
 
 ## <span class="font-mono">PlanEntryStatus</span>
 
@@ -975,15 +1094,15 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
 
 **Type:** Union
 
-<ParamField name="pending">The task has not started yet.</ParamField>
+<ResponseField name="pending">The task has not started yet.</ResponseField>
 
-<ParamField name="in_progress">
+<ResponseField name="in_progress">
   The task is currently being worked on.
-</ParamField>
+</ResponseField>
 
-<ParamField name="completed">
+<ResponseField name="completed">
   The task has been successfully completed.
-</ParamField>
+</ResponseField>
 
 ## <span class="font-mono">PromptCapabilities</span>
 
@@ -1056,7 +1175,7 @@ The outcome of a permission request.
 
 **Type:** Union
 
-<ParamField name="cancelled">
+<ResponseField name="cancelled">
 The prompt turn was cancelled before the user responded.
 
 When a client sends a `session/cancel` notification to cancel an ongoing
@@ -1065,11 +1184,29 @@ requests with this `Cancelled` outcome.
 
 See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="selected">
-  The user selected one of the provided options.
-</ParamField>
+<ResponseField name="outcome" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="selected">
+The user selected one of the provided options.
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="optionId"
+  type={<a href="#permissionoptionid">PermissionOptionId</a>}
+  required
+>
+  The ID of the option the user selected.
+</ResponseField>
+<ResponseField name="outcome" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">ResourceLink</span>
 
@@ -1138,30 +1275,190 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
 
 **Type:** Union
 
-<ParamField name="user_message_chunk">
-  A chunk of the user's message being streamed.
-</ParamField>
+<ResponseField name="user_message_chunk">
+A chunk of the user's message being streamed.
 
-<ParamField name="agent_message_chunk">
-  A chunk of the agent's response being streamed.
-</ParamField>
+<Expandable title="Properties">
 
-<ParamField name="agent_thought_chunk">
-  A chunk of the agent's internal reasoning being streamed.
-</ParamField>
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock</a>}
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
 
-<ParamField name="tool_call">
-  Notification that a new tool call has been initiated.
-</ParamField>
+</Expandable>
+</ResponseField>
 
-<ParamField name="tool_call_update">
-  Update on the status or results of a tool call.
-</ParamField>
+<ResponseField name="agent_message_chunk">
+A chunk of the agent's response being streamed.
 
-<ParamField name="plan">
-  The agent's execution plan for complex tasks. See protocol docs: [Agent
-  Plan](https://agentclientprotocol.com/protocol/agent-plan)
-</ParamField>
+<Expandable title="Properties">
+
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock</a>}
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="agent_thought_chunk">
+A chunk of the agent's internal reasoning being streamed.
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock</a>}
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="tool_call">
+Notification that a new tool call has been initiated.
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="content"
+  type={
+    <>
+      <span>
+        <a href="#toolcallcontent">ToolCallContent</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+>
+  Content produced by the tool call.
+</ResponseField>
+<ResponseField name="kind" type={<a href="#toolkind">ToolKind</a>}>
+  The category of tool being invoked. Helps clients choose appropriate icons and
+  UI treatment.
+</ResponseField>
+<ResponseField
+  name="locations"
+  type={
+    <>
+      <span>
+        <a href="#toolcalllocation">ToolCallLocation</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+>
+  File locations affected by this tool call. Enables "follow-along" features in
+  clients.
+</ResponseField>
+<ResponseField name="rawInput" type={"object"}>
+  Raw input parameters sent to the tool.
+</ResponseField>
+<ResponseField name="rawOutput" type={"object"}>
+  Raw output returned by the tool.
+</ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+<ResponseField
+  name="status"
+  type={<a href="#toolcallstatus">ToolCallStatus</a>}
+>
+  Current execution status of the tool call.
+</ResponseField>
+<ResponseField name="title" type={"string"} required>
+  Human-readable title describing what the tool is doing.
+</ResponseField>
+<ResponseField
+  name="toolCallId"
+  type={<a href="#toolcallid">ToolCallId</a>}
+  required
+>
+  Unique identifier for this tool call within the session.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="tool_call_update">
+Update on the status or results of a tool call.
+
+<Expandable title="Properties">
+
+<ResponseField name="content" type={"array | null"}>
+  Replace the content collection.
+</ResponseField>
+<ResponseField
+  name="kind"
+  type={
+    <>
+      <span>
+        <a href="#toolkind">ToolKind</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+>
+  Update the tool kind.
+</ResponseField>
+<ResponseField name="locations" type={"array | null"}>
+  Replace the locations collection.
+</ResponseField>
+<ResponseField name="rawInput" type={"object"}>
+  Update the raw input.
+</ResponseField>
+<ResponseField name="rawOutput" type={"object"}>
+  Update the raw output.
+</ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+<ResponseField
+  name="status"
+  type={
+    <>
+      <span>
+        <a href="#toolcallstatus">ToolCallStatus</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+>
+  Update the execution status.
+</ResponseField>
+<ResponseField name="title" type={"string | null"}>
+  Update the human-readable title.
+</ResponseField>
+<ResponseField
+  name="toolCallId"
+  type={<a href="#toolcallid">ToolCallId</a>}
+  required
+>
+  The ID of the tool call being updated.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="plan">
+The agent's execution plan for complex tasks.
+See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
+
+<Expandable title="Properties">
+
+<ResponseField name="entries" type={<><span><a href="#planentry">PlanEntry</a></span><span>[]</span></>} required>
+  The list of tasks to be accomplished.
+
+When updating a plan, the agent must send a complete list of all entries
+with their current status. The client replaces the entire plan with each update.
+
+</ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required>
+</ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">StopReason</span>
 
@@ -1171,24 +1468,24 @@ See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/promp
 
 **Type:** Union
 
-<ParamField name="end_turn">The turn ended successfully.</ParamField>
+<ResponseField name="end_turn">The turn ended successfully.</ResponseField>
 
-<ParamField name="max_tokens">
+<ResponseField name="max_tokens">
   The turn ended because the agent reached the maximum number of tokens.
-</ParamField>
+</ResponseField>
 
-<ParamField name="max_turn_requests">
+<ResponseField name="max_turn_requests">
   The turn ended because the agent reached the maximum number of allowed agent
   requests between user turns.
-</ParamField>
+</ResponseField>
 
-<ParamField name="refusal">
+<ResponseField name="refusal">
   The turn ended because the agent refused to continue. The user prompt and
   everything that comes after it won't be included in the next prompt, so this
   should be reflected in the UI.
-</ParamField>
+</ResponseField>
 
-<ParamField name="cancelled">
+<ResponseField name="cancelled">
 The turn was cancelled by the client via `session/cancel`.
 
 This stop reason MUST be returned when the client sends a `session/cancel`
@@ -1196,7 +1493,7 @@ notification, even if the cancellation causes exceptions in underlying operation
 Agents should catch these exceptions and return this semantically meaningful
 response to confirm successful cancellation.
 
-</ParamField>
+</ResponseField>
 
 ## <span class="font-mono">TextContent</span>
 
@@ -1309,11 +1606,41 @@ See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls
 
 **Type:** Union
 
-<ParamField name="content">
-  Standard content block (text, images, resources).
-</ParamField>
+<ResponseField name="content">
+Standard content block (text, images, resources).
 
-<ParamField name="diff">File modification shown as a diff.</ParamField>
+<Expandable title="Properties">
+
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock</a>}
+  required
+>
+  The actual content block.
+</ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="diff">
+File modification shown as a diff.
+
+<Expandable title="Properties">
+
+<ResponseField name="newText" type={"string"} required>
+  The new content after modification.
+</ResponseField>
+<ResponseField name="oldText" type={"string | null"}>
+  The original content (None for new files).
+</ResponseField>
+<ResponseField name="path" type={"string"} required>
+  The file path being modified.
+</ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">ToolCallId</span>
 
@@ -1354,16 +1681,20 @@ See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#
 
 **Type:** Union
 
-<ParamField name="pending">
+<ResponseField name="pending">
   The tool call hasn't started running yet because the input is either streaming
   or we're awaiting approval.
-</ParamField>
+</ResponseField>
 
-<ParamField name="in_progress">The tool call is currently running.</ParamField>
+<ResponseField name="in_progress">
+  The tool call is currently running.
+</ResponseField>
 
-<ParamField name="completed">The tool call completed successfully.</ParamField>
+<ResponseField name="completed">
+  The tool call completed successfully.
+</ResponseField>
 
-<ParamField name="failed">The tool call failed with an error.</ParamField>
+<ResponseField name="failed">The tool call failed with an error.</ResponseField>
 
 ## <span class="font-mono">ToolCallUpdate</span>
 
@@ -1438,20 +1769,20 @@ See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-call
 
 **Type:** Union
 
-<ParamField name="read">Reading files or data.</ParamField>
+<ResponseField name="read">Reading files or data.</ResponseField>
 
-<ParamField name="edit">Modifying files or content.</ParamField>
+<ResponseField name="edit">Modifying files or content.</ResponseField>
 
-<ParamField name="delete">Removing files or data.</ParamField>
+<ResponseField name="delete">Removing files or data.</ResponseField>
 
-<ParamField name="move">Moving or renaming files.</ParamField>
+<ResponseField name="move">Moving or renaming files.</ResponseField>
 
-<ParamField name="search">Searching for information.</ParamField>
+<ResponseField name="search">Searching for information.</ResponseField>
 
-<ParamField name="execute">Running commands or code.</ParamField>
+<ResponseField name="execute">Running commands or code.</ResponseField>
 
-<ParamField name="think">Internal reasoning or planning.</ParamField>
+<ResponseField name="think">Internal reasoning or planning.</ResponseField>
 
-<ParamField name="fetch">Retrieving external data.</ParamField>
+<ResponseField name="fetch">Retrieving external data.</ResponseField>
 
-<ParamField name="other">Other tool types (default).</ParamField>
+<ResponseField name="other">Other tool types (default).</ResponseField>

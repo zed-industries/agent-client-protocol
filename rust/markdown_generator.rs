@@ -173,11 +173,13 @@ impl MarkdownGenerator {
     }
 
     fn document_variant_table_row(&mut self, variant: &Value) {
-        write!(&mut self.output, "<ParamField name=\"").unwrap();
+        write!(&mut self.output, "<ResponseField name=\"").unwrap();
 
         // Get variant name
+        let mut variant_name = String::new();
         if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
+            variant_name = type_name.to_string();
             write!(&mut self.output, "{}", type_name).unwrap();
         } else if let Some(const_val) = variant.get("const") {
             if let Some(s) = const_val.as_str() {
@@ -207,12 +209,37 @@ impl MarkdownGenerator {
 
         // Get description
         if let Some(desc) = Self::get_def_description(variant) {
-            write!(&mut self.output, "{}", desc).unwrap();
+            writeln!(&mut self.output, "{}", desc).unwrap();
         } else {
-            write!(&mut self.output, "{{\"\"}}").unwrap();
+            writeln!(&mut self.output, "{{\"\"}}").unwrap();
         }
-        writeln!(&mut self.output).unwrap();
-        writeln!(&mut self.output, "</ParamField>").unwrap();
+
+        // Document properties if this variant has them
+        if let Some(props) = variant.get("properties").and_then(|v| v.as_object()) {
+            if !props.is_empty() {
+                writeln!(&mut self.output).unwrap();
+                writeln!(&mut self.output, "<Expandable title=\"Properties\">").unwrap();
+                writeln!(&mut self.output).unwrap();
+                self.document_properties_as_fields(props, variant, 0);
+                writeln!(&mut self.output).unwrap();
+                writeln!(&mut self.output, "</Expandable>").unwrap();
+            }
+        } else if !variant_name.is_empty() {
+            // If this is a $ref, look up and document the referenced type's properties
+            if let Some(ref_def) = self.definitions.get(&variant_name).cloned()
+                && let Some(props) = ref_def.get("properties").and_then(|v| v.as_object())
+                && !props.is_empty()
+            {
+                writeln!(&mut self.output).unwrap();
+                writeln!(&mut self.output, "<Expandable title=\"Properties\">").unwrap();
+                writeln!(&mut self.output).unwrap();
+                self.document_properties_as_fields(props, &ref_def, 0);
+                writeln!(&mut self.output).unwrap();
+                writeln!(&mut self.output, "</Expandable>").unwrap();
+            }
+        }
+
+        writeln!(&mut self.output, "</ResponseField>").unwrap();
         writeln!(&mut self.output).unwrap();
     }
 
