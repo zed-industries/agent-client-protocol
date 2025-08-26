@@ -23,11 +23,10 @@
     "inherited": true,
     "external": false
   },
-  "plugin": [],
-  "theme": "default",
+  "plugin": ["typedoc-github-theme"],
+  "theme": "typedoc-github-theme",
   "lightHighlightTheme": "github-light",
   "darkHighlightTheme": "github-dark",
-  "customCss": "./typedoc-theme.css",
   "readme": "./README.md",
   "exclude": [
     "**/node_modules/**",

@@ -50,11 +50,12 @@
   "devDependencies": {
     "@types/node": "^24.1.0",
     "concurrently": "^9.1.0",
+    "http-server": "^14.1.1",
     "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.3.3",
-    "http-server": "^14.1.1",
     "ts-to-zod": "^3.15.0",
     "typedoc": "^0.28.11",
+    "typedoc-github-theme": "^0.3.1",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },
