@@ -10,3 +10,6 @@ typescript/*.d.ts
 typescript/*.js.map
 # Exclude generator scripts
 !typescript/generate.js
+
+# TypeDoc generated documentation
+typescript/docs/

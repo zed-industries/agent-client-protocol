@@ -1,0 +1,334 @@
+/* Custom TypeDoc Theme Styles for Agent Client Protocol */
+
+:root {
+  --color-accent: #0969da;
+  --color-accent-hover: #0860ca;
+  --color-text: #1f2328;
+  --color-text-aside: #656d76;
+  --color-background: #ffffff;
+  --color-background-secondary: #f6f8fa;
+  --color-background-warning: #fff8e1;
+  --color-background-error: #ffebee;
+  --color-border: #d1d9e0;
+}
+
+/* Dark mode colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-accent: #58a6ff;
+    --color-accent-hover: #79b8ff;
+    --color-text: #c9d1d9;
+    --color-text-aside: #8b949e;
+    --color-background: #0d1117;
+    --color-background-secondary: #161b22;
+    --color-background-warning: #2a2111;
+    --color-background-error: #2d1418;
+    --color-border: #30363d;
+  }
+}
+
+/* Header styling */
+.tsd-page-toolbar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-secondary);
+}
+
+.tsd-page-title h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Improve navigation sidebar */
+.site-menu {
+  padding: 1rem 0;
+}
+
+.tsd-navigation {
+  padding: 0.5rem 0;
+}
+
+.tsd-navigation a {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.tsd-navigation a:hover {
+  background-color: var(--color-background-secondary);
+}
+
+.tsd-navigation a.current {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* Code block improvements */
+pre {
+  background-color: var(--color-background-secondary) !important;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  padding: 1rem !important;
+  overflow-x: auto;
+}
+
+code {
+  background-color: var(--color-background-secondary);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Signature styling */
+.tsd-signature {
+  background-color: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
+    monospace;
+}
+
+/* Parameter tables */
+.tsd-parameters,
+.tsd-returns-title,
+.tsd-type-parameters {
+  margin-top: 1.5rem;
+}
+
+.tsd-parameters h5,
+.tsd-returns-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.tsd-parameter-list {
+  list-style: none;
+  padding: 0;
+}
+
+.tsd-parameter {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tsd-parameter:last-child {
+  border-bottom: none;
+}
+
+/* Badges and flags */
+.tsd-kind-icon {
+  margin-right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tsd-kind-class .tsd-kind-icon {
+  background-color: #ef6c00;
+  color: white;
+}
+
+.tsd-kind-interface .tsd-kind-icon {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.tsd-kind-type-alias .tsd-kind-icon {
+  background-color: #9c27b0;
+  color: white;
+}
+
+.tsd-kind-enum .tsd-kind-icon {
+  background-color: #f57c00;
+  color: white;
+}
+
+.tsd-kind-function .tsd-kind-icon {
+  background-color: #1976d2;
+  color: white;
+}
+
+/* Member sections */
+.tsd-member-group {
+  margin-top: 2rem;
+}
+
+.tsd-member-group > h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+/* Index sections */
+.tsd-index-panel {
+  background-color: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.tsd-index-list {
+  columns: 2;
+  column-gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .tsd-index-list {
+    columns: 1;
+  }
+}
+
+/* Improve search */
+.tsd-search input {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.tsd-search input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+/* Footer */
+.tsd-generator {
+  padding: 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-text-aside);
+}
+
+/* Hierarchy tree */
+.tsd-hierarchy {
+  list-style: none;
+  padding-left: 1rem;
+}
+
+.tsd-hierarchy li {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.tsd-hierarchy li::before {
+  content: "└";
+  position: absolute;
+  left: 0;
+  color: var(--color-text-aside);
+}
+
+/* Comments and documentation */
+.tsd-comment {
+  margin: 1rem 0;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.tsd-comment p {
+  margin-bottom: 1rem;
+}
+
+.tsd-comment p:last-child {
+  margin-bottom: 0;
+}
+
+.tsd-comment h3,
+.tsd-comment h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+/* Warning and info boxes */
+.tsd-comment .warning,
+.tsd-comment .info,
+.tsd-comment .note {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+.tsd-comment .warning {
+  background-color: var(--color-background-warning);
+  border-left: 4px solid #f59e0b;
+}
+
+.tsd-comment .info,
+.tsd-comment .note {
+  background-color: var(--color-background-secondary);
+  border-left: 4px solid var(--color-accent);
+}
+
+/* Improve readability */
+.container.container-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.tsd-panel {
+  margin: 1rem 0;
+}
+
+.tsd-panel > h1,
+.tsd-panel > h2,
+.tsd-panel > h3 {
+  margin-top: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .container.container-main {
+    padding: 1rem;
+  }
+}
+
+/* Breadcrumb improvements */
+.tsd-breadcrumb {
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.tsd-breadcrumb a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.tsd-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.tsd-breadcrumb li::after {
+  content: "/";
+  margin: 0 0.5rem;
+  color: var(--color-text-aside);
+}
+
+.tsd-breadcrumb li:last-child::after {
+  content: none;
+}
