@@ -109,6 +109,7 @@ The client should disconnect, if it doesn't support this version.
 
 </ResponseField>
 
+<a id="session-cancel"></a>
 ### <span class="font-mono">session/cancel</span>
 
 Cancels ongoing operations for a session.
@@ -142,6 +143,7 @@ See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/promp
   The ID of the session to cancel operations for.
 </ResponseField>
 
+<a id="session-load"></a>
 ### <span class="font-mono">session/load</span>
 
 Loads an existing session to resume a previous conversation.
@@ -193,6 +195,7 @@ See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/s
   The ID of the session to load.
 </ResponseField>
 
+<a id="session-new"></a>
 ### <span class="font-mono">session/new</span>
 
 Creates a new conversation session with the agent.
@@ -254,6 +257,7 @@ Used in all subsequent requests for this conversation.
 
 </ResponseField>
 
+<a id="session-prompt"></a>
 ### <span class="font-mono">session/prompt</span>
 
 Processes a user prompt within a session.
@@ -327,6 +331,7 @@ Clients are typically code editors (IDEs, text editors) that provide the interfa
 between users and AI agents. They manage the environment, handle user interactions,
 and control access to resources.
 
+<a id="fs-read_text_file"></a>
 ### <span class="font-mono">fs/read_text_file</span>
 
 Reads content from a text file in the client's file system.
@@ -365,6 +370,7 @@ Only available if the client supports the `fs.readTextFile` capability.
   The session ID for this request.
 </ResponseField>
 
+<a id="fs-write_text_file"></a>
 ### <span class="font-mono">fs/write_text_file</span>
 
 Writes content to a text file in the client's file system.
@@ -398,6 +404,7 @@ Only available if the client supports the `fs.writeTextFile` capability.
   The session ID for this request.
 </ResponseField>
 
+<a id="session-request_permission"></a>
 ### <span class="font-mono">session/request_permission</span>
 
 Requests permission from the user for a tool call operation.
@@ -468,6 +475,7 @@ Response to a permission request.
   The user's decision on the permission request.
 </ResponseField>
 
+<a id="session-update"></a>
 ### <span class="font-mono">session/update</span>
 
 Handles session update notifications from the agent.

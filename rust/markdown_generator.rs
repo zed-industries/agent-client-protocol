@@ -99,10 +99,18 @@ impl MarkdownGenerator {
         docs: &str,
         mut method_types: Vec<(String, Value)>,
     ) {
+        if method.contains('/') {
+            writeln!(
+                &mut self.output,
+                "<a id=\"{}\"></a>",
+                Self::anchor_text(method).replace("/", "-")
+            )
+            .unwrap();
+        }
         writeln!(
             &mut self.output,
             "### <span class=\"font-mono\">{}</span>",
-            method
+            method,
         )
         .unwrap();
         writeln!(&mut self.output).unwrap();
@@ -121,7 +129,7 @@ impl MarkdownGenerator {
             &mut self.output,
             "{} <span class=\"font-mono\">{}</span>",
             "#".repeat(headline_level),
-            name
+            name,
         )
         .unwrap();
         writeln!(&mut self.output).unwrap();
@@ -449,7 +457,7 @@ impl MarkdownGenerator {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
             return format!(
                 "<a href=\"#{}\">{}</a>",
-                type_name.to_lowercase(),
+                Self::anchor_text(type_name),
                 type_name
             );
         }
@@ -536,7 +544,7 @@ impl MarkdownGenerator {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
             return Some(format!(
                 "<a href=\"#{}\">{}</a>",
-                type_name.to_lowercase(),
+                Self::anchor_text(type_name),
                 type_name
             ));
         }
@@ -576,6 +584,10 @@ impl MarkdownGenerator {
             .replace("`]", "`");
         let desc = Self::escape_mdx(&desc);
         Some(desc)
+    }
+
+    fn anchor_text(title: &str) -> String {
+        title.to_lowercase()
     }
 }
 
