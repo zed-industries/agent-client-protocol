@@ -7,7 +7,7 @@ Tool calls represent actions that language models request Agents to perform duri
 
 Agents report tool calls through [`session/update`](./prompt-turn#3-agent-reports-output) notifications, allowing Clients to display real-time progress and results to users.
 
-While Agents handle the actual execution, they may leverage Client capabilities like permission requests or file system access to provide a richer, more integrated experience.
+While Agents handle the actual execution, they may leverage Client capabilities like [permission requests](#requesting-permission) or [file system access](./file-system) to provide a richer, more integrated experience.
 
 ## Creating
 
