@@ -114,6 +114,10 @@ impl Agent for TestAgent {
         Ok(())
     }
 
+    async fn rewind(&self, _arguments: RewindRequest) -> Result<(), Error> {
+        unimplemented!()
+    }
+
     async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {
         self.prompts_received
             .lock()
@@ -405,6 +409,7 @@ async fn test_full_conversation_flow() {
 
             agent_conn
                 .prompt(PromptRequest {
+                    prompt_id: None,
                     session_id: session_id.clone(),
                     prompt: user_prompt,
                 })
