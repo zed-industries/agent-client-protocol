@@ -127,9 +127,9 @@ impl MarkdownGenerator {
         writeln!(&mut self.output).unwrap();
 
         // Add main description if available
-        if let Some(desc) = get_def_description(definition) {
+        if let Some(desc) = Self::get_def_description(definition) {
             // Escape # at the beginning of lines to prevent them from being treated as headers
-            let escaped_desc = self.escape_description(&desc);
+            let escaped_desc = Self::escape_description(&desc);
             writeln!(&mut self.output, "{}", escaped_desc).unwrap();
             writeln!(&mut self.output).unwrap();
         }
@@ -198,9 +198,8 @@ impl MarkdownGenerator {
         writeln!(&mut self.output, "\">").unwrap();
 
         // Get description
-        if let Some(desc) = get_def_description(variant) {
-            let escaped_desc = self.escape_mdx(&desc);
-            write!(&mut self.output, "{}", escaped_desc).unwrap();
+        if let Some(desc) = Self::get_def_description(variant) {
+            write!(&mut self.output, "{}", desc).unwrap();
         } else {
             write!(&mut self.output, "{{\"\"}}").unwrap();
         }
@@ -268,7 +267,7 @@ impl MarkdownGenerator {
 
         for (prop_name, prop_schema) in sorted_props {
             let is_required = required.contains(&prop_name.as_str());
-            let type_str = self.get_type_string(prop_schema);
+            let type_str = Self::get_type_string(prop_schema);
 
             // Simple field without nesting
             writeln!(
@@ -282,9 +281,8 @@ impl MarkdownGenerator {
             .unwrap();
 
             // Add description if available
-            if let Some(desc) = get_def_description(prop_schema) {
-                let escaped_desc = self.escape_mdx(&desc);
-                writeln!(&mut self.output, "{}  {}", indent_str, escaped_desc).unwrap();
+            if let Some(desc) = Self::get_def_description(prop_schema) {
+                writeln!(&mut self.output, "{}  {}", indent_str, desc).unwrap();
             }
 
             // Add constraints if any
@@ -445,7 +443,7 @@ impl MarkdownGenerator {
         }
     }
 
-    fn get_type_string(&self, schema: &Value) -> String {
+    fn get_type_string(schema: &Value) -> String {
         // Check for $ref
         if let Some(ref_val) = schema.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
@@ -462,7 +460,7 @@ impl MarkdownGenerator {
                 return match type_str {
                     "array" => {
                         if let Some(items) = schema.get("items") {
-                            let item_type = self.get_type_string(items);
+                            let item_type = Self::get_type_string(items);
                             format!("<><span>{}</span><span>[]</span></>", item_type)
                         } else {
                             "\"array\"".to_string()
@@ -506,7 +504,7 @@ impl MarkdownGenerator {
                 for variant in arr {
                     if variant.get("type").and_then(|v| v.as_str()) == Some("null") {
                         has_null = true;
-                    } else if let Some(t) = self.get_inline_variant_type(variant) {
+                    } else if let Some(t) = Self::get_inline_variant_type(variant) {
                         other_type = Some(t);
                     }
                 }
@@ -528,7 +526,7 @@ impl MarkdownGenerator {
         "\"object\"".to_string()
     }
 
-    fn get_inline_variant_type(&self, variant: &Value) -> Option<String> {
+    fn get_inline_variant_type(variant: &Value) -> Option<String> {
         // Check for simple type
         if let Some(type_str) = variant.get("type").and_then(|v| v.as_str()) {
             return Some(format!("\"{type_str}\""));
@@ -545,7 +543,7 @@ impl MarkdownGenerator {
         None
     }
 
-    fn escape_mdx(&self, text: &str) -> String {
+    fn escape_mdx(text: &str) -> String {
         text.replace('|', "\\|")
             .replace('<', "&lt;")
             .replace('>', "&gt;")
@@ -553,7 +551,7 @@ impl MarkdownGenerator {
             .replace('}', "\\}")
     }
 
-    fn escape_description(&self, text: &str) -> String {
+    fn escape_description(text: &str) -> String {
         // Escape # at the beginning of lines to prevent them from being treated as headers
         let lines: Vec<String> = text
             .lines()
@@ -569,15 +567,16 @@ impl MarkdownGenerator {
             .collect();
         lines.join("\n")
     }
-}
 
-fn get_def_description(def: &Value) -> Option<String> {
-    let desc = def
-        .get("description")?
-        .as_str()?
-        .replace("[`", "`")
-        .replace("`]", "`");
-    Some(desc)
+    fn get_def_description(def: &Value) -> Option<String> {
+        let desc = def
+            .get("description")?
+            .as_str()?
+            .replace("[`", "`")
+            .replace("`]", "`");
+        let desc = Self::escape_mdx(&desc);
+        Some(desc)
+    }
 }
 
 struct SideDocs {
