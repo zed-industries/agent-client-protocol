@@ -1,0 +1,38 @@
+name: Bug Report
+description: |
+    Something is not working as expected in ACP.
+type: "Bug"
+body:
+    - type: textarea
+      attributes:
+          label: Summary
+          description: Provide a one sentence summary and detailed reproduction steps
+          value: |
+              <!-- Begin your issue with a one sentence summary -->
+              SUMMARY_SENTENCE_HERE
+
+              ### Description
+              <!--  Describe with sufficient detail the bug
+                - Issues with insufficient detail may be summarily closed.
+              -->
+
+              DESCRIPTION_HERE
+
+              Steps to reproduce:
+              1.
+              2.
+              3.
+              4.
+
+              **Expected Behavior**:
+              **Actual Behavior**:
+
+      validations:
+          required: true
+
+    - type: textarea
+      id: environment
+      attributes:
+          label: ACP Version
+      validations:
+          required: true
