@@ -9,5 +9,4 @@ typescript/*.js
 typescript/*.d.ts
 typescript/*.js.map
 # Exclude generator scripts
-!typescript/generate-schemas.ts
-!typescript/generate-zod.js
+!typescript/generate.js
