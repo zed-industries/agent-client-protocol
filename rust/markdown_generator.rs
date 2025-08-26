@@ -43,149 +43,78 @@ impl MarkdownGenerator {
         writeln!(&mut self.output, "</Info>").unwrap();
         writeln!(&mut self.output).unwrap();
 
-        // Add an overview section with cards
-        self.generate_overview();
-
-        // Group definitions by their x-group metadata
-        let mut grouped_types: BTreeMap<String, Vec<(String, Value)>> = BTreeMap::new();
+        let mut agent_types: BTreeMap<String, Vec<(String, Value)>> = BTreeMap::new();
+        let mut client_types: BTreeMap<String, Vec<(String, Value)>> = BTreeMap::new();
+        let mut referenced_types: Vec<(String, Value)> = Vec::new();
 
         for (name, def) in &self.definitions {
-            let group = def
-                .get("x-group")
-                .and_then(|v| v.as_str())
-                .unwrap_or("ungrouped")
-                .to_string();
+            if let Some(side) = def.get("x-side").and_then(|v| v.as_str()) {
+                let method = def.get("x-method").unwrap().as_str().unwrap();
 
-            grouped_types
-                .entry(group)
-                .or_default()
-                .push((name.clone(), def.clone()));
+                if side == "agent" {
+                    agent_types
+                        .entry(method.to_string())
+                        .or_default()
+                        .push((name.to_string(), def.clone()));
+                } else {
+                    client_types
+                        .entry(method.to_string())
+                        .or_default()
+                        .push((name.to_string(), def.clone()));
+                }
+            } else {
+                referenced_types.push((name.clone(), def.clone()));
+            }
         }
 
-        // Sort groups by their order
-        let mut groups: Vec<(String, Vec<(String, Value)>)> = grouped_types.into_iter().collect();
-        groups.sort_by_key(|(group, _)| match group.as_str() {
-            "message-types" => 1,
-            "initialization" => 2,
-            "session" => 3,
-            "content" => 4,
-            "tools" => 5,
-            "filesystem" => 6,
-            "mcp" => 7,
-            "ungrouped" => 999, // Show ungrouped types at the end
-            _ => 1000,
-        });
+        writeln!(&mut self.output, "## Agent").unwrap();
+        writeln!(&mut self.output).unwrap();
+        writeln!(
+            &mut self.output,
+            "Methods and notifications handled by the Agent"
+        )
+        .unwrap();
+        writeln!(&mut self.output).unwrap();
+        for (method, types) in agent_types {
+            self.generate_method(&method, types);
+        }
 
-        // Generate documentation for each group
-        for (group, types) in groups {
-            self.generate_group(&group, types);
+        writeln!(&mut self.output, "---").unwrap();
+        writeln!(&mut self.output).unwrap();
+
+        writeln!(&mut self.output, "## Client").unwrap();
+        writeln!(&mut self.output).unwrap();
+        writeln!(
+            &mut self.output,
+            "Methods and notifications handled by the Client"
+        )
+        .unwrap();
+
+        for (method, types) in client_types {
+            self.generate_method(&method, types);
+        }
+
+        writeln!(&mut self.output, "---").unwrap();
+        writeln!(&mut self.output).unwrap();
+
+        referenced_types.sort_by_key(|(name, _)| name.clone());
+        for (name, def) in referenced_types {
+            self.document_type(2, &name, &def);
         }
 
         self.output.clone()
     }
 
-    fn generate_overview(&mut self) {
-        writeln!(&mut self.output, "## Overview").unwrap();
+    fn generate_method(&mut self, method: &str, mut method_types: Vec<(String, Value)>) {
+        writeln!(&mut self.output, "### Method: `{}`", method).unwrap();
+        writeln!(&mut self.output).unwrap();
+        writeln!(&mut self.output, "<br/>").unwrap();
         writeln!(&mut self.output).unwrap();
 
-        writeln!(&mut self.output, "<CardGroup cols={{2}}>").unwrap();
+        method_types.sort_by_key(|(name, _)| name.clone());
 
-        writeln!(
-            &mut self.output,
-            "  <Card title=\"Message Types\" icon=\"message\" href=\"#message-types\">"
-        )
-        .unwrap();
-        writeln!(
-            &mut self.output,
-            "    Core protocol message types for client-agent communication"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(&mut self.output, "  <Card title=\"Initialization\" icon=\"rocket\" href=\"#initialization--capabilities\">").unwrap();
-        writeln!(
-            &mut self.output,
-            "    Connection setup, capability negotiation, and authentication"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(
-            &mut self.output,
-            "  <Card title=\"Session Management\" icon=\"users\" href=\"#session-management\">"
-        )
-        .unwrap();
-        writeln!(
-            &mut self.output,
-            "    Managing conversation sessions and prompts"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(
-            &mut self.output,
-            "  <Card title=\"Content & Resources\" icon=\"file-text\" href=\"#content--resources\">"
-        )
-        .unwrap();
-        writeln!(
-            &mut self.output,
-            "    Content blocks and resources in messages"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(
-            &mut self.output,
-            "  <Card title=\"Tools & Permissions\" icon=\"tool\" href=\"#tools--permissions\">"
-        )
-        .unwrap();
-        writeln!(
-            &mut self.output,
-            "    Tool execution and permission management"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(
-            &mut self.output,
-            "  <Card title=\"File System\" icon=\"folder\" href=\"#file-system-operations\">"
-        )
-        .unwrap();
-        writeln!(&mut self.output, "    File system access and manipulation").unwrap();
-        writeln!(&mut self.output, "  </Card>").unwrap();
-
-        writeln!(&mut self.output, "</CardGroup>").unwrap();
-        writeln!(&mut self.output).unwrap();
-    }
-
-    fn generate_group(&mut self, group: &str, types: Vec<(String, Value)>) {
-        // Generate section header
-        let section_name = match group {
-            "message-types" => "Message Types",
-            "initialization" => "Initialization & Capabilities",
-            "session" => "Session Management",
-            "content" => "Content & Resources",
-            "tools" => "Tools & Permissions",
-            "filesystem" => "File System Operations",
-            "mcp" => "MCP Server Configuration",
-            "ungrouped" => "Other Types",
-            _ => group,
-        };
-
-        writeln!(&mut self.output, "## {}", section_name).unwrap();
-        writeln!(&mut self.output).unwrap();
-
-        // Add group description in a callout
-        // Add group description
-        self.add_group_description(group);
-
-        // Sort types within the group alphabetically
-        let mut sorted_types = types;
-        sorted_types.sort_by_key(|(name, _)| name.clone());
-
-        // Document each type in this section
-        for (name, def) in sorted_types {
-            self.document_type(&name, &def);
+        for (name, def) in method_types {
+            self.document_type(4, &name, &def);
         }
 
         // Add horizontal rule after each major section
@@ -193,45 +122,8 @@ impl MarkdownGenerator {
         writeln!(&mut self.output).unwrap();
     }
 
-    fn add_group_description(&mut self, group: &str) {
-        let (callout_type, description) = match group {
-            "message-types" => (
-                "Info",
-                "Core protocol message types for communication between clients and agents.",
-            ),
-            "initialization" => (
-                "Info",
-                "Types for connection setup, capability negotiation, and authentication.",
-            ),
-            "session" => (
-                "Info",
-                "Types for managing conversation sessions and prompt handling.",
-            ),
-            "content" => (
-                "Info",
-                "Content blocks and resources that can be included in messages.",
-            ),
-            "tools" => (
-                "Info",
-                "Tool execution, permissions, and planning capabilities.",
-            ),
-            "filesystem" => ("Info", "File system access and manipulation operations."),
-            "mcp" => ("Info", "Model Context Protocol server configuration."),
-            "ungrouped" => (
-                "Warning",
-                "These types are missing categorization metadata.",
-            ),
-            _ => return,
-        };
-
-        writeln!(&mut self.output, "<{}>", callout_type).unwrap();
-        writeln!(&mut self.output, "  {}", description).unwrap();
-        writeln!(&mut self.output, "</{}>", callout_type).unwrap();
-        writeln!(&mut self.output).unwrap();
-    }
-
-    fn document_type(&mut self, name: &str, definition: &Value) {
-        writeln!(&mut self.output, "### {}", name).unwrap();
+    fn document_type(&mut self, headline_level: usize, name: &str, definition: &Value) {
+        writeln!(&mut self.output, "{} {}", "#".repeat(headline_level), name).unwrap();
         writeln!(&mut self.output).unwrap();
 
         // Add main description if available

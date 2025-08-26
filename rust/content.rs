@@ -27,7 +27,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// See: [https://agentclientprotocol.com/protocol/content](https://agentclientprotocol.com/protocol/content)
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
     /// Plain text content
@@ -56,7 +55,6 @@ pub enum ContentBlock {
 
 /// Text provided to or from an LLM.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct TextContent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
@@ -74,7 +72,6 @@ impl<T: Into<String>> From<T> for ContentBlock {
 
 /// An image provided to or from an LLM.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct ImageContent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
@@ -87,7 +84,6 @@ pub struct ImageContent {
 
 /// Audio provided to or from an LLM.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct AudioContent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
@@ -98,7 +94,6 @@ pub struct AudioContent {
 
 /// The contents of a resource, embedded into a prompt or tool call result.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct EmbeddedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
@@ -107,7 +102,6 @@ pub struct EmbeddedResource {
 
 /// Resource content that can be embedded in a message.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 #[serde(untagged)]
 pub enum EmbeddedResourceResource {
     TextResourceContents(TextResourceContents),
@@ -116,7 +110,6 @@ pub enum EmbeddedResourceResource {
 
 /// Text-based resource contents.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct TextResourceContents {
     #[serde(rename = "mimeType", default, skip_serializing_if = "Option::is_none")]
     pub mime_type: Option<String>,
@@ -126,7 +119,6 @@ pub struct TextResourceContents {
 
 /// Binary resource contents.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct BlobResourceContents {
     pub blob: String,
     #[serde(rename = "mimeType", default, skip_serializing_if = "Option::is_none")]
@@ -136,7 +128,6 @@ pub struct BlobResourceContents {
 
 /// A resource that the server is capable of reading, included in a prompt or tool call result.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct ResourceLink {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
@@ -154,7 +145,6 @@ pub struct ResourceLink {
 
 /// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub struct Annotations {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub audience: Option<Vec<Role>>,
@@ -170,7 +160,6 @@ pub struct Annotations {
 
 /// The sender or recipient of messages and data in a conversation.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_content)]
 pub enum Role {
     #[serde(rename = "assistant")]
     Assistant,

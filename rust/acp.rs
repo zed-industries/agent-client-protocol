@@ -52,7 +52,6 @@ mod plan;
 mod rpc;
 #[cfg(test)]
 mod rpc_tests;
-mod schema_metadata;
 mod stream_broadcast;
 mod tool_call;
 mod version;
@@ -93,7 +92,6 @@ use crate::rpc::{MessageHandler, RpcConnection, Side};
 ///
 /// See: [https://agentclientprotocol.com/protocol/session-setup#session-id](https://agentclientprotocol.com/protocol/session-setup#session-id)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
 #[serde(transparent)]
 pub struct SessionId(pub Arc<str>);
 

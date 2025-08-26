@@ -81,7 +81,7 @@ pub trait Client {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/update"))]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     /// The ID of the session this update pertains to.
@@ -96,7 +96,6 @@ pub struct SessionNotification {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
 #[serde(rename_all = "snake_case", tag = "sessionUpdate")]
 pub enum SessionUpdate {
     /// A chunk of the user's message being streamed.
@@ -122,7 +121,7 @@ pub enum SessionUpdate {
 ///
 /// See: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     /// The session ID for this request.
@@ -135,7 +134,6 @@ pub struct RequestPermissionRequest {
 
 /// An option presented to the user when requesting permission.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 pub struct PermissionOption {
     /// Unique identifier for this permission option.
     #[serde(rename = "optionId")]
@@ -148,7 +146,6 @@ pub struct PermissionOption {
 
 /// Unique identifier for a permission option.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(transparent)]
 pub struct PermissionOptionId(pub Arc<str>);
 
@@ -162,7 +159,6 @@ impl fmt::Display for PermissionOptionId {
 ///
 /// Helps clients choose appropriate icons and UI treatment.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionOptionKind {
     /// Allow this operation only this time.
@@ -177,7 +173,7 @@ pub enum PermissionOptionKind {
 
 /// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
+#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
@@ -187,7 +183,6 @@ pub struct RequestPermissionResponse {
 
 /// The outcome of a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum RequestPermissionOutcome {
     /// The prompt turn was cancelled before the user responded.
@@ -212,7 +207,7 @@ pub enum RequestPermissionOutcome {
 ///
 /// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
+#[schemars(extend("x-side" = "client", "x-method" = "fs/write_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
@@ -229,7 +224,7 @@ pub struct WriteTextFileRequest {
 ///
 /// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
+#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
@@ -246,7 +241,7 @@ pub struct ReadTextFileRequest {
 
 /// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
+#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
@@ -261,7 +256,6 @@ pub struct ReadTextFileResponse {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization#client-capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
     /// File system capabilities supported by the client.
@@ -274,7 +268,6 @@ pub struct ClientCapabilities {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization#filesystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_filesystem)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSystemCapability {
     /// Whether the Client supports `fs/read_text_file` requests.
@@ -326,7 +319,6 @@ pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 ///
 /// This enum encompasses all method calls from agent to client.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
@@ -341,7 +333,6 @@ pub enum AgentRequest {
 ///
 /// These are responses to the corresponding AgentRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum ClientResponse {
     WriteTextFileResponse,
@@ -356,7 +347,6 @@ pub enum ClientResponse {
 ///
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),

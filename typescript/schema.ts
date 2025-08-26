@@ -698,8 +698,6 @@ export const promptRequestSchema = z.object({
    *
    * The Client MUST adapt its interface according to [`PromptCapabilities`].
    *
-   * ## Context
-   *
    * The client MAY include referenced pieces of context as either
    * [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].
    *

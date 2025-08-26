@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 ///
 /// See: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct Plan {
     /// The list of tasks to be accomplished.
@@ -32,7 +31,6 @@ pub struct Plan {
 /// as part of fulfilling the user's request.
 /// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanEntry {
     /// Human-readable description of what this task aims to accomplish.
@@ -50,7 +48,6 @@ pub struct PlanEntry {
 /// tasks in the execution plan.
 /// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryPriority {
     /// High priority task - critical to the overall goal.
@@ -66,7 +63,6 @@ pub enum PlanEntryPriority {
 /// Tracks the lifecycle of each task from planning through completion.
 /// See: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 #[derive(Deserialize, Serialize, JsonSchema, Debug, Clone)]
-#[schemars(transform = crate::schema_metadata::add_group_tools)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanEntryStatus {
     /// The task has not started yet.

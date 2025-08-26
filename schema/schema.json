@@ -18,9 +18,7 @@
           "description": "Prompt capabilities supported by the agent."
         }
       },
-      "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "object"
     },
     "AgentNotification": {
       "anyOf": [
@@ -29,9 +27,7 @@
           "title": "SessionNotification"
         }
       ],
-      "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response."
     },
     "AgentRequest": {
       "anyOf": [
@@ -48,9 +44,7 @@
           "title": "RequestPermissionRequest"
         }
       ],
-      "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client."
     },
     "AgentResponse": {
       "anyOf": [
@@ -75,9 +69,7 @@
           "title": "PromptResponse"
         }
       ],
-      "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants."
     },
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
@@ -96,9 +88,7 @@
           "type": ["number", "null"]
         }
       },
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "AudioContent": {
       "description": "Audio provided to or from an LLM.",
@@ -121,9 +111,7 @@
         }
       },
       "required": ["data", "mimeType"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "AuthMethod": {
       "description": "Describes an available authentication method.",
@@ -142,15 +130,11 @@
         }
       },
       "required": ["id", "name"],
-      "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "object"
     },
     "AuthMethodId": {
       "description": "Unique identifier for an authentication method.",
-      "type": "string",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "string"
     },
     "AuthenticateRequest": {
       "description": "Request parameters for the authenticate method.\n\nSpecifies which authentication method to use.",
@@ -162,8 +146,8 @@
       },
       "required": ["methodId"],
       "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "x-method": "authenticate",
+      "x-side": "agent"
     },
     "BlobResourceContents": {
       "description": "Binary resource contents.",
@@ -179,9 +163,7 @@
         }
       },
       "required": ["blob", "uri"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "CancelNotification": {
       "description": "Notification to cancel ongoing operations for a session.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)",
@@ -193,8 +175,8 @@
       },
       "required": ["sessionId"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/cancel",
+      "x-side": "agent"
     },
     "ClientCapabilities": {
       "description": "Capabilities supported by the client.\n\nAdvertised during initialization to inform the agent about\navailable features and methods.\n\nSee: [https://agentclientprotocol.com/protocol/initialization#client-capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)",
@@ -208,9 +190,7 @@
           "description": "File system capabilities supported by the client.\nDetermines which file operations the agent can request."
         }
       },
-      "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "object"
     },
     "ClientNotification": {
       "anyOf": [
@@ -219,9 +199,7 @@
           "title": "CancelNotification"
         }
       ],
-      "description": "All possible notifications that a client can send to an agent.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Agent`] trait instead.\n\nNotifications do not expect a response.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible notifications that a client can send to an agent.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Agent`] trait instead.\n\nNotifications do not expect a response."
     },
     "ClientRequest": {
       "anyOf": [
@@ -246,9 +224,7 @@
           "title": "PromptRequest"
         }
       ],
-      "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent."
     },
     "ClientResponse": {
       "anyOf": [
@@ -265,9 +241,7 @@
           "title": "RequestPermissionResponse"
         }
       ],
-      "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
-      "x-group": "message-types",
-      "x-order": 1
+      "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants."
     },
     "ContentBlock": {
       "description": "Content blocks represent displayable information in the Agent Client Protocol.\n\nThey provide a structured way to handle various types of user-facing content—whether\nit's text from language models, images for analysis, or embedded resources for context.\n\nContent blocks appear in:\n- User prompts sent via `session/prompt`\n- Language model output streamed through `session/update` notifications\n- Progress updates and results from tool calls\n\nThis structure is compatible with the Model Context Protocol (MCP), enabling\nagents to seamlessly forward content from MCP tool outputs without transformation.\n\nSee: [https://agentclientprotocol.com/protocol/content](https://agentclientprotocol.com/protocol/content)",
@@ -417,9 +391,7 @@
           "required": ["type", "resource"],
           "type": "object"
         }
-      ],
-      "x-group": "content",
-      "x-order": 4
+      ]
     },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
@@ -439,9 +411,7 @@
         }
       },
       "required": ["resource"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "EmbeddedResourceResource": {
       "anyOf": [
@@ -454,9 +424,7 @@
           "title": "BlobResourceContents"
         }
       ],
-      "description": "Resource content that can be embedded in a message.",
-      "x-group": "content",
-      "x-order": 4
+      "description": "Resource content that can be embedded in a message."
     },
     "EnvVariable": {
       "description": "An environment variable to set when launching an MCP server.",
@@ -471,9 +439,7 @@
         }
       },
       "required": ["name", "value"],
-      "type": "object",
-      "x-group": "mcp",
-      "x-order": 7
+      "type": "object"
     },
     "FileSystemCapability": {
       "description": "File system capabilities that a client may support.\n\nSee: [https://agentclientprotocol.com/protocol/initialization#filesystem](https://agentclientprotocol.com/protocol/initialization#filesystem)",
@@ -489,9 +455,7 @@
           "type": "boolean"
         }
       },
-      "type": "object",
-      "x-group": "filesystem",
-      "x-order": 6
+      "type": "object"
     },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
@@ -517,9 +481,7 @@
         }
       },
       "required": ["data", "mimeType"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "InitializeRequest": {
       "description": "Request parameters for the initialize method.\n\nSent by the client to establish connection and negotiate capabilities.\n\nSee: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)",
@@ -541,8 +503,8 @@
       },
       "required": ["protocolVersion"],
       "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "x-method": "initialize",
+      "x-side": "agent"
     },
     "InitializeResponse": {
       "description": "Response from the initialize method.\n\nContains the negotiated protocol version and agent capabilities.\n\nSee: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)",
@@ -574,8 +536,8 @@
       },
       "required": ["protocolVersion"],
       "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "x-method": "initialize",
+      "x-side": "agent"
     },
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee: [https://agentclientprotocol.com/protocol/session-setup#loading-sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
@@ -598,8 +560,8 @@
       },
       "required": ["mcpServers", "cwd", "sessionId"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/load",
+      "x-side": "agent"
     },
     "McpServer": {
       "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee: [https://agentclientprotocol.com/protocol/session-setup#mcp-servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)",
@@ -628,9 +590,7 @@
         }
       },
       "required": ["name", "command", "args", "env"],
-      "type": "object",
-      "x-group": "mcp",
-      "x-order": 7
+      "type": "object"
     },
     "NewSessionRequest": {
       "description": "Request parameters for creating a new session.\n\nSee: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
@@ -649,8 +609,8 @@
       },
       "required": ["mcpServers", "cwd"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/new",
+      "x-side": "agent"
     },
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
@@ -662,8 +622,8 @@
       },
       "required": ["sessionId"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/new",
+      "x-side": "agent"
     },
     "PermissionOption": {
       "description": "An option presented to the user when requesting permission.",
@@ -682,15 +642,11 @@
         }
       },
       "required": ["optionId", "name", "kind"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "PermissionOptionId": {
       "description": "Unique identifier for a permission option.",
-      "type": "string",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "string"
     },
     "PermissionOptionKind": {
       "description": "The type of permission option being presented to the user.\n\nHelps clients choose appropriate icons and UI treatment.",
@@ -715,9 +671,7 @@
           "description": "Reject this operation and remember the choice.",
           "type": "string"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "Plan": {
       "description": "An execution plan for accomplishing complex tasks.\n\nPlans consist of multiple entries representing individual tasks or goals.\nAgents report plans to clients to provide visibility into their execution strategy.\nPlans can evolve during execution as the agent discovers new requirements or completes tasks.\n\nSee: [https://agentclientprotocol.com/protocol/agent-plan](https://agentclientprotocol.com/protocol/agent-plan)",
@@ -731,9 +685,7 @@
         }
       },
       "required": ["entries"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "PlanEntry": {
       "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.\nSee: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)",
@@ -752,9 +704,7 @@
         }
       },
       "required": ["content", "priority", "status"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "PlanEntryPriority": {
       "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.\nSee: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)",
@@ -774,9 +724,7 @@
           "description": "Low priority task - nice to have but not essential.",
           "type": "string"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "PlanEntryStatus": {
       "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.\nSee: [https://agentclientprotocol.com/protocol/agent-plan#plan-entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)",
@@ -796,9 +744,7 @@
           "description": "The task has been successfully completed.",
           "type": "string"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "PromptCapabilities": {
       "description": "Prompt capabilities supported by the agent in `session/prompt` requests.\n\nBaseline agent functionality requires support for [`ContentBlock::Text`]\nand [`ContentBlock::ResourceLink`] in prompt requests.\n\nOther variants must be explicitly opted in to.\nCapabilities for different types of content in prompt requests.\n\nIndicates which content types beyond the baseline (text and resource links)\nthe agent can process.\n\nSee: [https://agentclientprotocol.com/protocol/initialization#prompt-capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)",
@@ -819,15 +765,13 @@
           "type": "boolean"
         }
       },
-      "type": "object",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "object"
     },
     "PromptRequest": {
       "description": "Request parameters for sending a user prompt to the agent.\n\nContains the user's message and any additional context.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#1-user-message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)",
       "properties": {
         "prompt": {
-          "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\n## Context\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::Resource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
+          "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::Resource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
           "items": {
             "$ref": "#/$defs/ContentBlock"
           },
@@ -840,8 +784,8 @@
       },
       "required": ["sessionId", "prompt"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/prompt",
+      "x-side": "agent"
     },
     "PromptResponse": {
       "description": "Response from processing a user prompt.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)",
@@ -853,17 +797,15 @@
       },
       "required": ["stopReason"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/prompt",
+      "x-side": "agent"
     },
     "ProtocolVersion": {
       "description": "Protocol version identifier.\n\nThis version is only bumped for breaking changes.\nNon-breaking changes should be introduced via capabilities.",
       "format": "uint16",
       "maximum": 65535,
       "minimum": 0,
-      "type": "integer",
-      "x-group": "initialization",
-      "x-order": 2
+      "type": "integer"
     },
     "ReadTextFileRequest": {
       "description": "Request to read content from a text file.\n\nOnly available if the client supports the `fs.readTextFile` capability.",
@@ -891,8 +833,8 @@
       },
       "required": ["sessionId", "path"],
       "type": "object",
-      "x-group": "filesystem",
-      "x-order": 6
+      "x-method": "fs/read_text_file",
+      "x-side": "client"
     },
     "ReadTextFileResponse": {
       "description": "Response containing the contents of a text file.",
@@ -903,8 +845,8 @@
       },
       "required": ["content"],
       "type": "object",
-      "x-group": "filesystem",
-      "x-order": 6
+      "x-method": "fs/read_text_file",
+      "x-side": "client"
     },
     "RequestPermissionOutcome": {
       "description": "The outcome of a permission request.",
@@ -935,9 +877,7 @@
           "required": ["outcome", "optionId"],
           "type": "object"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "RequestPermissionRequest": {
       "description": "Request for user permission to execute a tool call.\n\nSent when the agent needs authorization before performing a sensitive operation.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#requesting-permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)",
@@ -960,8 +900,8 @@
       },
       "required": ["sessionId", "toolCall", "options"],
       "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "x-method": "session/request_permission",
+      "x-side": "client"
     },
     "RequestPermissionResponse": {
       "description": "Response to a permission request.",
@@ -973,8 +913,8 @@
       },
       "required": ["outcome"],
       "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "x-method": "session/request_permission",
+      "x-side": "client"
     },
     "ResourceLink": {
       "description": "A resource that the server is capable of reading, included in a prompt or tool call result.",
@@ -1010,22 +950,16 @@
         }
       },
       "required": ["name", "uri"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "Role": {
       "description": "The sender or recipient of messages and data in a conversation.",
       "enum": ["assistant", "user"],
-      "type": "string",
-      "x-group": "content",
-      "x-order": 4
+      "type": "string"
     },
     "SessionId": {
       "description": "A unique identifier for a conversation session between a client and agent.\n\nSessions maintain their own context, conversation history, and state,\nallowing multiple independent interactions with the same agent.\n\n# Example\n\n```\nuse agent_client_protocol::SessionId;\nuse std::sync::Arc;\n\nlet session_id = SessionId(Arc::from(\"sess_abc123def456\"));\n```\n\nSee: [https://agentclientprotocol.com/protocol/session-setup#session-id](https://agentclientprotocol.com/protocol/session-setup#session-id)",
-      "type": "string",
-      "x-group": "session",
-      "x-order": 3
+      "type": "string"
     },
     "SessionNotification": {
       "description": "Notification containing a session update from the agent.\n\nUsed to stream real-time progress and results during prompt processing.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)",
@@ -1041,8 +975,8 @@
       },
       "required": ["sessionId", "update"],
       "type": "object",
-      "x-group": "session",
-      "x-order": 3
+      "x-method": "session/update",
+      "x-side": "client"
     },
     "SessionUpdate": {
       "description": "Different types of updates that can be sent during session processing.\n\nThese updates provide real-time feedback about the agent's progress.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)",
@@ -1215,9 +1149,7 @@
           "required": ["sessionUpdate", "entries"],
           "type": "object"
         }
-      ],
-      "x-group": "session",
-      "x-order": 3
+      ]
     },
     "StopReason": {
       "description": "Reasons why an agent stops processing a prompt turn.\n\nSee: [https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)",
@@ -1247,9 +1179,7 @@
           "description": "The turn was cancelled by the client via `session/cancel`.\n\nThis stop reason MUST be returned when the client sends a `session/cancel`\nnotification, even if the cancellation causes exceptions in underlying operations.\nAgents should catch these exceptions and return this semantically meaningful\nresponse to confirm successful cancellation.",
           "type": "string"
         }
-      ],
-      "x-group": "session",
-      "x-order": 3
+      ]
     },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
@@ -1269,9 +1199,7 @@
         }
       },
       "required": ["text"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "TextResourceContents": {
       "description": "Text-based resource contents.",
@@ -1287,9 +1215,7 @@
         }
       },
       "required": ["text", "uri"],
-      "type": "object",
-      "x-group": "content",
-      "x-order": 4
+      "type": "object"
     },
     "ToolCall": {
       "description": "Represents a tool call that the language model has requested.\n\nTool calls are actions that the agent executes on behalf of the language model,\nsuch as reading files, executing code, or fetching data from external sources.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls](https://agentclientprotocol.com/protocol/tool-calls)",
@@ -1332,9 +1258,7 @@
         }
       },
       "required": ["toolCallId", "title"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "ToolCallContent": {
       "description": "Content produced by a tool call.\n\nTool calls can produce different types of content including\nstandard content blocks (text, images) or file diffs.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#content](https://agentclientprotocol.com/protocol/tool-calls#content)",
@@ -1375,19 +1299,13 @@
             }
           },
           "required": ["type", "path", "newText"],
-          "type": "object",
-          "x-group": "tools",
-          "x-order": 5
+          "type": "object"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "ToolCallId": {
       "description": "Unique identifier for a tool call within a session.",
-      "type": "string",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "string"
     },
     "ToolCallLocation": {
       "description": "A file location being accessed or modified by a tool.\n\nEnables clients to implement \"follow-along\" features that track\nwhich files the agent is working with in real-time.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#following-the-agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)",
@@ -1404,9 +1322,7 @@
         }
       },
       "required": ["path"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "ToolCallStatus": {
       "description": "Execution status of a tool call.\n\nTool calls progress through different statuses during their lifecycle.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#status](https://agentclientprotocol.com/protocol/tool-calls#status)",
@@ -1431,9 +1347,7 @@
           "description": "The tool call failed with an error.",
           "type": "string"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "ToolCallUpdate": {
       "description": "An update to an existing tool call.\n\nUsed to report progress and results as tools execute. All fields except\nthe tool call ID are optional - only changed fields need to be included.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#updating](https://agentclientprotocol.com/protocol/tool-calls#updating)",
@@ -1490,9 +1404,7 @@
         }
       },
       "required": ["toolCallId"],
-      "type": "object",
-      "x-group": "tools",
-      "x-order": 5
+      "type": "object"
     },
     "ToolKind": {
       "description": "Categories of tools that can be invoked.\n\nTool kinds help clients choose appropriate icons and optimize how they\ndisplay tool execution progress.\n\nSee: [https://agentclientprotocol.com/protocol/tool-calls#creating](https://agentclientprotocol.com/protocol/tool-calls#creating)",
@@ -1542,9 +1454,7 @@
           "description": "Other tool types (default).",
           "type": "string"
         }
-      ],
-      "x-group": "tools",
-      "x-order": 5
+      ]
     },
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",
@@ -1564,8 +1474,8 @@
       },
       "required": ["sessionId", "path", "content"],
       "type": "object",
-      "x-group": "filesystem",
-      "x-order": 6
+      "x-method": "fs/write_text_file",
+      "x-side": "client"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

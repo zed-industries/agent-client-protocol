@@ -117,7 +117,7 @@ pub trait Agent {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
+#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
     /// The latest protocol version supported by the client.
@@ -133,7 +133,7 @@ pub struct InitializeRequest {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
+#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
     /// The protocol version the client specified if supported by the agent,
@@ -155,7 +155,7 @@ pub struct InitializeResponse {
 ///
 /// Specifies which authentication method to use.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
+#[schemars(extend("x-side" = "agent", "x-method" = "authenticate"))]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateRequest {
     /// The ID of the authentication method to use.
@@ -165,13 +165,11 @@ pub struct AuthenticateRequest {
 
 /// Unique identifier for an authentication method.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(transparent)]
 pub struct AuthMethodId(pub Arc<str>);
 
 /// Describes an available authentication method.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthMethod {
     /// Unique identifier for this authentication method.
@@ -188,7 +186,7 @@ pub struct AuthMethod {
 ///
 /// See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionRequest {
     /// List of MCP (Model Context Protocol) servers the agent should connect to.
@@ -203,7 +201,7 @@ pub struct NewSessionRequest {
 ///
 /// See: [https://agentclientprotocol.com/protocol/session-setup#creating-a-session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
     /// Unique identifier for the created session.
@@ -219,7 +217,7 @@ pub struct NewSessionResponse {
 ///
 /// See: [https://agentclientprotocol.com/protocol/session-setup#loading-sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/load"))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionRequest {
     /// List of MCP servers to connect to for this session.
@@ -239,7 +237,6 @@ pub struct LoadSessionRequest {
 ///
 /// See: [https://agentclientprotocol.com/protocol/session-setup#mcp-servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_mcp)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServer {
     /// Human-readable name identifying this MCP server.
@@ -254,7 +251,6 @@ pub struct McpServer {
 
 /// An environment variable to set when launching an MCP server.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_mcp)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvVariable {
     /// The name of the environment variable.
@@ -271,7 +267,7 @@ pub struct EnvVariable {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#1-user-message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
@@ -282,8 +278,6 @@ pub struct PromptRequest {
     /// while other variants are optionally enabled via [`PromptCapabilities`].
     ///
     /// The Client MUST adapt its interface according to [`PromptCapabilities`].
-    ///
-    /// ## Context
     ///
     /// The client MAY include referenced pieces of context as either
     /// [`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].
@@ -298,7 +292,7 @@ pub struct PromptRequest {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptResponse {
     /// Indicates why the agent stopped processing the turn.
@@ -309,7 +303,6 @@ pub struct PromptResponse {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
 #[serde(rename_all = "snake_case")]
 pub enum StopReason {
     /// The turn ended successfully.
@@ -341,7 +334,6 @@ pub enum StopReason {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization#agent-capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentCapabilities {
     /// Whether the agent supports `session/load`.
@@ -365,7 +357,6 @@ pub struct AgentCapabilities {
 ///
 /// See: [https://agentclientprotocol.com/protocol/initialization#prompt-capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_initialization)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
     /// Agent supports [`ContentBlock::Image`].
@@ -433,7 +424,6 @@ pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 ///
 /// This enum encompasses all method calls from client to agent.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum ClientRequest {
     InitializeRequest(InitializeRequest),
@@ -450,7 +440,6 @@ pub enum ClientRequest {
 ///
 /// These are responses to the corresponding ClientRequest variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
@@ -467,7 +456,6 @@ pub enum AgentResponse {
 ///
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_message_types)]
 #[serde(untagged)]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
@@ -477,7 +465,7 @@ pub enum ClientNotification {
 ///
 /// See: [https://agentclientprotocol.com/protocol/prompt-turn#cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(transform = crate::schema_metadata::add_group_session)]
+#[schemars(extend("x-side" = "agent", "x-method" = "session/cancel"))]
 #[serde(rename_all = "camelCase")]
 pub struct CancelNotification {
     /// The ID of the session to cancel operations for.
