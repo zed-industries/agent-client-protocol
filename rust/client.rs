@@ -16,8 +16,6 @@ use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
-///
-/// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
