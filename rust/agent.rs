@@ -187,12 +187,10 @@ pub struct AuthMethod {
 #[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionRequest {
-    /// List of MCP (Model Context Protocol) servers the agent should connect to.
-    /// These provide tools and context to the language model.
-    pub mcp_servers: Vec<McpServer>,
-    /// The working directory for this session.
-    /// Must be an absolute path that serves as the context for file operations.
+    /// The working directory for this session. Must be an absolute path.
     pub cwd: PathBuf,
+    /// List of MCP (Model Context Protocol) servers the agent should connect to.
+    pub mcp_servers: Vec<McpServer>,
 }
 
 /// Response from creating a new session.
@@ -203,6 +201,7 @@ pub struct NewSessionRequest {
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
     /// Unique identifier for the created session.
+    ///
     /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
 }
