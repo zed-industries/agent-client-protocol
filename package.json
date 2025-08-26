@@ -35,7 +35,7 @@
     "test:ts:watch": "vitest",
     "generate:json-schema": "cd rust && cargo run --bin generate",
     "generate:ts-schema": "node typescript/generate.js",
-    "generate": "npm run generate:json-schema && npm run generate:ts-schema && prettier --write typescript/*.ts schema/*",
+    "generate": "npm run generate:json-schema && npm run generate:ts-schema && npm run format",
     "build": "npm run generate && tsc",
     "format": "prettier --write . && cargo fmt",
     "format:check": "prettier --check . && cargo fmt -- --check",
