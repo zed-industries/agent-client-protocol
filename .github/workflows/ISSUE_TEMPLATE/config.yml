@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-issue-config.json
+blank_issues_enabled: false
+contact_links:
+  - name: Protocol Suggestions
+    url: https://github.com/zed-industries/agent-client-protocol/discussions/categories/protocol-suggestions
+    about: Propose additions or changes to the protocol

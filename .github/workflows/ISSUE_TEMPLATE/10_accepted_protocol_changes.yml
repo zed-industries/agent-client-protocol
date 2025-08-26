@@ -1,0 +1,19 @@
+name: Accepted Protocol Changes [Staff Only]
+description: Zed Staff Only
+body:
+  - type: textarea
+    attributes:
+      label: Summary
+      value: |
+        <!-- Please add a link to the Discussion related to the protocol changes that were accepted by the Zed staff -->
+        DISCUSSION_LINK_HERE
+
+        ### Description
+
+        IF YOU DO NOT WORK FOR ZED INDUSTRIES DO NOT CREATE ISSUES WITH THIS TEMPLATE.
+        THEY WILL BE AUTO-CLOSED AND MAY RESULT IN YOU BEING BANNED FROM THE ZED ISSUE TRACKER.
+
+        PROPOSALS TO ADD ADDITIONAL CAPABILITIES / CHANGE EXISTING ONES SHOULD BE PROPOSED IN DISCUSSIONS FIRST:
+          https://github.com/zed-industries/agent-client-protocol/discussions/categories/protocol-suggestions
+    validations:
+      required: true
