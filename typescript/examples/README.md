@@ -11,22 +11,20 @@ Examples using the [ACP](https://agentclientprotocol.com) library for TypeScript
 
 While minimal, [`agent.ts`](./agent.ts) implements a compliant [ACP](https://agentclientprotocol.com) Agent. This means we can connect to it from an ACP client like [Zed](https://zed.dev)!
 
-1. Add the following to your [Zed](https://zed.dev) settings:
+1. Add the following at the root of your [Zed](https://zed.dev) settings:
 
 ```json
-{
-  // ... rest of your settings
   "agent_servers": {
     "Example Agent": {
       "command": "npx",
       "args": [
         "tsx",
         "/path/to/agent-client-protocol/typescript/examples/agent.ts"
-        // ^^^^^^ replace with your path
       ]
   }
-}
 ```
+
+  Make sure to update `/path/to/agent-client-protocol` to your clone of this repository.
 
 2. Run the `acp: open acp logs` action from the command palette (<kbd>⌘⇧P</kbd> on macOS, <kbd>ctrl-shift-p</kbd> on Windows/Linux) to see the messages exchanged between the example agent and Zed.
 
@@ -58,7 +56,7 @@ You should see it respond with something like:
 {"jsonrpc":"2.0","id":0,"result":{"protocolVersion":1,"agentCapabilities":{"loadSession":false}}}
 ```
 
-You can then try making a [new session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session) and [sending a prompt](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message).
+From there, you can try making a [new session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session) and [sending a prompt](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message).
 
 ## Running the Client
 
