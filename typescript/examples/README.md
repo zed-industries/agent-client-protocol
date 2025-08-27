@@ -1,6 +1,6 @@
 # ACP TypeScript Examples
 
-Examples using the [ACP](https://agentclientprotocol.com) library for TypeScript
+This directory contains examples using the [ACP](https://agentclientprotocol.com) library for TypeScript:
 
 - [`agent.ts`](./agent.ts) - A minimal agent implementation that simulates LLM interaction
 - [`client.ts`](./client.ts) - A minimal client implementation that spawns the [`agent.ts`](./agent.ts) as a subprocess
