@@ -1,6 +1,8 @@
-# Agent Client Protocol - TypeScript Library
+# ACP TypeScript Library
 
-This is the official TypeScript implementation of the Agent Client Protocol (ACP), a standardized communication protocol between code editors and AI-powered coding agents.
+The official TypeScript implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.
+
+Learn more at https://agentclientprotocol.com
 
 ## Installation
 
@@ -8,16 +10,30 @@ This is the official TypeScript implementation of the Agent Client Protocol (ACP
 npm install @zed-industries/agent-client-protocol
 ```
 
-## Contributing
+## Get Started
 
-See the main [repository](https://github.com/zed-industries/agent-client-protocol) for contribution guidelines.
+### Understand the Protocol
 
-## License
+Start by reading the [official ACP documentation](https://agentclientprotocol.com) to understand the core concepts and protocol specification.
 
-MIT - See [LICENSE](https://github.com/zed-industries/agent-client-protocol/blob/main/LICENSE.MIT) for details.
+### Explore the API
+
+Browse the [TypeScript library reference](https://zed-industries.github.io/agent-client-protocol) for detailed API documentation.
+
+### Try the Examples
+
+The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/mains/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
+
+### Study a Production Implementation
+
+For a complete, production-ready implementation, check out the [Gemini CLI Agent](https://github.com/google-gemini/gemini-cli/blob/main/packages/cli/src/zed-integration/zedIntegration.ts).
 
 ## Resources
 
 - [Protocol Documentation](https://agentclientprotocol.com)
 - [GitHub Repository](https://github.com/zed-industries/agent-client-protocol)
 - [NPM Package](https://www.npmjs.com/package/@zed-industries/agent-client-protocol)
+
+## Contributing
+
+See the main [repository](https://github.com/zed-industries/agent-client-protocol) for contribution guidelines.
