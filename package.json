@@ -13,13 +13,13 @@
     "type": "git",
     "url": "git+https://github.com/zed-industries/agent-client-protocol.git"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Zed Industries",
   "files": [
     "typescript",
     "dist",
     "schema/schema.json",
-    "LICENSE.MIT"
+    "LICENSE-APACHE"
   ],
   "type": "module",
   "main": "dist/acp.js",

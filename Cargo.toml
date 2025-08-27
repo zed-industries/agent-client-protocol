@@ -3,7 +3,7 @@ name = "agent-client-protocol"
 authors = ["Zed <hi@zed.dev>"]
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
 repository = "https://github.com/zed-industries/agent-client-protocol"
 homepage = "https://github.com/zed-industries/agent-client-protocol"
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/agent-client-protocol"
 readme = "README.md"
 keywords = ["agent", "client", "protocol", "ai", "editor"]
 categories = ["development-tools", "api-bindings"]
-include = ["/rust/**/*.rs", "/README.md", "/LICENSE.MIT", "/Cargo.toml"]
+include = ["/rust/**/*.rs", "/README.md", "/LICENSE-APACHE", "/Cargo.toml"]
 
 [lib]
 path = "rust/acp.rs"
