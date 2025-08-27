@@ -10,7 +10,6 @@ impl acp::Client for ExampleClient {
         &self,
         args: acp::RequestPermissionRequest,
     ) -> anyhow::Result<acp::RequestPermissionResponse, acp::Error> {
-        log::info!("Received permission request");
         let option = args.options.first().context("No options provided")?;
         Ok(acp::RequestPermissionResponse {
             outcome: acp::RequestPermissionOutcome::Selected {
@@ -23,7 +22,6 @@ impl acp::Client for ExampleClient {
         &self,
         _args: acp::WriteTextFileRequest,
     ) -> anyhow::Result<(), acp::Error> {
-        log::info!("Write text file request received");
         Ok(())
     }
 
@@ -31,7 +29,6 @@ impl acp::Client for ExampleClient {
         &self,
         _args: acp::ReadTextFileRequest,
     ) -> anyhow::Result<acp::ReadTextFileResponse, acp::Error> {
-        log::info!("Read text file request received");
         Ok(acp::ReadTextFileResponse {
             content: "Hello, world!".to_string(),
         })
@@ -43,12 +40,17 @@ impl acp::Client for ExampleClient {
     ) -> anyhow::Result<(), acp::Error> {
         match args.update {
             acp::SessionUpdate::AgentMessageChunk { content } => {
-                println!("Server: {content:?}");
+                let text = match content {
+                    acp::ContentBlock::Text(text_content) => text_content.text,
+                    acp::ContentBlock::Image(_) => "<image>".into(),
+                    acp::ContentBlock::Audio(_) => "<audio>".into(),
+                    acp::ContentBlock::ResourceLink(resource_link) => resource_link.uri,
+                    acp::ContentBlock::Resource(_) => "<resource>".into(),
+                };
+                println!("| Server: {text}");
             }
-            acp::SessionUpdate::UserMessageChunk { content } => {
-                println!("User: {content:?}");
-            }
-            acp::SessionUpdate::AgentThoughtChunk { .. }
+            acp::SessionUpdate::UserMessageChunk { .. }
+            | acp::SessionUpdate::AgentThoughtChunk { .. }
             | acp::SessionUpdate::ToolCall(_)
             | acp::SessionUpdate::ToolCallUpdate(_)
             | acp::SessionUpdate::Plan(_) => {}

@@ -27,9 +27,9 @@ impl ExampleAgent {
 impl acp::Agent for ExampleAgent {
     async fn initialize(
         &self,
-        _arguments: acp::InitializeRequest,
+        arguments: acp::InitializeRequest,
     ) -> Result<acp::InitializeResponse, acp::Error> {
-        log::info!("Received initialize request");
+        log::info!("Received initialize request {arguments:?}");
         Ok(acp::InitializeResponse {
             protocol_version: acp::V1,
             agent_capabilities: acp::AgentCapabilities::default(),
@@ -37,16 +37,16 @@ impl acp::Agent for ExampleAgent {
         })
     }
 
-    async fn authenticate(&self, _arguments: acp::AuthenticateRequest) -> Result<(), acp::Error> {
-        log::info!("Received authenticate request");
+    async fn authenticate(&self, arguments: acp::AuthenticateRequest) -> Result<(), acp::Error> {
+        log::info!("Received authenticate request {arguments:?}");
         Ok(())
     }
 
     async fn new_session(
         &self,
-        _arguments: acp::NewSessionRequest,
+        arguments: acp::NewSessionRequest,
     ) -> Result<acp::NewSessionResponse, acp::Error> {
-        log::info!("Received new session request");
+        log::info!("Received new session request {arguments:?}");
         let session_id = self.next_session_id.get();
         self.next_session_id.set(session_id + 1);
         Ok(acp::NewSessionResponse {
@@ -54,8 +54,8 @@ impl acp::Agent for ExampleAgent {
         })
     }
 
-    async fn load_session(&self, _arguments: acp::LoadSessionRequest) -> Result<(), acp::Error> {
-        log::info!("Received load session request");
+    async fn load_session(&self, arguments: acp::LoadSessionRequest) -> Result<(), acp::Error> {
+        log::info!("Received load session request {arguments:?}");
         Err(acp::Error::method_not_found())
     }
 
@@ -63,7 +63,7 @@ impl acp::Agent for ExampleAgent {
         &self,
         arguments: acp::PromptRequest,
     ) -> Result<acp::PromptResponse, acp::Error> {
-        log::info!("Received prompt request");
+        log::info!("Received prompt request {arguments:?}");
         for content in ["Client sent: ".into()].into_iter().chain(arguments.prompt) {
             let (tx, rx) = oneshot::channel();
             self.session_update_tx
@@ -82,8 +82,8 @@ impl acp::Agent for ExampleAgent {
         })
     }
 
-    async fn cancel(&self, _args: acp::CancelNotification) -> Result<(), acp::Error> {
-        log::info!("Received cancel request");
+    async fn cancel(&self, args: acp::CancelNotification) -> Result<(), acp::Error> {
+        log::info!("Received cancel request {args:?}");
         Ok(())
     }
 }
@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
             let (incoming, outgoing) = stream.into_split();
             (outgoing.compat_write(), incoming.compat())
         }
-        _ => bail!("Unexpected arguments"),
+        _ => bail!("Usage: example-server ADDRESS"),
     };
 
     // The AgentSideConnection will spawn futures onto our Tokio runtime.
