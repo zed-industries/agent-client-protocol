@@ -26,6 +26,12 @@
 //! To understand the protocol, start by exploring the [`Agent`] and [`Client`] traits,
 //! which define the core methods and capabilities of each side of the connection.
 //!
+//! To see working examples of these traits in action, check out the
+//! [example-server](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_server.rs)
+//! and
+//! [example-client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
+//! binaries included with this crate.
+//!
 //! ### Implementation Pattern
 //!
 //! ACP uses a symmetric design where each participant implements one trait and

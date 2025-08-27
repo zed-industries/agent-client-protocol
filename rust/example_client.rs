@@ -1,5 +1,5 @@
 use agent_client_protocol::{self as acp, Agent};
-use anyhow::{Context, bail};
+use anyhow::bail;
 use tokio::net::TcpStream;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
@@ -8,30 +8,23 @@ struct ExampleClient {}
 impl acp::Client for ExampleClient {
     async fn request_permission(
         &self,
-        args: acp::RequestPermissionRequest,
+        _args: acp::RequestPermissionRequest,
     ) -> anyhow::Result<acp::RequestPermissionResponse, acp::Error> {
-        let option = args.options.first().context("No options provided")?;
-        Ok(acp::RequestPermissionResponse {
-            outcome: acp::RequestPermissionOutcome::Selected {
-                option_id: option.id.clone(),
-            },
-        })
+        Err(acp::Error::method_not_found())
     }
 
     async fn write_text_file(
         &self,
         _args: acp::WriteTextFileRequest,
     ) -> anyhow::Result<(), acp::Error> {
-        Ok(())
+        Err(acp::Error::method_not_found())
     }
 
     async fn read_text_file(
         &self,
         _args: acp::ReadTextFileRequest,
     ) -> anyhow::Result<acp::ReadTextFileResponse, acp::Error> {
-        Ok(acp::ReadTextFileResponse {
-            content: "Hello, world!".to_string(),
-        })
+        Err(acp::Error::method_not_found())
     }
 
     async fn session_notification(
@@ -73,15 +66,19 @@ async fn main() -> anyhow::Result<()> {
         _ => bail!("Unexpected arguments"),
     };
 
-    // The AgentSideConnection will spawn futures onto our Tokio runtime.
+    // The ClientSideConnection will spawn futures onto our Tokio runtime.
     let spawn = |fut| {
         tokio::task::spawn_local(fut);
     };
     local_set
         .run_until(async move {
+            // Set up the ExampleClient connected to stdio.
             let (conn, handle_io) =
                 acp::ClientSideConnection::new(ExampleClient {}, outgoing, incoming, spawn);
+
             tokio::task::spawn_local(handle_io);
+
+            // Connect to the agent and set up a session.
             conn.initialize(acp::InitializeRequest {
                 protocol_version: acp::V1,
                 client_capabilities: acp::ClientCapabilities::default(),
@@ -94,6 +91,7 @@ async fn main() -> anyhow::Result<()> {
                 })
                 .await?;
 
+            // Send prompts to the server until stdin is closed.
             let mut rl = rustyline::DefaultEditor::new()?;
             while let Some(line) = rl.readline("> ").ok() {
                 let result = conn
