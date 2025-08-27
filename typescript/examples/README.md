@@ -49,25 +49,13 @@ npx tsx typescript/examples/agent.ts
 Paste this into your terminal and press <kbd>enter</kbd>:
 
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": { "protocolVersion": 1 }
-}
+{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":1}}
 ```
 
 You should see it respond with something like:
 
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 0,
-  "result": {
-    "protocolVersion": 1,
-    "agentCapabilities": { "loadSession": false }
-  }
-}
+{"jsonrpc":"2.0","id":0,"result":{"protocolVersion":1,"agentCapabilities":{"loadSession":false}}}
 ```
 
 You can then try making a [new session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session) and [sending a prompt](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message).
