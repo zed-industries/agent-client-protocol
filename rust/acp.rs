@@ -27,10 +27,10 @@
 //! which define the core methods and capabilities of each side of the connection.
 //!
 //! To see working examples of these traits in action, check out the
-//! [example-agent](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_agent.rs)
+//! [agent](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_agent.rs)
 //! and
-//! [example-client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
-//! binaries included with this crate.
+//! [client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
+//! example binaries included with this crate.
 //!
 //! ### Implementation Pattern
 //!

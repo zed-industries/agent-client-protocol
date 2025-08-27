@@ -3,26 +3,28 @@ title: "Rust"
 description: "Rust library for the Agent Client Protocol"
 ---
 
-The [agent-client-protocol](https://crates.io/crates/agent-client-protocol)
-Rust crate provides implementations of both sides of the Agent Client Protocol
-that you can use to build your own agent server or client.
+The [agent-client-protocol](https://crates.io/crates/agent-client-protocol) Rust
+crate provides implementations of both sides of the Agent Client Protocol that
+you can use to build your own agent server or client. To get started, add the
+crate as a dependency to your project's `Cargo.toml`:
 
-The `agent-server-protocol` library is based on two key traits, [Agent] and
-[Client], which you'll need to implement if you're building an agent or
-client, respectively. The crate includes
-[example-agent](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_agent.rs)
-and
-[example-client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
-binaries that you can use to understand how these traits work, and as a starting
-point for your own tool.
-
-To get started, add the crate as a dependency to your project's `Cargo.toml`:
-
-```console
+```bash
 cargo add agent-client-protocol
 ```
 
-You can read the full documentation for the library on
+Depending on what kind of tool you're building, you'll need to implement either
+the
+[Agent](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Agent.html)
+trait or the
+[Client](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Client.html)
+trait to define the interaction with the ACP counterpart. The
+[agent](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_agent.rs)
+and
+[client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
+example binaries provide runnable examples of how to do this, which you can use
+as a starting point.
+
+You can read the full documentation for the `agent-client-protocol` crate on
 [docs.rs](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/).
 
 ## Users
