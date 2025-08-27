@@ -1,6 +1,5 @@
 use agent_client_protocol::{self as acp, Agent};
 use anyhow::bail;
-use tokio::net::TcpStream;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
@@ -55,27 +54,38 @@ impl acp::Client for ExampleClient {
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let local_set = tokio::task::LocalSet::new();
 
-    let (outgoing, incoming) = match std::env::args().collect::<Vec<_>>().as_slice() {
-        [_, addr] => {
-            let stream = TcpStream::connect(addr).await?;
-            let (incoming, outgoing) = stream.into_split();
-            (outgoing.compat_write(), incoming.compat())
+    let command = std::env::args().collect::<Vec<_>>();
+    let (outgoing, incoming, child) = match command.as_slice() {
+        [_, program, args @ ..] => {
+            let mut child = tokio::process::Command::new(program)
+                .args(args.iter())
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .kill_on_drop(true)
+                .spawn()?;
+            (
+                child.stdin.take().unwrap().compat_write(),
+                child.stdout.take().unwrap().compat(),
+                child,
+            )
         }
-        _ => bail!("Unexpected arguments"),
+        _ => bail!("Usage: example-client AGENT_PROGRAM AGENT_ARG..."),
     };
 
     // The ClientSideConnection will spawn futures onto our Tokio runtime.
-    let spawn = |fut| {
-        tokio::task::spawn_local(fut);
-    };
+    // LocalSet and spawn_local are used because the futures from the
+    // agent-client-protocol crate are not Send.
+    let local_set = tokio::task::LocalSet::new();
     local_set
         .run_until(async move {
-            // Set up the ExampleClient connected to the specified address.
+            // Set up the ExampleClient connected to the agent's stdio.
             let (conn, handle_io) =
-                acp::ClientSideConnection::new(ExampleClient {}, outgoing, incoming, spawn);
+                acp::ClientSideConnection::new(ExampleClient {}, outgoing, incoming, |fut| {
+                    tokio::task::spawn_local(fut);
+                });
 
+            // Handle I/O in the background.
             tokio::task::spawn_local(handle_io);
 
             // Connect to the agent and set up a session.
@@ -91,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
                 })
                 .await?;
 
-            // Send prompts to the server until stdin is closed.
+            // Send prompts to the agent until stdin is closed.
             let mut rl = rustyline::DefaultEditor::new()?;
             while let Some(line) = rl.readline("> ").ok() {
                 let result = conn
@@ -105,6 +115,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
+            drop(child);
             Ok(())
         })
         .await

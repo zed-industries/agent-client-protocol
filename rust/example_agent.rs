@@ -1,11 +1,7 @@
 use std::cell::Cell;
 
 use agent_client_protocol::{self as acp, Client, SessionNotification};
-use anyhow::bail;
-use tokio::{
-    net::TcpListener,
-    sync::{mpsc, oneshot},
-};
+use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 
 struct ExampleAgent {
@@ -91,29 +87,22 @@ impl acp::Agent for ExampleAgent {
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let local_set = tokio::task::LocalSet::new();
 
-    let (outgoing, incoming) = match std::env::args().collect::<Vec<_>>().as_slice() {
-        [_, addr] => {
-            let listener = TcpListener::bind(addr).await?;
-            log::info!("Listening on {}", listener.local_addr()?);
-            let (stream, _) = listener.accept().await?;
-            let (incoming, outgoing) = stream.into_split();
-            (outgoing.compat_write(), incoming.compat())
-        }
-        _ => bail!("Usage: example-agent ADDRESS"),
-    };
+    let outgoing = tokio::io::stdout().compat_write();
+    let incoming = tokio::io::stdin().compat();
 
     // The AgentSideConnection will spawn futures onto our Tokio runtime.
-    let spawn = |fut| {
-        tokio::task::spawn_local(fut);
-    };
+    // LocalSet and spawn_local are used because the futures from the
+    // agent-client-protocol crate are not Send.
+    let local_set = tokio::task::LocalSet::new();
     local_set
         .run_until(async move {
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-            // Start up the ExampleAgent connected to the provided address.
+            // Start up the ExampleAgent connected to stdio.
             let (conn, handle_io) =
-                acp::AgentSideConnection::new(ExampleAgent::new(tx), outgoing, incoming, spawn);
+                acp::AgentSideConnection::new(ExampleAgent::new(tx), outgoing, incoming, |fut| {
+                    tokio::task::spawn_local(fut);
+                });
             // Kick off a background task to send the ExampleAgent's session notifications to the client.
             tokio::task::spawn_local(async move {
                 while let Some((session_notification, tx)) = rx.recv().await {
@@ -125,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
                     tx.send(()).ok();
                 }
             });
-            // Run until input/output connections are closed.
+            // Run until stdin/stdout are closed.
             handle_io.await
         })
         .await
