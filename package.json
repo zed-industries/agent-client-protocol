@@ -57,6 +57,7 @@
     "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.3.3",
     "ts-to-zod": "^3.15.0",
+    "tsx": "^4.20.5",
     "typedoc": "^0.28.11",
     "typedoc-github-theme": "^0.3.1",
     "typescript": "^5.8.3",

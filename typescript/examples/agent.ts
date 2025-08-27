@@ -1,0 +1,272 @@
+#!/usr/bin/env node
+
+import { AgentSideConnection, Agent, PROTOCOL_VERSION } from "../acp.js";
+import * as schema from "../schema.js";
+import { WritableStream, ReadableStream } from "node:stream/web";
+import { Readable, Writable } from 'node:stream';
+
+interface AgentSession {
+  pendingPrompt: AbortController | null
+}
+
+class ExampleAgent implements Agent {
+  private connection: AgentSideConnection;
+  private sessions: Map<string, AgentSession>;
+
+  constructor(connection: AgentSideConnection) {
+    this.connection = connection;
+    this.sessions = new Map();
+  }
+
+  async initialize(
+    params: schema.InitializeRequest,
+  ): Promise<schema.InitializeResponse> {
+    return {
+      protocolVersion: PROTOCOL_VERSION,
+      agentCapabilities: {
+        loadSession: false,
+      },
+    };
+  }
+
+  async newSession(
+    params: schema.NewSessionRequest,
+  ): Promise<schema.NewSessionResponse> {
+    const sessionId = Math.random().toString(36);
+
+    this.sessions.set(sessionId, {
+      pendingPrompt: null
+    });
+
+    return {
+      sessionId,
+    };
+  }
+
+  async authenticate(params: schema.AuthenticateRequest): Promise<void> {
+    // No auth needed
+  }
+
+  async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
+    const session = this.sessions.get(params.sessionId);
+
+    if (!session) {
+      throw new Error(`Session ${params.sessionId} not found`);
+    }
+
+    session.pendingPrompt?.abort();
+    session.pendingPrompt = new AbortController();
+
+    try {
+      await this.simulateTurn(params.sessionId, session.pendingPrompt.signal);
+    } catch (err) {
+      if (session.pendingPrompt.signal.aborted) {
+        return { stopReason: "cancelled" }
+      }
+
+      throw err;
+    }
+
+    session.pendingPrompt = null;
+
+    return {
+      stopReason: "end_turn",
+    };
+  }
+
+  private async simulateTurn(sessionId: string, abortSignal: AbortSignal): Promise<void> {
+    // Send initial text chunk
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: {
+          type: "text",
+          text: "I'll help you with that. Let me start by reading some files to understand the current situation.",
+        },
+      },
+    });
+
+    await this.simulateModelInteraction(abortSignal);
+
+    // Send a tool call that doesn't need permission
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "tool_call",
+        toolCallId: "call_1",
+        title: "Reading project files",
+        kind: "read",
+        status: "pending",
+        locations: [{ path: "/project/README.md" }],
+        rawInput: { path: "/project/README.md" },
+      },
+    });
+
+    await this.simulateModelInteraction(abortSignal);
+
+    // Update tool call to completed
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "call_1",
+        status: "completed",
+        content: [
+          {
+            type: "content",
+            content: {
+              type: "text",
+              text: "# My Project\n\nThis is a sample project...",
+            },
+          },
+        ],
+        rawOutput: { content: "# My Project\n\nThis is a sample project..." },
+      },
+    });
+
+    await this.simulateModelInteraction(abortSignal);
+
+    // Send more text
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: {
+          type: "text",
+          text: " Now I understand the project structure. I need to make some changes to improve it.",
+        },
+      },
+    });
+
+    await this.simulateModelInteraction(abortSignal);
+
+    // Send a tool call that DOES need permission
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "tool_call",
+        toolCallId: "call_2",
+        title: "Modifying critical configuration file",
+        kind: "edit",
+        status: "pending",
+        locations: [{ path: "/project/config.json" }],
+        rawInput: {
+          path: "/project/config.json",
+          content: '{"database": {"host": "new-host"}}'
+        },
+      },
+    });
+
+    // Request permission for the sensitive operation
+    const permissionResponse = await this.connection.requestPermission({
+      sessionId,
+      toolCall: {
+        toolCallId: "call_2",
+        title: "Modifying critical configuration file",
+        kind: "edit",
+        status: "pending",
+        locations: [{ path: "/home/user/project/config.json" }],
+        rawInput: {
+          path: "/home/user/project/config.json",
+          content: '{"database": {"host": "new-host"}}'
+        },
+      },
+      options: [
+        {
+          kind: "allow_once",
+          name: "Allow this change",
+          optionId: "allow",
+        },
+        {
+          kind: "reject_once",
+          name: "Skip this change",
+          optionId: "reject",
+        },
+      ],
+    });
+
+    if (permissionResponse.outcome.outcome === "cancelled") {
+      return;
+    }
+
+    switch (permissionResponse.outcome.optionId) {
+      case "allow": {
+        await this.connection.sessionUpdate({
+          sessionId,
+          update: {
+            sessionUpdate: "tool_call_update",
+            toolCallId: "call_2",
+            status: "completed",
+            rawOutput: { success: true, message: "Configuration updated" },
+          },
+        });
+
+        await this.simulateModelInteraction(abortSignal);
+
+        await this.connection.sessionUpdate({
+          sessionId,
+          update: {
+            sessionUpdate: "agent_message_chunk",
+            content: {
+              type: "text",
+              text: " Perfect! I've successfully updated the configuration. The changes have been applied.",
+            },
+          },
+        });
+        break;
+      }
+      case "reject": {
+        await this.connection.sessionUpdate({
+          sessionId,
+          update: {
+            sessionUpdate: "tool_call_update",
+            toolCallId: "call_2",
+            status: "failed",
+          },
+        });
+
+        await this.simulateModelInteraction(abortSignal);
+
+        // Final text chunk
+        await this.connection.sessionUpdate({
+          sessionId,
+          update: {
+            sessionUpdate: "agent_message_chunk",
+            content: {
+              type: "text",
+              text: " I understand you prefer not to make that change. I'll skip the configuration update.",
+            },
+          },
+        });
+        break;
+      }
+      default:
+        throw new Error(`Unexpected permission outcome ${permissionResponse.outcome}`)
+    }
+  }
+
+  private simulateModelInteraction(abortSignal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => setTimeout(() => {
+      // In a real agent, you'd pass this abort signal to the LLM client
+      if (abortSignal.aborted) {
+        reject();
+      } else {
+        resolve();
+      }
+    }, 1000));
+  }
+
+  async cancel(params: schema.CancelNotification): Promise<void> {
+    this.sessions.get(params.sessionId)?.pendingPrompt?.abort();
+  }
+}
+
+const input = Writable.toWeb(process.stdout) as WritableStream;
+const output = Readable.toWeb(process.stdin) as ReadableStream<Uint8Array>;
+
+new AgentSideConnection(
+  (conn) => new ExampleAgent(conn),
+  input,
+  output,
+);

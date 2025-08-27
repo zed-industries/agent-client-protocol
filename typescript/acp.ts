@@ -43,31 +43,35 @@ export class AgentSideConnection implements Client {
       switch (method) {
         case schema.AGENT_METHODS.initialize: {
           const validatedParams = schema.initializeRequestSchema.parse(params);
-          return agent.initialize(validatedParams);
+          return agent.initialize(validatedParams as schema.InitializeRequest);
         }
         case schema.AGENT_METHODS.session_new: {
           const validatedParams = schema.newSessionRequestSchema.parse(params);
-          return agent.newSession(validatedParams);
+          return agent.newSession(validatedParams as schema.NewSessionRequest);
         }
         case schema.AGENT_METHODS.session_load: {
           if (!agent.loadSession) {
             throw RequestError.methodNotFound();
           }
           const validatedParams = schema.loadSessionRequestSchema.parse(params);
-          return agent.loadSession(validatedParams);
+          return agent.loadSession(
+            validatedParams as schema.LoadSessionRequest,
+          );
         }
         case schema.AGENT_METHODS.authenticate: {
           const validatedParams =
             schema.authenticateRequestSchema.parse(params);
-          return agent.authenticate(validatedParams);
+          return agent.authenticate(
+            validatedParams as schema.AuthenticateRequest,
+          );
         }
         case schema.AGENT_METHODS.session_prompt: {
           const validatedParams = schema.promptRequestSchema.parse(params);
-          return agent.prompt(validatedParams);
+          return agent.prompt(validatedParams as schema.PromptRequest);
         }
         case schema.AGENT_METHODS.session_cancel: {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
-          return agent.cancel(validatedParams);
+          return agent.cancel(validatedParams as schema.CancelNotification);
         }
         default:
           throw RequestError.methodNotFound(method);
@@ -193,22 +197,30 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.fs_write_text_file: {
           const validatedParams =
             schema.writeTextFileRequestSchema.parse(params);
-          return client.writeTextFile(validatedParams);
+          return client.writeTextFile(
+            validatedParams as schema.WriteTextFileRequest,
+          );
         }
         case schema.CLIENT_METHODS.fs_read_text_file: {
           const validatedParams =
             schema.readTextFileRequestSchema.parse(params);
-          return client.readTextFile(validatedParams);
+          return client.readTextFile(
+            validatedParams as schema.ReadTextFileRequest,
+          );
         }
         case schema.CLIENT_METHODS.session_request_permission: {
           const validatedParams =
             schema.requestPermissionRequestSchema.parse(params);
-          return client.requestPermission(validatedParams);
+          return client.requestPermission(
+            validatedParams as schema.RequestPermissionRequest,
+          );
         }
         case schema.CLIENT_METHODS.session_update: {
           const validatedParams =
             schema.sessionNotificationSchema.parse(params);
-          return client.sessionUpdate(validatedParams);
+          return client.sessionUpdate(
+            validatedParams as schema.SessionNotification,
+          );
         }
         default:
           throw RequestError.methodNotFound(method);
