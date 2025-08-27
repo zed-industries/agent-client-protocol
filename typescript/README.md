@@ -20,13 +20,18 @@ npm install @zed-industries/agent-client-protocol
 
 Start by reading the [official ACP documentation](https://agentclientprotocol.com) to understand the core concepts and protocol specification.
 
+### Try the Examples
+
+The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/main/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
+
+
 ### Explore the API
 
 Browse the [TypeScript library reference](https://zed-industries.github.io/agent-client-protocol) for detailed API documentation.
 
-### Try the Examples
+If you're building an [Agent](https://agentclientprotocol.com/protocol/overview#agent), start with [AgentSideConnection](https://zed-industries.github.io/agent-client-protocol/classes/AgentSideConnection.html).
 
-The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/main/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
+If you're building a [Client](https://agentclientprotocol.com/protocol/overview#client), start with [ClientSideConnection](https://zed-industries.github.io/agent-client-protocol/classes/ClientSideConnection.html).
 
 ### Study a Production Implementation
 
