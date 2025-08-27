@@ -354,7 +354,7 @@ export class ClientSideConnection implements Agent {
   }
 }
 
-type AnyMessage = AnyRequest | AnyResponse | AnyNotification | AnyError;
+type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
 
 type AnyRequest = {
   jsonrpc: "2.0";
@@ -372,11 +372,6 @@ type AnyNotification = {
   jsonrpc: "2.0";
   method: string;
   params?: unknown;
-};
-
-type AnyError = {
-  jsonrpc: "2.0";
-  error: ErrorResponse;
 };
 
 type Result<T> =
@@ -431,19 +426,26 @@ class Connection {
         const trimmedLine = line.trim();
 
         if (trimmedLine) {
+          let id;
           try {
             const message = JSON.parse(trimmedLine);
+            id = message.id;
             this.#processMessage(message);
           } catch (err) {
-            if (err instanceof SyntaxError) {
+            console.error(
+              "Unexpected error during message processing:",
+              trimmedLine,
+              err,
+            );
+            if (id) {
               this.#sendMessage({
                 jsonrpc: "2.0",
-                error: RequestError.parseError({
-                  message: err.message,
-                }).toErrorResponse(),
+                id,
+                error: {
+                  code: -32700,
+                  message: "Parse error",
+                },
               });
-            } else {
-              console.error("Unexpected error during message processing:", err);
             }
           }
         }
@@ -458,6 +460,9 @@ class Connection {
         message.method,
         message.params,
       );
+      if ("error" in response) {
+        console.error("Error handling request", message, response.error);
+      }
 
       await this.#sendMessage({
         jsonrpc: "2.0",
@@ -466,21 +471,24 @@ class Connection {
       });
     } else if ("method" in message) {
       // It's a notification
-      await this.#tryCallHandler(message.method, message.params);
+      const response = await this.#tryCallHandler(
+        message.method,
+        message.params,
+      );
+      if ("error" in response) {
+        console.error("Error handling notification", message, response.error);
+      }
     } else if ("id" in message) {
       // It's a response
       this.#handleResponse(message as AnyResponse);
     } else {
-      this.#sendMessage({
-        jsonrpc: "2.0",
-        error: RequestError.invalidRequest().toErrorResponse(),
-      });
+      console.error("Invalid message", { message });
     }
   }
 
   async #tryCallHandler(
     method: string,
-    params?: unknown,
+    params: unknown,
   ): Promise<Result<unknown>> {
     try {
       const result = await this.#handler(method, params);
@@ -526,6 +534,8 @@ class Connection {
         pendingResponse.reject(response.error);
       }
       this.#pendingResponses.delete(response.id);
+    } else {
+      console.error("Got response to unknown request", response.id);
     }
   }
 
