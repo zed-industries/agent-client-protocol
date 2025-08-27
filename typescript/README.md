@@ -1,3 +1,7 @@
+<a href="https://agentclientprotocol.com/" >
+  <img alt="Agent Client Protocol" src="https://zed.dev/img/acp/banner-dark.webp">
+</a>
+
 # ACP TypeScript Library
 
 The official TypeScript implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.

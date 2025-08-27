@@ -15,13 +15,11 @@
   },
   "license": "MIT",
   "author": "Zed Industries",
-  "readme": "typescript/README.md",
   "files": [
     "typescript",
     "dist",
     "schema/schema.json",
-    "LICENSE.MIT",
-    "typescript/README.md"
+    "LICENSE.MIT"
   ],
   "type": "module",
   "main": "dist/acp.js",
@@ -30,6 +28,8 @@
     "example": "examples"
   },
   "scripts": {
+    "prepublishOnly": "cp typescript/README.md README.md",
+    "postpublish": "git checkout README.md",
     "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo && cargo clean",
     "test": "cargo check --all-targets && cargo test && vitest run",
     "test:ts": "vitest run",
