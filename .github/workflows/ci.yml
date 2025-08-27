@@ -56,14 +56,14 @@ jobs:
         run: npm run docs:ts:build
 
       - name: Upload documentation artifact
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/head/ts-docs')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ts-docs')
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: ./typescript/docs
 
   deploy-docs:
     name: Deploy Documentation
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/head/ts-docs')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ts-docs')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
