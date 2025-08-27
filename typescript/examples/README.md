@@ -24,7 +24,7 @@ While minimal, [`agent.ts`](./agent.ts) implements a compliant [ACP](https://age
   }
 ```
 
-  Make sure to update `/path/to/agent-client-protocol` to your clone of this repository.
+❕ Make sure to update `/path/to/agent-client-protocol` to your clone of this repository.
 
 2. Run the `acp: open acp logs` action from the command palette (<kbd>⌘⇧P</kbd> on macOS, <kbd>ctrl-shift-p</kbd> on Windows/Linux) to see the messages exchanged between the example agent and Zed.
 
