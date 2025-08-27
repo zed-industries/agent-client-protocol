@@ -26,6 +26,12 @@
 //! To understand the protocol, start by exploring the [`Agent`] and [`Client`] traits,
 //! which define the core methods and capabilities of each side of the connection.
 //!
+//! To see working examples of these traits in action, check out the
+//! [agent](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_agent.rs)
+//! and
+//! [client](https://github.com/zed-industries/agent-client-protocol/blob/main/rust/example_client.rs)
+//! example binaries included with this crate.
+//!
 //! ### Implementation Pattern
 //!
 //! ACP uses a symmetric design where each participant implements one trait and
@@ -33,12 +39,12 @@
 //!
 //! - **Agent builders** implement the [`Agent`] trait to handle client requests
 //!   (like initialization, authentication, and prompts). They pass this implementation
-//!   to `AgentSideConnection::new`, which returns a connection providing [`Client`]
+//!   to [`AgentSideConnection::new`], which returns a connection providing [`Client`]
 //!   methods for requesting permissions and accessing the file system.
 //!
 //! - **Client builders** implement the [`Client`] trait to handle agent requests
 //!   (like file system operations and permission checks). They pass this implementation
-//!   to `ClientSideConnection::new`, which returns a connection providing [`Agent`]
+//!   to [`ClientSideConnection::new`], which returns a connection providing [`Agent`]
 //!   methods for managing sessions and sending prompts.
 //!
 //! For the complete protocol specification and documentation, visit:
