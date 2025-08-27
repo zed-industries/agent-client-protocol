@@ -1,3 +1,17 @@
+//! A simple ACP client for educational purposes.
+//!
+//! The client starts an agent as a subprocess and communicates with it over stdio. Run the client like this:
+//!
+//! ```bash
+//! cargo run --example client -- path/to/agent --agent-arg
+//! ```
+//!
+//! To connect it to the example agent from this crate:
+//!
+//! ```bash
+//! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
+//! ```
+
 use agent_client_protocol::{self as acp, Agent};
 use anyhow::bail;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
@@ -70,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
                 child,
             )
         }
-        _ => bail!("Usage: example-client AGENT_PROGRAM AGENT_ARG..."),
+        _ => bail!("Usage: client AGENT_PROGRAM AGENT_ARG..."),
     };
 
     // The ClientSideConnection will spawn futures onto our Tokio runtime.

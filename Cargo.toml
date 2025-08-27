@@ -22,11 +22,11 @@ name = "generate"
 path = "rust/generate.rs"
 
 [[example]]
-name = "example-agent"
+name = "agent"
 path = "rust/example_agent.rs"
 
 [[example]]
-name = "example-client"
+name = "client"
 path = "rust/example_client.rs"
 
 [dependencies]

@@ -1,3 +1,17 @@
+//! A simple ACP agent server for educational purposes.
+//!
+//! The agent communicates with clients over stdio. To run it with logging:
+//!
+//! ```bash
+//! RUST_LOG=info cargo run --example agent
+//! ```
+//!
+//! To connect it to the example client from this crate:
+//!
+//! ```bash
+//! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
+//! ```
+
 use std::cell::Cell;
 
 use agent_client_protocol::{self as acp, Client, SessionNotification};
