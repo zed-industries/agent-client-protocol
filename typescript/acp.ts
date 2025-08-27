@@ -12,7 +12,7 @@ import { WritableStream, ReadableStream } from "node:stream/web";
  * to provide methods for requesting permissions, accessing the file system,
  * and sending session updates.
  *
- * @see {@link https://agentclientprotocol.com/protocol/overview#agent}
+ * See protocol docs: [Agent](https://agentclientprotocol.com/protocol/overview#agent)
  */
 export class AgentSideConnection implements Client {
   #connection: Connection;
@@ -27,7 +27,7 @@ export class AgentSideConnection implements Client {
    * @param input - The stream for sending data to the client (typically stdout)
    * @param output - The stream for receiving data from the client (typically stdin)
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#communication-model}
+   * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
     toAgent: (conn: AgentSideConnection) => Agent,
@@ -88,7 +88,7 @@ export class AgentSideConnection implements Client {
    * sending a `session/cancel` notification, as the agent may send final
    * updates before responding with the cancelled stop reason.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output}
+   * See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
    */
   async sessionUpdate(params: schema.SessionNotification): Promise<void> {
     return await this.#connection.sendNotification(
@@ -107,7 +107,7 @@ export class AgentSideConnection implements Client {
    * If the client cancels the prompt turn via `session/cancel`, it MUST
    * respond to this request with `RequestPermissionOutcome::Cancelled`.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/tool-calls#requesting-permission}
+   * See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
    */
   async requestPermission(
     params: schema.RequestPermissionRequest,
@@ -124,7 +124,7 @@ export class AgentSideConnection implements Client {
    * Only available if the client advertises the `fs.readTextFile` capability.
    * Allows the agent to access file contents within the client's environment.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
   async readTextFile(
     params: schema.ReadTextFileRequest,
@@ -141,7 +141,7 @@ export class AgentSideConnection implements Client {
    * Only available if the client advertises the `fs.writeTextFile` capability.
    * Allows the agent to create or modify files within the client's environment.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
   async writeTextFile(
     params: schema.WriteTextFileRequest,
@@ -161,7 +161,7 @@ export class AgentSideConnection implements Client {
  * the {@link Agent} interface to provide methods for initializing sessions, sending
  * prompts, and managing the agent lifecycle.
  *
- * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+ * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
  */
 export class ClientSideConnection implements Agent {
   #connection: Connection;
@@ -176,7 +176,7 @@ export class ClientSideConnection implements Agent {
    * @param input - The stream for sending data to the agent (typically stdout)
    * @param output - The stream for receiving data from the agent (typically stdin)
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#communication-model}
+   * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
     toClient: (agent: Agent) => Client,
@@ -228,7 +228,7 @@ export class ClientSideConnection implements Agent {
    *
    * The agent should respond with its supported protocol version and capabilities.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
   async initialize(
     params: schema.InitializeRequest,
@@ -249,9 +249,9 @@ export class ClientSideConnection implements Agent {
    * - Connect to any specified MCP servers
    * - Return a unique session ID for future requests
    *
-   * @throws May return an `auth_required` error if the agent requires authentication.
+   * May return an `auth_required` error if the agent requires authentication.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/session-setup}
+   * See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
    */
   async newSession(
     params: schema.NewSessionRequest,
@@ -272,7 +272,7 @@ export class ClientSideConnection implements Agent {
    * - Connect to the specified MCP servers
    * - Stream the entire conversation history back to the client via notifications
    *
-   * @see {@link https://agentclientprotocol.com/protocol/session-setup#loading-sessions}
+   * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
   async loadSession(params: schema.LoadSessionRequest): Promise<void> {
     return await this.#connection.sendRequest(
@@ -290,7 +290,7 @@ export class ClientSideConnection implements Agent {
    * After successful authentication, the client can proceed to create sessions with
    * `newSession` without receiving an `auth_required` error.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
   async authenticate(params: schema.AuthenticateRequest): Promise<void> {
     return await this.#connection.sendRequest(
@@ -310,7 +310,7 @@ export class ClientSideConnection implements Agent {
    * - Executes any requested tool calls
    * - Returns when the turn is complete with a stop reason
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn}
+   * See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
    */
   async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
     return await this.#connection.sendRequest(
@@ -330,7 +330,7 @@ export class ClientSideConnection implements Agent {
    * - Send any pending `session/update` notifications
    * - Respond to the original `session/prompt` request with `StopReason::Cancelled`
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
+   * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   async cancel(params: schema.CancelNotification): Promise<void> {
     return await this.#connection.sendNotification(
@@ -526,7 +526,7 @@ class Connection {
  * Represents an error that occurred during method execution, following the
  * JSON-RPC 2.0 error object specification with optional additional data.
  *
- * @see {@link https://www.jsonrpc.org/specification#error_object}
+ * See protocol docs: [JSON-RPC Error Object](https://www.jsonrpc.org/specification#error_object)
  */
 export class RequestError extends Error {
   data?: { details?: string };
@@ -602,8 +602,6 @@ export class RequestError extends Error {
  * Clients are typically code editors (IDEs, text editors) that provide the interface
  * between users and AI agents. They manage the environment, handle user interactions,
  * and control access to resources.
- *
- * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
  */
 export interface Client {
   /**
@@ -616,7 +614,7 @@ export interface Client {
    * If the client cancels the prompt turn via `session/cancel`, it MUST
    * respond to this request with `RequestPermissionOutcome::Cancelled`.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/tool-calls#requesting-permission}
+   * See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
    */
   requestPermission(
     params: schema.RequestPermissionRequest,
@@ -632,7 +630,7 @@ export interface Client {
    * sending a `session/cancel` notification, as the agent may send final
    * updates before responding with the cancelled stop reason.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output}
+   * See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
    */
   sessionUpdate(params: schema.SessionNotification): Promise<void>;
   /**
@@ -641,7 +639,7 @@ export interface Client {
    * Only available if the client advertises the `fs.writeTextFile` capability.
    * Allows the agent to create or modify files within the client's environment.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
   writeTextFile(
     params: schema.WriteTextFileRequest,
@@ -652,7 +650,7 @@ export interface Client {
    * Only available if the client advertises the `fs.readTextFile` capability.
    * Allows the agent to access file contents within the client's environment.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/overview#client}
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
   readTextFile(
     params: schema.ReadTextFileRequest,
@@ -676,7 +674,7 @@ export interface Agent {
    *
    * The agent should respond with its supported protocol version and capabilities.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
   initialize(
     params: schema.InitializeRequest,
@@ -685,14 +683,15 @@ export interface Agent {
    * Creates a new conversation session with the agent.
    *
    * Sessions represent independent conversation contexts with their own history and state.
+   *
    * The agent should:
    * - Create a new session context
    * - Connect to any specified MCP servers
    * - Return a unique session ID for future requests
    *
-   * @throws May return an `auth_required` error if the agent requires authentication.
+   * May return an `auth_required` error if the agent requires authentication.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/session-setup}
+   * See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
    */
   newSession(
     params: schema.NewSessionRequest,
@@ -707,7 +706,7 @@ export interface Agent {
    * - Connect to the specified MCP servers
    * - Stream the entire conversation history back to the client via notifications
    *
-   * @see {@link https://agentclientprotocol.com/protocol/session-setup#loading-sessions}
+   * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
   loadSession?(params: schema.LoadSessionRequest): Promise<void>;
   /**
@@ -719,7 +718,7 @@ export interface Agent {
    * After successful authentication, the client can proceed to create sessions with
    * `newSession` without receiving an `auth_required` error.
    *
-   * @see {@link https://agentclientprotocol.com/protocol/initialization}
+   * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
   authenticate(params: schema.AuthenticateRequest): Promise<void>;
   /**
@@ -733,7 +732,7 @@ export interface Agent {
    * - Executes any requested tool calls
    * - Returns when the turn is complete with a stop reason
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn}
+   * See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
    */
   prompt(params: schema.PromptRequest): Promise<schema.PromptResponse>;
   /**
@@ -747,7 +746,7 @@ export interface Agent {
    * - Send any pending `session/update` notifications
    * - Respond to the original `session/prompt` request with `StopReason::Cancelled`
    *
-   * @see {@link https://agentclientprotocol.com/protocol/prompt-turn#cancellation}
+   * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   cancel(params: schema.CancelNotification): Promise<void>;
 }

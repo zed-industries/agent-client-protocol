@@ -1,0 +1,54 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Agent Client Protocol",
+  "entryPoints": ["./acp.ts"],
+  "out": "./docs",
+  "navigationLinks": {
+    "Protocol Docs": "https://agentclientprotocol.com",
+    "GitHub": "https://github.com/zed-industries/agent-client-protocol",
+    "NPM": "https://www.npmjs.com/package/@zed-industries/agent-client-protocol"
+  },
+  "tsconfig": "../tsconfig.json",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": false,
+  "includeVersion": true,
+  "searchInComments": true,
+  "categorizeByGroup": true,
+  "sort": ["source-order"],
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "plugin": ["typedoc-github-theme"],
+  "theme": "typedoc-github-theme",
+  "lightHighlightTheme": "github-light",
+  "darkHighlightTheme": "github-dark",
+  "readme": "./README.md",
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/tests/**",
+    "**/test/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/generate.js"
+  ],
+  "externalPattern": ["**/node_modules/**"],
+  "excludeNotDocumented": false,
+  "excludeReferences": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "treatWarningsAsErrors": false,
+  "skipErrorChecking": false,
+  "disableSources": false,
+  "gitRevision": "main",
+  "gitRemote": "origin",
+  "hideGenerator": false
+}
