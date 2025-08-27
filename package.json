@@ -1,6 +1,6 @@
 {
   "name": "@zed-industries/agent-client-protocol",
-  "version": "0.0.32",
+  "version": "0.0.33",
   "publishConfig": {
     "access": "public"
   },
