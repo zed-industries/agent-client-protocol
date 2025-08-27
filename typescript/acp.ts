@@ -30,7 +30,7 @@ export class AgentSideConnection implements Client {
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
-    toAgent: (conn: AgentSideConnection) => Agent,
+    toAgent: (conn: Client) => Agent,
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
@@ -51,7 +51,7 @@ export class AgentSideConnection implements Client {
         }
         case schema.AGENT_METHODS.session_load: {
           if (!agent.loadSession) {
-            throw RequestError.methodNotFound();
+            throw RequestError.methodNotFound(method);
           }
           const validatedParams = schema.loadSessionRequestSchema.parse(params);
           return agent.loadSession(
@@ -286,7 +286,9 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  async loadSession(params: schema.LoadSessionRequest): Promise<void> {
+  async loadSession(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_load,
       params,
@@ -352,7 +354,7 @@ export class ClientSideConnection implements Agent {
   }
 }
 
-type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
+type AnyMessage = AnyRequest | AnyResponse | AnyNotification | AnyError;
 
 type AnyRequest = {
   jsonrpc: "2.0";
@@ -370,6 +372,11 @@ type AnyNotification = {
   jsonrpc: "2.0";
   method: string;
   params?: unknown;
+};
+
+type AnyError = {
+  jsonrpc: "2.0";
+  error: ErrorResponse;
 };
 
 type Result<T> =
@@ -424,8 +431,21 @@ class Connection {
         const trimmedLine = line.trim();
 
         if (trimmedLine) {
-          const message = JSON.parse(trimmedLine);
-          this.#processMessage(message);
+          try {
+            const message = JSON.parse(trimmedLine);
+            this.#processMessage(message);
+          } catch (err) {
+            if (err instanceof SyntaxError) {
+              this.#sendMessage({
+                jsonrpc: "2.0",
+                error: RequestError.parseError({
+                  message: err.message,
+                }).toErrorResponse(),
+              });
+            } else {
+              console.error("Unexpected error during message processing:", err);
+            }
+          }
         }
       }
     }
@@ -450,6 +470,11 @@ class Connection {
     } else if ("id" in message) {
       // It's a response
       this.#handleResponse(message as AnyResponse);
+    } else {
+      this.#sendMessage({
+        jsonrpc: "2.0",
+        error: RequestError.invalidRequest().toErrorResponse(),
+      });
     }
   }
 
@@ -466,9 +491,7 @@ class Connection {
       }
 
       if (error instanceof z.ZodError) {
-        return RequestError.invalidParams(
-          JSON.stringify(error.format(), undefined, 2),
-        ).toResult();
+        return RequestError.invalidParams(error.format()).toResult();
       }
 
       let details;
@@ -484,7 +507,13 @@ class Connection {
         details = error.message;
       }
 
-      return RequestError.internalError(details).toResult();
+      try {
+        return RequestError.internalError(
+          details ? JSON.parse(details) : {},
+        ).toResult();
+      } catch (_err) {
+        return RequestError.internalError({ details }).toResult();
+      }
     }
   }
 
@@ -541,60 +570,58 @@ class Connection {
  * See protocol docs: [JSON-RPC Error Object](https://www.jsonrpc.org/specification#error_object)
  */
 export class RequestError extends Error {
-  data?: { details?: string };
+  data?: unknown;
 
   constructor(
     public code: number,
     message: string,
-    details?: string,
+    data?: unknown,
   ) {
     super(message);
     this.name = "RequestError";
-    if (details) {
-      this.data = { details };
-    }
+    this.data = data;
   }
 
   /**
    * Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
    */
-  static parseError(details?: string): RequestError {
-    return new RequestError(-32700, "Parse error", details);
+  static parseError(data?: object): RequestError {
+    return new RequestError(-32700, "Parse error", data);
   }
 
   /**
    * The JSON sent is not a valid Request object.
    */
-  static invalidRequest(details?: string): RequestError {
-    return new RequestError(-32600, "Invalid request", details);
+  static invalidRequest(data?: object): RequestError {
+    return new RequestError(-32600, "Invalid request", data);
   }
 
   /**
    * The method does not exist / is not available.
    */
-  static methodNotFound(details?: string): RequestError {
-    return new RequestError(-32601, "Method not found", details);
+  static methodNotFound(method: string): RequestError {
+    return new RequestError(-32601, "Method not found", { method });
   }
 
   /**
    * Invalid method parameter(s).
    */
-  static invalidParams(details?: string): RequestError {
-    return new RequestError(-32602, "Invalid params", details);
+  static invalidParams(data?: object): RequestError {
+    return new RequestError(-32602, "Invalid params", data);
   }
 
   /**
    * Internal JSON-RPC error.
    */
-  static internalError(details?: string): RequestError {
-    return new RequestError(-32603, "Internal error", details);
+  static internalError(data?: object): RequestError {
+    return new RequestError(-32603, "Internal error", data);
   }
 
   /**
    * Authentication required.
    */
-  static authRequired(details?: string): RequestError {
-    return new RequestError(-32000, "Authentication required", details);
+  static authRequired(data?: object): RequestError {
+    return new RequestError(-32000, "Authentication required", data);
   }
 
   toResult<T>(): Result<T> {
@@ -604,6 +631,14 @@ export class RequestError extends Error {
         message: this.message,
         data: this.data,
       },
+    };
+  }
+
+  toErrorResponse(): ErrorResponse {
+    return {
+      code: this.code,
+      message: this.message,
+      data: this.data,
     };
   }
 }
@@ -720,7 +755,9 @@ export interface Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  loadSession?(params: schema.LoadSessionRequest): Promise<void>;
+  loadSession?(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse>;
   /**
    * Authenticates the client using the specified authentication method.
    *
