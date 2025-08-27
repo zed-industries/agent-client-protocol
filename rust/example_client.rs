@@ -40,7 +40,7 @@ impl acp::Client for ExampleClient {
                     acp::ContentBlock::ResourceLink(resource_link) => resource_link.uri,
                     acp::ContentBlock::Resource(_) => "<resource>".into(),
                 };
-                println!("| Server: {text}");
+                println!("| Agent: {text}");
             }
             acp::SessionUpdate::UserMessageChunk { .. }
             | acp::SessionUpdate::AgentThoughtChunk { .. }
@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     };
     local_set
         .run_until(async move {
-            // Set up the ExampleClient connected to stdio.
+            // Set up the ExampleClient connected to the specified address.
             let (conn, handle_io) =
                 acp::ClientSideConnection::new(ExampleClient {}, outgoing, incoming, spawn);
 

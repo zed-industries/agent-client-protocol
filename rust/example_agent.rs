@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
             let (incoming, outgoing) = stream.into_split();
             (outgoing.compat_write(), incoming.compat())
         }
-        _ => bail!("Usage: example-server ADDRESS"),
+        _ => bail!("Usage: example-agent ADDRESS"),
     };
 
     // The AgentSideConnection will spawn futures onto our Tokio runtime.
@@ -111,10 +111,10 @@ async fn main() -> anyhow::Result<()> {
     local_set
         .run_until(async move {
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-            // Start up the ExampleServer connected to stdio.
+            // Start up the ExampleAgent connected to the provided address.
             let (conn, handle_io) =
                 acp::AgentSideConnection::new(ExampleAgent::new(tx), outgoing, incoming, spawn);
-            // Kick off a background task to send the ExampleServer's session notifications to the client.
+            // Kick off a background task to send the ExampleAgent's session notifications to the client.
             tokio::task::spawn_local(async move {
                 while let Some((session_notification, tx)) = rx.recv().await {
                     let result = conn.session_notification(session_notification).await;

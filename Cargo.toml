@@ -22,8 +22,8 @@ name = "generate"
 path = "rust/generate.rs"
 
 [[example]]
-name = "example-server"
-path = "rust/example_server.rs"
+name = "example-agent"
+path = "rust/example_agent.rs"
 
 [[example]]
 name = "example-client"
