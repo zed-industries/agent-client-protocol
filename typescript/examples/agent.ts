@@ -3,10 +3,10 @@
 import { AgentSideConnection, Agent, PROTOCOL_VERSION } from "../acp.js";
 import * as schema from "../schema.js";
 import { WritableStream, ReadableStream } from "node:stream/web";
-import { Readable, Writable } from 'node:stream';
+import { Readable, Writable } from "node:stream";
 
 interface AgentSession {
-  pendingPrompt: AbortController | null
+  pendingPrompt: AbortController | null;
 }
 
 class ExampleAgent implements Agent {
@@ -32,10 +32,10 @@ class ExampleAgent implements Agent {
   async newSession(
     params: schema.NewSessionRequest,
   ): Promise<schema.NewSessionResponse> {
-    const sessionId = Math.random().toString(36);
+    const sessionId = Math.random().toString(36).substring(2);
 
     this.sessions.set(sessionId, {
-      pendingPrompt: null
+      pendingPrompt: null,
     });
 
     return {
@@ -61,7 +61,7 @@ class ExampleAgent implements Agent {
       await this.simulateTurn(params.sessionId, session.pendingPrompt.signal);
     } catch (err) {
       if (session.pendingPrompt.signal.aborted) {
-        return { stopReason: "cancelled" }
+        return { stopReason: "cancelled" };
       }
 
       throw err;
@@ -74,7 +74,10 @@ class ExampleAgent implements Agent {
     };
   }
 
-  private async simulateTurn(sessionId: string, abortSignal: AbortSignal): Promise<void> {
+  private async simulateTurn(
+    sessionId: string,
+    abortSignal: AbortSignal,
+  ): Promise<void> {
     // Send initial text chunk
     await this.connection.sessionUpdate({
       sessionId,
@@ -153,7 +156,7 @@ class ExampleAgent implements Agent {
         locations: [{ path: "/project/config.json" }],
         rawInput: {
           path: "/project/config.json",
-          content: '{"database": {"host": "new-host"}}'
+          content: '{"database": {"host": "new-host"}}',
         },
       },
     });
@@ -169,7 +172,7 @@ class ExampleAgent implements Agent {
         locations: [{ path: "/home/user/project/config.json" }],
         rawInput: {
           path: "/home/user/project/config.json",
-          content: '{"database": {"host": "new-host"}}'
+          content: '{"database": {"host": "new-host"}}',
         },
       },
       options: [
@@ -217,18 +220,8 @@ class ExampleAgent implements Agent {
         break;
       }
       case "reject": {
-        await this.connection.sessionUpdate({
-          sessionId,
-          update: {
-            sessionUpdate: "tool_call_update",
-            toolCallId: "call_2",
-            status: "failed",
-          },
-        });
-
         await this.simulateModelInteraction(abortSignal);
 
-        // Final text chunk
         await this.connection.sessionUpdate({
           sessionId,
           update: {
@@ -242,19 +235,23 @@ class ExampleAgent implements Agent {
         break;
       }
       default:
-        throw new Error(`Unexpected permission outcome ${permissionResponse.outcome}`)
+        throw new Error(
+          `Unexpected permission outcome ${permissionResponse.outcome}`,
+        );
     }
   }
 
   private simulateModelInteraction(abortSignal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => setTimeout(() => {
-      // In a real agent, you'd pass this abort signal to the LLM client
-      if (abortSignal.aborted) {
-        reject();
-      } else {
-        resolve();
-      }
-    }, 1000));
+    return new Promise((resolve, reject) =>
+      setTimeout(() => {
+        // In a real agent, you'd pass this abort signal to the LLM client
+        if (abortSignal.aborted) {
+          reject();
+        } else {
+          resolve();
+        }
+      }, 1000),
+    );
   }
 
   async cancel(params: schema.CancelNotification): Promise<void> {
@@ -265,8 +262,4 @@ class ExampleAgent implements Agent {
 const input = Writable.toWeb(process.stdout) as WritableStream;
 const output = Readable.toWeb(process.stdin) as ReadableStream<Uint8Array>;
 
-new AgentSideConnection(
-  (conn) => new ExampleAgent(conn),
-  input,
-  output,
-);
+new AgentSideConnection((conn) => new ExampleAgent(conn), input, output);

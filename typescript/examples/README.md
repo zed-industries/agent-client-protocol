@@ -1,59 +1,83 @@
-# Agent-Client Protocol Examples
+# ACP TypeScript Examples
 
-This directory contains minimal examples demonstrating how to use the Agent-Client Protocol (ACP) TypeScript library.
+Examples using the [ACP](https://agentclientprotocol.com) library for TypeScript
 
-## Files
+- [`agent.ts`](./agent.ts) - A minimal agent implementation that simulates LLM interaction
+- [`client.ts`](./client.ts) - A minimal client implementation that spawns the [`agent.ts`](./agent.ts) as a subprocess
 
-- `agent.ts` - A minimal agent implementation using `AgentSideConnection`
-- `client.ts` - A minimal client implementation using `ClientSideConnection` that spawns the agent as a subprocess
+## Running the Agent
 
-## Usage
+### In Zed
 
-These examples demonstrate the basic connection setup between an agent and client. They implement the required interfaces with minimal functionality - just logging and returning valid responses without building a real agent or client.
+While minimal, [`agent.ts`](./agent.ts) implements a compliant [ACP](https://agentclientprotocol.com) Agent. This means we can connect to it from an ACP client like [Zed](https://zed.dev)!
 
-### Building and Running
+1. Add the following to your [Zed](https://zed.dev) settings:
 
-From the project root directory:
-
-```bash
-# Install tsx if not already available
-npm install
-
-# Run the client example directly with tsx (which spawns the agent automatically)
-cd typescript/examples
-npx tsx client.ts
+```json
+{
+  // ... rest of your settings
+  "agent_servers": {
+    "Example Agent": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "/path/to/agent-client-protocol/typescript/examples/agent.ts"
+        // ^^^^^^ replace with your path
+      ]
+  }
+}
 ```
 
-Or run from the root directory:
+2. Run the `acp: open acp logs` action from the command palette (<kbd>⌘⇧P</kbd> on macOS, <kbd>ctrl-shift-p</kbd> on Windows/Linux) to see the messages exchanged between the example agent and Zed.
+
+3. Then open the Agent Panel, and click "New Example Agent Thread" from the `+` menu on the top-right.
+
+![Agent menu](./img/menu.png)
+
+4. Finally, send a message and see the Agent respond!
+
+![Final state](./img/final.png)
+
+### By itself
+
+You can also run the Agent directly and send messages to it:
 
 ```bash
-# Run the client example
+npx tsx typescript/examples/agent.ts
+```
+
+Paste this into your terminal and press <kbd>enter</kbd>:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "method": "initialize",
+  "params": { "protocolVersion": 1 }
+}
+```
+
+You should see it respond with something like:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": { "loadSession": false }
+  }
+}
+```
+
+You can then try making a [new session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session) and [sending a prompt](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message).
+
+## Running the Client
+
+Run the client example from the root directory:
+
+```bash
 npx tsx typescript/examples/client.ts
 ```
 
-The client will:
-
-1. Spawn the agent as a subprocess
-2. Initialize the connection using the ACP protocol
-3. Create a new session
-4. Send a test prompt
-5. Log all interactions to stderr
-
-## Key Features Demonstrated
-
-- **Connection Setup**: Shows how to create `AgentSideConnection` and `ClientSideConnection` with process stdin/stdout streams
-- **Interface Implementation**: Minimal implementations of the `Agent` and `Client` interfaces
-- **Protocol Flow**: Demonstrates the initialize → new session → prompt flow
-- **Subprocess Communication**: Shows how a client can spawn and communicate with an agent process
-
-## Important Notes
-
-- These are minimal examples for demonstration purposes only
-- All methods just log their inputs and return valid but minimal responses
-- The agent and client don't implement any real AI or file system functionality
-- Error handling is minimal - production code should be more robust
-- The examples use `process.stdin`/`process.stdout` for communication as specified
-
-## Schema Validation
-
-The examples rely on the ACP library's built-in schema validation using Zod. The examples use `tsx` to run TypeScript directly without needing to compile to JavaScript first.
+This client will spawn the example agent as a subprocess, send a message, and print the content it receives from it.

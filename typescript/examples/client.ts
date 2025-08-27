@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 
-import { ClientSideConnection, Client, PROTOCOL_VERSION } from "../acp.js";
-import * as schema from "../schema.js";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { WritableStream, ReadableStream } from "node:stream/web";
 import { Writable, Readable } from "node:stream";
-import * as fs from "node:fs";
+import readline from "node:readline/promises";
 
-class ExampleClient implements Client {
+import * as acp from "../acp.js";
+
+class ExampleClient implements acp.Client {
   async requestPermission(
-    params: schema.RequestPermissionRequest,
-  ): Promise<schema.RequestPermissionResponse> {
+    params: acp.RequestPermissionRequest,
+  ): Promise<acp.RequestPermissionResponse> {
     console.log(`\n🔐 Permission requested: ${params.toolCall.title}`);
 
     console.log(`\nOptions:`);
@@ -19,59 +20,47 @@ class ExampleClient implements Client {
       console.log(`   ${index + 1}. ${option.name} (${option.kind})`);
     });
 
-    const answer = this.askUser(`\nYour choice: `);
-    const trimmedAnswer = answer.trim();
+    while (true) {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
 
-    let selectedOption: schema.PermissionOption;
+      let answer = await rl.question("\nChoose an option: ");
+      const trimmedAnswer = answer.trim();
 
-    const optionIndex = parseInt(trimmedAnswer) - 1;
-    if (optionIndex >= 0 && optionIndex < params.options.length) {
-      selectedOption = params.options[optionIndex];
-    } else {
-      selectedOption = params.options[params.options.length - 1] || params.options[0];
-    }
-
-    return {
-      outcome: {
-        outcome: "selected",
-        optionId: selectedOption.optionId,
-      },
-    };
-  }
-
-  private askUser(question: string): string {
-    process.stdout.write(question);
-
-    // Read from stdin
-    const fd = process.stdin.fd;
-    const buffer = Buffer.alloc(1024);
-
-    try {
-      const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, null);
-      const input = buffer.toString('utf8', 0, bytesRead).trim();
-      return input;
-    } catch (error) {
-      console.error("Error reading input:", error);
-      return "deny"; // Default to deny for safety
+      const optionIndex = parseInt(trimmedAnswer) - 1;
+      if (optionIndex >= 0 && optionIndex < params.options.length) {
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: params.options[optionIndex].optionId,
+          },
+        };
+      } else {
+        console.log("Invalid option. Please try again.");
+      }
     }
   }
 
-  async sessionUpdate(params: schema.SessionNotification): Promise<void> {
+  async sessionUpdate(params: acp.SessionNotification): Promise<void> {
     const update = params.update;
 
     switch (update.sessionUpdate) {
       case "agent_message_chunk":
         if (update.content.type === "text") {
-          process.stdout.write(update.content.text);
+          console.log(update.content.text);
         } else {
           console.log(`[${update.content.type}]`);
         }
         break;
       case "tool_call":
-        console.log(`\n\n🔧 ${update.title} (${update.status})\n\n`);
+        console.log(`\n🔧 ${update.title} (${update.status})`);
         break;
       case "tool_call_update":
-        console.log(`\n🔧 Tool call \`${update.toolCallId}\` updated: ${update.status}`);
+        console.log(
+          `\n🔧 Tool call \`${update.toolCallId}\` updated: ${update.status}\n`,
+        );
         break;
       case "plan":
       case "agent_thought_chunk":
@@ -82,8 +71,8 @@ class ExampleClient implements Client {
   }
 
   async writeTextFile(
-    params: schema.WriteTextFileRequest,
-  ): Promise<schema.WriteTextFileResponse> {
+    params: acp.WriteTextFileRequest,
+  ): Promise<acp.WriteTextFileResponse> {
     console.error(
       "[Client] Write text file called with:",
       JSON.stringify(params, null, 2),
@@ -93,8 +82,8 @@ class ExampleClient implements Client {
   }
 
   async readTextFile(
-    params: schema.ReadTextFileRequest,
-  ): Promise<schema.ReadTextFileResponse> {
+    params: acp.ReadTextFileRequest,
+  ): Promise<acp.ReadTextFileResponse> {
     console.error(
       "[Client] Read text file called with:",
       JSON.stringify(params, null, 2),
@@ -112,8 +101,6 @@ async function main() {
   const __dirname = dirname(__filename);
   const agentPath = join(__dirname, "agent.ts");
 
-  console.error("[Client] Spawning agent subprocess...");
-
   // Spawn the agent as a subprocess using tsx
   const agentProcess = spawn("npx", ["tsx", agentPath], {
     stdio: ["pipe", "pipe", "inherit"],
@@ -121,22 +108,22 @@ async function main() {
 
   // Create streams to communicate with the agent
   const input = Writable.toWeb(agentProcess.stdin!) as WritableStream;
-  const output = Readable.toWeb(agentProcess.stdout!) as ReadableStream<Uint8Array>;
+  const output = Readable.toWeb(
+    agentProcess.stdout!,
+  ) as ReadableStream<Uint8Array>;
 
   // Create the client connection
   const client = new ExampleClient();
-  const connection = new ClientSideConnection(
-    (agent) => client,
+  const connection = new acp.ClientSideConnection(
+    (_agent) => client,
     input,
     output,
   );
 
-  console.error("[Client] Initializing connection...");
-
   try {
     // Initialize the connection
     const initResult = await connection.initialize({
-      protocolVersion: PROTOCOL_VERSION,
+      protocolVersion: acp.PROTOCOL_VERSION,
       clientCapabilities: {
         fs: {
           readTextFile: true,
@@ -145,7 +132,9 @@ async function main() {
       },
     });
 
-    console.log(`✅ Connected to agent (protocol v${initResult.protocolVersion})`);
+    console.log(
+      `✅ Connected to agent (protocol v${initResult.protocolVersion})`,
+    );
 
     // Create a new session
     const sessionResult = await connection.newSession({
@@ -154,8 +143,7 @@ async function main() {
     });
 
     console.log(`📝 Created session: ${sessionResult.sessionId}`);
-    console.log(`💬 User: Hello, agent!`);
-    console.log(`🤖 Agent:`);
+    console.log(`💬 User: Hello, agent!\n`);
     process.stdout.write(" ");
 
     // Send a test prompt
@@ -174,6 +162,7 @@ async function main() {
     console.error("[Client] Error:", error);
   } finally {
     agentProcess.kill();
+    process.exit(0);
   }
 }
 
