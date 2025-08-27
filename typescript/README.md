@@ -22,7 +22,7 @@ Browse the [TypeScript library reference](https://zed-industries.github.io/agent
 
 ### Try the Examples
 
-The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/mains/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
+The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/main/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
 
 ### Study a Production Implementation
 
@@ -30,6 +30,8 @@ For a complete, production-ready implementation, check out the [Gemini CLI Agent
 
 ## Resources
 
+- [Library docs](https://zed-industries.github.io/agent-client-protocol)
+- [Examples](https://github.com/zed-industries/agent-client-protocol/tree/main/typescript/examples)
 - [Protocol Documentation](https://agentclientprotocol.com)
 - [GitHub Repository](https://github.com/zed-industries/agent-client-protocol)
 - [NPM Package](https://www.npmjs.com/package/@zed-industries/agent-client-protocol)

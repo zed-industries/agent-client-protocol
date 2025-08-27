@@ -15,12 +15,13 @@
   },
   "license": "MIT",
   "author": "Zed Industries",
+  "readme": "typescript/README.md",
   "files": [
     "typescript",
     "dist",
     "schema/schema.json",
     "LICENSE.MIT",
-    "README.md"
+    "typescript/README.md"
   ],
   "type": "module",
   "main": "dist/acp.js",
