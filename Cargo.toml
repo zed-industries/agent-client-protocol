@@ -21,6 +21,14 @@ doctest = false
 name = "generate"
 path = "rust/generate.rs"
 
+[[example]]
+name = "example-server"
+path = "rust/example_server.rs"
+
+[[example]]
+name = "example-client"
+path = "rust/example_client.rs"
+
 [dependencies]
 anyhow = "1.0"
 async-broadcast = "0.7.2"
@@ -36,9 +44,13 @@ tokio = { version = "1.0", features = [
     "macros",
     "rt",
     "time",
+    "io-std",
     "io-util",
+    "net",
     "sync",
 ] }
+tokio-util = { version = "0.7.16", features = ["compat"] }
 futures-util = { version = "0.3", features = ["io"] }
 async-pipe = { git = "https://github.com/zed-industries/async-pipe-rs", rev = "82d00a04211cf4e1236029aa03e6b6ce2a74c553" }
 env_logger = "0.11"
+rustyline = "17.0.1"

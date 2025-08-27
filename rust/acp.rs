@@ -33,12 +33,12 @@
 //!
 //! - **Agent builders** implement the [`Agent`] trait to handle client requests
 //!   (like initialization, authentication, and prompts). They pass this implementation
-//!   to `AgentSideConnection::new`, which returns a connection providing [`Client`]
+//!   to [`AgentSideConnection::new`], which returns a connection providing [`Client`]
 //!   methods for requesting permissions and accessing the file system.
 //!
 //! - **Client builders** implement the [`Client`] trait to handle agent requests
 //!   (like file system operations and permission checks). They pass this implementation
-//!   to `ClientSideConnection::new`, which returns a connection providing [`Agent`]
+//!   to [`ClientSideConnection::new`], which returns a connection providing [`Agent`]
 //!   methods for managing sessions and sending prompts.
 //!
 //! For the complete protocol specification and documentation, visit:
