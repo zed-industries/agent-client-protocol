@@ -24,7 +24,6 @@ Start by reading the [official ACP documentation](https://agentclientprotocol.co
 
 The [examples directory](https://github.com/zed-industries/agent-client-protocol/tree/main/typescript/examples) contains simple implementations of both Agents and Clients in TypeScript. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
 
-
 ### Explore the API
 
 Browse the [TypeScript library reference](https://zed-industries.github.io/agent-client-protocol) for detailed API documentation.
