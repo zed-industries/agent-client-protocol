@@ -1,3 +1,5 @@
+//! [![Agent Client Protocol](https://zed.dev/img/acp/banner-dark.webp)](https://agentclientprotocol.com/)
+//!
 //! # Agent Client Protocol (ACP)
 //!
 //! The Agent Client Protocol standardizes communication between code editors
@@ -18,8 +20,6 @@
 //!   - See: [Agent](https://agentclientprotocol.com/protocol/overview#agent)
 //! - **Client**: Code editors that provide the interface between users and agents
 //!   - See: [Client](https://agentclientprotocol.com/protocol/overview#client)
-//! - **Session**: A conversation context between a client and agent
-//!   - See: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
 //!
 //! ## Getting Started
 //!
