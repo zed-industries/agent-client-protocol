@@ -8,8 +8,13 @@ The Agent Client Protocol (ACP) standardizes communication between _code editors
 
 The protocol is still under heavy development, and we aim to mature it as we get confidence in the design by implementing it in various settings.
 
-- The official ACP documentation is available in [agentclientprotocol.com](https://agentclientprotocol.com/) and it's built using [Mintlify](http://mintlify.com/).
-- The schema is defined in [acp.rs](./rust/acp.rs), and a TypeScript definition is generated to [acp.ts](./typescript/acp.ts).
+Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
+
+## Libraries and Schema
+
+- **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)
+- **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
+- **JSON Schema**: [schema.json](./schema/schema.json)
 
 ## Contributing
 
