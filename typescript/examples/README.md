@@ -11,7 +11,13 @@ This directory contains examples using the [ACP](https://agentclientprotocol.com
 
 While minimal, [`agent.ts`](./agent.ts) implements a compliant [ACP](https://agentclientprotocol.com) Agent. This means we can connect to it from an ACP client like [Zed](https://zed.dev)!
 
-1. Add the following at the root of your [Zed](https://zed.dev) settings:
+1. Clone this repo
+
+```sh
+$ git clone https://github.com/zed-industries/agent-client-protocol.git
+```
+
+2. Add the following at the root of your [Zed](https://zed.dev) settings:
 
 ```json
   "agent_servers": {
@@ -24,15 +30,17 @@ While minimal, [`agent.ts`](./agent.ts) implements a compliant [ACP](https://age
   }
 ```
 
-❕ Make sure to update `/path/to/agent-client-protocol` to your clone of this repository.
+❕ Make sure to replace `/path/to/agent-client-protocol` with the path to your clone of this repository.
 
-2. Run the `acp: open acp logs` action from the command palette (<kbd>⌘⇧P</kbd> on macOS, <kbd>ctrl-shift-p</kbd> on Windows/Linux) to see the messages exchanged between the example agent and Zed.
+Note: This configuration assumes you have [npx](https://docs.npmjs.com/cli/v8/commands/npx) in your `PATH`.
 
-3. Then open the Agent Panel, and click "New Example Agent Thread" from the `+` menu on the top-right.
+3. Run the `acp: open acp logs` action from the command palette (<kbd>⌘⇧P</kbd> on macOS, <kbd>ctrl-shift-p</kbd> on Windows/Linux) to see the messages exchanged between the example agent and Zed.
+
+4. Then open the Agent Panel, and click "New Example Agent Thread" from the `+` menu on the top-right.
 
 ![Agent menu](./img/menu.png)
 
-4. Finally, send a message and see the Agent respond!
+5. Finally, send a message and see the Agent respond!
 
 ![Final state](./img/final.png)
 
