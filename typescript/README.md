@@ -5,10 +5,8 @@ This is the official TypeScript implementation of the Agent Client Protocol (ACP
 ## Installation
 
 ```bash
-npm install @zed-industries/agent-client-protocol zod
+npm install @zed-industries/agent-client-protocol
 ```
-
-Note: `zod` is a peer dependency and must be installed separately.
 
 ## Contributing
 

@@ -47,6 +47,9 @@
     "docs:ts:dev": "concurrently \"cd typescript && typedoc --watch --preserveWatchOutput\" \"npx http-server typescript/docs -p 8081\"",
     "docs:ts:verify": "cd typescript && typedoc --emit none && echo 'TypeDoc verification passed'"
   },
+  "dependencies": {
+    "zod": "^3.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.1.0",
     "concurrently": "^9.1.0",
@@ -58,8 +61,5 @@
     "typedoc-github-theme": "^0.3.1",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
-  },
-  "peerDependencies": {
-    "zod": "^3.0.0"
   }
 }
