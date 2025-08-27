@@ -38,7 +38,7 @@
     "**/generate.js"
   ],
   "externalPattern": ["**/node_modules/**"],
-  "excludeNotDocumented": true,
+  "excludeNotDocumented": false,
   "excludeReferences": false,
   "validation": {
     "notExported": true,
