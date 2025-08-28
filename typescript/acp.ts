@@ -286,10 +286,8 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  async loadSession(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse> {
-    return await this.#connection.sendRequest(
+  async loadSession(params: schema.LoadSessionRequest): Promise<void> {
+    await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_load,
       params,
     );
@@ -765,9 +763,7 @@ export interface Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  loadSession?(
-    params: schema.LoadSessionRequest,
-  ): Promise<schema.LoadSessionResponse>;
+  loadSession?(params: schema.LoadSessionRequest): Promise<void>;
   /**
    * Authenticates the client using the specified authentication method.
    *

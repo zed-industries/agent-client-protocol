@@ -225,7 +225,7 @@ where
                                         incoming_tx.unbounded_send(IncomingMessage::Notification { notification }).ok();
                                     }
                                     Err(err) => {
-                                        log::error!("failed to decode notification: {err}");
+                                        log::error!("failed to decode {:?}: {err}", message.params);
                                     }
                                 }
                             } else {
