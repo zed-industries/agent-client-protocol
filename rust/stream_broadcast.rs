@@ -1,11 +1,8 @@
-//! Message streaming and broadcasting for debugging and monitoring RPC communication.
+//! JSON-RPC Stream broadcasting for debugging and monitoring communication.
 //!
 //! This module provides functionality to observe the JSON-RPC message stream between
 //! clients and agents. It's primarily used for debugging, logging, and building
 //! development tools that need to monitor the protocol communication.
-//!
-//! The broadcasting system allows multiple receivers to observe the message stream
-//! without interfering with the actual communication.
 
 use std::sync::Arc;
 
@@ -215,7 +212,7 @@ impl StreamSender {
     }
 }
 
-/// A broadcast system for observing RPC message streams.
+/// A broadcast for observing RPC message streams.
 ///
 /// This is used internally by the RPC connection to allow multiple receivers
 /// to observe the message stream.
@@ -224,7 +221,7 @@ pub(crate) struct StreamBroadcast {
 }
 
 impl StreamBroadcast {
-    /// Creates a new broadcast system.
+    /// Creates a new broadcast.
     ///
     /// Returns a sender for broadcasting messages and the broadcast instance
     /// for creating receivers.
