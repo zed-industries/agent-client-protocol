@@ -55,6 +55,10 @@
         {
           "$ref": "#/$defs/ReleaseTerminalRequest",
           "title": "ReleaseTerminalRequest"
+        },
+        {
+          "$ref": "#/$defs/WaitForTerminalExitRequest",
+          "title": "WaitForTerminalExitRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -272,6 +276,10 @@
         {
           "title": "ReleaseTerminalResponse",
           "type": "null"
+        },
+        {
+          "$ref": "#/$defs/WaitForTerminalExitResponse",
+          "title": "WaitForTerminalExitResponse"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -1273,6 +1281,19 @@
         }
       ]
     },
+    "TerminalExitStatus": {
+      "properties": {
+        "exitCode": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "signal": {
+          "type": ["string", "null"]
+        }
+      },
+      "type": "object"
+    },
     "TerminalOutputRequest": {
       "properties": {
         "sessionId": {
@@ -1289,25 +1310,24 @@
     },
     "TerminalOutputResponse": {
       "properties": {
-        "exitCode": {
-          "format": "uint32",
-          "minimum": 0,
-          "type": ["integer", "null"]
-        },
-        "finished": {
-          "type": "boolean"
+        "exitStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TerminalExitStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "output": {
           "type": "string"
-        },
-        "signal": {
-          "type": ["string", "null"]
         },
         "truncated": {
           "type": "boolean"
         }
       },
-      "required": ["output", "truncated", "finished"],
+      "required": ["output", "truncated"],
       "type": "object",
       "x-method": "terminal/output",
       "x-side": "client"
@@ -1599,6 +1619,35 @@
           "type": "string"
         }
       ]
+    },
+    "WaitForTerminalExitRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-method": "terminal/wait_for_exit",
+      "x-side": "client"
+    },
+    "WaitForTerminalExitResponse": {
+      "properties": {
+        "exitCode": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "signal": {
+          "type": ["string", "null"]
+        }
+      },
+      "type": "object",
+      "x-method": "terminal/wait_for_exit",
+      "x-side": "client"
     },
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",

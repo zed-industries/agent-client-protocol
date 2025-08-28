@@ -61,6 +61,13 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
+    async fn wait_for_terminal_exit(
+        &self,
+        _args: acp::WaitForTerminalExitRequest,
+    ) -> anyhow::Result<acp::WaitForTerminalExitResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(
         &self,
         args: acp::SessionNotification,

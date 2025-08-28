@@ -82,6 +82,13 @@ impl Client for TestClient {
     async fn release_terminal(&self, _args: ReleaseTerminalRequest) -> Result<(), Error> {
         unimplemented!()
     }
+
+    async fn wait_for_terminal_exit(
+        &self,
+        _args: WaitForTerminalExitRequest,
+    ) -> Result<WaitForTerminalExitResponse, Error> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]

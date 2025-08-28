@@ -69,6 +69,11 @@ pub trait Client {
         args: ReleaseTerminalRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
+    fn wait_for_terminal_exit(
+        &self,
+        args: WaitForTerminalExitRequest,
+    ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
+
     /// Handles session update notifications from the agent.
     ///
     /// This is a notification endpoint (no response expected) that receives
@@ -308,9 +313,7 @@ pub struct TerminalOutputRequest {
 pub struct TerminalOutputResponse {
     pub output: String,
     pub truncated: bool,
-    pub finished: bool,
-    pub exit_code: Option<u32>,
-    pub signal: Option<String>,
+    pub exit_status: Option<TerminalExitStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -319,6 +322,29 @@ pub struct TerminalOutputResponse {
 pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/wait_for_exit"))]
+#[serde(rename_all = "camelCase")]
+pub struct WaitForTerminalExitRequest {
+    pub session_id: SessionId,
+    pub terminal_id: TerminalId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/wait_for_exit"))]
+#[serde(rename_all = "camelCase")]
+pub struct WaitForTerminalExitResponse {
+    #[serde(flatten)]
+    pub exit_status: TerminalExitStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalExitStatus {
+    pub exit_code: Option<u32>,
+    pub signal: Option<String>,
 }
 
 // Capabilities
@@ -373,8 +399,10 @@ pub struct ClientMethodNames {
     pub terminal_new: &'static str,
     /// Method for getting terminals output.
     pub terminal_output: &'static str,
-    /// Method for releasing terminals.
+    /// Method for releasing a terminal.
     pub terminal_release: &'static str,
+    /// Method for waiting for a terminal to finish.
+    pub terminal_wait_for_exit: &'static str,
 }
 
 /// Constant containing all client method names.
@@ -386,6 +414,7 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     terminal_new: TERMINAL_NEW_METHOD_NAME,
     terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
     terminal_release: TERMINAL_RELEASE_METHOD_NAME,
+    terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
 };
 
 /// Notification name for session updates.
@@ -402,6 +431,8 @@ pub(crate) const TERMINAL_NEW_METHOD_NAME: &str = "terminal/new";
 pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
 /// Method for releasing a terminal.
 pub(crate) const TERMINAL_RELEASE_METHOD_NAME: &str = "terminal/release";
+/// Method for waiting for a terminal to finish.
+pub(crate) const TERMINAL_WAIT_FOR_EXIT_METHOD_NAME: &str = "terminal/wait_for_exit";
 
 /// All possible requests that an agent can send to a client.
 ///
@@ -419,6 +450,7 @@ pub enum AgentRequest {
     NewTerminalRequest(NewTerminalRequest),
     TerminalOutputRequest(TerminalOutputRequest),
     ReleaseTerminalRequest(ReleaseTerminalRequest),
+    WaitForTerminalExitRequest(WaitForTerminalExitRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -437,6 +469,7 @@ pub enum ClientResponse {
     NewTerminalResponse(NewTerminalResponse),
     TerminalOutputResponse(TerminalOutputResponse),
     ReleaseTerminalResponse,
+    WaitForTerminalExitResponse(WaitForTerminalExitResponse),
 }
 
 /// All possible notifications that an agent can send to a client.

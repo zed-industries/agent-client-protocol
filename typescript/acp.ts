@@ -180,6 +180,15 @@ export class AgentSideConnection implements Client {
     );
   }
 
+  async waitForTerminalExit(
+    params: schema.WaitForTerminalExitRequest,
+  ): Promise<schema.WaitForTerminalExitResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_wait_for_exit,
+      params,
+    );
+  }
+
   /**
    * Writes content to a text file in the client's file system.
    *
@@ -281,6 +290,13 @@ export class ClientSideConnection implements Agent {
             schema.releaseTerminalRequestSchema.parse(params);
           return client.releaseTerminal(
             validatedParams as schema.ReleaseTerminalRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_wait_for_exit: {
+          const validatedParams =
+            schema.waitForTerminalExitRequestSchema.parse(params);
+          return client.waitForTerminalExit(
+            validatedParams as schema.WaitForTerminalExitRequest,
           );
         }
         default:
@@ -442,11 +458,11 @@ type AnyError = {
 
 type Result<T> =
   | {
-      result: T;
-    }
+    result: T;
+  }
   | {
-      error: ErrorResponse;
-    };
+    error: ErrorResponse;
+  };
 
 type ErrorResponse = {
   code: number;
@@ -786,6 +802,9 @@ export interface Client {
     params: schema.TerminalOutputRequest,
   ): Promise<schema.TerminalOutputResponse>;
   releaseTerminal(params: schema.ReleaseTerminalRequest): Promise<void>;
+  waitForTerminalExit(
+    params: schema.WaitForTerminalExitRequest,
+  ): Promise<schema.WaitForTerminalExitResponse>;
 }
 
 /**

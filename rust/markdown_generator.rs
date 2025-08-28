@@ -647,6 +647,7 @@ impl SideDocs {
             "terminal/new" => self.client_methods.get("new_terminal").unwrap(),
             "terminal/output" => self.client_methods.get("terminal_output").unwrap(),
             "terminal/release" => self.client_methods.get("release_terminal").unwrap(),
+            "terminal/wait_for_exit" => self.client_methods.get("wait_for_terminal_exit").unwrap(),
             _ => panic!("Introduced a method? Add it here :)"),
         }
     }

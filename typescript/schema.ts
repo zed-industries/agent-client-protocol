@@ -15,6 +15,7 @@ export const CLIENT_METHODS = {
   terminal_new: "terminal/new",
   terminal_output: "terminal/output",
   terminal_release: "terminal/release",
+  terminal_wait_for_exit: "terminal/wait_for_exit",
 };
 
 export const PROTOCOL_VERSION = 1;
@@ -43,7 +44,8 @@ export type ClientRequest =
   | RequestPermissionRequest
   | NewTerminalRequest
   | TerminalOutputRequest
-  | ReleaseTerminalRequest;
+  | ReleaseTerminalRequest
+  | WaitForTerminalExitRequest;
 /**
  * Content produced by a tool call.
  *
@@ -194,7 +196,8 @@ export type ClientResponse =
   | RequestPermissionResponse
   | NewTerminalResponse
   | TerminalOutputResponse
-  | ReleaseTerminalResponse;
+  | ReleaseTerminalResponse
+  | WaitForTerminalExitResponse;
 export type WriteTextFileResponse = null;
 export type ReleaseTerminalResponse = null;
 /**
@@ -489,6 +492,10 @@ export interface ReleaseTerminalRequest {
   sessionId: SessionId;
   terminalId: string;
 }
+export interface WaitForTerminalExitRequest {
+  sessionId: SessionId;
+  terminalId: string;
+}
 /**
  * Response containing the contents of a text file.
  */
@@ -518,11 +525,17 @@ export interface NewTerminalResponse {
   terminalId: string;
 }
 export interface TerminalOutputResponse {
-  exitCode?: number | null;
-  finished: boolean;
+  exitStatus?: TerminalExitStatus | null;
   output: string;
-  signal?: string | null;
   truncated: boolean;
+}
+export interface TerminalExitStatus {
+  exitCode?: number | null;
+  signal?: string | null;
+}
+export interface WaitForTerminalExitResponse {
+  exitCode?: number | null;
+  signal?: string | null;
 }
 /**
  * Notification to cancel ongoing operations for a session.
@@ -1058,16 +1071,13 @@ export const newTerminalResponseSchema = z.object({
 });
 
 /** @internal */
-export const terminalOutputResponseSchema = z.object({
-  exitCode: z.number().optional().nullable(),
-  finished: z.boolean(),
-  output: z.string(),
-  signal: z.string().optional().nullable(),
-  truncated: z.boolean(),
-});
+export const releaseTerminalResponseSchema = z.null();
 
 /** @internal */
-export const releaseTerminalResponseSchema = z.null();
+export const waitForTerminalExitResponseSchema = z.object({
+  exitCode: z.number().optional().nullable(),
+  signal: z.string().optional().nullable(),
+});
 
 /** @internal */
 export const cancelNotificationSchema = z.object({
@@ -1203,6 +1213,18 @@ export const releaseTerminalRequestSchema = z.object({
 });
 
 /** @internal */
+export const waitForTerminalExitRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const terminalExitStatusSchema = z.object({
+  exitCode: z.number().optional().nullable(),
+  signal: z.string().optional().nullable(),
+});
+
+/** @internal */
 export const fileSystemCapabilitySchema = z.object({
   readTextFile: z.boolean().optional(),
   writeTextFile: z.boolean().optional(),
@@ -1286,16 +1308,6 @@ export const planEntrySchema = z.object({
 });
 
 /** @internal */
-export const clientResponseSchema = z.union([
-  writeTextFileResponseSchema,
-  readTextFileResponseSchema,
-  requestPermissionResponseSchema,
-  newTerminalResponseSchema,
-  terminalOutputResponseSchema,
-  releaseTerminalResponseSchema,
-]);
-
-/** @internal */
 export const clientNotificationSchema = cancelNotificationSchema;
 
 /** @internal */
@@ -1306,6 +1318,13 @@ export const newTerminalRequestSchema = z.object({
   env: z.array(envVariableSchema).optional(),
   outputByteLimit: z.number().optional().nullable(),
   sessionId: sessionIdSchema,
+});
+
+/** @internal */
+export const terminalOutputResponseSchema = z.object({
+  exitStatus: terminalExitStatusSchema.optional().nullable(),
+  output: z.string(),
+  truncated: z.boolean(),
 });
 
 /** @internal */
@@ -1409,6 +1428,17 @@ export const agentCapabilitiesSchema = z.object({
 });
 
 /** @internal */
+export const clientResponseSchema = z.union([
+  writeTextFileResponseSchema,
+  readTextFileResponseSchema,
+  requestPermissionResponseSchema,
+  newTerminalResponseSchema,
+  terminalOutputResponseSchema,
+  releaseTerminalResponseSchema,
+  waitForTerminalExitResponseSchema,
+]);
+
+/** @internal */
 export const agentNotificationSchema = sessionNotificationSchema;
 
 /** @internal */
@@ -1439,6 +1469,7 @@ export const clientRequestSchema = z.union([
   newTerminalRequestSchema,
   terminalOutputRequestSchema,
   releaseTerminalRequestSchema,
+  waitForTerminalExitRequestSchema,
 ]);
 
 /** @internal */

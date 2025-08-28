@@ -14,7 +14,8 @@
     "session_update": "session/update",
     "terminal_new": "terminal/new",
     "terminal_output": "terminal/output",
-    "terminal_release": "terminal/release"
+    "terminal_release": "terminal/release",
+    "terminal_wait_for_exit": "terminal/wait_for_exit"
   },
   "version": 1
 }

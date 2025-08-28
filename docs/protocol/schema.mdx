@@ -572,19 +572,19 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
 
 **Properties:**
 
-<ResponseField name="exitCode" type={"integer | null"} >
-
-    - Minimum: `0`
-
-</ResponseField>
-<ResponseField name="finished" type={"boolean"} required>
-</ResponseField>
-<ResponseField name="output" type={"string"} required>
-</ResponseField>
-<ResponseField name="signal" type={"string | null"} >
-</ResponseField>
-<ResponseField name="truncated" type={"boolean"} required>
-</ResponseField>
+<ResponseField
+  name="exitStatus"
+  type={
+    <>
+      <span>
+        <a href="#terminalexitstatus">TerminalExitStatus</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="output" type={"string"} required></ResponseField>
+<ResponseField name="truncated" type={"boolean"} required></ResponseField>
 
 <a id="terminal-release"></a>
 ### <span class="font-mono">terminal/release</span>
@@ -601,6 +601,36 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
   required
 ></ResponseField>
 <ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+<a id="terminal-wait_for_exit"></a>
+### <span class="font-mono">terminal/wait_for_exit</span>
+
+#### <span class="font-mono">WaitForTerminalExitRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+#### <span class="font-mono">WaitForTerminalExitResponse</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="exitCode" type={"integer | null"} >
+
+    - Minimum: `0`
+
+</ResponseField>
+<ResponseField name="signal" type={"string | null"} >
+</ResponseField>
 
 ## <span class="font-mono">AgentCapabilities</span>
 
@@ -1583,6 +1613,20 @@ notification, even if the cancellation causes exceptions in underlying operation
 Agents should catch these exceptions and return this semantically meaningful
 response to confirm successful cancellation.
 
+</ResponseField>
+
+## <span class="font-mono">TerminalExitStatus</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="exitCode" type={"integer | null"} >
+
+    - Minimum: `0`
+
+</ResponseField>
+<ResponseField name="signal" type={"string | null"} >
 </ResponseField>
 
 ## <span class="font-mono">TextContent</span>
