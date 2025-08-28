@@ -644,6 +644,10 @@ impl SideDocs {
             "fs/write_text_file" => self.client_methods.get("write_text_file").unwrap(),
             "fs/read_text_file" => self.client_methods.get("read_text_file").unwrap(),
             "session/update" => self.client_methods.get("session_notification").unwrap(),
+            "terminal/create" => self.client_methods.get("create_terminal").unwrap(),
+            "terminal/output" => self.client_methods.get("terminal_output").unwrap(),
+            "terminal/release" => self.client_methods.get("release_terminal").unwrap(),
+            "terminal/wait_for_exit" => self.client_methods.get("wait_for_terminal_exit").unwrap(),
             _ => panic!("Introduced a method? Add it here :)"),
         }
     }

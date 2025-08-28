@@ -43,6 +43,22 @@
         {
           "$ref": "#/$defs/RequestPermissionRequest",
           "title": "RequestPermissionRequest"
+        },
+        {
+          "$ref": "#/$defs/CreateTerminalRequest",
+          "title": "CreateTerminalRequest"
+        },
+        {
+          "$ref": "#/$defs/TerminalOutputRequest",
+          "title": "TerminalOutputRequest"
+        },
+        {
+          "$ref": "#/$defs/ReleaseTerminalRequest",
+          "title": "ReleaseTerminalRequest"
+        },
+        {
+          "$ref": "#/$defs/WaitForTerminalExitRequest",
+          "title": "WaitForTerminalExitRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -191,6 +207,11 @@
             "writeTextFile": false
           },
           "description": "File system capabilities supported by the client.\nDetermines which file operations the agent can request."
+        },
+        "terminal": {
+          "default": false,
+          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -244,6 +265,22 @@
         {
           "$ref": "#/$defs/RequestPermissionResponse",
           "title": "RequestPermissionResponse"
+        },
+        {
+          "$ref": "#/$defs/CreateTerminalResponse",
+          "title": "CreateTerminalResponse"
+        },
+        {
+          "$ref": "#/$defs/TerminalOutputResponse",
+          "title": "TerminalOutputResponse"
+        },
+        {
+          "title": "ReleaseTerminalResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/WaitForTerminalExitResponse",
+          "title": "WaitForTerminalExitResponse"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -399,6 +436,49 @@
         }
       ]
     },
+    "CreateTerminalRequest": {
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": ["string", "null"]
+        },
+        "env": {
+          "items": {
+            "$ref": "#/$defs/EnvVariable"
+          },
+          "type": "array"
+        },
+        "outputByteLimit": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        }
+      },
+      "required": ["sessionId", "command"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
+    "CreateTerminalResponse": {
+      "properties": {
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
       "properties": {
@@ -498,7 +578,8 @@
             "fs": {
               "readTextFile": false,
               "writeTextFile": false
-            }
+            },
+            "terminal": false
           },
           "description": "Capabilities supported by the client."
         },
@@ -852,6 +933,19 @@
       "required": ["content"],
       "type": "object"
     },
+    "ReleaseTerminalRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
     "RequestPermissionOutcome": {
       "description": "The outcome of a permission request.",
       "oneOf": [
@@ -1185,6 +1279,56 @@
         }
       ]
     },
+    "TerminalExitStatus": {
+      "properties": {
+        "exitCode": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "signal": {
+          "type": ["string", "null"]
+        }
+      },
+      "type": "object",
+      "x-docs-ignore": true
+    },
+    "TerminalOutputRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
+    "TerminalOutputResponse": {
+      "properties": {
+        "exitStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TerminalExitStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": ["output", "truncated"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
       "properties": {
@@ -1303,6 +1447,19 @@
             }
           },
           "required": ["type", "path", "newText"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "terminalId": {
+              "type": "string"
+            },
+            "type": {
+              "const": "terminal",
+              "type": "string"
+            }
+          },
+          "required": ["type", "terminalId"],
           "type": "object"
         }
       ]
@@ -1459,6 +1616,33 @@
           "type": "string"
         }
       ]
+    },
+    "WaitForTerminalExitRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
+    "WaitForTerminalExitResponse": {
+      "properties": {
+        "exitCode": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "signal": {
+          "type": ["string", "null"]
+        }
+      },
+      "type": "object",
+      "x-docs-ignore": true
     },
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",

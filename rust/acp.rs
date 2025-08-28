@@ -245,6 +245,22 @@ impl Side for ClientSide {
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReadTextFileRequest)
                 .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            TERMINAL_CREATE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::CreateTerminalRequest)
+                .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            TERMINAL_OUTPUT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::TerminalOutputRequest)
+                .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            TERMINAL_RELEASE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::ReleaseTerminalRequest)
+                .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            TERMINAL_WAIT_FOR_EXIT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::WaitForTerminalExitRequest)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -278,6 +294,26 @@ impl<T: Client> MessageHandler<ClientSide> for T {
             AgentRequest::ReadTextFileRequest(args) => {
                 let response = self.read_text_file(args).await?;
                 Ok(ClientResponse::ReadTextFileResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            AgentRequest::CreateTerminalRequest(args) => {
+                let response = self.create_terminal(args).await?;
+                Ok(ClientResponse::CreateTerminalResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            AgentRequest::TerminalOutputRequest(args) => {
+                let response = self.terminal_output(args).await?;
+                Ok(ClientResponse::TerminalOutputResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            AgentRequest::ReleaseTerminalRequest(args) => {
+                self.release_terminal(args).await?;
+                Ok(ClientResponse::ReleaseTerminalResponse)
+            }
+            #[cfg(feature = "unstable")]
+            AgentRequest::WaitForTerminalExitRequest(args) => {
+                let response = self.wait_for_terminal_exit(args).await?;
+                Ok(ClientResponse::WaitForTerminalExitResponse(response))
             }
         }
     }
@@ -379,6 +415,55 @@ impl Client for AgentSideConnection {
             .request(
                 FS_READ_TEXT_FILE_METHOD_NAME,
                 Some(AgentRequest::ReadTextFileRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn create_terminal(
+        &self,
+        arguments: CreateTerminalRequest,
+    ) -> Result<CreateTerminalResponse, Error> {
+        self.conn
+            .request(
+                TERMINAL_CREATE_METHOD_NAME,
+                Some(AgentRequest::CreateTerminalRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn terminal_output(
+        &self,
+        arguments: TerminalOutputRequest,
+    ) -> Result<TerminalOutputResponse, Error> {
+        self.conn
+            .request(
+                TERMINAL_OUTPUT_METHOD_NAME,
+                Some(AgentRequest::TerminalOutputRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn release_terminal(&self, arguments: ReleaseTerminalRequest) -> Result<(), Error> {
+        self.conn
+            .request(
+                TERMINAL_RELEASE_METHOD_NAME,
+                Some(AgentRequest::ReleaseTerminalRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn wait_for_terminal_exit(
+        &self,
+        arguments: WaitForTerminalExitRequest,
+    ) -> Result<WaitForTerminalExitResponse, Error> {
+        self.conn
+            .request(
+                TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
+                Some(AgentRequest::WaitForTerminalExitRequest(arguments)),
             )
             .await
     }

@@ -70,7 +70,7 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="clientCapabilities" type={<a href="#clientcapabilities">ClientCapabilities</a>} >
   Capabilities supported by the client.
 
-    - Default: `{"fs":{"readTextFile":false,"writeTextFile":false}}`
+    - Default: `{"fs":{"readTextFile":false,"writeTextFile":false},"terminal":false}`
 
 </ResponseField>
 <ResponseField name="protocolVersion" type={<a href="#protocolversion">ProtocolVersion</a>} required>
@@ -635,6 +635,14 @@ See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protoco
 Determines which file operations the agent can request.
 
     - Default: `{"readTextFile":false,"writeTextFile":false}`
+
+</ResponseField>
+<ResponseField name="terminal" type={"boolean"} >
+  **UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+    - Default: `false`
 
 </ResponseField>
 
@@ -1637,6 +1645,17 @@ File modification shown as a diff.
 <ResponseField name="path" type={"string"} required>
   The file path being modified.
 </ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="terminal">
+{""}
+
+<Expandable title="Properties">
+
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
 <ResponseField name="type" type={"string"} required></ResponseField>
 
 </Expandable>

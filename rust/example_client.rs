@@ -40,6 +40,38 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
+    #[cfg(feature = "unstable")]
+    async fn create_terminal(
+        &self,
+        _args: acp::CreateTerminalRequest,
+    ) -> Result<acp::CreateTerminalResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn terminal_output(
+        &self,
+        _args: acp::TerminalOutputRequest,
+    ) -> anyhow::Result<acp::TerminalOutputResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn release_terminal(
+        &self,
+        _args: acp::ReleaseTerminalRequest,
+    ) -> anyhow::Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn wait_for_terminal_exit(
+        &self,
+        _args: acp::WaitForTerminalExitRequest,
+    ) -> anyhow::Result<acp::WaitForTerminalExitResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(
         &self,
         args: acp::SessionNotification,
