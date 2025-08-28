@@ -532,8 +532,8 @@ describe("Connection", () => {
     });
 
     expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(response.agentCapabilities.loadSession).toBe(true);
+    expect(response.agentCapabilities?.loadSession).toBe(true);
     expect(response.authMethods).toHaveLength(1);
-    expect(response.authMethods[0].id).toBe("oauth");
+    expect(response.authMethods?.[0].id).toBe("oauth");
   });
 });

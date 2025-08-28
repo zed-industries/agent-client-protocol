@@ -117,7 +117,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Send prompts to the agent until stdin is closed.
             let mut rl = rustyline::DefaultEditor::new()?;
-            while let Some(line) = rl.readline("> ").ok() {
+            while let Ok(line) = rl.readline("> ") {
                 let result = conn
                     .prompt(acp::PromptRequest {
                         session_id: response.session_id.clone(),
