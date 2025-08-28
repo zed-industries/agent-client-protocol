@@ -13,6 +13,9 @@ keywords = ["agent", "client", "protocol", "ai", "editor"]
 categories = ["development-tools", "api-bindings"]
 include = ["/rust/**/*.rs", "/README.md", "/LICENSE-APACHE", "/Cargo.toml"]
 
+[features]
+unstable = []
+
 [lib]
 path = "rust/acp.rs"
 doctest = false

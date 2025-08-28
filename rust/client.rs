@@ -9,7 +9,7 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, EnvVariable, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 /// Defines the interface that ACP-compliant clients must implement.
 ///
@@ -76,6 +76,7 @@ pub trait Client {
     ///
     /// This method is not part of the spec, and may be removed or changed at any point.
     #[doc(hidden)]
+    #[cfg(feature = "unstable")]
     fn create_terminal(
         &self,
         args: CreateTerminalRequest,
@@ -85,6 +86,7 @@ pub trait Client {
     ///
     /// This method is not part of the spec, and may be removed or changed at any point.
     #[doc(hidden)]
+    #[cfg(feature = "unstable")]
     fn terminal_output(
         &self,
         args: TerminalOutputRequest,
@@ -94,6 +96,7 @@ pub trait Client {
     ///
     /// This method is not part of the spec, and may be removed or changed at any point.
     #[doc(hidden)]
+    #[cfg(feature = "unstable")]
     fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
@@ -103,6 +106,7 @@ pub trait Client {
     ///
     /// This method is not part of the spec, and may be removed or changed at any point.
     #[doc(hidden)]
+    #[cfg(feature = "unstable")]
     fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
@@ -286,8 +290,10 @@ pub struct ReadTextFileResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
+#[cfg(feature = "unstable")]
 pub struct TerminalId(pub Arc<str>);
 
+#[cfg(feature = "unstable")]
 impl std::fmt::Display for TerminalId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -297,13 +303,14 @@ impl std::fmt::Display for TerminalId {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct CreateTerminalRequest {
     pub session_id: SessionId,
     pub command: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub env: Vec<EnvVariable>,
+    pub env: Vec<crate::EnvVariable>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -313,6 +320,7 @@ pub struct CreateTerminalRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct CreateTerminalResponse {
     pub terminal_id: TerminalId,
 }
@@ -320,6 +328,7 @@ pub struct CreateTerminalResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct TerminalOutputRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -328,6 +337,7 @@ pub struct TerminalOutputRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct TerminalOutputResponse {
     pub output: String,
     pub truncated: bool,
@@ -337,6 +347,7 @@ pub struct TerminalOutputResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -345,6 +356,7 @@ pub struct ReleaseTerminalRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -353,6 +365,7 @@ pub struct WaitForTerminalExitRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct WaitForTerminalExitResponse {
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
@@ -361,6 +374,7 @@ pub struct WaitForTerminalExitResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct TerminalExitStatus {
     pub exit_code: Option<u32>,
     pub signal: Option<String>,
@@ -420,12 +434,16 @@ pub struct ClientMethodNames {
     /// Method for reading text files.
     pub fs_read_text_file: &'static str,
     /// Method for creating new terminals.
+    #[cfg(feature = "unstable")]
     pub terminal_create: &'static str,
     /// Method for getting terminals output.
+    #[cfg(feature = "unstable")]
     pub terminal_output: &'static str,
     /// Method for releasing a terminal.
+    #[cfg(feature = "unstable")]
     pub terminal_release: &'static str,
     /// Method for waiting for a terminal to finish.
+    #[cfg(feature = "unstable")]
     pub terminal_wait_for_exit: &'static str,
 }
 
@@ -435,9 +453,13 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
     fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
+    #[cfg(feature = "unstable")]
     terminal_create: TERMINAL_CREATE_METHOD_NAME,
+    #[cfg(feature = "unstable")]
     terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
+    #[cfg(feature = "unstable")]
     terminal_release: TERMINAL_RELEASE_METHOD_NAME,
+    #[cfg(feature = "unstable")]
     terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
 };
 
@@ -450,12 +472,16 @@ pub(crate) const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 /// Method name for reading text files.
 pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 /// Method name for creating a new terminal.
+#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_CREATE_METHOD_NAME: &str = "terminal/create";
 /// Method for getting terminals output.
+#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
 /// Method for releasing a terminal.
+#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_RELEASE_METHOD_NAME: &str = "terminal/release";
 /// Method for waiting for a terminal to finish.
+#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_WAIT_FOR_EXIT_METHOD_NAME: &str = "terminal/wait_for_exit";
 
 /// All possible requests that an agent can send to a client.
@@ -471,9 +497,13 @@ pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
     RequestPermissionRequest(RequestPermissionRequest),
+    #[cfg(feature = "unstable")]
     CreateTerminalRequest(CreateTerminalRequest),
+    #[cfg(feature = "unstable")]
     TerminalOutputRequest(TerminalOutputRequest),
+    #[cfg(feature = "unstable")]
     ReleaseTerminalRequest(ReleaseTerminalRequest),
+    #[cfg(feature = "unstable")]
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
 }
 
@@ -490,9 +520,13 @@ pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
+    #[cfg(feature = "unstable")]
     CreateTerminalResponse(CreateTerminalResponse),
+    #[cfg(feature = "unstable")]
     TerminalOutputResponse(TerminalOutputResponse),
+    #[cfg(feature = "unstable")]
     ReleaseTerminalResponse,
+    #[cfg(feature = "unstable")]
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
 }
 

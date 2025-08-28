@@ -293,28 +293,28 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.terminal_create: {
           const validatedParams =
             schema.createTerminalRequestSchema.parse(params);
-          return client.createTerminal(
+          return client.createTerminal?.(
             validatedParams as schema.CreateTerminalRequest,
           );
         }
         case schema.CLIENT_METHODS.terminal_output: {
           const validatedParams =
             schema.terminalOutputRequestSchema.parse(params);
-          return client.terminalOutput(
+          return client.terminalOutput?.(
             validatedParams as schema.TerminalOutputRequest,
           );
         }
         case schema.CLIENT_METHODS.terminal_release: {
           const validatedParams =
             schema.releaseTerminalRequestSchema.parse(params);
-          return client.releaseTerminal(
+          return client.releaseTerminal?.(
             validatedParams as schema.ReleaseTerminalRequest,
           );
         }
         case schema.CLIENT_METHODS.terminal_wait_for_exit: {
           const validatedParams =
             schema.waitForTerminalExitRequestSchema.parse(params);
-          return client.waitForTerminalExit(
+          return client.waitForTerminalExit?.(
             validatedParams as schema.WaitForTerminalExitRequest,
           );
         }
@@ -798,30 +798,38 @@ export interface Client {
   readTextFile(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse>;
+
   /**
-   * Creates a new terminal instance in the client's environment.
+   *  @internal **UNSTABLE**
    *
-   * Only available if the client advertises the `terminal` capability.
-   * Allows the agent to spawn and interact with terminal processes.
-   *
-   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   * This method is not part of the spec, and may be removed or changed at any point.
    */
-  createTerminal(
+  createTerminal?(
     params: schema.CreateTerminalRequest,
   ): Promise<schema.CreateTerminalResponse>;
+
   /**
-   * Retrieves output from a previously created terminal.
+   *  @internal **UNSTABLE**
    *
-   * Only available if the client advertises the `terminal` capability.
-   * Returns the terminal's output buffer and exit status if available.
-   *
-   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   * This method is not part of the spec, and may be removed or changed at any point.
    */
-  terminalOutput(
+  terminalOutput?(
     params: schema.TerminalOutputRequest,
   ): Promise<schema.TerminalOutputResponse>;
-  releaseTerminal(params: schema.ReleaseTerminalRequest): Promise<void>;
-  waitForTerminalExit(
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  releaseTerminal?(params: schema.ReleaseTerminalRequest): Promise<void>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  waitForTerminalExit?(
     params: schema.WaitForTerminalExitRequest,
   ): Promise<schema.WaitForTerminalExitResponse>;
 }

@@ -9,7 +9,7 @@ use std::{path::PathBuf, sync::Arc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, Error, TerminalId};
+use crate::{ContentBlock, Error};
 
 /// Represents a tool call that the language model has requested.
 ///
@@ -275,7 +275,8 @@ pub enum ToolCallContent {
         diff: Diff,
     },
     #[serde(rename_all = "camelCase")]
-    Terminal { terminal_id: TerminalId },
+    #[cfg(feature = "unstable")]
+    Terminal { terminal_id: crate::TerminalId },
 }
 
 impl<T: Into<ContentBlock>> From<T> for ToolCallContent {
