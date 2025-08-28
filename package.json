@@ -1,6 +1,6 @@
 {
   "name": "@zed-industries/agent-client-protocol",
-  "version": "0.1.2",
+  "version": "0.1.3-alpha.0",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
     "test": "cargo check --all-targets && cargo test && vitest run",
     "test:ts": "vitest run",
     "test:ts:watch": "vitest",
-    "generate:json-schema": "cd rust && cargo run --bin generate",
+    "generate:json-schema": "cd rust && cargo run --bin generate --features unstable",
     "generate:ts-schema": "node typescript/generate.js",
     "generate": "npm run generate:json-schema && npm run generate:ts-schema && npm run format",
     "build": "npm run generate && tsc",

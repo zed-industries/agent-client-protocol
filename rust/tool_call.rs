@@ -274,6 +274,9 @@ pub enum ToolCallContent {
         #[serde(flatten)]
         diff: Diff,
     },
+    #[serde(rename_all = "camelCase")]
+    #[cfg(feature = "unstable")]
+    Terminal { terminal_id: crate::TerminalId },
 }
 
 impl<T: Into<ContentBlock>> From<T> for ToolCallContent {

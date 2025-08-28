@@ -1,7 +1,7 @@
 [package]
 name = "agent-client-protocol"
 authors = ["Zed <hi@zed.dev>"]
-version = "0.1.1"
+version = "0.1.3-alpha.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "A protocol for standardizing communication between code editors and AI coding agents"
@@ -12,6 +12,9 @@ readme = "README.md"
 keywords = ["agent", "client", "protocol", "ai", "editor"]
 categories = ["development-tools", "api-bindings"]
 include = ["/rust/**/*.rs", "/README.md", "/LICENSE-APACHE", "/Cargo.toml"]
+
+[features]
+unstable = []
 
 [lib]
 path = "rust/acp.rs"

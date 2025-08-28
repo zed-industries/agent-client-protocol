@@ -67,6 +67,35 @@ impl Client for TestClient {
         self.session_notifications.lock().unwrap().push(args);
         Ok(())
     }
+
+    #[cfg(feature = "unstable")]
+    async fn create_terminal(
+        &self,
+        _args: CreateTerminalRequest,
+    ) -> Result<CreateTerminalResponse, Error> {
+        unimplemented!()
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn terminal_output(
+        &self,
+        _args: TerminalOutputRequest,
+    ) -> Result<TerminalOutputResponse, Error> {
+        unimplemented!()
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn release_terminal(&self, _args: ReleaseTerminalRequest) -> Result<(), Error> {
+        unimplemented!()
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn wait_for_terminal_exit(
+        &self,
+        _args: WaitForTerminalExitRequest,
+    ) -> Result<WaitForTerminalExitResponse, Error> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]

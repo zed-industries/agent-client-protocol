@@ -14,7 +14,7 @@ import { WritableStream, ReadableStream } from "node:stream/web";
  *
  * See protocol docs: [Agent](https://agentclientprotocol.com/protocol/overview#agent)
  */
-export class AgentSideConnection implements Client {
+export class AgentSideConnection {
   #connection: Connection;
 
   /**
@@ -30,7 +30,7 @@ export class AgentSideConnection implements Client {
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
-    toAgent: (conn: Client) => Agent,
+    toAgent: (conn: AgentSideConnection) => Agent,
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
@@ -155,6 +155,74 @@ export class AgentSideConnection implements Client {
       params,
     );
   }
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  async createTerminal(
+    params: schema.CreateTerminalRequest,
+  ): Promise<TerminalHandle> {
+    const response = (await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_create,
+      params,
+    )) as schema.CreateTerminalResponse;
+
+    return new TerminalHandle(
+      response.terminalId,
+      params.sessionId,
+      this.#connection,
+    );
+  }
+}
+
+export class TerminalHandle {
+  #sessionId: string;
+  #connection: Connection;
+
+  constructor(
+    public id: string,
+    sessionId: string,
+    conn: Connection,
+  ) {
+    this.#sessionId = sessionId;
+    this.#connection = conn;
+  }
+
+  async currentOutput(): Promise<schema.TerminalOutputResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_output,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async waitForExit(): Promise<schema.WaitForTerminalExitResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_wait_for_exit,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async release(): Promise<schema.ReleaseTerminalResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_release,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async [Symbol.asyncDispose]() {
+    return this.release();
+  }
 }
 
 /**
@@ -220,6 +288,34 @@ export class ClientSideConnection implements Agent {
             schema.sessionNotificationSchema.parse(params);
           return client.sessionUpdate(
             validatedParams as schema.SessionNotification,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_create: {
+          const validatedParams =
+            schema.createTerminalRequestSchema.parse(params);
+          return client.createTerminal?.(
+            validatedParams as schema.CreateTerminalRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_output: {
+          const validatedParams =
+            schema.terminalOutputRequestSchema.parse(params);
+          return client.terminalOutput?.(
+            validatedParams as schema.TerminalOutputRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_release: {
+          const validatedParams =
+            schema.releaseTerminalRequestSchema.parse(params);
+          return client.releaseTerminal?.(
+            validatedParams as schema.ReleaseTerminalRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_wait_for_exit: {
+          const validatedParams =
+            schema.waitForTerminalExitRequestSchema.parse(params);
+          return client.waitForTerminalExit?.(
+            validatedParams as schema.WaitForTerminalExitRequest,
           );
         }
         default:
@@ -710,6 +806,40 @@ export interface Client {
   readTextFile(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  createTerminal?(
+    params: schema.CreateTerminalRequest,
+  ): Promise<schema.CreateTerminalResponse>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  terminalOutput?(
+    params: schema.TerminalOutputRequest,
+  ): Promise<schema.TerminalOutputResponse>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  releaseTerminal?(params: schema.ReleaseTerminalRequest): Promise<void>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  waitForTerminalExit?(
+    params: schema.WaitForTerminalExitRequest,
+  ): Promise<schema.WaitForTerminalExitResponse>;
 }
 
 /**

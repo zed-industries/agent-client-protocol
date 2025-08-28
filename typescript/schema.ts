@@ -12,6 +12,10 @@ export const CLIENT_METHODS = {
   fs_write_text_file: "fs/write_text_file",
   session_request_permission: "session/request_permission",
   session_update: "session/update",
+  terminal_create: "terminal/create",
+  terminal_output: "terminal/output",
+  terminal_release: "terminal/release",
+  terminal_wait_for_exit: "terminal/wait_for_exit",
 };
 
 export const PROTOCOL_VERSION = 1;
@@ -37,7 +41,11 @@ export type AgentClientProtocol =
 export type ClientRequest =
   | WriteTextFileRequest
   | ReadTextFileRequest
-  | RequestPermissionRequest;
+  | RequestPermissionRequest
+  | CreateTerminalRequest
+  | TerminalOutputRequest
+  | ReleaseTerminalRequest
+  | WaitForTerminalExitRequest;
 /**
  * Content produced by a tool call.
  *
@@ -114,6 +122,10 @@ export type ToolCallContent =
        */
       path: string;
       type: "diff";
+    }
+  | {
+      terminalId: string;
+      type: "terminal";
     };
 /**
  * The sender or recipient of messages and data in a conversation.
@@ -152,6 +164,24 @@ export type ToolKind =
  */
 export type ToolCallStatus = "pending" | "in_progress" | "completed" | "failed";
 /**
+ * A unique identifier for a conversation session between a client and agent.
+ *
+ * Sessions maintain their own context, conversation history, and state,
+ * allowing multiple independent interactions with the same agent.
+ *
+ * # Example
+ *
+ * ```
+ * use agent_client_protocol::SessionId;
+ * use std::sync::Arc;
+ *
+ * let session_id = SessionId(Arc::from("sess_abc123def456"));
+ * ```
+ *
+ * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+ */
+export type SessionId = string;
+/**
  * All possible responses that a client can send to an agent.
  *
  * This enum is used internally for routing RPC responses. You typically won't need
@@ -163,8 +193,13 @@ export type ToolCallStatus = "pending" | "in_progress" | "completed" | "failed";
 export type ClientResponse =
   | WriteTextFileResponse
   | ReadTextFileResponse
-  | RequestPermissionResponse;
+  | RequestPermissionResponse
+  | CreateTerminalResponse
+  | TerminalOutputResponse
+  | ReleaseTerminalResponse
+  | WaitForTerminalExitResponse;
 export type WriteTextFileResponse = null;
+export type ReleaseTerminalResponse = null;
 /**
  * All possible notifications that a client can send to an agent.
  *
@@ -428,6 +463,39 @@ export interface ToolCallLocation {
    */
   path: string;
 }
+export interface CreateTerminalRequest {
+  args?: string[];
+  command: string;
+  cwd?: string | null;
+  env?: EnvVariable[];
+  outputByteLimit?: number | null;
+  sessionId: SessionId;
+}
+/**
+ * An environment variable to set when launching an MCP server.
+ */
+export interface EnvVariable {
+  /**
+   * The name of the environment variable.
+   */
+  name: string;
+  /**
+   * The value to set for the environment variable.
+   */
+  value: string;
+}
+export interface TerminalOutputRequest {
+  sessionId: SessionId;
+  terminalId: string;
+}
+export interface ReleaseTerminalRequest {
+  sessionId: SessionId;
+  terminalId: string;
+}
+export interface WaitForTerminalExitRequest {
+  sessionId: SessionId;
+  terminalId: string;
+}
 /**
  * Response containing the contents of a text file.
  */
@@ -453,6 +521,22 @@ export interface RequestPermissionResponse {
         outcome: "selected";
       };
 }
+export interface CreateTerminalResponse {
+  terminalId: string;
+}
+export interface TerminalOutputResponse {
+  exitStatus?: TerminalExitStatus | null;
+  output: string;
+  truncated: boolean;
+}
+export interface TerminalExitStatus {
+  exitCode?: number | null;
+  signal?: string | null;
+}
+export interface WaitForTerminalExitResponse {
+  exitCode?: number | null;
+  signal?: string | null;
+}
 /**
  * Notification to cancel ongoing operations for a session.
  *
@@ -460,7 +544,21 @@ export interface RequestPermissionResponse {
  */
 export interface CancelNotification {
   /**
-   * The ID of the session to cancel operations for.
+   * A unique identifier for a conversation session between a client and agent.
+   *
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
 }
@@ -483,6 +581,12 @@ export interface InitializeRequest {
  */
 export interface ClientCapabilities {
   fs?: FileSystemCapability;
+  /**
+   * **UNSTABLE**
+   *
+   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   */
+  terminal?: boolean;
 }
 /**
  * File system capabilities supported by the client.
@@ -552,19 +656,6 @@ export interface McpServer {
   name: string;
 }
 /**
- * An environment variable to set when launching an MCP server.
- */
-export interface EnvVariable {
-  /**
-   * The name of the environment variable.
-   */
-  name: string;
-  /**
-   * The value to set for the environment variable.
-   */
-  value: string;
-}
-/**
  * Request parameters for loading an existing session.
  *
  * Only available if the agent supports the `loadSession` capability.
@@ -581,7 +672,21 @@ export interface LoadSessionRequest {
    */
   mcpServers: McpServer[];
   /**
-   * The ID of the session to load.
+   * A unique identifier for a conversation session between a client and agent.
+   *
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
 }
@@ -610,7 +715,21 @@ export interface PromptRequest {
    */
   prompt: ContentBlock[];
   /**
-   * The ID of the session to send this user message to
+   * A unique identifier for a conversation session between a client and agent.
+   *
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
 }
@@ -689,9 +808,21 @@ export interface AuthMethod {
  */
 export interface NewSessionResponse {
   /**
-   * Unique identifier for the created session.
+   * A unique identifier for a conversation session between a client and agent.
    *
-   * Used in all subsequent requests for this conversation.
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
 }
@@ -916,6 +1047,9 @@ export const toolCallStatusSchema = z.union([
 ]);
 
 /** @internal */
+export const sessionIdSchema = z.string();
+
+/** @internal */
 export const writeTextFileResponseSchema = z.null();
 
 /** @internal */
@@ -934,6 +1068,20 @@ export const requestPermissionResponseSchema = z.object({
       outcome: z.literal("selected"),
     }),
   ]),
+});
+
+/** @internal */
+export const createTerminalResponseSchema = z.object({
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const releaseTerminalResponseSchema = z.null();
+
+/** @internal */
+export const waitForTerminalExitResponseSchema = z.object({
+  exitCode: z.number().optional().nullable(),
+  signal: z.string().optional().nullable(),
 });
 
 /** @internal */
@@ -1039,6 +1187,10 @@ export const toolCallContentSchema = z.union([
     path: z.string(),
     type: z.literal("diff"),
   }),
+  z.object({
+    terminalId: z.string(),
+    type: z.literal("terminal"),
+  }),
 ]);
 
 /** @internal */
@@ -1048,15 +1200,39 @@ export const toolCallLocationSchema = z.object({
 });
 
 /** @internal */
-export const fileSystemCapabilitySchema = z.object({
-  readTextFile: z.boolean().optional(),
-  writeTextFile: z.boolean().optional(),
-});
-
-/** @internal */
 export const envVariableSchema = z.object({
   name: z.string(),
   value: z.string(),
+});
+
+/** @internal */
+export const terminalOutputRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const releaseTerminalRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const waitForTerminalExitRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const terminalExitStatusSchema = z.object({
+  exitCode: z.number().optional().nullable(),
+  signal: z.string().optional().nullable(),
+});
+
+/** @internal */
+export const fileSystemCapabilitySchema = z.object({
+  readTextFile: z.boolean().optional(),
+  writeTextFile: z.boolean().optional(),
 });
 
 /** @internal */
@@ -1065,6 +1241,13 @@ export const mcpServerSchema = z.object({
   command: z.string(),
   env: z.array(envVariableSchema),
   name: z.string(),
+});
+
+/** @internal */
+export const loadSessionRequestSchema = z.object({
+  cwd: z.string(),
+  mcpServers: z.array(mcpServerSchema),
+  sessionId: z.string(),
 });
 
 /** @internal */
@@ -1130,26 +1313,29 @@ export const planEntrySchema = z.object({
 });
 
 /** @internal */
-export const clientResponseSchema = z.union([
-  writeTextFileResponseSchema,
-  readTextFileResponseSchema,
-  requestPermissionResponseSchema,
-]);
+export const clientNotificationSchema = cancelNotificationSchema;
 
 /** @internal */
-export const clientNotificationSchema = cancelNotificationSchema;
+export const createTerminalRequestSchema = z.object({
+  args: z.array(z.string()).optional(),
+  command: z.string(),
+  cwd: z.string().optional().nullable(),
+  env: z.array(envVariableSchema).optional(),
+  outputByteLimit: z.number().optional().nullable(),
+  sessionId: sessionIdSchema,
+});
+
+/** @internal */
+export const terminalOutputResponseSchema = z.object({
+  exitStatus: terminalExitStatusSchema.optional().nullable(),
+  output: z.string(),
+  truncated: z.boolean(),
+});
 
 /** @internal */
 export const newSessionRequestSchema = z.object({
   cwd: z.string(),
   mcpServers: z.array(mcpServerSchema),
-});
-
-/** @internal */
-export const loadSessionRequestSchema = z.object({
-  cwd: z.string(),
-  mcpServers: z.array(mcpServerSchema),
-  sessionId: z.string(),
 });
 
 /** @internal */
@@ -1237,6 +1423,7 @@ export const toolCallUpdateSchema = z.object({
 /** @internal */
 export const clientCapabilitiesSchema = z.object({
   fs: fileSystemCapabilitySchema.optional(),
+  terminal: z.boolean().optional(),
 });
 
 /** @internal */
@@ -1244,6 +1431,17 @@ export const agentCapabilitiesSchema = z.object({
   loadSession: z.boolean().optional(),
   promptCapabilities: promptCapabilitiesSchema.optional(),
 });
+
+/** @internal */
+export const clientResponseSchema = z.union([
+  writeTextFileResponseSchema,
+  readTextFileResponseSchema,
+  requestPermissionResponseSchema,
+  createTerminalResponseSchema,
+  terminalOutputResponseSchema,
+  releaseTerminalResponseSchema,
+  waitForTerminalExitResponseSchema,
+]);
 
 /** @internal */
 export const agentNotificationSchema = sessionNotificationSchema;
@@ -1273,6 +1471,10 @@ export const clientRequestSchema = z.union([
   writeTextFileRequestSchema,
   readTextFileRequestSchema,
   requestPermissionRequestSchema,
+  createTerminalRequestSchema,
+  terminalOutputRequestSchema,
+  releaseTerminalRequestSchema,
+  waitForTerminalExitRequestSchema,
 ]);
 
 /** @internal */
