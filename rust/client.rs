@@ -54,10 +54,10 @@ pub trait Client {
         args: ReadTextFileRequest,
     ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
 
-    fn new_terminal(
+    fn create_terminal(
         &self,
-        args: NewTerminalRequest,
-    ) -> impl Future<Output = Result<NewTerminalResponse, Error>>;
+        args: CreateTerminalRequest,
+    ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
 
     fn terminal_output(
         &self,
@@ -277,9 +277,9 @@ impl std::fmt::Display for TerminalId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/new"))]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/create"))]
 #[serde(rename_all = "camelCase")]
-pub struct NewTerminalRequest {
+pub struct CreateTerminalRequest {
     pub session_id: SessionId,
     pub command: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -293,9 +293,9 @@ pub struct NewTerminalRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/new"))]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/create"))]
 #[serde(rename_all = "camelCase")]
-pub struct NewTerminalResponse {
+pub struct CreateTerminalResponse {
     pub terminal_id: TerminalId,
 }
 
@@ -396,7 +396,7 @@ pub struct ClientMethodNames {
     /// Method for reading text files.
     pub fs_read_text_file: &'static str,
     /// Method for creating new terminals.
-    pub terminal_new: &'static str,
+    pub terminal_create: &'static str,
     /// Method for getting terminals output.
     pub terminal_output: &'static str,
     /// Method for releasing a terminal.
@@ -411,7 +411,7 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
     fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
-    terminal_new: TERMINAL_NEW_METHOD_NAME,
+    terminal_create: TERMINAL_CREATE_METHOD_NAME,
     terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
     terminal_release: TERMINAL_RELEASE_METHOD_NAME,
     terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
@@ -426,7 +426,7 @@ pub(crate) const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 /// Method name for reading text files.
 pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 /// Method name for creating a new terminal.
-pub(crate) const TERMINAL_NEW_METHOD_NAME: &str = "terminal/new";
+pub(crate) const TERMINAL_CREATE_METHOD_NAME: &str = "terminal/create";
 /// Method for getting terminals output.
 pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
 /// Method for releasing a terminal.
@@ -447,7 +447,7 @@ pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
     RequestPermissionRequest(RequestPermissionRequest),
-    NewTerminalRequest(NewTerminalRequest),
+    CreateTerminalRequest(CreateTerminalRequest),
     TerminalOutputRequest(TerminalOutputRequest),
     ReleaseTerminalRequest(ReleaseTerminalRequest),
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
@@ -466,7 +466,7 @@ pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
-    NewTerminalResponse(NewTerminalResponse),
+    CreateTerminalResponse(CreateTerminalResponse),
     TerminalOutputResponse(TerminalOutputResponse),
     ReleaseTerminalResponse,
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),

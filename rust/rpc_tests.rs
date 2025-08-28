@@ -68,7 +68,10 @@ impl Client for TestClient {
         Ok(())
     }
 
-    async fn new_terminal(&self, _args: NewTerminalRequest) -> Result<NewTerminalResponse, Error> {
+    async fn create_terminal(
+        &self,
+        _args: CreateTerminalRequest,
+    ) -> Result<CreateTerminalResponse, Error> {
         unimplemented!()
     }
 

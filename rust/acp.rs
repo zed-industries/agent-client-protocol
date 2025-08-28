@@ -245,8 +245,8 @@ impl Side for ClientSide {
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReadTextFileRequest)
                 .map_err(Into::into),
-            TERMINAL_NEW_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::NewTerminalRequest)
+            TERMINAL_CREATE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::CreateTerminalRequest)
                 .map_err(Into::into),
             TERMINAL_OUTPUT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::TerminalOutputRequest)
@@ -291,9 +291,9 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 let response = self.read_text_file(args).await?;
                 Ok(ClientResponse::ReadTextFileResponse(response))
             }
-            AgentRequest::NewTerminalRequest(args) => {
-                let response = self.new_terminal(args).await?;
-                Ok(ClientResponse::NewTerminalResponse(response))
+            AgentRequest::CreateTerminalRequest(args) => {
+                let response = self.create_terminal(args).await?;
+                Ok(ClientResponse::CreateTerminalResponse(response))
             }
             AgentRequest::TerminalOutputRequest(args) => {
                 let response = self.terminal_output(args).await?;
@@ -411,14 +411,14 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    async fn new_terminal(
+    async fn create_terminal(
         &self,
-        arguments: NewTerminalRequest,
-    ) -> Result<NewTerminalResponse, Error> {
+        arguments: CreateTerminalRequest,
+    ) -> Result<CreateTerminalResponse, Error> {
         self.conn
             .request(
-                TERMINAL_NEW_METHOD_NAME,
-                Some(AgentRequest::NewTerminalRequest(arguments)),
+                TERMINAL_CREATE_METHOD_NAME,
+                Some(AgentRequest::CreateTerminalRequest(arguments)),
             )
             .await
     }

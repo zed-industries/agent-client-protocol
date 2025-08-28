@@ -147,11 +147,11 @@ export class AgentSideConnection implements Client {
    *
    * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
-  async newTerminal(
-    params: schema.NewTerminalRequest,
-  ): Promise<schema.NewTerminalResponse> {
+  async createTerminal(
+    params: schema.CreateTerminalRequest,
+  ): Promise<schema.CreateTerminalResponse> {
     return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_new,
+      schema.CLIENT_METHODS.terminal_create,
       params,
     );
   }
@@ -272,10 +272,11 @@ export class ClientSideConnection implements Agent {
             validatedParams as schema.SessionNotification,
           );
         }
-        case schema.CLIENT_METHODS.terminal_new: {
-          const validatedParams = schema.newTerminalRequestSchema.parse(params);
-          return client.newTerminal(
-            validatedParams as schema.NewTerminalRequest,
+        case schema.CLIENT_METHODS.terminal_create: {
+          const validatedParams =
+            schema.createTerminalRequestSchema.parse(params);
+          return client.createTerminal(
+            validatedParams as schema.CreateTerminalRequest,
           );
         }
         case schema.CLIENT_METHODS.terminal_output: {
@@ -458,11 +459,11 @@ type AnyError = {
 
 type Result<T> =
   | {
-    result: T;
-  }
+      result: T;
+    }
   | {
-    error: ErrorResponse;
-  };
+      error: ErrorResponse;
+    };
 
 type ErrorResponse = {
   code: number;
@@ -787,9 +788,9 @@ export interface Client {
    *
    * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
-  newTerminal(
-    params: schema.NewTerminalRequest,
-  ): Promise<schema.NewTerminalResponse>;
+  createTerminal(
+    params: schema.CreateTerminalRequest,
+  ): Promise<schema.CreateTerminalResponse>;
   /**
    * Retrieves output from a previously created terminal.
    *

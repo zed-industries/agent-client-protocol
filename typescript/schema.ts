@@ -12,7 +12,7 @@ export const CLIENT_METHODS = {
   fs_write_text_file: "fs/write_text_file",
   session_request_permission: "session/request_permission",
   session_update: "session/update",
-  terminal_new: "terminal/new",
+  terminal_create: "terminal/create",
   terminal_output: "terminal/output",
   terminal_release: "terminal/release",
   terminal_wait_for_exit: "terminal/wait_for_exit",
@@ -42,7 +42,7 @@ export type ClientRequest =
   | WriteTextFileRequest
   | ReadTextFileRequest
   | RequestPermissionRequest
-  | NewTerminalRequest
+  | CreateTerminalRequest
   | TerminalOutputRequest
   | ReleaseTerminalRequest
   | WaitForTerminalExitRequest;
@@ -194,7 +194,7 @@ export type ClientResponse =
   | WriteTextFileResponse
   | ReadTextFileResponse
   | RequestPermissionResponse
-  | NewTerminalResponse
+  | CreateTerminalResponse
   | TerminalOutputResponse
   | ReleaseTerminalResponse
   | WaitForTerminalExitResponse;
@@ -463,7 +463,7 @@ export interface ToolCallLocation {
    */
   path: string;
 }
-export interface NewTerminalRequest {
+export interface CreateTerminalRequest {
   args?: string[];
   command: string;
   cwd?: string | null;
@@ -521,7 +521,7 @@ export interface RequestPermissionResponse {
         outcome: "selected";
       };
 }
-export interface NewTerminalResponse {
+export interface CreateTerminalResponse {
   terminalId: string;
 }
 export interface TerminalOutputResponse {
@@ -1066,7 +1066,7 @@ export const requestPermissionResponseSchema = z.object({
 });
 
 /** @internal */
-export const newTerminalResponseSchema = z.object({
+export const createTerminalResponseSchema = z.object({
   terminalId: z.string(),
 });
 
@@ -1311,7 +1311,7 @@ export const planEntrySchema = z.object({
 export const clientNotificationSchema = cancelNotificationSchema;
 
 /** @internal */
-export const newTerminalRequestSchema = z.object({
+export const createTerminalRequestSchema = z.object({
   args: z.array(z.string()).optional(),
   command: z.string(),
   cwd: z.string().optional().nullable(),
@@ -1432,7 +1432,7 @@ export const clientResponseSchema = z.union([
   writeTextFileResponseSchema,
   readTextFileResponseSchema,
   requestPermissionResponseSchema,
-  newTerminalResponseSchema,
+  createTerminalResponseSchema,
   terminalOutputResponseSchema,
   releaseTerminalResponseSchema,
   waitForTerminalExitResponseSchema,
@@ -1466,7 +1466,7 @@ export const clientRequestSchema = z.union([
   writeTextFileRequestSchema,
   readTextFileRequestSchema,
   requestPermissionRequestSchema,
-  newTerminalRequestSchema,
+  createTerminalRequestSchema,
   terminalOutputRequestSchema,
   releaseTerminalRequestSchema,
   waitForTerminalExitRequestSchema,

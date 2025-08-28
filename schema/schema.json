@@ -45,8 +45,8 @@
           "title": "RequestPermissionRequest"
         },
         {
-          "$ref": "#/$defs/NewTerminalRequest",
-          "title": "NewTerminalRequest"
+          "$ref": "#/$defs/CreateTerminalRequest",
+          "title": "CreateTerminalRequest"
         },
         {
           "$ref": "#/$defs/TerminalOutputRequest",
@@ -266,8 +266,8 @@
           "title": "RequestPermissionResponse"
         },
         {
-          "$ref": "#/$defs/NewTerminalResponse",
-          "title": "NewTerminalResponse"
+          "$ref": "#/$defs/CreateTerminalResponse",
+          "title": "CreateTerminalResponse"
         },
         {
           "$ref": "#/$defs/TerminalOutputResponse",
@@ -434,6 +434,51 @@
           "type": "object"
         }
       ]
+    },
+    "CreateTerminalRequest": {
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": ["string", "null"]
+        },
+        "env": {
+          "items": {
+            "$ref": "#/$defs/EnvVariable"
+          },
+          "type": "array"
+        },
+        "outputByteLimit": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        }
+      },
+      "required": ["sessionId", "command"],
+      "type": "object",
+      "x-method": "terminal/create",
+      "x-side": "client"
+    },
+    "CreateTerminalResponse": {
+      "properties": {
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["terminalId"],
+      "type": "object",
+      "x-method": "terminal/create",
+      "x-side": "client"
     },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
@@ -667,51 +712,6 @@
       "type": "object",
       "x-method": "session/new",
       "x-side": "agent"
-    },
-    "NewTerminalRequest": {
-      "properties": {
-        "args": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "command": {
-          "type": "string"
-        },
-        "cwd": {
-          "type": ["string", "null"]
-        },
-        "env": {
-          "items": {
-            "$ref": "#/$defs/EnvVariable"
-          },
-          "type": "array"
-        },
-        "outputByteLimit": {
-          "format": "uint64",
-          "minimum": 0,
-          "type": ["integer", "null"]
-        },
-        "sessionId": {
-          "$ref": "#/$defs/SessionId"
-        }
-      },
-      "required": ["sessionId", "command"],
-      "type": "object",
-      "x-method": "terminal/new",
-      "x-side": "client"
-    },
-    "NewTerminalResponse": {
-      "properties": {
-        "terminalId": {
-          "type": "string"
-        }
-      },
-      "required": ["terminalId"],
-      "type": "object",
-      "x-method": "terminal/new",
-      "x-side": "client"
     },
     "PermissionOption": {
       "description": "An option presented to the user when requesting permission.",

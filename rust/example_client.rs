@@ -40,10 +40,10 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    async fn new_terminal(
+    async fn create_terminal(
         &self,
-        _args: acp::NewTerminalRequest,
-    ) -> anyhow::Result<acp::NewTerminalResponse, acp::Error> {
+        _args: acp::CreateTerminalRequest,
+    ) -> Result<acp::CreateTerminalResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
