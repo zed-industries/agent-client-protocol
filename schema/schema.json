@@ -43,6 +43,14 @@
         {
           "$ref": "#/$defs/RequestPermissionRequest",
           "title": "RequestPermissionRequest"
+        },
+        {
+          "$ref": "#/$defs/NewTerminalRequest",
+          "title": "NewTerminalRequest"
+        },
+        {
+          "$ref": "#/$defs/TerminalOutputRequest",
+          "title": "TerminalOutputRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -191,6 +199,10 @@
             "writeTextFile": false
           },
           "description": "File system capabilities supported by the client.\nDetermines which file operations the agent can request."
+        },
+        "terminal": {
+          "default": false,
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -244,6 +256,14 @@
         {
           "$ref": "#/$defs/RequestPermissionResponse",
           "title": "RequestPermissionResponse"
+        },
+        {
+          "$ref": "#/$defs/NewTerminalResponse",
+          "title": "NewTerminalResponse"
+        },
+        {
+          "$ref": "#/$defs/TerminalOutputResponse",
+          "title": "TerminalOutputResponse"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -498,7 +518,8 @@
             "fs": {
               "readTextFile": false,
               "writeTextFile": false
-            }
+            },
+            "terminal": false
           },
           "description": "Capabilities supported by the client."
         },
@@ -630,6 +651,51 @@
       "type": "object",
       "x-method": "session/new",
       "x-side": "agent"
+    },
+    "NewTerminalRequest": {
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": ["string", "null"]
+        },
+        "env": {
+          "items": {
+            "$ref": "#/$defs/EnvVariable"
+          },
+          "type": "array"
+        },
+        "outputByteLimit": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        }
+      },
+      "required": ["sessionId", "command"],
+      "type": "object",
+      "x-method": "terminal/new",
+      "x-side": "client"
+    },
+    "NewTerminalResponse": {
+      "properties": {
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["terminalId"],
+      "type": "object",
+      "x-method": "terminal/new",
+      "x-side": "client"
     },
     "PermissionOption": {
       "description": "An option presented to the user when requesting permission.",
@@ -1185,6 +1251,45 @@
         }
       ]
     },
+    "TerminalOutputRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-method": "terminal/output",
+      "x-side": "client"
+    },
+    "TerminalOutputResponse": {
+      "properties": {
+        "exitCode": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "finished": {
+          "type": "boolean"
+        },
+        "output": {
+          "type": "string"
+        },
+        "signal": {
+          "type": ["string", "null"]
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": ["output", "truncated", "finished"],
+      "type": "object",
+      "x-method": "terminal/output",
+      "x-side": "client"
+    },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
       "properties": {
@@ -1303,6 +1408,19 @@
             }
           },
           "required": ["type", "path", "newText"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "terminalId": {
+              "type": "string"
+            },
+            "type": {
+              "const": "terminal",
+              "type": "string"
+            }
+          },
+          "required": ["type", "terminalId"],
           "type": "object"
         }
       ]

@@ -245,6 +245,12 @@ impl Side for ClientSide {
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReadTextFileRequest)
                 .map_err(Into::into),
+            TERMINAL_NEW_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::NewTerminalRequest)
+                .map_err(Into::into),
+            TERMINAL_OUTPUT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::TerminalOutputRequest)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -278,6 +284,14 @@ impl<T: Client> MessageHandler<ClientSide> for T {
             AgentRequest::ReadTextFileRequest(args) => {
                 let response = self.read_text_file(args).await?;
                 Ok(ClientResponse::ReadTextFileResponse(response))
+            }
+            AgentRequest::NewTerminalRequest(args) => {
+                let response = self.new_terminal(args).await?;
+                Ok(ClientResponse::NewTerminalResponse(response))
+            }
+            AgentRequest::TerminalOutputRequest(args) => {
+                let response = self.terminal_output(args).await?;
+                Ok(ClientResponse::TerminalOutputResponse(response))
             }
         }
     }
@@ -379,6 +393,30 @@ impl Client for AgentSideConnection {
             .request(
                 FS_READ_TEXT_FILE_METHOD_NAME,
                 Some(AgentRequest::ReadTextFileRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn new_terminal(
+        &self,
+        arguments: NewTerminalRequest,
+    ) -> Result<NewTerminalResponse, Error> {
+        self.conn
+            .request(
+                TERMINAL_NEW_METHOD_NAME,
+                Some(AgentRequest::NewTerminalRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn terminal_output(
+        &self,
+        arguments: TerminalOutputRequest,
+    ) -> Result<TerminalOutputResponse, Error> {
+        self.conn
+            .request(
+                TERMINAL_OUTPUT_METHOD_NAME,
+                Some(AgentRequest::TerminalOutputRequest(arguments)),
             )
             .await
     }

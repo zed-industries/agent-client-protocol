@@ -9,7 +9,7 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ContentBlock, EnvVariable, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 /// Defines the interface that ACP-compliant clients must implement.
 ///
@@ -53,6 +53,16 @@ pub trait Client {
         &self,
         args: ReadTextFileRequest,
     ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
+
+    fn new_terminal(
+        &self,
+        args: NewTerminalRequest,
+    ) -> impl Future<Output = Result<NewTerminalResponse, Error>>;
+
+    fn terminal_output(
+        &self,
+        args: TerminalOutputRequest,
+    ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
 
     /// Handles session update notifications from the agent.
     ///
@@ -244,6 +254,60 @@ pub struct ReadTextFileResponse {
     pub content: String,
 }
 
+// Terminals
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct TerminalId(pub Arc<str>);
+
+impl std::fmt::Display for TerminalId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/new"))]
+#[serde(rename_all = "camelCase")]
+pub struct NewTerminalRequest {
+    pub session_id: SessionId,
+    pub command: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub env: Vec<EnvVariable>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_byte_limit: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/new"))]
+#[serde(rename_all = "camelCase")]
+pub struct NewTerminalResponse {
+    pub terminal_id: TerminalId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/output"))]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalOutputRequest {
+    pub session_id: SessionId,
+    pub terminal_id: TerminalId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/output"))]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalOutputResponse {
+    pub output: String,
+    pub truncated: bool,
+    pub finished: bool,
+    pub exit_code: Option<u32>,
+    pub signal: Option<String>,
+}
+
 // Capabilities
 
 /// Capabilities supported by the client.
@@ -259,6 +323,8 @@ pub struct ClientCapabilities {
     /// Determines which file operations the agent can request.
     #[serde(default)]
     pub fs: FileSystemCapability,
+    #[serde(default)]
+    pub terminal: bool,
 }
 
 /// File system capabilities that a client may support.
@@ -290,6 +356,10 @@ pub struct ClientMethodNames {
     pub fs_write_text_file: &'static str,
     /// Method for reading text files.
     pub fs_read_text_file: &'static str,
+    /// Method for creating new terminals.
+    pub terminal_new: &'static str,
+    /// Method for getting terminals output.
+    pub terminal_output: &'static str,
 }
 
 /// Constant containing all client method names.
@@ -298,6 +368,8 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
     fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
+    terminal_new: TERMINAL_NEW_METHOD_NAME,
+    terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
 };
 
 /// Notification name for session updates.
@@ -308,6 +380,10 @@ pub(crate) const SESSION_REQUEST_PERMISSION_METHOD_NAME: &str = "session/request
 pub(crate) const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 /// Method name for reading text files.
 pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
+/// Method name for creating a new terminal.
+pub(crate) const TERMINAL_NEW_METHOD_NAME: &str = "terminal/new";
+/// Method for getting terminals output.
+pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
 
 /// All possible requests that an agent can send to a client.
 ///
@@ -322,6 +398,8 @@ pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
     RequestPermissionRequest(RequestPermissionRequest),
+    NewTerminalRequest(NewTerminalRequest),
+    TerminalOutputRequest(TerminalOutputRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -337,6 +415,8 @@ pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
+    NewTerminalResponse(NewTerminalResponse),
+    TerminalOutputResponse(TerminalOutputResponse),
 }
 
 /// All possible notifications that an agent can send to a client.

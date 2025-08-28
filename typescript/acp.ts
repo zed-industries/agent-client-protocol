@@ -140,6 +140,40 @@ export class AgentSideConnection implements Client {
   }
 
   /**
+   * Creates a new terminal instance in the client's environment.
+   *
+   * Only available if the client advertises the `terminal` capability.
+   * Allows the agent to spawn and interact with terminal processes.
+   *
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   */
+  async newTerminal(
+    params: schema.NewTerminalRequest,
+  ): Promise<schema.NewTerminalResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_new,
+      params,
+    );
+  }
+
+  /**
+   * Retrieves output from a previously created terminal.
+   *
+   * Only available if the client advertises the `terminal` capability.
+   * Returns the terminal's output buffer and exit status if available.
+   *
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   */
+  async terminalOutput(
+    params: schema.TerminalOutputRequest,
+  ): Promise<schema.TerminalOutputResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_output,
+      params,
+    );
+  }
+
+  /**
    * Writes content to a text file in the client's file system.
    *
    * Only available if the client advertises the `fs.writeTextFile` capability.
@@ -220,6 +254,19 @@ export class ClientSideConnection implements Agent {
             schema.sessionNotificationSchema.parse(params);
           return client.sessionUpdate(
             validatedParams as schema.SessionNotification,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_new: {
+          const validatedParams = schema.newTerminalRequestSchema.parse(params);
+          return client.newTerminal(
+            validatedParams as schema.NewTerminalRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_output: {
+          const validatedParams =
+            schema.terminalOutputRequestSchema.parse(params);
+          return client.terminalOutput(
+            validatedParams as schema.TerminalOutputRequest,
           );
         }
         default:
@@ -702,6 +749,28 @@ export interface Client {
   readTextFile(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse>;
+  /**
+   * Creates a new terminal instance in the client's environment.
+   *
+   * Only available if the client advertises the `terminal` capability.
+   * Allows the agent to spawn and interact with terminal processes.
+   *
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   */
+  newTerminal(
+    params: schema.NewTerminalRequest,
+  ): Promise<schema.NewTerminalResponse>;
+  /**
+   * Retrieves output from a previously created terminal.
+   *
+   * Only available if the client advertises the `terminal` capability.
+   * Returns the terminal's output buffer and exit status if available.
+   *
+   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+   */
+  terminalOutput(
+    params: schema.TerminalOutputRequest,
+  ): Promise<schema.TerminalOutputResponse>;
 }
 
 /**

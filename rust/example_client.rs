@@ -40,6 +40,20 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
+    async fn new_terminal(
+        &self,
+        _args: acp::NewTerminalRequest,
+    ) -> anyhow::Result<acp::NewTerminalResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn terminal_output(
+        &self,
+        _args: acp::TerminalOutputRequest,
+    ) -> anyhow::Result<acp::TerminalOutputResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(
         &self,
         args: acp::SessionNotification,

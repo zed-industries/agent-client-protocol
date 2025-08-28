@@ -67,6 +67,17 @@ impl Client for TestClient {
         self.session_notifications.lock().unwrap().push(args);
         Ok(())
     }
+
+    async fn new_terminal(&self, _args: NewTerminalRequest) -> Result<NewTerminalResponse, Error> {
+        unimplemented!()
+    }
+
+    async fn terminal_output(
+        &self,
+        _args: TerminalOutputRequest,
+    ) -> Result<TerminalOutputResponse, Error> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]
