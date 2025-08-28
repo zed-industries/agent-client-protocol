@@ -210,6 +210,7 @@
         },
         "terminal": {
           "default": false,
+          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.",
           "type": "boolean"
         }
       },
@@ -466,8 +467,7 @@
       },
       "required": ["sessionId", "command"],
       "type": "object",
-      "x-method": "terminal/create",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "CreateTerminalResponse": {
       "properties": {
@@ -477,8 +477,7 @@
       },
       "required": ["terminalId"],
       "type": "object",
-      "x-method": "terminal/create",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
@@ -945,8 +944,7 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-method": "terminal/release",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "RequestPermissionOutcome": {
       "description": "The outcome of a permission request.",
@@ -1292,7 +1290,8 @@
           "type": ["string", "null"]
         }
       },
-      "type": "object"
+      "type": "object",
+      "x-docs-ignore": true
     },
     "TerminalOutputRequest": {
       "properties": {
@@ -1305,8 +1304,7 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-method": "terminal/output",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "TerminalOutputResponse": {
       "properties": {
@@ -1329,8 +1327,7 @@
       },
       "required": ["output", "truncated"],
       "type": "object",
-      "x-method": "terminal/output",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
@@ -1631,8 +1628,7 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-method": "terminal/wait_for_exit",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "WaitForTerminalExitResponse": {
       "properties": {
@@ -1646,8 +1642,7 @@
         }
       },
       "type": "object",
-      "x-method": "terminal/wait_for_exit",
-      "x-side": "client"
+      "x-docs-ignore": true
     },
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",

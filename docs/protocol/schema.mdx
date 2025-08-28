@@ -517,121 +517,6 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
   The actual update content.
 </ResponseField>
 
-<a id="terminal-create"></a>
-### <span class="font-mono">terminal/create</span>
-
-#### <span class="font-mono">CreateTerminalRequest</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
-</ResponseField>
-<ResponseField name="command" type={"string"} required>
-</ResponseField>
-<ResponseField name="cwd" type={"string | null"} >
-</ResponseField>
-<ResponseField name="env" type={<><span><a href="#envvariable">EnvVariable</a></span><span>[]</span></>} >
-</ResponseField>
-<ResponseField name="outputByteLimit" type={"integer | null"} >
-
-    - Minimum: `0`
-
-</ResponseField>
-<ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
-</ResponseField>
-
-#### <span class="font-mono">CreateTerminalResponse</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
-
-<a id="terminal-output"></a>
-### <span class="font-mono">terminal/output</span>
-
-#### <span class="font-mono">TerminalOutputRequest</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
-
-#### <span class="font-mono">TerminalOutputResponse</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField
-  name="exitStatus"
-  type={
-    <>
-      <span>
-        <a href="#terminalexitstatus">TerminalExitStatus</a>
-      </span>
-      <span> | null</span>
-    </>
-  }
-></ResponseField>
-<ResponseField name="output" type={"string"} required></ResponseField>
-<ResponseField name="truncated" type={"boolean"} required></ResponseField>
-
-<a id="terminal-release"></a>
-### <span class="font-mono">terminal/release</span>
-
-#### <span class="font-mono">ReleaseTerminalRequest</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
-
-<a id="terminal-wait_for_exit"></a>
-### <span class="font-mono">terminal/wait_for_exit</span>
-
-#### <span class="font-mono">WaitForTerminalExitRequest</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
-
-#### <span class="font-mono">WaitForTerminalExitResponse</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="exitCode" type={"integer | null"} >
-
-    - Minimum: `0`
-
-</ResponseField>
-<ResponseField name="signal" type={"string | null"} >
-</ResponseField>
-
 ## <span class="font-mono">AgentCapabilities</span>
 
 Capabilities supported by the agent.
@@ -753,6 +638,9 @@ Determines which file operations the agent can request.
 
 </ResponseField>
 <ResponseField name="terminal" type={"boolean"} >
+  **UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
 
     - Default: `false`
 
@@ -1613,20 +1501,6 @@ notification, even if the cancellation causes exceptions in underlying operation
 Agents should catch these exceptions and return this semantically meaningful
 response to confirm successful cancellation.
 
-</ResponseField>
-
-## <span class="font-mono">TerminalExitStatus</span>
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="exitCode" type={"integer | null"} >
-
-    - Minimum: `0`
-
-</ResponseField>
-<ResponseField name="signal" type={"string | null"} >
 </ResponseField>
 
 ## <span class="font-mono">TextContent</span>

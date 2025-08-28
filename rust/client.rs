@@ -54,26 +54,6 @@ pub trait Client {
         args: ReadTextFileRequest,
     ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
 
-    fn create_terminal(
-        &self,
-        args: CreateTerminalRequest,
-    ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
-
-    fn terminal_output(
-        &self,
-        args: TerminalOutputRequest,
-    ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
-
-    fn release_terminal(
-        &self,
-        args: ReleaseTerminalRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
-
-    fn wait_for_terminal_exit(
-        &self,
-        args: WaitForTerminalExitRequest,
-    ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
-
     /// Handles session update notifications from the agent.
     ///
     /// This is a notification endpoint (no response expected) that receives
@@ -89,6 +69,44 @@ pub trait Client {
         &self,
         args: SessionNotification,
     ) -> impl Future<Output = Result<(), Error>>;
+
+    // Experimental terminal support
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[doc(hidden)]
+    fn create_terminal(
+        &self,
+        args: CreateTerminalRequest,
+    ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[doc(hidden)]
+    fn terminal_output(
+        &self,
+        args: TerminalOutputRequest,
+    ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[doc(hidden)]
+    fn release_terminal(
+        &self,
+        args: ReleaseTerminalRequest,
+    ) -> impl Future<Output = Result<(), Error>>;
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[doc(hidden)]
+    fn wait_for_terminal_exit(
+        &self,
+        args: WaitForTerminalExitRequest,
+    ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
 }
 
 // Session updates
@@ -277,7 +295,7 @@ impl std::fmt::Display for TerminalId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/create"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTerminalRequest {
     pub session_id: SessionId,
@@ -293,14 +311,14 @@ pub struct CreateTerminalRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/create"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTerminalResponse {
     pub terminal_id: TerminalId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/output"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalOutputRequest {
     pub session_id: SessionId,
@@ -308,7 +326,7 @@ pub struct TerminalOutputRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/output"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalOutputResponse {
     pub output: String,
@@ -317,7 +335,7 @@ pub struct TerminalOutputResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/release"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
@@ -325,7 +343,7 @@ pub struct ReleaseTerminalRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/wait_for_exit"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
@@ -333,7 +351,7 @@ pub struct WaitForTerminalExitRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "terminal/wait_for_exit"))]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct WaitForTerminalExitResponse {
     #[serde(flatten)]
@@ -341,6 +359,7 @@ pub struct WaitForTerminalExitResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalExitStatus {
     pub exit_code: Option<u32>,
@@ -362,7 +381,12 @@ pub struct ClientCapabilities {
     /// Determines which file operations the agent can request.
     #[serde(default)]
     pub fs: FileSystemCapability,
+
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
     #[serde(default)]
+    #[doc(hidden)]
     pub terminal: bool,
 }
 

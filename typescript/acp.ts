@@ -14,7 +14,7 @@ import { WritableStream, ReadableStream } from "node:stream/web";
  *
  * See protocol docs: [Agent](https://agentclientprotocol.com/protocol/overview#agent)
  */
-export class AgentSideConnection implements Client {
+export class AgentSideConnection {
   #connection: Connection;
 
   /**
@@ -30,7 +30,7 @@ export class AgentSideConnection implements Client {
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
-    toAgent: (conn: Client) => Agent,
+    toAgent: (conn: AgentSideConnection) => Agent,
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
@@ -140,56 +140,6 @@ export class AgentSideConnection implements Client {
   }
 
   /**
-   * Creates a new terminal instance in the client's environment.
-   *
-   * Only available if the client advertises the `terminal` capability.
-   * Allows the agent to spawn and interact with terminal processes.
-   *
-   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-   */
-  async createTerminal(
-    params: schema.CreateTerminalRequest,
-  ): Promise<schema.CreateTerminalResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_create,
-      params,
-    );
-  }
-
-  /**
-   * Retrieves output from a previously created terminal.
-   *
-   * Only available if the client advertises the `terminal` capability.
-   * Returns the terminal's output buffer and exit status if available.
-   *
-   * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-   */
-  async terminalOutput(
-    params: schema.TerminalOutputRequest,
-  ): Promise<schema.TerminalOutputResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_output,
-      params,
-    );
-  }
-
-  async releaseTerminal(params: schema.ReleaseTerminalRequest): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_release,
-      params,
-    );
-  }
-
-  async waitForTerminalExit(
-    params: schema.WaitForTerminalExitRequest,
-  ): Promise<schema.WaitForTerminalExitResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_wait_for_exit,
-      params,
-    );
-  }
-
-  /**
    * Writes content to a text file in the client's file system.
    *
    * Only available if the client advertises the `fs.writeTextFile` capability.
@@ -204,6 +154,74 @@ export class AgentSideConnection implements Client {
       schema.CLIENT_METHODS.fs_write_text_file,
       params,
     );
+  }
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  async createTerminal(
+    params: schema.CreateTerminalRequest,
+  ): Promise<TerminalHandle> {
+    const response = (await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_create,
+      params,
+    )) as schema.CreateTerminalResponse;
+
+    return new TerminalHandle(
+      response.terminalId,
+      params.sessionId,
+      this.#connection,
+    );
+  }
+}
+
+export class TerminalHandle {
+  #sessionId: string;
+  #connection: Connection;
+
+  constructor(
+    public id: string,
+    sessionId: string,
+    conn: Connection,
+  ) {
+    this.#sessionId = sessionId;
+    this.#connection = conn;
+  }
+
+  async currentOutput(): Promise<schema.TerminalOutputResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_output,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async waitForExit(): Promise<schema.WaitForTerminalExitResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_wait_for_exit,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async release(): Promise<schema.ReleaseTerminalResponse> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_release,
+      {
+        sessionId: this.#sessionId,
+        terminalId: this.id,
+      },
+    );
+  }
+
+  async [Symbol.asyncDispose]() {
+    return this.release();
   }
 }
 

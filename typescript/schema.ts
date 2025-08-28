@@ -581,6 +581,11 @@ export interface InitializeRequest {
  */
 export interface ClientCapabilities {
   fs?: FileSystemCapability;
+  /**
+   * **UNSTABLE**
+   *
+   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   */
   terminal?: boolean;
 }
 /**
