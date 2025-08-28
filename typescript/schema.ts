@@ -14,6 +14,7 @@ export const CLIENT_METHODS = {
   session_update: "session/update",
   terminal_new: "terminal/new",
   terminal_output: "terminal/output",
+  terminal_release: "terminal/release",
 };
 
 export const PROTOCOL_VERSION = 1;
@@ -41,7 +42,8 @@ export type ClientRequest =
   | ReadTextFileRequest
   | RequestPermissionRequest
   | NewTerminalRequest
-  | TerminalOutputRequest;
+  | TerminalOutputRequest
+  | ReleaseTerminalRequest;
 /**
  * Content produced by a tool call.
  *
@@ -191,8 +193,10 @@ export type ClientResponse =
   | ReadTextFileResponse
   | RequestPermissionResponse
   | NewTerminalResponse
-  | TerminalOutputResponse;
+  | TerminalOutputResponse
+  | ReleaseTerminalResponse;
 export type WriteTextFileResponse = null;
+export type ReleaseTerminalResponse = null;
 /**
  * All possible notifications that a client can send to an agent.
  *
@@ -461,6 +465,7 @@ export interface NewTerminalRequest {
   command: string;
   cwd?: string | null;
   env?: EnvVariable[];
+  outputByteLimit?: number | null;
   sessionId: SessionId;
 }
 /**
@@ -477,7 +482,10 @@ export interface EnvVariable {
   value: string;
 }
 export interface TerminalOutputRequest {
-  limit?: number | null;
+  sessionId: SessionId;
+  terminalId: string;
+}
+export interface ReleaseTerminalRequest {
   sessionId: SessionId;
   terminalId: string;
 }
@@ -511,6 +519,7 @@ export interface NewTerminalResponse {
 }
 export interface TerminalOutputResponse {
   exitCode?: number | null;
+  finished: boolean;
   output: string;
   signal?: string | null;
   truncated: boolean;
@@ -1051,10 +1060,14 @@ export const newTerminalResponseSchema = z.object({
 /** @internal */
 export const terminalOutputResponseSchema = z.object({
   exitCode: z.number().optional().nullable(),
+  finished: z.boolean(),
   output: z.string(),
   signal: z.string().optional().nullable(),
   truncated: z.boolean(),
 });
+
+/** @internal */
+export const releaseTerminalResponseSchema = z.null();
 
 /** @internal */
 export const cancelNotificationSchema = z.object({
@@ -1179,7 +1192,12 @@ export const envVariableSchema = z.object({
 
 /** @internal */
 export const terminalOutputRequestSchema = z.object({
-  limit: z.number().optional().nullable(),
+  sessionId: sessionIdSchema,
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const releaseTerminalRequestSchema = z.object({
   sessionId: sessionIdSchema,
   terminalId: z.string(),
 });
@@ -1274,6 +1292,7 @@ export const clientResponseSchema = z.union([
   requestPermissionResponseSchema,
   newTerminalResponseSchema,
   terminalOutputResponseSchema,
+  releaseTerminalResponseSchema,
 ]);
 
 /** @internal */
@@ -1285,6 +1304,7 @@ export const newTerminalRequestSchema = z.object({
   command: z.string(),
   cwd: z.string().optional().nullable(),
   env: z.array(envVariableSchema).optional(),
+  outputByteLimit: z.number().optional().nullable(),
   sessionId: sessionIdSchema,
 });
 
@@ -1418,6 +1438,7 @@ export const clientRequestSchema = z.union([
   requestPermissionRequestSchema,
   newTerminalRequestSchema,
   terminalOutputRequestSchema,
+  releaseTerminalRequestSchema,
 ]);
 
 /** @internal */

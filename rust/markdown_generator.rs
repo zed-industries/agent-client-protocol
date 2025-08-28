@@ -646,6 +646,7 @@ impl SideDocs {
             "session/update" => self.client_methods.get("session_notification").unwrap(),
             "terminal/new" => self.client_methods.get("new_terminal").unwrap(),
             "terminal/output" => self.client_methods.get("terminal_output").unwrap(),
+            "terminal/release" => self.client_methods.get("release_terminal").unwrap(),
             _ => panic!("Introduced a method? Add it here :)"),
         }
     }

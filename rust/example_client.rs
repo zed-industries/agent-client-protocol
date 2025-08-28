@@ -54,6 +54,13 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
+    async fn release_terminal(
+        &self,
+        _args: acp::ReleaseTerminalRequest,
+    ) -> anyhow::Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(
         &self,
         args: acp::SessionNotification,

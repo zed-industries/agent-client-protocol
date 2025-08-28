@@ -78,6 +78,10 @@ impl Client for TestClient {
     ) -> Result<TerminalOutputResponse, Error> {
         unimplemented!()
     }
+
+    async fn release_terminal(&self, _args: ReleaseTerminalRequest) -> Result<(), Error> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone)]

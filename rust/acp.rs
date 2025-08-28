@@ -251,6 +251,9 @@ impl Side for ClientSide {
             TERMINAL_OUTPUT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::TerminalOutputRequest)
                 .map_err(Into::into),
+            TERMINAL_RELEASE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::ReleaseTerminalRequest)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -292,6 +295,10 @@ impl<T: Client> MessageHandler<ClientSide> for T {
             AgentRequest::TerminalOutputRequest(args) => {
                 let response = self.terminal_output(args).await?;
                 Ok(ClientResponse::TerminalOutputResponse(response))
+            }
+            AgentRequest::ReleaseTerminalRequest(args) => {
+                self.release_terminal(args).await?;
+                Ok(ClientResponse::ReleaseTerminalResponse)
             }
         }
     }
@@ -417,6 +424,15 @@ impl Client for AgentSideConnection {
             .request(
                 TERMINAL_OUTPUT_METHOD_NAME,
                 Some(AgentRequest::TerminalOutputRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn release_terminal(&self, arguments: ReleaseTerminalRequest) -> Result<(), Error> {
+        self.conn
+            .request(
+                TERMINAL_RELEASE_METHOD_NAME,
+                Some(AgentRequest::ReleaseTerminalRequest(arguments)),
             )
             .await
     }

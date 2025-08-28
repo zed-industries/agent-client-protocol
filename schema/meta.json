@@ -13,7 +13,8 @@
     "session_request_permission": "session/request_permission",
     "session_update": "session/update",
     "terminal_new": "terminal/new",
-    "terminal_output": "terminal/output"
+    "terminal_output": "terminal/output",
+    "terminal_release": "terminal/release"
   },
   "version": 1
 }

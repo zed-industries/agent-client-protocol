@@ -51,6 +51,10 @@
         {
           "$ref": "#/$defs/TerminalOutputRequest",
           "title": "TerminalOutputRequest"
+        },
+        {
+          "$ref": "#/$defs/ReleaseTerminalRequest",
+          "title": "ReleaseTerminalRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -264,6 +268,10 @@
         {
           "$ref": "#/$defs/TerminalOutputResponse",
           "title": "TerminalOutputResponse"
+        },
+        {
+          "title": "ReleaseTerminalResponse",
+          "type": "null"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -917,6 +925,20 @@
       },
       "required": ["content"],
       "type": "object"
+    },
+    "ReleaseTerminalRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-method": "terminal/release",
+      "x-side": "client"
     },
     "RequestPermissionOutcome": {
       "description": "The outcome of a permission request.",

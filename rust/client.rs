@@ -64,6 +64,11 @@ pub trait Client {
         args: TerminalOutputRequest,
     ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
 
+    fn release_terminal(
+        &self,
+        args: ReleaseTerminalRequest,
+    ) -> impl Future<Output = Result<(), Error>>;
+
     /// Handles session update notifications from the agent.
     ///
     /// This is a notification endpoint (no response expected) that receives
@@ -308,6 +313,14 @@ pub struct TerminalOutputResponse {
     pub signal: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = "terminal/release"))]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseTerminalRequest {
+    pub session_id: SessionId,
+    pub terminal_id: TerminalId,
+}
+
 // Capabilities
 
 /// Capabilities supported by the client.
@@ -360,6 +373,8 @@ pub struct ClientMethodNames {
     pub terminal_new: &'static str,
     /// Method for getting terminals output.
     pub terminal_output: &'static str,
+    /// Method for releasing terminals.
+    pub terminal_release: &'static str,
 }
 
 /// Constant containing all client method names.
@@ -370,6 +385,7 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
     terminal_new: TERMINAL_NEW_METHOD_NAME,
     terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
+    terminal_release: TERMINAL_RELEASE_METHOD_NAME,
 };
 
 /// Notification name for session updates.
@@ -384,6 +400,8 @@ pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 pub(crate) const TERMINAL_NEW_METHOD_NAME: &str = "terminal/new";
 /// Method for getting terminals output.
 pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
+/// Method for releasing a terminal.
+pub(crate) const TERMINAL_RELEASE_METHOD_NAME: &str = "terminal/release";
 
 /// All possible requests that an agent can send to a client.
 ///
@@ -400,6 +418,7 @@ pub enum AgentRequest {
     RequestPermissionRequest(RequestPermissionRequest),
     NewTerminalRequest(NewTerminalRequest),
     TerminalOutputRequest(TerminalOutputRequest),
+    ReleaseTerminalRequest(ReleaseTerminalRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -417,6 +436,7 @@ pub enum ClientResponse {
     RequestPermissionResponse(RequestPermissionResponse),
     NewTerminalResponse(NewTerminalResponse),
     TerminalOutputResponse(TerminalOutputResponse),
+    ReleaseTerminalResponse,
 }
 
 /// All possible notifications that an agent can send to a client.

@@ -173,6 +173,13 @@ export class AgentSideConnection implements Client {
     );
   }
 
+  async releaseTerminal(params: schema.ReleaseTerminalRequest): Promise<void> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.terminal_release,
+      params,
+    );
+  }
+
   /**
    * Writes content to a text file in the client's file system.
    *
@@ -267,6 +274,13 @@ export class ClientSideConnection implements Agent {
             schema.terminalOutputRequestSchema.parse(params);
           return client.terminalOutput(
             validatedParams as schema.TerminalOutputRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_release: {
+          const validatedParams =
+            schema.releaseTerminalRequestSchema.parse(params);
+          return client.releaseTerminal(
+            validatedParams as schema.ReleaseTerminalRequest,
           );
         }
         default:
@@ -771,6 +785,7 @@ export interface Client {
   terminalOutput(
     params: schema.TerminalOutputRequest,
   ): Promise<schema.TerminalOutputResponse>;
+  releaseTerminal(params: schema.ReleaseTerminalRequest): Promise<void>;
 }
 
 /**

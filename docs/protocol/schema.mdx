@@ -586,6 +586,22 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
 <ResponseField name="truncated" type={"boolean"} required>
 </ResponseField>
 
+<a id="terminal-release"></a>
+### <span class="font-mono">terminal/release</span>
+
+#### <span class="font-mono">ReleaseTerminalRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
 ## <span class="font-mono">AgentCapabilities</span>
 
 Capabilities supported by the agent.
