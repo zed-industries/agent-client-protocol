@@ -210,18 +210,15 @@ export class TerminalHandle {
     );
   }
 
-  async release(): Promise<schema.ReleaseTerminalResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_release,
-      {
-        sessionId: this.#sessionId,
-        terminalId: this.id,
-      },
-    );
+  async release(): Promise<void> {
+    await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_release, {
+      sessionId: this.#sessionId,
+      terminalId: this.id,
+    });
   }
 
-  async [Symbol.asyncDispose]() {
-    return this.release();
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.release();
   }
 }
 
