@@ -73,6 +73,13 @@ export class AgentSideConnection {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
           return agent.cancel(validatedParams as schema.CancelNotification);
         }
+        case schema.AGENT_METHODS.session_list_commands: {
+          const validatedParams =
+            schema.listCommandsRequestSchema.parse(params);
+          return agent.listCommands(
+            validatedParams as schema.ListCommandsRequest,
+          );
+        }
         default:
           throw RequestError.methodNotFound(method);
       }
