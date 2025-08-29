@@ -11,6 +11,9 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		resp, err := c.client.ReadTextFile(p)
 		if err != nil {
 			return nil, toReqErr(err)
@@ -21,6 +24,9 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		if err := c.client.WriteTextFile(p); err != nil {
 			return nil, toReqErr(err)
 		}
@@ -28,6 +34,9 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 	case ClientMethodSessionRequestPermission:
 		var p RequestPermissionRequest
 		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
 		resp, err := c.client.RequestPermission(p)
@@ -40,7 +49,48 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		if err := c.client.SessionUpdate(p); err != nil {
+			return nil, toReqErr(err)
+		}
+		return nil, nil
+	case ClientMethodTerminalCreate:
+		var p CreateTerminalRequest
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		resp, err := c.client.CreateTerminal(p)
+		if err != nil {
+			return nil, toReqErr(err)
+		}
+		return resp, nil
+	case ClientMethodTerminalOutput:
+		var p TerminalOutputRequest
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		resp, err := c.client.TerminalOutput(p)
+		if err != nil {
+			return nil, toReqErr(err)
+		}
+		return resp, nil
+	case ClientMethodTerminalRelease:
+		var p ReleaseTerminalRequest
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := c.client.ReleaseTerminal(p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -48,24 +98,24 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		return nil, NewMethodNotFound(method)
 	}
 }
-func (c *ClientSideConnection) Cancel(params CancelNotification) error {
-	return c.conn.SendNotification(AgentMethodSessionCancel, params)
-}
 func (c *ClientSideConnection) Authenticate(params AuthenticateRequest) error {
 	return c.conn.SendRequestNoResult(AgentMethodAuthenticate, params)
-}
-func (c *ClientSideConnection) Prompt(params PromptRequest) (PromptResponse, error) {
-	resp, err := SendRequest[PromptResponse](c.conn, AgentMethodSessionPrompt, params)
-	return resp, err
-}
-func (c *ClientSideConnection) NewSession(params NewSessionRequest) (NewSessionResponse, error) {
-	resp, err := SendRequest[NewSessionResponse](c.conn, AgentMethodSessionNew, params)
-	return resp, err
 }
 func (c *ClientSideConnection) Initialize(params InitializeRequest) (InitializeResponse, error) {
 	resp, err := SendRequest[InitializeResponse](c.conn, AgentMethodInitialize, params)
 	return resp, err
 }
+func (c *ClientSideConnection) Cancel(params CancelNotification) error {
+	return c.conn.SendNotification(AgentMethodSessionCancel, params)
+}
 func (c *ClientSideConnection) LoadSession(params LoadSessionRequest) error {
 	return c.conn.SendRequestNoResult(AgentMethodSessionLoad, params)
+}
+func (c *ClientSideConnection) NewSession(params NewSessionRequest) (NewSessionResponse, error) {
+	resp, err := SendRequest[NewSessionResponse](c.conn, AgentMethodSessionNew, params)
+	return resp, err
+}
+func (c *ClientSideConnection) Prompt(params PromptRequest) (PromptResponse, error) {
+	resp, err := SendRequest[PromptResponse](c.conn, AgentMethodSessionPrompt, params)
+	return resp, err
 }

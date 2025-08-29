@@ -2,7 +2,10 @@
 
 package acp
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // Capabilities supported by the agent.  Advertised during initialization to inform the client about available features and content types.  See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
 type AgentCapabilities struct {
@@ -11,6 +14,18 @@ type AgentCapabilities struct {
 	// Prompt capabilities supported by the agent.
 	PromptCapabilities PromptCapabilities `json:"promptCapabilities,omitempty"`
 }
+
+// All possible notifications that an agent can send to a client.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Client'] trait instead.  Notifications do not expect a response.
+// AgentNotification is a union or complex schema; represented generically.
+type AgentNotification any
+
+// All possible requests that an agent can send to a client.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Client'] trait.  This enum encompasses all method calls from agent to client.
+// AgentRequest is a union or complex schema; represented generically.
+type AgentRequest any
+
+// All possible responses that an agent can send to a client.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding ClientRequest variants.
+// AgentResponse is a union or complex schema; represented generically.
+type AgentResponse any
 
 // Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 type Annotations struct {
@@ -21,9 +36,9 @@ type Annotations struct {
 
 // Audio provided to or from an LLM.
 type AudioContent struct {
-	Annotations any    `json:"annotations,omitempty"`
-	Data        string `json:"data"`
-	MimeType    string `json:"mimeType"`
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Data        string       `json:"data"`
+	MimeType    string       `json:"mimeType"`
 }
 
 // Describes an available authentication method.
@@ -45,6 +60,10 @@ type AuthenticateRequest struct {
 	MethodId AuthMethodId `json:"methodId"`
 }
 
+func (v *AuthenticateRequest) Validate() error {
+	return nil
+}
+
 // Binary resource contents.
 type BlobResourceContents struct {
 	Blob     string `json:"blob"`
@@ -58,6 +77,10 @@ type CancelNotification struct {
 	SessionId SessionId `json:"sessionId"`
 }
 
+func (v *CancelNotification) Validate() error {
+	return nil
+}
+
 // Capabilities supported by the client.  Advertised during initialization to inform the agent about available features and methods.  See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 type ClientCapabilities struct {
 	// File system capabilities supported by the client. Determines which file operations the agent can request.
@@ -65,6 +88,18 @@ type ClientCapabilities struct {
 	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.
 	Terminal bool `json:"terminal,omitempty"`
 }
+
+// All possible notifications that a client can send to an agent.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Agent'] trait instead.  Notifications do not expect a response.
+// ClientNotification is a union or complex schema; represented generically.
+type ClientNotification any
+
+// All possible requests that a client can send to an agent.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Agent'] trait.  This enum encompasses all method calls from client to agent.
+// ClientRequest is a union or complex schema; represented generically.
+type ClientRequest any
+
+// All possible responses that a client can send to an agent.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding AgentRequest variants.
+// ClientResponse is a union or complex schema; represented generically.
+type ClientResponse any
 
 // Content blocks represent displayable information in the Agent Client Protocol.  They provide a structured way to handle various types of user-facing content—whether it's text from language models, images for analysis, or embedded resources for context.  Content blocks appear in: - User prompts sent via 'session/prompt' - Language model output streamed through 'session/update' notifications - Progress updates and results from tool calls  This structure is compatible with the Model Context Protocol (MCP), enabling agents to seamlessly forward content from MCP tool outputs without transformation.  See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
 type ResourceLinkContent struct {
@@ -177,9 +212,62 @@ func (c ContentBlock) MarshalJSON() ([]byte, error) {
 	return []byte{}, nil
 }
 
+func (c *ContentBlock) Validate() error {
+	switch c.Type {
+	case "text":
+		if c.Text == nil {
+			return fmt.Errorf("contentblock.text missing")
+		}
+	case "image":
+		if c.Image == nil {
+			return fmt.Errorf("contentblock.image missing")
+		}
+	case "audio":
+		if c.Audio == nil {
+			return fmt.Errorf("contentblock.audio missing")
+		}
+	case "resource_link":
+		if c.ResourceLink == nil {
+			return fmt.Errorf("contentblock.resource_link missing")
+		}
+	case "resource":
+		if c.Resource == nil {
+			return fmt.Errorf("contentblock.resource missing")
+		}
+	}
+	return nil
+}
+
+type CreateTerminalRequest struct {
+	Args            []string      `json:"args,omitempty"`
+	Command         string        `json:"command"`
+	Cwd             string        `json:"cwd,omitempty"`
+	Env             []EnvVariable `json:"env,omitempty"`
+	OutputByteLimit int           `json:"outputByteLimit,omitempty"`
+	SessionId       SessionId     `json:"sessionId"`
+}
+
+func (v *CreateTerminalRequest) Validate() error {
+	if v.Command == "" {
+		return fmt.Errorf("command is required")
+	}
+	return nil
+}
+
+type CreateTerminalResponse struct {
+	TerminalId string `json:"terminalId"`
+}
+
+func (v *CreateTerminalResponse) Validate() error {
+	if v.TerminalId == "" {
+		return fmt.Errorf("terminalId is required")
+	}
+	return nil
+}
+
 // The contents of a resource, embedded into a prompt or tool call result.
 type EmbeddedResource struct {
-	Annotations any                      `json:"annotations,omitempty"`
+	Annotations *Annotations             `json:"annotations,omitempty"`
 	Resource    EmbeddedResourceResource `json:"resource"`
 }
 
@@ -231,10 +319,10 @@ type FileSystemCapability struct {
 
 // An image provided to or from an LLM.
 type ImageContent struct {
-	Annotations any    `json:"annotations,omitempty"`
-	Data        string `json:"data"`
-	MimeType    string `json:"mimeType"`
-	Uri         string `json:"uri,omitempty"`
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Data        string       `json:"data"`
+	MimeType    string       `json:"mimeType"`
+	Uri         string       `json:"uri,omitempty"`
 }
 
 // Request parameters for the initialize method.  Sent by the client to establish connection and negotiate capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
@@ -243,6 +331,10 @@ type InitializeRequest struct {
 	ClientCapabilities ClientCapabilities `json:"clientCapabilities,omitempty"`
 	// The latest protocol version supported by the client.
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
+}
+
+func (v *InitializeRequest) Validate() error {
+	return nil
 }
 
 // Response from the initialize method.  Contains the negotiated protocol version and agent capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
@@ -255,6 +347,10 @@ type InitializeResponse struct {
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
 }
 
+func (v *InitializeResponse) Validate() error {
+	return nil
+}
+
 // Request parameters for loading an existing session.  Only available if the agent supports the 'loadSession' capability.  See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 type LoadSessionRequest struct {
 	// The working directory for this session.
@@ -263,6 +359,16 @@ type LoadSessionRequest struct {
 	McpServers []McpServer `json:"mcpServers"`
 	// The ID of the session to load.
 	SessionId SessionId `json:"sessionId"`
+}
+
+func (v *LoadSessionRequest) Validate() error {
+	if v.Cwd == "" {
+		return fmt.Errorf("cwd is required")
+	}
+	if v.McpServers == nil {
+		return fmt.Errorf("mcpServers is required")
+	}
+	return nil
 }
 
 // Configuration for connecting to an MCP (Model Context Protocol) server.  MCP servers provide tools and context that the agent can use when processing prompts.  See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
@@ -285,10 +391,24 @@ type NewSessionRequest struct {
 	McpServers []McpServer `json:"mcpServers"`
 }
 
+func (v *NewSessionRequest) Validate() error {
+	if v.Cwd == "" {
+		return fmt.Errorf("cwd is required")
+	}
+	if v.McpServers == nil {
+		return fmt.Errorf("mcpServers is required")
+	}
+	return nil
+}
+
 // Response from creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 type NewSessionResponse struct {
 	// Unique identifier for the created session.  Used in all subsequent requests for this conversation.
 	SessionId SessionId `json:"sessionId"`
+}
+
+func (v *NewSessionResponse) Validate() error {
+	return nil
 }
 
 // An option presented to the user when requesting permission.
@@ -366,10 +486,21 @@ type PromptRequest struct {
 	SessionId SessionId `json:"sessionId"`
 }
 
+func (v *PromptRequest) Validate() error {
+	if v.Prompt == nil {
+		return fmt.Errorf("prompt is required")
+	}
+	return nil
+}
+
 // Response from processing a user prompt.  See protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
 type PromptResponse struct {
 	// Indicates why the agent stopped processing the turn.
 	StopReason StopReason `json:"stopReason"`
+}
+
+func (v *PromptResponse) Validate() error {
+	return nil
 }
 
 // Protocol version identifier.  This version is only bumped for breaking changes. Non-breaking changes should be introduced via capabilities.
@@ -387,9 +518,35 @@ type ReadTextFileRequest struct {
 	SessionId SessionId `json:"sessionId"`
 }
 
+func (v *ReadTextFileRequest) Validate() error {
+	if v.Path == "" {
+		return fmt.Errorf("path is required")
+	}
+	return nil
+}
+
 // Response containing the contents of a text file.
 type ReadTextFileResponse struct {
 	Content string `json:"content"`
+}
+
+func (v *ReadTextFileResponse) Validate() error {
+	if v.Content == "" {
+		return fmt.Errorf("content is required")
+	}
+	return nil
+}
+
+type ReleaseTerminalRequest struct {
+	SessionId  SessionId `json:"sessionId"`
+	TerminalId string    `json:"terminalId"`
+}
+
+func (v *ReleaseTerminalRequest) Validate() error {
+	if v.TerminalId == "" {
+		return fmt.Errorf("terminalId is required")
+	}
+	return nil
 }
 
 // The outcome of a permission request.
@@ -449,21 +606,32 @@ type RequestPermissionRequest struct {
 	ToolCall ToolCallUpdate `json:"toolCall"`
 }
 
+func (v *RequestPermissionRequest) Validate() error {
+	if v.Options == nil {
+		return fmt.Errorf("options is required")
+	}
+	return nil
+}
+
 // Response to a permission request.
 type RequestPermissionResponse struct {
 	// The user's decision on the permission request.
 	Outcome RequestPermissionOutcome `json:"outcome"`
 }
 
+func (v *RequestPermissionResponse) Validate() error {
+	return nil
+}
+
 // A resource that the server is capable of reading, included in a prompt or tool call result.
 type ResourceLink struct {
-	Annotations any    `json:"annotations,omitempty"`
-	Description string `json:"description,omitempty"`
-	MimeType    string `json:"mimeType,omitempty"`
-	Name        string `json:"name"`
-	Size        int    `json:"size,omitempty"`
-	Title       string `json:"title,omitempty"`
-	Uri         string `json:"uri"`
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Description string       `json:"description,omitempty"`
+	MimeType    string       `json:"mimeType,omitempty"`
+	Name        string       `json:"name"`
+	Size        int          `json:"size,omitempty"`
+	Title       string       `json:"title,omitempty"`
+	Uri         string       `json:"uri"`
 }
 
 // The sender or recipient of messages and data in a conversation.
@@ -483,6 +651,10 @@ type SessionNotification struct {
 	SessionId SessionId `json:"sessionId"`
 	// The actual update content.
 	Update SessionUpdate `json:"update"`
+}
+
+func (v *SessionNotification) Validate() error {
+	return nil
 }
 
 // Different types of updates that can be sent during session processing.  These updates provide real-time feedback about the agent's progress.  See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
@@ -637,6 +809,32 @@ func (s SessionUpdate) MarshalJSON() ([]byte, error) {
 	return []byte{}, nil
 }
 
+func (s *SessionUpdate) Validate() error {
+	var count int
+	if s.UserMessageChunk != nil {
+		count++
+	}
+	if s.AgentMessageChunk != nil {
+		count++
+	}
+	if s.AgentThoughtChunk != nil {
+		count++
+	}
+	if s.ToolCall != nil {
+		count++
+	}
+	if s.ToolCallUpdate != nil {
+		count++
+	}
+	if s.Plan != nil {
+		count++
+	}
+	if count != 1 {
+		return fmt.Errorf("sessionupdate must have exactly one variant set")
+	}
+	return nil
+}
+
 // Reasons why an agent stops processing a prompt turn.  See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
 type StopReason string
 
@@ -648,10 +846,40 @@ const (
 	StopReasonCancelled       StopReason = "cancelled"
 )
 
+type TerminalExitStatus struct {
+	ExitCode int    `json:"exitCode,omitempty"`
+	Signal   string `json:"signal,omitempty"`
+}
+
+type TerminalOutputRequest struct {
+	SessionId  SessionId `json:"sessionId"`
+	TerminalId string    `json:"terminalId"`
+}
+
+func (v *TerminalOutputRequest) Validate() error {
+	if v.TerminalId == "" {
+		return fmt.Errorf("terminalId is required")
+	}
+	return nil
+}
+
+type TerminalOutputResponse struct {
+	ExitStatus *TerminalExitStatus `json:"exitStatus,omitempty"`
+	Output     string              `json:"output"`
+	Truncated  bool                `json:"truncated"`
+}
+
+func (v *TerminalOutputResponse) Validate() error {
+	if v.Output == "" {
+		return fmt.Errorf("output is required")
+	}
+	return nil
+}
+
 // Text provided to or from an LLM.
 type TextContent struct {
-	Annotations any    `json:"annotations,omitempty"`
-	Text        string `json:"text"`
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Text        string       `json:"text"`
 }
 
 // Text-based resource contents.
@@ -732,6 +960,24 @@ func (t *ToolCallContent) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (t *ToolCallContent) Validate() error {
+	switch t.Type {
+	case "content":
+		if t.Content == nil {
+			return fmt.Errorf("toolcallcontent.content missing")
+		}
+	case "diff":
+		if t.Diff == nil {
+			return fmt.Errorf("toolcallcontent.diff missing")
+		}
+	case "terminal":
+		if t.Terminal == nil {
+			return fmt.Errorf("toolcallcontent.terminal missing")
+		}
+	}
+	return nil
+}
+
 // Unique identifier for a tool call within a session.
 type ToolCallId string
 
@@ -758,7 +1004,7 @@ type ToolCallUpdate struct {
 	// Replace the content collection.
 	Content []ToolCallContent `json:"content,omitempty"`
 	// Update the tool kind.
-	Kind any `json:"kind,omitempty"`
+	Kind *ToolKind `json:"kind,omitempty"`
 	// Replace the locations collection.
 	Locations []ToolCallLocation `json:"locations,omitempty"`
 	// Update the raw input.
@@ -766,11 +1012,18 @@ type ToolCallUpdate struct {
 	// Update the raw output.
 	RawOutput any `json:"rawOutput,omitempty"`
 	// Update the execution status.
-	Status any `json:"status,omitempty"`
+	Status *ToolCallStatus `json:"status,omitempty"`
 	// Update the human-readable title.
 	Title string `json:"title,omitempty"`
 	// The ID of the tool call being updated.
 	ToolCallId ToolCallId `json:"toolCallId"`
+}
+
+func (t *ToolCallUpdate) Validate() error {
+	if t.ToolCallId == "" {
+		return fmt.Errorf("toolCallId is required")
+	}
+	return nil
 }
 
 // Categories of tools that can be invoked.  Tool kinds help clients choose appropriate icons and optimize how they display tool execution progress.  See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
@@ -788,6 +1041,27 @@ const (
 	ToolKindOther   ToolKind = "other"
 )
 
+type WaitForTerminalExitRequest struct {
+	SessionId  SessionId `json:"sessionId"`
+	TerminalId string    `json:"terminalId"`
+}
+
+func (v *WaitForTerminalExitRequest) Validate() error {
+	if v.TerminalId == "" {
+		return fmt.Errorf("terminalId is required")
+	}
+	return nil
+}
+
+type WaitForTerminalExitResponse struct {
+	ExitCode int    `json:"exitCode,omitempty"`
+	Signal   string `json:"signal,omitempty"`
+}
+
+func (v *WaitForTerminalExitResponse) Validate() error {
+	return nil
+}
+
 // Request to write content to a text file.  Only available if the client supports the 'fs.writeTextFile' capability.
 type WriteTextFileRequest struct {
 	// The text content to write to the file.
@@ -796,6 +1070,16 @@ type WriteTextFileRequest struct {
 	Path string `json:"path"`
 	// The session ID for this request.
 	SessionId SessionId `json:"sessionId"`
+}
+
+func (v *WriteTextFileRequest) Validate() error {
+	if v.Content == "" {
+		return fmt.Errorf("content is required")
+	}
+	if v.Path == "" {
+		return fmt.Errorf("path is required")
+	}
+	return nil
 }
 
 type Agent interface {
@@ -811,4 +1095,7 @@ type Client interface {
 	WriteTextFile(params WriteTextFileRequest) error
 	RequestPermission(params RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdate(params SessionNotification) error
+	CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error)
+	TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error)
+	ReleaseTerminal(params ReleaseTerminalRequest) error
 }

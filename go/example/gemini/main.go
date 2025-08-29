@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	acp "github.com/zed-industries/agent-client-protocol/go"
@@ -63,9 +64,9 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 	case u.AgentMessageChunk != nil:
 		content := u.AgentMessageChunk.Content
 		if content.Type == "text" && content.Text != nil {
-			fmt.Println(content.Text.Text)
+			fmt.Printf("[agent] \n%s\n", content.Text.Text)
 		} else {
-			fmt.Printf("[%s]\n", content.Type)
+			fmt.Printf("[agent] %s\n", content.Type)
 		}
 	case u.ToolCall != nil:
 		fmt.Printf("\n🔧 %s (%s)\n", u.ToolCall.Title, u.ToolCall.Status)
@@ -74,7 +75,12 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 	case u.Plan != nil:
 		fmt.Println("[plan update]")
 	case u.AgentThoughtChunk != nil:
-		fmt.Println("[agent_thought_chunk]")
+		thought := u.AgentThoughtChunk.Content
+		if thought.Type == "text" && thought.Text != nil {
+			fmt.Printf("[agent_thought_chunk] \n%s\n", thought.Text.Text)
+		} else {
+			fmt.Println("[agent_thought_chunk]", "(", thought.Type, ")")
+		}
 	case u.UserMessageChunk != nil:
 		fmt.Println("[user_message_chunk]")
 	}
@@ -82,14 +88,68 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 }
 
 func (c *replClient) WriteTextFile(params acp.WriteTextFileRequest) error {
-	// For demo purposes, just log the request and allow it.
-	fmt.Printf("[Client] WriteTextFile: %v\n", params)
+	if !filepath.IsAbs(params.Path) {
+		return fmt.Errorf("path must be absolute: %s", params.Path)
+	}
+	dir := filepath.Dir(params.Path)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("mkdir %s: %w", dir, err)
+		}
+	}
+	if err := os.WriteFile(params.Path, []byte(params.Content), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", params.Path, err)
+	}
+	fmt.Printf("[Client] Wrote %d bytes to %s\n", len(params.Content), params.Path)
 	return nil
 }
 
 func (c *replClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
-	fmt.Printf("[Client] ReadTextFile: %v\n", params)
-	return acp.ReadTextFileResponse{Content: "Mock file content"}, nil
+	if !filepath.IsAbs(params.Path) {
+		return acp.ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", params.Path)
+	}
+	b, err := os.ReadFile(params.Path)
+	if err != nil {
+		return acp.ReadTextFileResponse{}, fmt.Errorf("read %s: %w", params.Path, err)
+	}
+	content := string(b)
+	if params.Line > 0 || params.Limit > 0 {
+		lines := strings.Split(content, "\n")
+		start := 0
+		if params.Line > 0 {
+			start = min(max(params.Line-1, 0), len(lines))
+		}
+		end := len(lines)
+		if params.Limit > 0 {
+			if start+params.Limit < end {
+				end = start + params.Limit
+			}
+		}
+		content = strings.Join(lines[start:end], "\n")
+	}
+	fmt.Printf("[Client] ReadTextFile: %s (%d bytes)\n", params.Path, len(content))
+	return acp.ReadTextFileResponse{Content: content}, nil
+}
+
+// Optional/UNSTABLE terminal methods: implement as no-ops for example
+func (c *replClient) CreateTerminal(params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
+	fmt.Printf("[Client] CreateTerminal: %v\n", params)
+	return acp.CreateTerminalResponse{TerminalId: "term-1"}, nil
+}
+
+func (c *replClient) TerminalOutput(params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
+	fmt.Printf("[Client] TerminalOutput: %v\n", params)
+	return acp.TerminalOutputResponse{Output: "", Truncated: false}, nil
+}
+
+func (c *replClient) ReleaseTerminal(params acp.ReleaseTerminalRequest) error {
+	fmt.Printf("[Client] ReleaseTerminal: %v\n", params)
+	return nil
+}
+
+func (c *replClient) WaitForTerminalExit(params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
+	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
+	return acp.WaitForTerminalExitResponse{}, nil
 }
 
 func main() {

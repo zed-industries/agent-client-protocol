@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	acp "github.com/zed-industries/agent-client-protocol/go"
@@ -77,13 +78,69 @@ func displayUpdateKind(u acp.SessionUpdate) string {
 }
 
 func (e *exampleClient) WriteTextFile(params acp.WriteTextFileRequest) error {
-	fmt.Printf("[Client] Write text file called with: %v\n", params)
+	if !filepath.IsAbs(params.Path) {
+		return fmt.Errorf("path must be absolute: %s", params.Path)
+	}
+	dir := filepath.Dir(params.Path)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("mkdir %s: %w", dir, err)
+		}
+	}
+	if err := os.WriteFile(params.Path, []byte(params.Content), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", params.Path, err)
+	}
+	fmt.Printf("[Client] Wrote %d bytes to %s\n", len(params.Content), params.Path)
 	return nil
 }
 
 func (e *exampleClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
-	fmt.Printf("[Client] Read text file called with: %v\n", params)
-	return acp.ReadTextFileResponse{Content: "Mock file content"}, nil
+	if !filepath.IsAbs(params.Path) {
+		return acp.ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", params.Path)
+	}
+	b, err := os.ReadFile(params.Path)
+	if err != nil {
+		return acp.ReadTextFileResponse{}, fmt.Errorf("read %s: %w", params.Path, err)
+	}
+	content := string(b)
+	// Apply optional line/limit (1-based line index)
+	if params.Line > 0 || params.Limit > 0 {
+		lines := strings.Split(content, "\n")
+		start := 0
+		if params.Line > 0 {
+			start = min(max(params.Line-1, 0), len(lines))
+		}
+		end := len(lines)
+		if params.Limit > 0 {
+			if start+params.Limit < end {
+				end = start + params.Limit
+			}
+		}
+		content = strings.Join(lines[start:end], "\n")
+	}
+	fmt.Printf("[Client] ReadTextFile: %s (%d bytes)\n", params.Path, len(content))
+	return acp.ReadTextFileResponse{Content: content}, nil
+}
+
+// Optional/UNSTABLE terminal methods: implement as no-ops for example
+func (e *exampleClient) CreateTerminal(params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
+	fmt.Printf("[Client] CreateTerminal: %v\n", params)
+	return acp.CreateTerminalResponse{TerminalId: "term-1"}, nil
+}
+
+func (e *exampleClient) TerminalOutput(params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
+	fmt.Printf("[Client] TerminalOutput: %v\n", params)
+	return acp.TerminalOutputResponse{Output: "", Truncated: false}, nil
+}
+
+func (e *exampleClient) ReleaseTerminal(params acp.ReleaseTerminalRequest) error {
+	fmt.Printf("[Client] ReleaseTerminal: %v\n", params)
+	return nil
+}
+
+func (e *exampleClient) WaitForTerminalExit(params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
+	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
+	return acp.WaitForTerminalExitResponse{}, nil
 }
 
 func main() {

@@ -172,8 +172,8 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		ToolCall: acp.ToolCallUpdate{
 			ToolCallId: acp.ToolCallId("call_2"),
 			Title:      "Modifying critical configuration file",
-			Kind:       "edit",
-			Status:     "pending",
+			Kind:       ptr(acp.ToolKindEdit),
+			Status:     ptr(acp.ToolCallStatusPending),
 			Locations:  []acp.ToolCallLocation{{Path: "/home/user/project/config.json"}},
 			RawInput:   map[string]any{"path": "/home/user/project/config.json", "content": "{\"database\": {\"host\": \"new-host\"}}"},
 		},
@@ -199,7 +199,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 			SessionId: acp.SessionId(sid),
 			Update: acp.SessionUpdate{ToolCallUpdate: &acp.SessionUpdateToolCallUpdate{
 				ToolCallId: acp.ToolCallId("call_2"),
-				Status:     "completed",
+				Status:     ptr(acp.ToolCallStatusCompleted),
 				RawOutput:  map[string]any{"success": true, "message": "Configuration updated"},
 			}},
 		}); err != nil {
@@ -254,6 +254,10 @@ func pause(ctx context.Context, d time.Duration) error {
 	case <-t.C:
 		return nil
 	}
+}
+
+func ptr[T any](t T) *T {
+	return &t
 }
 
 func main() {

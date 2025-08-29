@@ -11,6 +11,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		if err := a.agent.Authenticate(p); err != nil {
 			return nil, toReqErr(err)
 		}
@@ -18,6 +21,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 	case AgentMethodInitialize:
 		var p InitializeRequest
 		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
 		resp, err := a.agent.Initialize(p)
@@ -30,6 +36,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		if err := a.agent.Cancel(p); err != nil {
 			return nil, toReqErr(err)
 		}
@@ -37,6 +46,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 	case AgentMethodSessionLoad:
 		var p LoadSessionRequest
 		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
 		if err := a.agent.LoadSession(p); err != nil {
@@ -48,6 +60,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
 		resp, err := a.agent.NewSession(p)
 		if err != nil {
 			return nil, toReqErr(err)
@@ -56,6 +71,9 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 	case AgentMethodSessionPrompt:
 		var p PromptRequest
 		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
 		resp, err := a.agent.Prompt(p)
@@ -71,13 +89,24 @@ func (c *AgentSideConnection) ReadTextFile(params ReadTextFileRequest) (ReadText
 	resp, err := SendRequest[ReadTextFileResponse](c.conn, ClientMethodFsReadTextFile, params)
 	return resp, err
 }
-func (c *AgentSideConnection) SessionUpdate(params SessionNotification) error {
-	return c.conn.SendNotification(ClientMethodSessionUpdate, params)
-}
 func (c *AgentSideConnection) WriteTextFile(params WriteTextFileRequest) error {
 	return c.conn.SendRequestNoResult(ClientMethodFsWriteTextFile, params)
 }
 func (c *AgentSideConnection) RequestPermission(params RequestPermissionRequest) (RequestPermissionResponse, error) {
 	resp, err := SendRequest[RequestPermissionResponse](c.conn, ClientMethodSessionRequestPermission, params)
 	return resp, err
+}
+func (c *AgentSideConnection) SessionUpdate(params SessionNotification) error {
+	return c.conn.SendNotification(ClientMethodSessionUpdate, params)
+}
+func (c *AgentSideConnection) CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error) {
+	resp, err := SendRequest[CreateTerminalResponse](c.conn, ClientMethodTerminalCreate, params)
+	return resp, err
+}
+func (c *AgentSideConnection) TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error) {
+	resp, err := SendRequest[TerminalOutputResponse](c.conn, ClientMethodTerminalOutput, params)
+	return resp, err
+}
+func (c *AgentSideConnection) ReleaseTerminal(params ReleaseTerminalRequest) error {
+	return c.conn.SendRequestNoResult(ClientMethodTerminalRelease, params)
 }

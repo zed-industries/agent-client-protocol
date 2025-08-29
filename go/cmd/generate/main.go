@@ -41,6 +41,9 @@ type Definition struct {
 	XMethod     string                 `json:"x-method"`
 }
 
+// methodInfo captures the association between a wire method and its Go types.
+type methodInfo struct{ Side, Method, Req, Resp, Notif string }
+
 func main() {
 	repoRoot := findRepoRoot()
 	schemaDir := filepath.Join(repoRoot, "schema")
@@ -164,7 +167,7 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 
 	for _, name := range keys {
 		def := schema.Defs[name]
-		if def == nil || def.DocsIgnore {
+		if def == nil {
 			continue
 		}
 
@@ -235,7 +238,7 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 				if _, ok := req[pk]; !ok {
 					tag = pk + ",omitempty"
 				}
-				st = append(st, Id(field).Add(jenTypeFor(prop)).Tag(map[string]string{"json": tag}))
+				st = append(st, Id(field).Add(jenTypeForOptional(prop)).Tag(map[string]string{"json": tag}))
 			}
 			f.Type().Id(name).Struct(st...)
 			f.Line()
@@ -248,32 +251,17 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 			f.Type().Id(name).Any()
 			f.Line()
 		}
+
+		// Emit basic validators for RPC/union types
+		if strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification") || name == "ContentBlock" || name == "ToolCallContent" || name == "SessionUpdate" || name == "ToolCallUpdate" {
+			emitValidateJen(f, name, def)
+		}
 	}
 
 	// Append Agent and Client interfaces derived from meta.json + schema defs
 	{
 		type methodInfo struct{ Side, Method, Req, Resp, Notif string }
-		groups := map[string]*methodInfo{}
-		for name, def := range schema.Defs {
-			if def == nil || def.XMethod == "" || def.XSide == "" {
-				continue
-			}
-			key := def.XSide + "|" + def.XMethod
-			mi := groups[key]
-			if mi == nil {
-				mi = &methodInfo{Side: def.XSide, Method: def.XMethod}
-				groups[key] = mi
-			}
-			if strings.HasSuffix(name, "Request") {
-				mi.Req = name
-			}
-			if strings.HasSuffix(name, "Response") {
-				mi.Resp = name
-			}
-			if strings.HasSuffix(name, "Notification") {
-				mi.Notif = name
-			}
-		}
+		groups := buildMethodGroups(schema, meta)
 		// Agent
 		methods := []Code{}
 		amKeys := make([]string, 0, len(meta.AgentMethods))
@@ -350,6 +338,174 @@ func isStringConstUnion(def *Definition) bool {
 		}
 	}
 	return true
+}
+
+// emitValidateJen generates a simple Validate method for selected types.
+func emitValidateJen(f *File, name string, def *Definition) {
+	switch name {
+	case "ContentBlock":
+		f.Func().Params(Id("c").Op("*").Id("ContentBlock")).Id("Validate").Params().Params(Error()).Block(
+			Switch(Id("c").Dot("Type")).Block(
+				Case(Lit("text")).Block(If(Id("c").Dot("Text").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.text missing"))))),
+				Case(Lit("image")).Block(If(Id("c").Dot("Image").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.image missing"))))),
+				Case(Lit("audio")).Block(If(Id("c").Dot("Audio").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.audio missing"))))),
+				Case(Lit("resource_link")).Block(If(Id("c").Dot("ResourceLink").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.resource_link missing"))))),
+				Case(Lit("resource")).Block(If(Id("c").Dot("Resource").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.resource missing"))))),
+			),
+			Return(Nil()),
+		)
+		return
+	case "ToolCallContent":
+		f.Func().Params(Id("t").Op("*").Id("ToolCallContent")).Id("Validate").Params().Params(Error()).Block(
+			Switch(Id("t").Dot("Type")).Block(
+				Case(Lit("content")).Block(If(Id("t").Dot("Content").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.content missing"))))),
+				Case(Lit("diff")).Block(If(Id("t").Dot("Diff").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.diff missing"))))),
+				Case(Lit("terminal")).Block(If(Id("t").Dot("Terminal").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.terminal missing"))))),
+			),
+			Return(Nil()),
+		)
+		return
+	case "SessionUpdate":
+		f.Func().Params(Id("s").Op("*").Id("SessionUpdate")).Id("Validate").Params().Params(Error()).Block(
+			Var().Id("count").Int(),
+			If(Id("s").Dot("UserMessageChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("s").Dot("AgentMessageChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("s").Dot("AgentThoughtChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("s").Dot("ToolCall").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("s").Dot("ToolCallUpdate").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("s").Dot("Plan").Op("!=").Nil()).Block(Id("count").Op("++")),
+			If(Id("count").Op("!=").Lit(1)).Block(Return(Qual("fmt", "Errorf").Call(Lit("sessionupdate must have exactly one variant set")))),
+			Return(Nil()),
+		)
+		return
+	case "ToolCallUpdate":
+		f.Func().Params(Id("t").Op("*").Id("ToolCallUpdate")).Id("Validate").Params().Params(Error()).Block(
+			If(Id("t").Dot("ToolCallId").Op("==").Lit("")).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolCallId is required")))),
+			Return(Nil()),
+		)
+		return
+	}
+	// Generic RPC objects
+	if def != nil && primaryType(def) == "object" {
+		if !(strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification")) {
+			return
+		}
+		f.Func().Params(Id("v").Op("*").Id(name)).Id("Validate").Params().Params(Error()).BlockFunc(func(g *Group) {
+			// Emit checks in deterministic property order
+			pkeys := make([]string, 0, len(def.Properties))
+			for pk := range def.Properties {
+				pkeys = append(pkeys, pk)
+			}
+			sort.Strings(pkeys)
+			for _, propName := range pkeys {
+				pDef := def.Properties[propName]
+				// is required?
+				required := false
+				for _, r := range def.Required {
+					if r == propName {
+						required = true
+						break
+					}
+				}
+				field := toExportedField(propName)
+				if required {
+					switch primaryType(pDef) {
+					case "string":
+						g.If(Id("v").Dot(field).Op("==").Lit("")).Block(Return(Qual("fmt", "Errorf").Call(Lit(propName + " is required"))))
+					case "array":
+						g.If(Id("v").Dot(field).Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit(propName + " is required"))))
+					}
+				}
+			}
+			g.Return(Nil())
+		})
+	}
+}
+
+// buildMethodGroups merges schema-provided links with inferred ones from meta.
+func buildMethodGroups(schema *Schema, meta *Meta) map[string]*methodInfo {
+	groups := map[string]*methodInfo{}
+	// From schema
+	for name, def := range schema.Defs {
+		if def == nil || def.XMethod == "" || def.XSide == "" {
+			continue
+		}
+		key := def.XSide + "|" + def.XMethod
+		mi := groups[key]
+		if mi == nil {
+			mi = &methodInfo{Side: def.XSide, Method: def.XMethod}
+			groups[key] = mi
+		}
+		if strings.HasSuffix(name, "Request") {
+			mi.Req = name
+		}
+		if strings.HasSuffix(name, "Response") {
+			mi.Resp = name
+		}
+		if strings.HasSuffix(name, "Notification") {
+			mi.Notif = name
+		}
+	}
+	// From meta fallback (e.g., terminal methods)
+	for key, wire := range meta.AgentMethods {
+		k := "agent|" + wire
+		if groups[k] == nil {
+			base := inferTypeBaseFromMethodKey(key)
+			mi := &methodInfo{Side: "agent", Method: wire}
+			if wire == "session/cancel" {
+				mi.Notif = "CancelNotification"
+			} else {
+				if _, ok := schema.Defs[base+"Request"]; ok {
+					mi.Req = base + "Request"
+				}
+				if _, ok := schema.Defs[base+"Response"]; ok {
+					mi.Resp = base + "Response"
+				}
+			}
+			if mi.Req != "" || mi.Notif != "" {
+				groups[k] = mi
+			}
+		}
+	}
+	for key, wire := range meta.ClientMethods {
+		k := "client|" + wire
+		if groups[k] == nil {
+			base := inferTypeBaseFromMethodKey(key)
+			mi := &methodInfo{Side: "client", Method: wire}
+			if wire == "session/update" {
+				mi.Notif = "SessionNotification"
+			} else {
+				if _, ok := schema.Defs[base+"Request"]; ok {
+					mi.Req = base + "Request"
+				}
+				if _, ok := schema.Defs[base+"Response"]; ok {
+					mi.Resp = base + "Response"
+				}
+			}
+			if mi.Req != "" || mi.Notif != "" {
+				groups[k] = mi
+			}
+		}
+	}
+	return groups
+}
+
+func inferTypeBaseFromMethodKey(methodKey string) string {
+	parts := strings.Split(methodKey, "_")
+	if len(parts) == 2 {
+		n, v := parts[0], parts[1]
+		switch v {
+		case "new", "create", "release", "wait", "load", "authenticate", "prompt", "cancel", "read", "write":
+			return titleWord(v) + titleWord(n)
+		default:
+			return titleWord(n) + titleWord(v)
+		}
+	}
+	segs := strings.Split(methodKey, "_")
+	for i := range segs {
+		segs[i] = titleWord(segs[i])
+	}
+	return strings.Join(segs, "")
 }
 
 func emitContentBlockJen(f *File) {
@@ -791,6 +947,52 @@ func jenTypeFor(d *Definition) Code {
 	}
 }
 
+// jenTypeForOptional maps unions that include null to pointer types where applicable.
+func jenTypeForOptional(d *Definition) Code {
+	if d == nil {
+		return Any()
+	}
+	// Check anyOf/oneOf with exactly one non-null + null
+	list := d.AnyOf
+	if len(list) == 0 {
+		list = d.OneOf
+	}
+	if len(list) == 2 {
+		var nonNull *Definition
+		for _, e := range list {
+			if e == nil {
+				continue
+			}
+			if s, ok := e.Type.(string); ok && s == "null" {
+				continue
+			}
+			if e.Const != nil {
+				nn := *e
+				nn.Type = "string"
+				nonNull = &nn
+			} else {
+				nonNull = e
+			}
+		}
+		if nonNull != nil {
+			if nonNull.Ref != "" && strings.HasPrefix(nonNull.Ref, "#/$defs/") {
+				return Op("*").Id(nonNull.Ref[len("#/$defs/"):])
+			}
+			switch primaryType(nonNull) {
+			case "string":
+				return Op("*").String()
+			case "integer":
+				return Op("*").Int()
+			case "number":
+				return Op("*").Float64()
+			case "boolean":
+				return Op("*").Bool()
+			}
+		}
+	}
+	return jenTypeFor(d)
+}
+
 func isNullResponse(def *Definition) bool {
 	if def == nil {
 		return true
@@ -818,32 +1020,8 @@ func dispatchMethodNameForNotification(methodKey, typeName string) string {
 }
 
 func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
-	// Build method groups
-	type methodInfo struct {
-		Side, Method     string
-		Req, Resp, Notif string
-	}
-	groups := map[string]*methodInfo{}
-	for name, def := range schema.Defs {
-		if def == nil || def.XMethod == "" || def.XSide == "" {
-			continue
-		}
-		key := def.XSide + "|" + def.XMethod
-		mi := groups[key]
-		if mi == nil {
-			mi = &methodInfo{Side: def.XSide, Method: def.XMethod}
-			groups[key] = mi
-		}
-		if strings.HasSuffix(name, "Request") {
-			mi.Req = name
-		}
-		if strings.HasSuffix(name, "Response") {
-			mi.Resp = name
-		}
-		if strings.HasSuffix(name, "Notification") {
-			mi.Notif = name
-		}
-	}
+	// Build method groups using schema + meta inference
+	groups := buildMethodGroups(schema, meta)
 
 	// Agent handler method
 	fAgent := NewFile("acp")
@@ -873,6 +1051,10 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 				).Block(
 					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
 				),
+				// Validate if available
+				If(List(Id("err")).Op(":=").Id("p").Dot("Validate").Call(), Id("err").Op("!=").Nil()).Block(
+					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
+				),
 			)
 			// if err := a.agent.Call(p); err != nil { return nil, toReqErr(err) }; return nil, nil
 			callName := dispatchMethodNameForNotification(k, mi.Notif)
@@ -893,6 +1075,9 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 					List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("params"), Op("&").Id("p")),
 					Id("err").Op("!=").Nil(),
 				).Block(
+					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
+				),
+				If(List(Id("err")).Op(":=").Id("p").Dot("Validate").Call(), Id("err").Op("!=").Nil()).Block(
 					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
 				),
 			)
@@ -936,9 +1121,16 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 	for k, v := range meta.ClientMethods {
 		clientConst[v] = "ClientMethod" + toExportedConst(k)
 	}
-	// Agent outbound: methods the agent can call on the client
-	for _, mi := range groups {
-		if mi.Side != "client" {
+	// Agent outbound: methods the agent can call on the client (stable order)
+	cmKeys2 := make([]string, 0, len(meta.ClientMethods))
+	for k := range meta.ClientMethods {
+		cmKeys2 = append(cmKeys2, k)
+	}
+	sort.Strings(cmKeys2)
+	for _, k := range cmKeys2 {
+		wire := meta.ClientMethods[k]
+		mi := groups["client|"+wire]
+		if mi == nil {
 			continue
 		}
 		constName := clientConst[mi.Method]
@@ -1001,6 +1193,9 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("params"), Op("&").Id("p")), Id("err").Op("!=").Nil()).Block(
 					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
 				),
+				If(List(Id("err")).Op(":=").Id("p").Dot("Validate").Call(), Id("err").Op("!=").Nil()).Block(
+					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
+				),
 			)
 			callName := dispatchMethodNameForNotification(k, mi.Notif)
 			body = append(body,
@@ -1014,6 +1209,9 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 			body = append(body,
 				Var().Id("p").Id(mi.Req),
 				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("params"), Op("&").Id("p")), Id("err").Op("!=").Nil()).Block(
+					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
+				),
+				If(List(Id("err")).Op(":=").Id("p").Dot("Validate").Call(), Id("err").Op("!=").Nil()).Block(
 					Return(Nil(), Id("NewInvalidParams").Call(Map(String()).Id("any").Values(Dict{Lit("error"): Id("err").Dot("Error").Call()}))),
 				),
 			)
@@ -1044,8 +1242,16 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 		Switch(Id("method")).Block(cCases...),
 	)
 	// After generating the handler, also append outbound wrappers for ClientSideConnection
-	for _, mi := range groups {
-		if mi.Side != "agent" {
+	// Client outbound: methods the client can call on the agent (stable order)
+	amKeys2 := make([]string, 0, len(meta.AgentMethods))
+	for k := range meta.AgentMethods {
+		amKeys2 = append(amKeys2, k)
+	}
+	sort.Strings(amKeys2)
+	for _, k := range amKeys2 {
+		wire := meta.AgentMethods[k]
+		mi := groups["agent|"+wire]
+		if mi == nil {
 			continue
 		}
 		constName := agentConst[mi.Method]

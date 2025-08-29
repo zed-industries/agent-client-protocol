@@ -43,6 +43,21 @@ func (c clientFuncs) SessionUpdate(n SessionNotification) error {
 	return nil
 }
 
+// Optional/UNSTABLE terminal methods – provide no-op implementations so clientFuncs satisfies Client.
+func (c clientFuncs) CreateTerminal(p CreateTerminalRequest) (CreateTerminalResponse, error) {
+	return CreateTerminalResponse{TerminalId: "term-1"}, nil
+}
+
+func (c clientFuncs) TerminalOutput(p TerminalOutputRequest) (TerminalOutputResponse, error) {
+	return TerminalOutputResponse{Output: "", Truncated: false}, nil
+}
+
+func (c clientFuncs) ReleaseTerminal(p ReleaseTerminalRequest) error { return nil }
+
+func (c clientFuncs) WaitForTerminalExit(p WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	return WaitForTerminalExitResponse{}, nil
+}
+
 type agentFuncs struct {
 	InitializeFunc   func(InitializeRequest) (InitializeResponse, error)
 	NewSessionFunc   func(NewSessionRequest) (NewSessionResponse, error)
@@ -130,7 +145,7 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 	}
 
 	// Agent->Client direction: expect error
-	if _, err := c.NewSession(NewSessionRequest{Cwd: "/test", McpServers: nil}); err == nil {
+	if _, err := c.NewSession(NewSessionRequest{Cwd: "/test", McpServers: []McpServer{}}); err == nil {
 		t.Fatalf("expected error for newSession, got nil")
 	}
 }
@@ -239,7 +254,7 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 		CancelFunc: func(p CancelNotification) error { push("cancelled called: " + string(p.SessionId)); return nil },
 	}, a2cW, c2aR)
 
-	if _, err := cs.NewSession(NewSessionRequest{Cwd: "/test", McpServers: nil}); err != nil {
+	if _, err := cs.NewSession(NewSessionRequest{Cwd: "/test", McpServers: []McpServer{}}); err != nil {
 		t.Fatalf("newSession error: %v", err)
 	}
 	if err := as.WriteTextFile(WriteTextFileRequest{Path: "/test.txt", Content: "test", SessionId: "test-session"}); err != nil {
@@ -252,8 +267,8 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 		SessionId: "test-session",
 		ToolCall: ToolCallUpdate{
 			Title:      "Execute command",
-			Kind:       "execute",
-			Status:     "pending",
+			Kind:       ptr(ToolKindExecute),
+			Status:     ptr(ToolCallStatusPending),
 			ToolCallId: "tool-123",
 			Content: []ToolCallContent{{
 				Type:    "content",
@@ -396,4 +411,8 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 	if len(resp.AuthMethods) != 1 || resp.AuthMethods[0].Id != "oauth" {
 		t.Fatalf("unexpected authMethods: %+v", resp.AuthMethods)
 	}
+}
+
+func ptr[T any](t T) *T {
+	return &t
 }
