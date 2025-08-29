@@ -14,7 +14,7 @@
             "audio": false,
             "embeddedContext": false,
             "image": false,
-            "supportsCustomCommands": false
+            "supportsCommands": false
           },
           "description": "Prompt capabilities supported by the agent."
         }
@@ -636,7 +636,7 @@
               "audio": false,
               "embeddedContext": false,
               "image": false,
-              "supportsCustomCommands": false
+              "supportsCommands": false
             }
           },
           "description": "Capabilities supported by the agent."
@@ -913,9 +913,9 @@
           "description": "Agent supports [`ContentBlock::Image`].",
           "type": "boolean"
         },
-        "supportsCustomCommands": {
+        "supportsCommands": {
           "default": false,
-          "description": "Agent supports custom slash commands via `list_commands` and `run_command`.",
+          "description": "Agent supports commands via `list_commands` and `run_command`.",
           "type": "boolean"
         }
       },

@@ -24,6 +24,9 @@ import {
   CancelNotification,
   SessionNotification,
   PROTOCOL_VERSION,
+  ListCommandsRequest,
+  ListCommandsResponse,
+  RunCommandRequest,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -77,6 +80,14 @@ describe("Connection", () => {
       }
       async cancel(_: CancelNotification): Promise<void> {
         // no-op
+      }
+      async listCommands(
+        _: ListCommandsRequest,
+      ): Promise<ListCommandsResponse> {
+        throw new Error("not implemented");
+      }
+      async runCommand(_: RunCommandRequest): Promise<void> {
+        throw new Error("not implemented");
       }
     }
 
@@ -169,6 +180,14 @@ describe("Connection", () => {
       }
       async cancel(_: CancelNotification): Promise<void> {
         // no-op
+      }
+      async listCommands(
+        _: ListCommandsRequest,
+      ): Promise<ListCommandsResponse> {
+        throw new Error("not implemented");
+      }
+      async runCommand(_: RunCommandRequest): Promise<void> {
+        throw new Error("not implemented");
       }
     }
 
@@ -275,6 +294,14 @@ describe("Connection", () => {
       }
       async cancel(params: CancelNotification): Promise<void> {
         messageLog.push(`cancelled called: ${params.sessionId}`);
+      }
+      async listCommands(
+        _: ListCommandsRequest,
+      ): Promise<ListCommandsResponse> {
+        throw new Error("not implemented");
+      }
+      async runCommand(_: RunCommandRequest): Promise<void> {
+        throw new Error("not implemented");
       }
     }
 
@@ -407,6 +434,14 @@ describe("Connection", () => {
       async cancel(params: CancelNotification): Promise<void> {
         notificationLog.push(`cancelled: ${params.sessionId}`);
       }
+      async listCommands(
+        _: ListCommandsRequest,
+      ): Promise<ListCommandsResponse> {
+        throw new Error("not implemented");
+      }
+      async runCommand(_: RunCommandRequest): Promise<void> {
+        throw new Error("not implemented");
+      }
     }
 
     // Create shared instances
@@ -505,6 +540,14 @@ describe("Connection", () => {
       }
       async cancel(_: CancelNotification): Promise<void> {
         // no-op
+      }
+      async listCommands(
+        _: ListCommandsRequest,
+      ): Promise<ListCommandsResponse> {
+        throw new Error("not implemented");
+      }
+      async runCommand(_: RunCommandRequest): Promise<void> {
+        throw new Error("not implemented");
       }
     }
 

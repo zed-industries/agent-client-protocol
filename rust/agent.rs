@@ -383,9 +383,9 @@ pub struct PromptCapabilities {
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
-    /// Agent supports custom slash commands via `list_commands` and `run_command`.
+    /// Agent supports commands via `list_commands` and `run_command`.
     #[serde(default)]
-    pub supports_custom_commands: bool,
+    pub supports_commands: bool,
 }
 
 // Slash commands
@@ -452,6 +452,10 @@ pub struct AgentMethodNames {
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
     pub session_cancel: &'static str,
+    /// Method for listing available commands.
+    pub session_list_commands: &'static str,
+    /// Method for running a command.
+    pub session_run_command: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -462,6 +466,8 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_load: SESSION_LOAD_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
+    session_list_commands: SESSION_LIST_COMMANDS,
+    session_run_command: SESSION_RUN_COMMAND,
 };
 
 /// Method name for the initialize request.
@@ -478,7 +484,7 @@ pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 /// Method name for listing custom commands in a session.
 pub const SESSION_LIST_COMMANDS: &str = "session/list_commands";
-/// Method name for running a custom command in a session.  
+/// Method name for running a custom command in a session.
 pub const SESSION_RUN_COMMAND: &str = "session/run_command";
 
 /// All possible requests that a client can send to an agent.

@@ -2,9 +2,11 @@ export const AGENT_METHODS = {
   authenticate: "authenticate",
   initialize: "initialize",
   session_cancel: "session/cancel",
+  session_list_commands: "session/list_commands",
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
+  session_run_command: "session/run_command",
 };
 
 export const CLIENT_METHODS = {
@@ -841,9 +843,9 @@ export interface PromptCapabilities {
    */
   image?: boolean;
   /**
-   * Agent supports custom slash commands via `list_commands` and `run_command`.
+   * Agent supports commands via `list_commands` and `run_command`.
    */
-  supportsCustomCommands?: boolean;
+  supportsCommands?: boolean;
 }
 /**
  * Describes an available authentication method.
@@ -1398,7 +1400,7 @@ export const promptCapabilitiesSchema = z.object({
   audio: z.boolean().optional(),
   embeddedContext: z.boolean().optional(),
   image: z.boolean().optional(),
-  supportsCustomCommands: z.boolean().optional(),
+  supportsCommands: z.boolean().optional(),
 });
 
 /** @internal */

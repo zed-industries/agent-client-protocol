@@ -92,7 +92,7 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
-    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false,"supportsCustomCommands":false}}`
+    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false,"supportsCommands":false}}`
 
 </ResponseField>
 <ResponseField name="authMethods" type={<><span><a href="#authmethod">AuthMethod</a></span><span>[]</span></>} >
@@ -616,7 +616,7 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
   Prompt capabilities supported by the agent.
 
-    - Default: `{"audio":false,"embeddedContext":false,"image":false,"supportsCustomCommands":false}`
+    - Default: `{"audio":false,"embeddedContext":false,"image":false,"supportsCommands":false}`
 
 </ResponseField>
 
@@ -1247,8 +1247,8 @@ in prompt requests for pieces of context that are referenced in the message.
     - Default: `false`
 
 </ResponseField>
-<ResponseField name="supportsCustomCommands" type={"boolean"} >
-  Agent supports custom slash commands via `list_commands` and `run_command`.
+<ResponseField name="supportsCommands" type={"boolean"} >
+  Agent supports commands via `list_commands` and `run_command`.
 
     - Default: `false`
 
