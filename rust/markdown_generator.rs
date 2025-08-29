@@ -634,6 +634,8 @@ impl SideDocs {
             "session/load" => self.agent_methods.get("load_session").unwrap(),
             "session/prompt" => self.agent_methods.get("prompt").unwrap(),
             "session/cancel" => self.agent_methods.get("cancel").unwrap(),
+            "session/list_commands" => self.agent_methods.get("list_commands").unwrap(),
+            "session/run_command" => self.agent_methods.get("run_command").unwrap(),
             _ => panic!("Introduced a method? Add it here :)"),
         }
     }

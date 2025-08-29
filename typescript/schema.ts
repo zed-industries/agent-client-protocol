@@ -224,7 +224,9 @@ export type AgentRequest =
   | AuthenticateRequest
   | NewSessionRequest
   | LoadSessionRequest
-  | PromptRequest;
+  | PromptRequest
+  | ListCommandsRequest
+  | RunCommandRequest;
 /**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
@@ -289,7 +291,8 @@ export type AgentResponse =
   | AuthenticateResponse
   | NewSessionResponse
   | LoadSessionResponse
-  | PromptResponse;
+  | PromptResponse
+  | ListCommandsResponse;
 export type AuthenticateResponse = null;
 export type LoadSessionResponse = null;
 /**
@@ -734,6 +737,60 @@ export interface PromptRequest {
   sessionId: string;
 }
 /**
+ * Request parameters for listing available commands.
+ */
+export interface ListCommandsRequest {
+  /**
+   * A unique identifier for a conversation session between a client and agent.
+   *
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   */
+  sessionId: string;
+}
+/**
+ * Request parameters for executing a command.
+ */
+export interface RunCommandRequest {
+  /**
+   * Optional arguments for the command.
+   */
+  args?: string | null;
+  /**
+   * Name of the command to execute.
+   */
+  command: string;
+  /**
+   * A unique identifier for a conversation session between a client and agent.
+   *
+   * Sessions maintain their own context, conversation history, and state,
+   * allowing multiple independent interactions with the same agent.
+   *
+   * # Example
+   *
+   * ```
+   * use agent_client_protocol::SessionId;
+   * use std::sync::Arc;
+   *
+   * let session_id = SessionId(Arc::from("sess_abc123def456"));
+   * ```
+   *
+   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   */
+  sessionId: string;
+}
+/**
  * Response from the initialize method.
  *
  * Contains the negotiated protocol version and agent capabilities.
@@ -783,6 +840,10 @@ export interface PromptCapabilities {
    * Agent supports [`ContentBlock::Image`].
    */
   image?: boolean;
+  /**
+   * Agent supports custom slash commands via `list_commands` and `run_command`.
+   */
+  supportsCustomCommands?: boolean;
 }
 /**
  * Describes an available authentication method.
@@ -841,6 +902,32 @@ export interface PromptResponse {
     | "max_turn_requests"
     | "refusal"
     | "cancelled";
+}
+/**
+ * Response containing available commands.
+ */
+export interface ListCommandsResponse {
+  /**
+   * List of available commands.
+   */
+  commands: CommandInfo[];
+}
+/**
+ * Information about a custom command.
+ */
+export interface CommandInfo {
+  /**
+   * Human-readable description of what the command does.
+   */
+  description: string;
+  /**
+   * Command name (e.g., "create_plan", "research_codebase").
+   */
+  name: string;
+  /**
+   * Whether this command requires arguments from the user.
+   */
+  requiresArgument: boolean;
 }
 /**
  * Notification containing a session update from the agent.
@@ -1095,6 +1182,18 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
+export const listCommandsRequestSchema = z.object({
+  sessionId: z.string(),
+});
+
+/** @internal */
+export const runCommandRequestSchema = z.object({
+  args: z.string().optional().nullable(),
+  command: z.string(),
+  sessionId: z.string(),
+});
+
+/** @internal */
 export const annotationsSchema = z.object({
   audience: z.array(roleSchema).optional().nullable(),
   lastModified: z.string().optional().nullable(),
@@ -1299,6 +1398,14 @@ export const promptCapabilitiesSchema = z.object({
   audio: z.boolean().optional(),
   embeddedContext: z.boolean().optional(),
   image: z.boolean().optional(),
+  supportsCustomCommands: z.boolean().optional(),
+});
+
+/** @internal */
+export const commandInfoSchema = z.object({
+  description: z.string(),
+  name: z.string(),
+  requiresArgument: z.boolean(),
 });
 
 /** @internal */
@@ -1342,6 +1449,11 @@ export const newSessionRequestSchema = z.object({
 export const promptRequestSchema = z.object({
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
+});
+
+/** @internal */
+export const listCommandsResponseSchema = z.object({
+  commands: z.array(commandInfoSchema),
 });
 
 /** @internal */
@@ -1484,6 +1596,8 @@ export const agentRequestSchema = z.union([
   newSessionRequestSchema,
   loadSessionRequestSchema,
   promptRequestSchema,
+  listCommandsRequestSchema,
+  runCommandRequestSchema,
 ]);
 
 /** @internal */
@@ -1493,6 +1607,7 @@ export const agentResponseSchema = z.union([
   newSessionResponseSchema,
   loadSessionResponseSchema,
   promptResponseSchema,
+  listCommandsResponseSchema,
 ]);
 
 /** @internal */

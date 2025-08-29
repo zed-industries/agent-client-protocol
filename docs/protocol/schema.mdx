@@ -92,7 +92,7 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
-    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
+    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false,"supportsCustomCommands":false}}`
 
 </ResponseField>
 <ResponseField name="authMethods" type={<><span><a href="#authmethod">AuthMethod</a></span><span>[]</span></>} >
@@ -141,6 +141,53 @@ See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/promp
   required
 >
   The ID of the session to cancel operations for.
+</ResponseField>
+
+<a id="session-list_commands"></a>
+### <span class="font-mono">session/list_commands</span>
+
+Lists available custom commands for a session.
+
+Returns all commands available in the agent's `.claude/commands` directory
+or equivalent command registry. Commands can be executed via `run_command`.
+
+#### <span class="font-mono">ListCommandsRequest</span>
+
+Request parameters for listing available commands.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The session ID to list commands for.
+</ResponseField>
+
+#### <span class="font-mono">ListCommandsResponse</span>
+
+Response containing available commands.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="commands"
+  type={
+    <>
+      <span>
+        <a href="#commandinfo">CommandInfo</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+>
+  List of available commands.
 </ResponseField>
 
 <a id="session-load"></a>
@@ -321,6 +368,36 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
   required
 >
   Indicates why the agent stopped processing the turn.
+</ResponseField>
+
+<a id="session-run_command"></a>
+### <span class="font-mono">session/run_command</span>
+
+Executes a custom command within a session.
+
+Runs the specified command with optional arguments. The agent should
+stream results back via session update notifications.
+
+#### <span class="font-mono">RunCommandRequest</span>
+
+Request parameters for executing a command.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="args" type={"string | null"}>
+  Optional arguments for the command.
+</ResponseField>
+<ResponseField name="command" type={"string"} required>
+  Name of the command to execute.
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The session ID to execute the command in.
 </ResponseField>
 
 ## Client
@@ -539,7 +616,7 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
   Prompt capabilities supported by the agent.
 
-    - Default: `{"audio":false,"embeddedContext":false,"image":false}`
+    - Default: `{"audio":false,"embeddedContext":false,"image":false,"supportsCustomCommands":false}`
 
 </ResponseField>
 
@@ -644,6 +721,24 @@ This capability is not part of the spec yet, and may be removed or changed at an
 
     - Default: `false`
 
+</ResponseField>
+
+## <span class="font-mono">CommandInfo</span>
+
+Information about a custom command.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="description" type={"string"} required>
+  Human-readable description of what the command does.
+</ResponseField>
+<ResponseField name="name" type={"string"} required>
+  Command name (e.g., "create_plan", "research_codebase").
+</ResponseField>
+<ResponseField name="requiresArgument" type={"boolean"} required>
+  Whether this command requires arguments from the user.
 </ResponseField>
 
 ## <span class="font-mono">ContentBlock</span>
@@ -1148,6 +1243,12 @@ in prompt requests for pieces of context that are referenced in the message.
 </ResponseField>
 <ResponseField name="image" type={"boolean"} >
   Agent supports `ContentBlock::Image`.
+
+    - Default: `false`
+
+</ResponseField>
+<ResponseField name="supportsCustomCommands" type={"boolean"} >
+  Agent supports custom slash commands via `list_commands` and `run_command`.
 
     - Default: `false`
 

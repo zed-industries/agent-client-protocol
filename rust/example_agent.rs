@@ -96,6 +96,25 @@ impl acp::Agent for ExampleAgent {
         log::info!("Received cancel request {args:?}");
         Ok(())
     }
+
+    async fn list_commands(
+        &self,
+        arguments: acp::ListCommandsRequest,
+    ) -> Result<acp::ListCommandsResponse, acp::Error> {
+        log::info!("Received list_commands request {arguments:?}");
+        Ok(acp::ListCommandsResponse {
+            commands: vec![acp::CommandInfo {
+                name: "test".to_string(),
+                description: "A test command".to_string(),
+                requires_argument: false,
+            }],
+        })
+    }
+
+    async fn run_command(&self, arguments: acp::RunCommandRequest) -> Result<(), acp::Error> {
+        log::info!("Received run_command request {arguments:?}");
+        Ok(())
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
