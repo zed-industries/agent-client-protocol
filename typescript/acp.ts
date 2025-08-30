@@ -73,6 +73,13 @@ export class AgentSideConnection {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
           return agent.cancel(validatedParams as schema.CancelNotification);
         }
+        case schema.AGENT_METHODS.session_list_commands: {
+          const validatedParams =
+            schema.listCommandsRequestSchema.parse(params);
+          return agent.listCommands(
+            validatedParams as schema.ListCommandsRequest,
+          );
+        }
         default:
           throw RequestError.methodNotFound(method);
       }
@@ -440,6 +447,24 @@ export class ClientSideConnection implements Agent {
   async cancel(params: schema.CancelNotification): Promise<void> {
     return await this.#connection.sendNotification(
       schema.AGENT_METHODS.session_cancel,
+      params,
+    );
+  }
+
+  // todo!()
+  async listCommands(
+    params: schema.ListCommandsRequest,
+  ): Promise<schema.ListCommandsResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_list_commands,
+      params,
+    );
+  }
+
+  // todo!()
+  async runCommand(params: schema.RunCommandRequest): Promise<void> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_run_command,
       params,
     );
   }
@@ -811,7 +836,7 @@ export interface Client {
    */
   createTerminal?(
     params: schema.CreateTerminalRequest,
-  ): Promise<schema.CreateTerminalResponse>;
+  ): Promise<TerminalHandle>;
 
   /**
    *  @internal **UNSTABLE**
@@ -931,4 +956,10 @@ export interface Agent {
    * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   cancel(params: schema.CancelNotification): Promise<void>;
+
+  listCommands(
+    params: schema.ListCommandsRequest,
+  ): Promise<schema.ListCommandsResponse>;
+
+  runCommand(params: schema.RunCommandRequest): Promise<void>;
 }

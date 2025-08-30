@@ -160,6 +160,17 @@ impl Agent for TestAgent {
             .push(args.session_id);
         Ok(())
     }
+
+    async fn list_commands(
+        &self,
+        _arguments: ListCommandsRequest,
+    ) -> Result<ListCommandsResponse, Error> {
+        Ok(ListCommandsResponse { commands: vec![] })
+    }
+
+    async fn run_command(&self, _arguments: RunCommandRequest) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 // Helper function to create a bidirectional connection
