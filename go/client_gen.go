@@ -64,7 +64,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientExperimental)
+		t, ok := c.client.(ClientTerminal)
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
@@ -81,7 +81,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientExperimental)
+		t, ok := c.client.(ClientTerminal)
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
@@ -98,7 +98,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientExperimental)
+		t, ok := c.client.(ClientTerminal)
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
@@ -114,7 +114,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientExperimental)
+		t, ok := c.client.(ClientTerminal)
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}

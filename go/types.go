@@ -1101,8 +1101,8 @@ type Client interface {
 	SessionUpdate(params SessionNotification) error
 }
 
-// ClientExperimental defines undocumented/experimental methods (x-docs-ignore), such as terminal support. Implement and advertise the related capability to enable them.
-type ClientExperimental interface {
+// ClientTerminal defines terminal-related experimental methods (x-docs-ignore). Implement and advertise 'terminal: true' to enable 'terminal/*'.
+type ClientTerminal interface {
 	CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error)
 	TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error)
 	ReleaseTerminal(params ReleaseTerminalRequest) error

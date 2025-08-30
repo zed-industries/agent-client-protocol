@@ -14,8 +14,8 @@ import (
 type exampleClient struct{}
 
 var (
-	_ acp.Client             = (*exampleClient)(nil)
-	_ acp.ClientExperimental = (*exampleClient)(nil)
+    _ acp.Client         = (*exampleClient)(nil)
+    _ acp.ClientTerminal = (*exampleClient)(nil)
 )
 
 func (e *exampleClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {

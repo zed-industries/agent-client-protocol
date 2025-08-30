@@ -338,6 +338,7 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 		// Client
 		clientStable := []Code{}
 		clientExperimental := []Code{}
+		clientTerminal := []Code{}
 		cmKeys := make([]string, 0, len(meta.ClientMethods))
 		for k := range meta.ClientMethods {
 			cmKeys = append(cmKeys, k)
@@ -351,7 +352,11 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 			}
 			target := &clientStable
 			if isDocsIgnored(mi) {
-				target = &clientExperimental
+				if strings.HasPrefix(wire, "terminal/") {
+					target = &clientTerminal
+				} else {
+					target = &clientExperimental
+				}
 			}
 			if mi.Notif != "" {
 				name := dispatchMethodNameForNotification(k, mi.Notif)
@@ -367,8 +372,12 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 			}
 		}
 		f.Type().Id("Client").Interface(clientStable...)
+		if len(clientTerminal) > 0 {
+			f.Comment("ClientTerminal defines terminal-related experimental methods (x-docs-ignore). Implement and advertise 'terminal: true' to enable 'terminal/*'.")
+			f.Type().Id("ClientTerminal").Interface(clientTerminal...)
+		}
 		if len(clientExperimental) > 0 {
-			f.Comment("ClientExperimental defines undocumented/experimental methods (x-docs-ignore), such as terminal support. Implement and advertise the related capability to enable them.")
+			f.Comment("ClientExperimental defines undocumented/experimental methods (x-docs-ignore) other than terminals. These may change or be removed without notice.")
 			f.Type().Id("ClientExperimental").Interface(clientExperimental...)
 		}
 	}
@@ -1352,11 +1361,15 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 				),
 			)
 			methodName := strings.TrimSuffix(mi.Req, "Request")
-			// Optional/experimental undocumented methods: require ClientExperimental
+			// Optional/experimental undocumented methods: require ClientTerminal for terminal/*, ClientExperimental otherwise
 			if isDocsIgnoredMethod(schema, mi) {
+				clientIface := "ClientExperimental"
+				if strings.HasPrefix(wire, "terminal/") {
+					clientIface = "ClientTerminal"
+				}
 				// Perform type assertion first, then branch
 				body = append(body,
-					List(Id("t"), Id("ok")).Op(":=").Id("c").Dot("client").Assert(Id("ClientExperimental")),
+					List(Id("t"), Id("ok")).Op(":=").Id("c").Dot("client").Assert(Id(clientIface)),
 					If(Op("!").Id("ok")).Block(
 						Return(Nil(), Id("NewMethodNotFound").Call(Id("method"))),
 					),

@@ -20,8 +20,8 @@ type replClient struct {
 }
 
 var (
-	_ acp.Client             = (*replClient)(nil)
-	_ acp.ClientExperimental = (*replClient)(nil)
+    _ acp.Client         = (*replClient)(nil)
+    _ acp.ClientTerminal = (*replClient)(nil)
 )
 
 func (c *replClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
