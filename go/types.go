@@ -1086,16 +1086,25 @@ type Agent interface {
 	Authenticate(params AuthenticateRequest) error
 	Initialize(params InitializeRequest) (InitializeResponse, error)
 	Cancel(params CancelNotification) error
-	LoadSession(params LoadSessionRequest) error
 	NewSession(params NewSessionRequest) (NewSessionResponse, error)
 	Prompt(params PromptRequest) (PromptResponse, error)
+}
+
+// AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.
+type AgentLoader interface {
+	LoadSession(params LoadSessionRequest) error
 }
 type Client interface {
 	ReadTextFile(params ReadTextFileRequest) (ReadTextFileResponse, error)
 	WriteTextFile(params WriteTextFileRequest) error
 	RequestPermission(params RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdate(params SessionNotification) error
+}
+
+// ClientExperimental defines undocumented/experimental methods (x-docs-ignore), such as terminal support. Implement and advertise the related capability to enable them.
+type ClientExperimental interface {
 	CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error)
 	TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error)
 	ReleaseTerminal(params ReleaseTerminalRequest) error
+	WaitForTerminalExit(params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }

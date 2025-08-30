@@ -15,6 +15,8 @@ type clientFuncs struct {
 	SessionUpdateFunc     func(SessionNotification) error
 }
 
+var _ Client = (*clientFuncs)(nil)
+
 func (c clientFuncs) WriteTextFile(p WriteTextFileRequest) error {
 	if c.WriteTextFileFunc != nil {
 		return c.WriteTextFileFunc(p)
@@ -43,21 +45,6 @@ func (c clientFuncs) SessionUpdate(n SessionNotification) error {
 	return nil
 }
 
-// Optional/UNSTABLE terminal methods – provide no-op implementations so clientFuncs satisfies Client.
-func (c clientFuncs) CreateTerminal(p CreateTerminalRequest) (CreateTerminalResponse, error) {
-	return CreateTerminalResponse{TerminalId: "term-1"}, nil
-}
-
-func (c clientFuncs) TerminalOutput(p TerminalOutputRequest) (TerminalOutputResponse, error) {
-	return TerminalOutputResponse{Output: "", Truncated: false}, nil
-}
-
-func (c clientFuncs) ReleaseTerminal(p ReleaseTerminalRequest) error { return nil }
-
-func (c clientFuncs) WaitForTerminalExit(p WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
-	return WaitForTerminalExitResponse{}, nil
-}
-
 type agentFuncs struct {
 	InitializeFunc   func(InitializeRequest) (InitializeResponse, error)
 	NewSessionFunc   func(NewSessionRequest) (NewSessionResponse, error)
@@ -66,6 +53,11 @@ type agentFuncs struct {
 	PromptFunc       func(PromptRequest) (PromptResponse, error)
 	CancelFunc       func(CancelNotification) error
 }
+
+var (
+	_ Agent       = (*agentFuncs)(nil)
+	_ AgentLoader = (*agentFuncs)(nil)
+)
 
 func (a agentFuncs) Initialize(p InitializeRequest) (InitializeResponse, error) {
 	if a.InitializeFunc != nil {

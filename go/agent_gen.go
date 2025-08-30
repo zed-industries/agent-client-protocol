@@ -51,7 +51,11 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := a.agent.LoadSession(p); err != nil {
+		loader, ok := a.agent.(AgentLoader)
+		if !ok {
+			return nil, NewMethodNotFound(method)
+		}
+		if err := loader.LoadSession(p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -109,4 +113,8 @@ func (c *AgentSideConnection) TerminalOutput(params TerminalOutputRequest) (Term
 }
 func (c *AgentSideConnection) ReleaseTerminal(params ReleaseTerminalRequest) error {
 	return c.conn.SendRequestNoResult(ClientMethodTerminalRelease, params)
+}
+func (c *AgentSideConnection) WaitForTerminalExit(params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	resp, err := SendRequest[WaitForTerminalExitResponse](c.conn, ClientMethodTerminalWaitForExit, params)
+	return resp, err
 }

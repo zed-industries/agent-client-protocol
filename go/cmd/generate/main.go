@@ -260,10 +260,37 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 
 	// Append Agent and Client interfaces derived from meta.json + schema defs
 	{
-		type methodInfo struct{ Side, Method, Req, Resp, Notif string }
 		groups := buildMethodGroups(schema, meta)
+
+		// Helper: determine if a method is undocumented (x-docs-ignore)
+		isDocsIgnored := func(mi *methodInfo) bool {
+			if mi == nil {
+				return false
+			}
+			if mi.Req != "" {
+				if d := schema.Defs[mi.Req]; d != nil && d.DocsIgnore {
+					return true
+				}
+			}
+			if mi.Resp != "" {
+				if d := schema.Defs[mi.Resp]; d != nil && d.DocsIgnore {
+					return true
+				}
+			}
+			if mi.Notif != "" {
+				if d := schema.Defs[mi.Notif]; d != nil && d.DocsIgnore {
+					return true
+				}
+			}
+			return false
+		}
+
 		// Agent
-		methods := []Code{}
+		agentMethods := []Code{}
+		// Optional loader methods live on a separate interface
+		agentLoaderMethods := []Code{}
+		// Undocumented/experimental methods live on a separate interface
+		agentExperimentalMethods := []Code{}
 		amKeys := make([]string, 0, len(meta.AgentMethods))
 		for k := range meta.AgentMethods {
 			amKeys = append(amKeys, k)
@@ -275,22 +302,42 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 			if mi == nil {
 				continue
 			}
+			// Treat session/load as optional (AgentLoader)
+			target := &agentMethods
+			if wire == "session/load" {
+				target = &agentLoaderMethods
+			}
+			// Undocumented/experimental agent methods go to AgentExperimental
+			if isDocsIgnored(mi) {
+				target = &agentExperimentalMethods
+			}
 			if mi.Notif != "" {
 				name := dispatchMethodNameForNotification(k, mi.Notif)
-				methods = append(methods, Id(name).Params(Id("params").Id(mi.Notif)).Error())
+				*target = append(*target, Id(name).Params(Id("params").Id(mi.Notif)).Error())
 			} else if mi.Req != "" {
 				respName := strings.TrimSuffix(mi.Req, "Request") + "Response"
 				methodName := strings.TrimSuffix(mi.Req, "Request")
 				if isNullResponse(schema.Defs[respName]) {
-					methods = append(methods, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
+					*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
 				} else {
-					methods = append(methods, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
+					*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
 				}
 			}
 		}
-		f.Type().Id("Agent").Interface(methods...)
+		// Emit interfaces
+		f.Type().Id("Agent").Interface(agentMethods...)
+		if len(agentLoaderMethods) > 0 {
+			f.Comment("AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.")
+			f.Type().Id("AgentLoader").Interface(agentLoaderMethods...)
+		}
+		if len(agentExperimentalMethods) > 0 {
+			f.Comment("AgentExperimental defines undocumented/experimental methods (x-docs-ignore). These may change or be removed without notice.")
+			f.Type().Id("AgentExperimental").Interface(agentExperimentalMethods...)
+		}
+
 		// Client
-		methods = []Code{}
+		clientStable := []Code{}
+		clientExperimental := []Code{}
 		cmKeys := make([]string, 0, len(meta.ClientMethods))
 		for k := range meta.ClientMethods {
 			cmKeys = append(cmKeys, k)
@@ -302,20 +349,28 @@ func writeTypesJen(outDir string, schema *Schema, meta *Meta) error {
 			if mi == nil {
 				continue
 			}
+			target := &clientStable
+			if isDocsIgnored(mi) {
+				target = &clientExperimental
+			}
 			if mi.Notif != "" {
 				name := dispatchMethodNameForNotification(k, mi.Notif)
-				methods = append(methods, Id(name).Params(Id("params").Id(mi.Notif)).Error())
+				*target = append(*target, Id(name).Params(Id("params").Id(mi.Notif)).Error())
 			} else if mi.Req != "" {
 				respName := strings.TrimSuffix(mi.Req, "Request") + "Response"
 				methodName := strings.TrimSuffix(mi.Req, "Request")
 				if isNullResponse(schema.Defs[respName]) {
-					methods = append(methods, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
+					*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
 				} else {
-					methods = append(methods, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
+					*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
 				}
 			}
 		}
-		f.Type().Id("Client").Interface(methods...)
+		f.Type().Id("Client").Interface(clientStable...)
+		if len(clientExperimental) > 0 {
+			f.Comment("ClientExperimental defines undocumented/experimental methods (x-docs-ignore), such as terminal support. Implement and advertise the related capability to enable them.")
+			f.Type().Id("ClientExperimental").Interface(clientExperimental...)
+		}
 	}
 
 	var buf bytes.Buffer
@@ -338,6 +393,30 @@ func isStringConstUnion(def *Definition) bool {
 		}
 	}
 	return true
+}
+
+// isDocsIgnoredMethod returns true if any of the method's associated types
+// (request, response, notification) are marked with x-docs-ignore in the schema.
+func isDocsIgnoredMethod(schema *Schema, mi *methodInfo) bool {
+	if mi == nil {
+		return false
+	}
+	if mi.Req != "" {
+		if d := schema.Defs[mi.Req]; d != nil && d.DocsIgnore {
+			return true
+		}
+	}
+	if mi.Resp != "" {
+		if d := schema.Defs[mi.Resp]; d != nil && d.DocsIgnore {
+			return true
+		}
+	}
+	if mi.Notif != "" {
+		if d := schema.Defs[mi.Notif]; d != nil && d.DocsIgnore {
+			return true
+		}
+	}
+	return false
 }
 
 // emitValidateJen generates a simple Validate method for selected types.
@@ -491,6 +570,10 @@ func buildMethodGroups(schema *Schema, meta *Meta) map[string]*methodInfo {
 }
 
 func inferTypeBaseFromMethodKey(methodKey string) string {
+	// Special-case known irregular mappings
+	if methodKey == "terminal_wait_for_exit" {
+		return "WaitForTerminalExit"
+	}
 	parts := strings.Split(methodKey, "_")
 	if len(parts) == 2 {
 		n, v := parts[0], parts[1]
@@ -1082,22 +1165,75 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 				),
 			)
 			methodName := strings.TrimSuffix(mi.Req, "Request")
-			if isNullResponse(schema.Defs[respName]) {
+			// Optional: session/load lives on AgentLoader
+			if wire == "session/load" {
+				// Perform type assertion first, then branch
 				caseBody = append(caseBody,
-					If(
-						List(Id("err")).Op(":=").Id("a").Dot("agent").Dot(methodName).Call(Id("p")),
-						Id("err").Op("!=").Nil(),
-					).Block(
-						Return(Nil(), Id("toReqErr").Call(Id("err"))),
+					List(Id("loader"), Id("ok")).Op(":=").Id("a").Dot("agent").Assert(Id("AgentLoader")),
+					If(Op("!").Id("ok")).Block(
+						Return(Nil(), Id("NewMethodNotFound").Call(Id("method"))),
 					),
-					Return(Nil(), Nil()),
 				)
-			} else {
+				if isNullResponse(schema.Defs[respName]) {
+					caseBody = append(caseBody,
+						If(
+							List(Id("err")).Op(":=").Id("loader").Dot(methodName).Call(Id("p")),
+							Id("err").Op("!=").Nil(),
+						).Block(
+							Return(Nil(), Id("toReqErr").Call(Id("err"))),
+						),
+						Return(Nil(), Nil()),
+					)
+				} else {
+					caseBody = append(caseBody,
+						List(Id("resp"), Id("err")).Op(":=").Id("loader").Dot(methodName).Call(Id("p")),
+						If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
+						Return(Id("resp"), Nil()),
+					)
+				}
+			} else if isDocsIgnoredMethod(schema, mi) {
+				// Undocumented/experimental agent methods require AgentExperimental
 				caseBody = append(caseBody,
-					List(Id("resp"), Id("err")).Op(":=").Id("a").Dot("agent").Dot(methodName).Call(Id("p")),
-					If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
-					Return(Id("resp"), Nil()),
+					List(Id("exp"), Id("ok")).Op(":=").Id("a").Dot("agent").Assert(Id("AgentExperimental")),
+					If(Op("!").Id("ok")).Block(
+						Return(Nil(), Id("NewMethodNotFound").Call(Id("method"))),
+					),
 				)
+				if isNullResponse(schema.Defs[respName]) {
+					caseBody = append(caseBody,
+						If(
+							List(Id("err")).Op(":=").Id("exp").Dot(methodName).Call(Id("p")),
+							Id("err").Op("!=").Nil(),
+						).Block(
+							Return(Nil(), Id("toReqErr").Call(Id("err"))),
+						),
+						Return(Nil(), Nil()),
+					)
+				} else {
+					caseBody = append(caseBody,
+						List(Id("resp"), Id("err")).Op(":=").Id("exp").Dot(methodName).Call(Id("p")),
+						If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
+						Return(Id("resp"), Nil()),
+					)
+				}
+			} else {
+				if isNullResponse(schema.Defs[respName]) {
+					caseBody = append(caseBody,
+						If(
+							List(Id("err")).Op(":=").Id("a").Dot("agent").Dot(methodName).Call(Id("p")),
+							Id("err").Op("!=").Nil(),
+						).Block(
+							Return(Nil(), Id("toReqErr").Call(Id("err"))),
+						),
+						Return(Nil(), Nil()),
+					)
+				} else {
+					caseBody = append(caseBody,
+						List(Id("resp"), Id("err")).Op(":=").Id("a").Dot("agent").Dot(methodName).Call(Id("p")),
+						If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
+						Return(Id("resp"), Nil()),
+					)
+				}
 			}
 		}
 		if len(caseBody) > 0 {
@@ -1216,19 +1352,44 @@ func writeDispatchJen(outDir string, schema *Schema, meta *Meta) error {
 				),
 			)
 			methodName := strings.TrimSuffix(mi.Req, "Request")
-			if isNullResponse(schema.Defs[respName]) {
+			// Optional/experimental undocumented methods: require ClientExperimental
+			if isDocsIgnoredMethod(schema, mi) {
+				// Perform type assertion first, then branch
 				body = append(body,
-					If(List(Id("err")).Op(":=").Id("c").Dot("client").Dot(methodName).Call(Id("p")), Id("err").Op("!=").Nil()).Block(
-						Return(Nil(), Id("toReqErr").Call(Id("err"))),
+					List(Id("t"), Id("ok")).Op(":=").Id("c").Dot("client").Assert(Id("ClientExperimental")),
+					If(Op("!").Id("ok")).Block(
+						Return(Nil(), Id("NewMethodNotFound").Call(Id("method"))),
 					),
-					Return(Nil(), Nil()),
 				)
+				if isNullResponse(schema.Defs[respName]) {
+					body = append(body,
+						If(List(Id("err")).Op(":=").Id("t").Dot(methodName).Call(Id("p")), Id("err").Op("!=").Nil()).Block(
+							Return(Nil(), Id("toReqErr").Call(Id("err"))),
+						),
+						Return(Nil(), Nil()),
+					)
+				} else {
+					body = append(body,
+						List(Id("resp"), Id("err")).Op(":=").Id("t").Dot(methodName).Call(Id("p")),
+						If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
+						Return(Id("resp"), Nil()),
+					)
+				}
 			} else {
-				body = append(body,
-					List(Id("resp"), Id("err")).Op(":=").Id("c").Dot("client").Dot(methodName).Call(Id("p")),
-					If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
-					Return(Id("resp"), Nil()),
-				)
+				if isNullResponse(schema.Defs[respName]) {
+					body = append(body,
+						If(List(Id("err")).Op(":=").Id("c").Dot("client").Dot(methodName).Call(Id("p")), Id("err").Op("!=").Nil()).Block(
+							Return(Nil(), Id("toReqErr").Call(Id("err"))),
+						),
+						Return(Nil(), Nil()),
+					)
+				} else {
+					body = append(body,
+						List(Id("resp"), Id("err")).Op(":=").Id("c").Dot("client").Dot(methodName).Call(Id("p")),
+						If(Id("err").Op("!=").Nil()).Block(Return(Nil(), Id("toReqErr").Call(Id("err")))),
+						Return(Id("resp"), Nil()),
+					)
+				}
 			}
 		}
 		if len(body) > 0 {

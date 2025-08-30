@@ -13,6 +13,11 @@ import (
 
 type exampleClient struct{}
 
+var (
+	_ acp.Client             = (*exampleClient)(nil)
+	_ acp.ClientExperimental = (*exampleClient)(nil)
+)
+
 func (e *exampleClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	fmt.Printf("\n🔐 Permission requested: %s\n", params.ToolCall.Title)
 	fmt.Println("\nOptions:")
@@ -168,8 +173,11 @@ func main() {
 
 	// Initialize
 	initResp, err := conn.Initialize(acp.InitializeRequest{
-		ProtocolVersion:    acp.ProtocolVersionNumber,
-		ClientCapabilities: acp.ClientCapabilities{Fs: acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true}},
+		ProtocolVersion: acp.ProtocolVersionNumber,
+		ClientCapabilities: acp.ClientCapabilities{
+			Fs:       acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true},
+			Terminal: true,
+		},
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "initialize error: %v\n", err)

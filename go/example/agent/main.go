@@ -21,7 +21,10 @@ type exampleAgent struct {
 	sessions map[string]*agentSession
 }
 
-var _ acp.Agent = (*exampleAgent)(nil)
+var (
+	_ acp.Agent       = (*exampleAgent)(nil)
+	_ acp.AgentLoader = (*exampleAgent)(nil)
+)
 
 func newExampleAgent() *exampleAgent {
 	return &exampleAgent{sessions: make(map[string]*agentSession)}

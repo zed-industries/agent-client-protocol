@@ -19,7 +19,10 @@ type replClient struct {
 	autoApprove bool
 }
 
-var _ acp.Client = (*replClient)(nil)
+var (
+	_ acp.Client             = (*replClient)(nil)
+	_ acp.ClientExperimental = (*replClient)(nil)
+)
 
 func (c *replClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	if c.autoApprove {
@@ -64,7 +67,7 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 	case u.AgentMessageChunk != nil:
 		content := u.AgentMessageChunk.Content
 		if content.Type == "text" && content.Text != nil {
-			fmt.Printf("[agent] \n%s\n", content.Text.Text)
+			fmt.Printf("%s", content.Text.Text)
 		} else {
 			fmt.Printf("[agent] %s\n", content.Type)
 		}
@@ -194,8 +197,11 @@ func main() {
 
 	// Initialize
 	initResp, err := conn.Initialize(acp.InitializeRequest{
-		ProtocolVersion:    acp.ProtocolVersionNumber,
-		ClientCapabilities: acp.ClientCapabilities{Fs: acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true}},
+		ProtocolVersion: acp.ProtocolVersionNumber,
+		ClientCapabilities: acp.ClientCapabilities{
+			Fs:       acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true},
+			Terminal: true,
+		},
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "initialize error: %v\n", err)
@@ -216,7 +222,7 @@ func main() {
 	fmt.Println("Type a message and press Enter to send. Commands: :cancel, :exit")
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Print("> ")
+		fmt.Print("\n> ")
 		if !scanner.Scan() {
 			break
 		}

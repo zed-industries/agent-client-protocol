@@ -64,7 +64,11 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := c.client.CreateTerminal(p)
+		t, ok := c.client.(ClientExperimental)
+		if !ok {
+			return nil, NewMethodNotFound(method)
+		}
+		resp, err := t.CreateTerminal(p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -77,7 +81,11 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := c.client.TerminalOutput(p)
+		t, ok := c.client.(ClientExperimental)
+		if !ok {
+			return nil, NewMethodNotFound(method)
+		}
+		resp, err := t.TerminalOutput(p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -90,10 +98,31 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := c.client.ReleaseTerminal(p); err != nil {
+		t, ok := c.client.(ClientExperimental)
+		if !ok {
+			return nil, NewMethodNotFound(method)
+		}
+		if err := t.ReleaseTerminal(p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
+	case ClientMethodTerminalWaitForExit:
+		var p WaitForTerminalExitRequest
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		t, ok := c.client.(ClientExperimental)
+		if !ok {
+			return nil, NewMethodNotFound(method)
+		}
+		resp, err := t.WaitForTerminalExit(p)
+		if err != nil {
+			return nil, toReqErr(err)
+		}
+		return resp, nil
 	default:
 		return nil, NewMethodNotFound(method)
 	}
