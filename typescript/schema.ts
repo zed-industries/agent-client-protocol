@@ -822,6 +822,10 @@ export interface AgentCapabilities {
    */
   loadSession?: boolean;
   promptCapabilities?: PromptCapabilities;
+  /**
+   * Agent supports commands via `list_commands` and `run_command`.
+   */
+  supportsCommands?: boolean;
 }
 /**
  * Prompt capabilities supported by the agent.
@@ -842,10 +846,6 @@ export interface PromptCapabilities {
    * Agent supports [`ContentBlock::Image`].
    */
   image?: boolean;
-  /**
-   * Agent supports commands via `list_commands` and `run_command`.
-   */
-  supportsCommands?: boolean;
 }
 /**
  * Describes an available authentication method.
@@ -1400,7 +1400,6 @@ export const promptCapabilitiesSchema = z.object({
   audio: z.boolean().optional(),
   embeddedContext: z.boolean().optional(),
   image: z.boolean().optional(),
-  supportsCommands: z.boolean().optional(),
 });
 
 /** @internal */
@@ -1544,6 +1543,7 @@ export const clientCapabilitiesSchema = z.object({
 export const agentCapabilitiesSchema = z.object({
   loadSession: z.boolean().optional(),
   promptCapabilities: promptCapabilitiesSchema.optional(),
+  supportsCommands: z.boolean().optional(),
 });
 
 /** @internal */

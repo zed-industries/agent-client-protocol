@@ -92,7 +92,7 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
-    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false,"supportsCommands":false}}`
+    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false},"supportsCommands":false}`
 
 </ResponseField>
 <ResponseField name="authMethods" type={<><span><a href="#authmethod">AuthMethod</a></span><span>[]</span></>} >
@@ -616,7 +616,13 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
   Prompt capabilities supported by the agent.
 
-    - Default: `{"audio":false,"embeddedContext":false,"image":false,"supportsCommands":false}`
+    - Default: `{"audio":false,"embeddedContext":false,"image":false}`
+
+</ResponseField>
+<ResponseField name="supportsCommands" type={"boolean"} >
+  Agent supports commands via `list_commands` and `run_command`.
+
+    - Default: `false`
 
 </ResponseField>
 
@@ -1243,12 +1249,6 @@ in prompt requests for pieces of context that are referenced in the message.
 </ResponseField>
 <ResponseField name="image" type={"boolean"} >
   Agent supports `ContentBlock::Image`.
-
-    - Default: `false`
-
-</ResponseField>
-<ResponseField name="supportsCommands" type={"boolean"} >
-  Agent supports commands via `list_commands` and `run_command`.
 
     - Default: `false`
 

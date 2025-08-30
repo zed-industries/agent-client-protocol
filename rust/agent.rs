@@ -354,6 +354,10 @@ pub struct AgentCapabilities {
     /// Prompt capabilities supported by the agent.
     #[serde(default)]
     pub prompt_capabilities: PromptCapabilities,
+
+    /// Agent supports commands via `list_commands` and `run_command`.
+    #[serde(default)]
+    pub supports_commands: bool,
 }
 
 /// Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -383,9 +387,6 @@ pub struct PromptCapabilities {
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
-    /// Agent supports commands via `list_commands` and `run_command`.
-    #[serde(default)]
-    pub supports_commands: bool,
 }
 
 // Slash commands

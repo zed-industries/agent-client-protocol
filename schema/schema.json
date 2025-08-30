@@ -13,10 +13,14 @@
           "default": {
             "audio": false,
             "embeddedContext": false,
-            "image": false,
-            "supportsCommands": false
+            "image": false
           },
           "description": "Prompt capabilities supported by the agent."
+        },
+        "supportsCommands": {
+          "default": false,
+          "description": "Agent supports commands via `list_commands` and `run_command`.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -635,9 +639,9 @@
             "promptCapabilities": {
               "audio": false,
               "embeddedContext": false,
-              "image": false,
-              "supportsCommands": false
-            }
+              "image": false
+            },
+            "supportsCommands": false
           },
           "description": "Capabilities supported by the agent."
         },
@@ -911,11 +915,6 @@
         "image": {
           "default": false,
           "description": "Agent supports [`ContentBlock::Image`].",
-          "type": "boolean"
-        },
-        "supportsCommands": {
-          "default": false,
-          "description": "Agent supports commands via `list_commands` and `run_command`.",
           "type": "boolean"
         }
       },
