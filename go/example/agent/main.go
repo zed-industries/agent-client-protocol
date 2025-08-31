@@ -87,6 +87,20 @@ func (a *exampleAgent) Prompt(params acp.PromptRequest) (acp.PromptResponse, err
 }
 
 func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
+	// disclaimer: stream a demo notice so clients see it's the example agent
+	if err := a.conn.SessionUpdate(acp.SessionNotification{
+		SessionId: acp.SessionId(sid),
+		Update: acp.SessionUpdate{
+			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
+				Content: acp.TextBlock("ACP Go Example Agent — demo only (no AI model)."),
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	if err := pause(ctx, 250*time.Millisecond); err != nil {
+		return err
+	}
 	// initial message chunk
 	if err := a.conn.SessionUpdate(acp.SessionNotification{
 		SessionId: acp.SessionId(sid),

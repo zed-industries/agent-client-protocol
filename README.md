@@ -14,6 +14,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
+- **Go**: [`github.com/zed-industries/agent-client-protocol/go`](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go) - See [example/](./go/example/) and the [Go README](./go/README.md)
 - **JSON Schema**: [schema.json](./schema/schema.json)
 
 ## Contributing
