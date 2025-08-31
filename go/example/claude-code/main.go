@@ -13,17 +13,14 @@ import (
 	acp "github.com/zed-industries/agent-client-protocol/go"
 )
 
-// GeminiREPL demonstrates connecting to the Gemini CLI running in ACP mode
+// ClaudeCodeREPL demonstrates connecting to the Claude Code CLI running in ACP mode
 // and providing a simple REPL to send prompts and print streamed updates.
 
 type replClient struct {
 	autoApprove bool
 }
 
-var (
-	_ acp.Client         = (*replClient)(nil)
-	_ acp.ClientTerminal = (*replClient)(nil)
-)
+var _ acp.Client = (*replClient)(nil)
 
 func (c *replClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	if c.autoApprove {
@@ -68,7 +65,7 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 	case u.AgentMessageChunk != nil:
 		content := u.AgentMessageChunk.Content
 		if content.Type == "text" && content.Text != nil {
-			fmt.Printf("%s", content.Text.Text)
+			fmt.Printf("[agent] \n%s\n", content.Text.Text)
 		} else {
 			fmt.Printf("[agent] %s\n", content.Type)
 		}
@@ -157,25 +154,11 @@ func (c *replClient) WaitForTerminalExit(params acp.WaitForTerminalExitRequest) 
 }
 
 func main() {
-	binary := flag.String("gemini", "gemini", "Path to the Gemini CLI binary")
-	model := flag.String("model", "", "Model to pass to Gemini (optional)")
-	sandbox := flag.Bool("sandbox", false, "Run Gemini in sandbox mode")
 	yolo := flag.Bool("yolo", false, "Auto-approve permission prompts")
-	debug := flag.Bool("debug", false, "Pass --debug to Gemini")
 	flag.Parse()
 
-	args := []string{"--experimental-acp"}
-	if *model != "" {
-		args = append(args, "--model", *model)
-	}
-	if *sandbox {
-		args = append(args, "--sandbox")
-	}
-	if *debug {
-		args = append(args, "--debug")
-	}
-
-	cmd := exec.Command(*binary, args...)
+	// Invoke Claude Code via npx
+	cmd := exec.Command("npx", "-y", "@zed-industries/claude-code-acp")
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -189,7 +172,7 @@ func main() {
 	}
 
 	if err := cmd.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start Gemini: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to start Claude Code: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -198,11 +181,8 @@ func main() {
 
 	// Initialize
 	initResp, err := conn.Initialize(acp.InitializeRequest{
-		ProtocolVersion: acp.ProtocolVersionNumber,
-		ClientCapabilities: acp.ClientCapabilities{
-			Fs:       acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true},
-			Terminal: true,
-		},
+		ProtocolVersion:    acp.ProtocolVersionNumber,
+		ClientCapabilities: acp.ClientCapabilities{Fs: acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true}},
 	})
 	if err != nil {
 		if re, ok := err.(*acp.RequestError); ok {
@@ -217,7 +197,7 @@ func main() {
 		_ = cmd.Process.Kill()
 		os.Exit(1)
 	}
-	fmt.Printf("✅ Connected to Gemini (protocol v%v)\n", initResp.ProtocolVersion)
+	fmt.Printf("✅ Connected to Claude Code (protocol v%v)\n", initResp.ProtocolVersion)
 
 	// New session
 	newSess, err := conn.NewSession(acp.NewSessionRequest{Cwd: mustCwd(), McpServers: []acp.McpServer{}})
@@ -239,7 +219,7 @@ func main() {
 	fmt.Println("Type a message and press Enter to send. Commands: :cancel, :exit")
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Print("\n> ")
+		fmt.Print("> ")
 		if !scanner.Scan() {
 			break
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,8 +15,8 @@ import (
 type exampleClient struct{}
 
 var (
-    _ acp.Client         = (*exampleClient)(nil)
-    _ acp.ClientTerminal = (*exampleClient)(nil)
+	_ acp.Client         = (*exampleClient)(nil)
+	_ acp.ClientTerminal = (*exampleClient)(nil)
 )
 
 func (e *exampleClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
@@ -180,7 +181,15 @@ func main() {
 		},
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "initialize error: %v\n", err)
+		if re, ok := err.(*acp.RequestError); ok {
+			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
+				fmt.Fprintf(os.Stderr, "[Client] Error: %s\n", string(b))
+			} else {
+				fmt.Fprintf(os.Stderr, "initialize error (%d): %s\n", re.Code, re.Message)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "initialize error: %v\n", err)
+		}
 		_ = cmd.Process.Kill()
 		os.Exit(1)
 	}
@@ -189,7 +198,15 @@ func main() {
 	// New session
 	newSess, err := conn.NewSession(acp.NewSessionRequest{Cwd: mustCwd(), McpServers: []acp.McpServer{}})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "newSession error: %v\n", err)
+		if re, ok := err.(*acp.RequestError); ok {
+			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
+				fmt.Fprintf(os.Stderr, "[Client] Error: %s\n", string(b))
+			} else {
+				fmt.Fprintf(os.Stderr, "newSession error (%d): %s\n", re.Code, re.Message)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "newSession error: %v\n", err)
+		}
 		_ = cmd.Process.Kill()
 		os.Exit(1)
 	}
@@ -206,9 +223,10 @@ func main() {
 		}},
 	}); err != nil {
 		if re, ok := err.(*acp.RequestError); ok {
-			fmt.Fprintf(os.Stderr, "prompt error (%d): %s\n", re.Code, re.Message)
-			if re.Data != nil {
-				fmt.Fprintf(os.Stderr, "details: %v\n", re.Data)
+			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
+				fmt.Fprintf(os.Stderr, "[Client] Error: %s\n", string(b))
+			} else {
+				fmt.Fprintf(os.Stderr, "prompt error (%d): %s\n", re.Code, re.Message)
 			}
 		} else {
 			fmt.Fprintf(os.Stderr, "prompt error: %v\n", err)
