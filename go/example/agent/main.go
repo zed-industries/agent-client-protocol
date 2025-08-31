@@ -91,10 +91,9 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	if err := a.conn.SessionUpdate(acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{
-			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{Content: acp.ContentBlock{
-				Type: "text",
-				Text: &acp.TextContent{Text: "I'll help you with that. Let me start by reading some files to understand the current situation."},
-			}},
+			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
+				Content: acp.TextBlock("I'll help you with that. Let me start by reading some files to understand the current situation."),
+			},
 		},
 	}); err != nil {
 		return err
@@ -127,10 +126,10 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		Update: acp.SessionUpdate{ToolCallUpdate: &acp.SessionUpdateToolCallUpdate{
 			ToolCallId: acp.ToolCallId("call_1"),
 			Status:     "completed",
-			Content: []acp.ToolCallContent{{
-				Type:    "content",
-				Content: &acp.ContentBlock{Type: "text", Text: &acp.TextContent{Text: "# My Project\n\nThis is a sample project..."}},
-			}},
+			Content: []acp.ToolCallContent{
+				acp.ToolContent(
+					acp.TextBlock("# My Project\n\nThis is a sample project...")),
+			},
 			RawOutput: map[string]any{"content": "# My Project\n\nThis is a sample project..."},
 		}},
 	}); err != nil {
@@ -143,10 +142,11 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	// more text
 	if err := a.conn.SessionUpdate(acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
-		Update: acp.SessionUpdate{AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{Content: acp.ContentBlock{
-			Type: "text",
-			Text: &acp.TextContent{Text: " Now I understand the project structure. I need to make some changes to improve it."},
-		}}},
+		Update: acp.SessionUpdate{
+			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
+				Content: acp.TextBlock(" Now I understand the project structure. I need to make some changes to improve it."),
+			},
+		},
 	}); err != nil {
 		return err
 	}
@@ -175,8 +175,8 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		ToolCall: acp.ToolCallUpdate{
 			ToolCallId: acp.ToolCallId("call_2"),
 			Title:      "Modifying critical configuration file",
-			Kind:       ptr(acp.ToolKindEdit),
-			Status:     ptr(acp.ToolCallStatusPending),
+			Kind:       acp.Ptr(acp.ToolKindEdit),
+			Status:     acp.Ptr(acp.ToolCallStatusPending),
 			Locations:  []acp.ToolCallLocation{{Path: "/home/user/project/config.json"}},
 			RawInput:   map[string]any{"path": "/home/user/project/config.json", "content": "{\"database\": {\"host\": \"new-host\"}}"},
 		},
@@ -202,7 +202,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 			SessionId: acp.SessionId(sid),
 			Update: acp.SessionUpdate{ToolCallUpdate: &acp.SessionUpdateToolCallUpdate{
 				ToolCallId: acp.ToolCallId("call_2"),
-				Status:     ptr(acp.ToolCallStatusCompleted),
+				Status:     acp.Ptr(acp.ToolCallStatusCompleted),
 				RawOutput:  map[string]any{"success": true, "message": "Configuration updated"},
 			}},
 		}); err != nil {
@@ -213,10 +213,11 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		}
 		if err := a.conn.SessionUpdate(acp.SessionNotification{
 			SessionId: acp.SessionId(sid),
-			Update: acp.SessionUpdate{AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{Content: acp.ContentBlock{
-				Type: "text",
-				Text: &acp.TextContent{Text: " Perfect! I've successfully updated the configuration. The changes have been applied."},
-			}}},
+			Update: acp.SessionUpdate{
+				AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
+					Content: acp.TextBlock(" Perfect! I've successfully updated the configuration. The changes have been applied."),
+				},
+			},
 		}); err != nil {
 			return err
 		}
@@ -226,10 +227,11 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		}
 		if err := a.conn.SessionUpdate(acp.SessionNotification{
 			SessionId: acp.SessionId(sid),
-			Update: acp.SessionUpdate{AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{Content: acp.ContentBlock{
-				Type: "text",
-				Text: &acp.TextContent{Text: " I understand you prefer not to make that change. I'll skip the configuration update."},
-			}}},
+			Update: acp.SessionUpdate{
+				AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
+					Content: acp.TextBlock(" I understand you prefer not to make that change. I'll skip the configuration update."),
+				},
+			},
 		}); err != nil {
 			return err
 		}
@@ -257,10 +259,6 @@ func pause(ctx context.Context, d time.Duration) error {
 	case <-t.C:
 		return nil
 	}
-}
-
-func ptr[T any](t T) *T {
-	return &t
 }
 
 func main() {

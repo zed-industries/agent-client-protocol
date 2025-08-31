@@ -50,6 +50,11 @@ func main() {
 	if err := emit.WriteDispatchJen(outDir, schema, meta); err != nil {
 		panic(err)
 	}
+
+	// Emit helpers after types so they can reference generated structs.
+	if err := emit.WriteHelpersJen(outDir, schema, meta); err != nil {
+		panic(err)
+	}
 }
 
 func findRepoRoot() string {

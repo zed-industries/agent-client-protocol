@@ -1,0 +1,117 @@
+package acp
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
+
+// clientExample mirrors go/example/client in a compact form: prints
+// streamed updates, handles simple file ops, and picks the first
+// permission option.
+type clientExample struct{}
+
+func (clientExample) RequestPermission(p RequestPermissionRequest) (RequestPermissionResponse, error) {
+	if len(p.Options) == 0 {
+		return RequestPermissionResponse{
+			Outcome: RequestPermissionOutcome{
+				Cancelled: &RequestPermissionOutcomeCancelled{},
+			},
+		}, nil
+	}
+	return RequestPermissionResponse{
+		Outcome: RequestPermissionOutcome{
+			Selected: &RequestPermissionOutcomeSelected{OptionId: p.Options[0].OptionId},
+		},
+	}, nil
+}
+
+func (clientExample) SessionUpdate(n SessionNotification) error {
+	u := n.Update
+	switch {
+	case u.AgentMessageChunk != nil:
+		c := u.AgentMessageChunk.Content
+		if c.Type == "text" && c.Text != nil {
+			fmt.Print(c.Text.Text)
+		} else {
+			fmt.Println("[", c.Type, "]")
+		}
+	case u.ToolCall != nil:
+		fmt.Printf("\n[tool] %s (%s)\n", u.ToolCall.Title, u.ToolCall.Status)
+	case u.ToolCallUpdate != nil:
+		fmt.Printf("\n[tool] %s -> %v\n", u.ToolCallUpdate.ToolCallId, u.ToolCallUpdate.Status)
+	}
+	return nil
+}
+
+func (clientExample) WriteTextFile(p WriteTextFileRequest) error {
+	if !filepath.IsAbs(p.Path) {
+		return fmt.Errorf("path must be absolute: %s", p.Path)
+	}
+	if dir := filepath.Dir(p.Path); dir != "" {
+		_ = os.MkdirAll(dir, 0o755)
+	}
+	return os.WriteFile(p.Path, []byte(p.Content), 0o644)
+}
+
+func (clientExample) ReadTextFile(p ReadTextFileRequest) (ReadTextFileResponse, error) {
+	if !filepath.IsAbs(p.Path) {
+		return ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", p.Path)
+	}
+	b, err := os.ReadFile(p.Path)
+	if err != nil {
+		return ReadTextFileResponse{}, err
+	}
+	content := string(b)
+	if p.Line > 0 || p.Limit > 0 {
+		lines := strings.Split(content, "\n")
+		start := 0
+		if p.Line > 0 {
+			if p.Line-1 > 0 {
+				start = p.Line - 1
+			}
+			if start > len(lines) {
+				start = len(lines)
+			}
+		}
+		end := len(lines)
+		if p.Limit > 0 && start+p.Limit < end {
+			end = start + p.Limit
+		}
+		content = strings.Join(lines[start:end], "\n")
+	}
+	return ReadTextFileResponse{Content: content}, nil
+}
+
+// Example_client launches the Go agent example, negotiates protocol,
+// opens a session, and sends a simple prompt.
+func Example_client() {
+	cmd := exec.Command("go", "run", "./example/agent")
+	stdin, _ := cmd.StdinPipe()
+	stdout, _ := cmd.StdoutPipe()
+	_ = cmd.Start()
+
+	conn := NewClientSideConnection(clientExample{}, stdin, stdout)
+	_, _ = conn.Initialize(InitializeRequest{
+		ProtocolVersion: ProtocolVersionNumber,
+		ClientCapabilities: ClientCapabilities{
+			Fs: FileSystemCapability{
+				ReadTextFile:  true,
+				WriteTextFile: true,
+			},
+			Terminal: true,
+		},
+	})
+	sess, _ := conn.NewSession(NewSessionRequest{
+		Cwd:        "/",
+		McpServers: []McpServer{},
+	})
+	_, _ = conn.Prompt(PromptRequest{
+		SessionId: sess.SessionId,
+		Prompt:    []ContentBlock{TextBlock("Hello, agent!")},
+	})
+
+	_ = cmd.Process.Kill()
+}

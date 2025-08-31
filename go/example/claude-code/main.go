@@ -238,7 +238,7 @@ func main() {
 		// Send prompt and wait for completion while streaming updates are printed via SessionUpdate
 		if _, err := conn.Prompt(acp.PromptRequest{
 			SessionId: newSess.SessionId,
-			Prompt:    []acp.ContentBlock{{Type: "text", Text: &acp.TextContent{Text: line}}},
+			Prompt:    []acp.ContentBlock{acp.TextBlock(line)},
 		}); err != nil {
 			// If it's a JSON-RPC RequestError, surface more detail for troubleshooting
 			if re, ok := err.(*acp.RequestError); ok {

@@ -217,10 +217,7 @@ func main() {
 	// Send prompt
 	if _, err := conn.Prompt(acp.PromptRequest{
 		SessionId: newSess.SessionId,
-		Prompt: []acp.ContentBlock{{
-			Type: "text",
-			Text: &acp.TextContent{Text: "Hello, agent!"},
-		}},
+		Prompt:    []acp.ContentBlock{acp.TextBlock("Hello, agent!")},
 	}); err != nil {
 		if re, ok := err.(*acp.RequestError); ok {
 			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
