@@ -1,6 +1,7 @@
 package acp
 
 import (
+	"context"
 	"os"
 )
 
@@ -11,21 +12,21 @@ type agentExample struct{ conn *AgentSideConnection }
 
 func (a *agentExample) SetAgentConnection(c *AgentSideConnection) { a.conn = c }
 
-func (agentExample) Authenticate(AuthenticateRequest) error { return nil }
-func (agentExample) Initialize(InitializeRequest) (InitializeResponse, error) {
+func (agentExample) Authenticate(ctx context.Context, _ AuthenticateRequest) error { return nil }
+func (agentExample) Initialize(ctx context.Context, _ InitializeRequest) (InitializeResponse, error) {
 	return InitializeResponse{
 		ProtocolVersion:   ProtocolVersionNumber,
 		AgentCapabilities: AgentCapabilities{LoadSession: false},
 	}, nil
 }
-func (agentExample) Cancel(CancelNotification) error { return nil }
-func (agentExample) NewSession(NewSessionRequest) (NewSessionResponse, error) {
+func (agentExample) Cancel(ctx context.Context, _ CancelNotification) error { return nil }
+func (agentExample) NewSession(ctx context.Context, _ NewSessionRequest) (NewSessionResponse, error) {
 	return NewSessionResponse{SessionId: SessionId("sess_demo")}, nil
 }
 
-func (a *agentExample) Prompt(p PromptRequest) (PromptResponse, error) {
+func (a *agentExample) Prompt(ctx context.Context, p PromptRequest) (PromptResponse, error) {
 	// Stream an initial agent message.
-	_ = a.conn.SessionUpdate(SessionNotification{
+	_ = a.conn.SessionUpdate(ctx, SessionNotification{
 		SessionId: p.SessionId,
 		Update: SessionUpdate{
 			AgentMessageChunk: &SessionUpdateAgentMessageChunk{
@@ -35,7 +36,7 @@ func (a *agentExample) Prompt(p PromptRequest) (PromptResponse, error) {
 	})
 
 	// Announce a tool call.
-	_ = a.conn.SessionUpdate(SessionNotification{
+	_ = a.conn.SessionUpdate(ctx, SessionNotification{
 		SessionId: p.SessionId,
 		Update: SessionUpdate{ToolCall: &SessionUpdateToolCall{
 			ToolCallId: ToolCallId("call_1"),
@@ -48,7 +49,7 @@ func (a *agentExample) Prompt(p PromptRequest) (PromptResponse, error) {
 	})
 
 	// Ask the client for permission to proceed with the change.
-	resp, _ := a.conn.RequestPermission(RequestPermissionRequest{
+	resp, _ := a.conn.RequestPermission(ctx, RequestPermissionRequest{
 		SessionId: p.SessionId,
 		ToolCall: ToolCallUpdate{
 			ToolCallId: ToolCallId("call_1"),
@@ -66,7 +67,7 @@ func (a *agentExample) Prompt(p PromptRequest) (PromptResponse, error) {
 
 	if resp.Outcome.Selected != nil && string(resp.Outcome.Selected.OptionId) == "allow" {
 		// Mark tool call completed and stream a final message.
-		_ = a.conn.SessionUpdate(SessionNotification{
+		_ = a.conn.SessionUpdate(ctx, SessionNotification{
 			SessionId: p.SessionId,
 			Update: SessionUpdate{ToolCallUpdate: &SessionUpdateToolCallUpdate{
 				ToolCallId: ToolCallId("call_1"),
@@ -74,7 +75,7 @@ func (a *agentExample) Prompt(p PromptRequest) (PromptResponse, error) {
 				RawOutput:  map[string]any{"success": true},
 			}},
 		})
-		_ = a.conn.SessionUpdate(SessionNotification{
+		_ = a.conn.SessionUpdate(ctx, SessionNotification{
 			SessionId: p.SessionId,
 			Update:    SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: TextBlock("Done.")}},
 		})

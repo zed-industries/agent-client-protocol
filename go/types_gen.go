@@ -3,6 +3,7 @@
 package acp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -1083,28 +1084,28 @@ func (v *WriteTextFileRequest) Validate() error {
 }
 
 type Agent interface {
-	Authenticate(params AuthenticateRequest) error
-	Initialize(params InitializeRequest) (InitializeResponse, error)
-	Cancel(params CancelNotification) error
-	NewSession(params NewSessionRequest) (NewSessionResponse, error)
-	Prompt(params PromptRequest) (PromptResponse, error)
+	Authenticate(ctx context.Context, params AuthenticateRequest) error
+	Initialize(ctx context.Context, params InitializeRequest) (InitializeResponse, error)
+	Cancel(ctx context.Context, params CancelNotification) error
+	NewSession(ctx context.Context, params NewSessionRequest) (NewSessionResponse, error)
+	Prompt(ctx context.Context, params PromptRequest) (PromptResponse, error)
 }
 
 // AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.
 type AgentLoader interface {
-	LoadSession(params LoadSessionRequest) error
+	LoadSession(ctx context.Context, params LoadSessionRequest) error
 }
 type Client interface {
-	ReadTextFile(params ReadTextFileRequest) (ReadTextFileResponse, error)
-	WriteTextFile(params WriteTextFileRequest) error
-	RequestPermission(params RequestPermissionRequest) (RequestPermissionResponse, error)
-	SessionUpdate(params SessionNotification) error
+	ReadTextFile(ctx context.Context, params ReadTextFileRequest) (ReadTextFileResponse, error)
+	WriteTextFile(ctx context.Context, params WriteTextFileRequest) error
+	RequestPermission(ctx context.Context, params RequestPermissionRequest) (RequestPermissionResponse, error)
+	SessionUpdate(ctx context.Context, params SessionNotification) error
 }
 
 // ClientTerminal defines terminal-related experimental methods (x-docs-ignore). Implement and advertise 'terminal: true' to enable 'terminal/*'.
 type ClientTerminal interface {
-	CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error)
-	TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error)
-	ReleaseTerminal(params ReleaseTerminalRequest) error
-	WaitForTerminalExit(params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
+	CreateTerminal(ctx context.Context, params CreateTerminalRequest) (CreateTerminalResponse, error)
+	TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error)
+	ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error
+	WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }

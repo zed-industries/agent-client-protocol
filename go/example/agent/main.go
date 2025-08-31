@@ -33,7 +33,7 @@ func newExampleAgent() *exampleAgent {
 // Implement acp.AgentConnAware to receive the connection after construction.
 func (a *exampleAgent) SetAgentConnection(conn *acp.AgentSideConnection) { a.conn = conn }
 
-func (a *exampleAgent) Initialize(params acp.InitializeRequest) (acp.InitializeResponse, error) {
+func (a *exampleAgent) Initialize(ctx context.Context, params acp.InitializeRequest) (acp.InitializeResponse, error) {
 	return acp.InitializeResponse{
 		ProtocolVersion: acp.ProtocolVersionNumber,
 		AgentCapabilities: acp.AgentCapabilities{
@@ -42,17 +42,17 @@ func (a *exampleAgent) Initialize(params acp.InitializeRequest) (acp.InitializeR
 	}, nil
 }
 
-func (a *exampleAgent) NewSession(params acp.NewSessionRequest) (acp.NewSessionResponse, error) {
+func (a *exampleAgent) NewSession(ctx context.Context, params acp.NewSessionRequest) (acp.NewSessionResponse, error) {
 	sid := randomID()
 	a.sessions[sid] = &agentSession{}
 	return acp.NewSessionResponse{SessionId: acp.SessionId(sid)}, nil
 }
 
-func (a *exampleAgent) Authenticate(_ acp.AuthenticateRequest) error { return nil }
+func (a *exampleAgent) Authenticate(ctx context.Context, _ acp.AuthenticateRequest) error { return nil }
 
-func (a *exampleAgent) LoadSession(_ acp.LoadSessionRequest) error { return nil }
+func (a *exampleAgent) LoadSession(ctx context.Context, _ acp.LoadSessionRequest) error { return nil }
 
-func (a *exampleAgent) Cancel(params acp.CancelNotification) error {
+func (a *exampleAgent) Cancel(ctx context.Context, params acp.CancelNotification) error {
 	if s, ok := a.sessions[string(params.SessionId)]; ok {
 		if s.cancel != nil {
 			s.cancel()
@@ -61,7 +61,7 @@ func (a *exampleAgent) Cancel(params acp.CancelNotification) error {
 	return nil
 }
 
-func (a *exampleAgent) Prompt(params acp.PromptRequest) (acp.PromptResponse, error) {
+func (a *exampleAgent) Prompt(ctx context.Context, params acp.PromptRequest) (acp.PromptResponse, error) {
 	sid := string(params.SessionId)
 	s, ok := a.sessions[sid]
 	if !ok {
@@ -88,7 +88,7 @@ func (a *exampleAgent) Prompt(params acp.PromptRequest) (acp.PromptResponse, err
 
 func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	// disclaimer: stream a demo notice so clients see it's the example agent
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{
 			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
@@ -102,7 +102,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		return err
 	}
 	// initial message chunk
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{
 			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
@@ -117,7 +117,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 
 	// tool call without permission
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{ToolCall: &acp.SessionUpdateToolCall{
 			ToolCallId: acp.ToolCallId("call_1"),
@@ -135,7 +135,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 
 	// update tool call completed
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{ToolCallUpdate: &acp.SessionUpdateToolCallUpdate{
 			ToolCallId: acp.ToolCallId("call_1"),
@@ -154,7 +154,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 
 	// more text
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{
 			AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
@@ -169,7 +169,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 
 	// tool call requiring permission
-	if err := a.conn.SessionUpdate(acp.SessionNotification{
+	if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 		SessionId: acp.SessionId(sid),
 		Update: acp.SessionUpdate{ToolCall: &acp.SessionUpdateToolCall{
 			ToolCallId: acp.ToolCallId("call_2"),
@@ -184,7 +184,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 
 	// request permission for sensitive operation
-	permResp, err := a.conn.RequestPermission(acp.RequestPermissionRequest{
+	permResp, err := a.conn.RequestPermission(ctx, acp.RequestPermissionRequest{
 		SessionId: acp.SessionId(sid),
 		ToolCall: acp.ToolCallUpdate{
 			ToolCallId: acp.ToolCallId("call_2"),
@@ -212,7 +212,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 	}
 	switch string(permResp.Outcome.Selected.OptionId) {
 	case "allow":
-		if err := a.conn.SessionUpdate(acp.SessionNotification{
+		if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 			SessionId: acp.SessionId(sid),
 			Update: acp.SessionUpdate{ToolCallUpdate: &acp.SessionUpdateToolCallUpdate{
 				ToolCallId: acp.ToolCallId("call_2"),
@@ -225,7 +225,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		if err := pause(ctx, time.Second); err != nil {
 			return err
 		}
-		if err := a.conn.SessionUpdate(acp.SessionNotification{
+		if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 			SessionId: acp.SessionId(sid),
 			Update: acp.SessionUpdate{
 				AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{
@@ -239,7 +239,7 @@ func (a *exampleAgent) simulateTurn(ctx context.Context, sid string) error {
 		if err := pause(ctx, time.Second); err != nil {
 			return err
 		}
-		if err := a.conn.SessionUpdate(acp.SessionNotification{
+		if err := a.conn.SessionUpdate(ctx, acp.SessionNotification{
 			SessionId: acp.SessionId(sid),
 			Update: acp.SessionUpdate{
 				AgentMessageChunk: &acp.SessionUpdateAgentMessageChunk{

@@ -1,6 +1,7 @@
 package acp
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,7 +14,7 @@ import (
 // permission option.
 type clientExample struct{}
 
-func (clientExample) RequestPermission(p RequestPermissionRequest) (RequestPermissionResponse, error) {
+func (clientExample) RequestPermission(ctx context.Context, p RequestPermissionRequest) (RequestPermissionResponse, error) {
 	if len(p.Options) == 0 {
 		return RequestPermissionResponse{
 			Outcome: RequestPermissionOutcome{
@@ -28,7 +29,7 @@ func (clientExample) RequestPermission(p RequestPermissionRequest) (RequestPermi
 	}, nil
 }
 
-func (clientExample) SessionUpdate(n SessionNotification) error {
+func (clientExample) SessionUpdate(ctx context.Context, n SessionNotification) error {
 	u := n.Update
 	switch {
 	case u.AgentMessageChunk != nil:
@@ -46,7 +47,7 @@ func (clientExample) SessionUpdate(n SessionNotification) error {
 	return nil
 }
 
-func (clientExample) WriteTextFile(p WriteTextFileRequest) error {
+func (clientExample) WriteTextFile(ctx context.Context, p WriteTextFileRequest) error {
 	if !filepath.IsAbs(p.Path) {
 		return fmt.Errorf("path must be absolute: %s", p.Path)
 	}
@@ -56,7 +57,7 @@ func (clientExample) WriteTextFile(p WriteTextFileRequest) error {
 	return os.WriteFile(p.Path, []byte(p.Content), 0o644)
 }
 
-func (clientExample) ReadTextFile(p ReadTextFileRequest) (ReadTextFileResponse, error) {
+func (clientExample) ReadTextFile(ctx context.Context, p ReadTextFileRequest) (ReadTextFileResponse, error) {
 	if !filepath.IsAbs(p.Path) {
 		return ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", p.Path)
 	}
@@ -88,13 +89,14 @@ func (clientExample) ReadTextFile(p ReadTextFileRequest) (ReadTextFileResponse, 
 // Example_client launches the Go agent example, negotiates protocol,
 // opens a session, and sends a simple prompt.
 func Example_client() {
+	ctx := context.Background()
 	cmd := exec.Command("go", "run", "./example/agent")
 	stdin, _ := cmd.StdinPipe()
 	stdout, _ := cmd.StdoutPipe()
 	_ = cmd.Start()
 
 	conn := NewClientSideConnection(clientExample{}, stdin, stdout)
-	_, _ = conn.Initialize(InitializeRequest{
+	_, _ = conn.Initialize(ctx, InitializeRequest{
 		ProtocolVersion: ProtocolVersionNumber,
 		ClientCapabilities: ClientCapabilities{
 			Fs: FileSystemCapability{
@@ -104,11 +106,11 @@ func Example_client() {
 			Terminal: true,
 		},
 	})
-	sess, _ := conn.NewSession(NewSessionRequest{
+	sess, _ := conn.NewSession(ctx, NewSessionRequest{
 		Cwd:        "/",
 		McpServers: []McpServer{},
 	})
-	_, _ = conn.Prompt(PromptRequest{
+	_, _ = conn.Prompt(ctx, PromptRequest{
 		SessionId: sess.SessionId,
 		Prompt:    []ContentBlock{TextBlock("Hello, agent!")},
 	})

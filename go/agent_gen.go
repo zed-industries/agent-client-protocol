@@ -2,9 +2,12 @@
 
 package acp
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
-func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any, *RequestError) {
+func (a *AgentSideConnection) handle(ctx context.Context, method string, params json.RawMessage) (any, *RequestError) {
 	switch method {
 	case AgentMethodAuthenticate:
 		var p AuthenticateRequest
@@ -14,7 +17,7 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := a.agent.Authenticate(p); err != nil {
+		if err := a.agent.Authenticate(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -26,7 +29,7 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := a.agent.Initialize(p)
+		resp, err := a.agent.Initialize(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -39,7 +42,13 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := a.agent.Cancel(p); err != nil {
+		a.mu.Lock()
+		if cn, ok := a.sessionCancels[string(p.SessionId)]; ok {
+			cn()
+			delete(a.sessionCancels, string(p.SessionId))
+		}
+		a.mu.Unlock()
+		if err := a.agent.Cancel(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -55,7 +64,7 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		if err := loader.LoadSession(p); err != nil {
+		if err := loader.LoadSession(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -67,7 +76,7 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := a.agent.NewSession(p)
+		resp, err := a.agent.NewSession(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -80,7 +89,19 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := a.agent.Prompt(p)
+		var reqCtx context.Context
+		var cancel context.CancelFunc
+		reqCtx, cancel = context.WithCancel(ctx)
+		a.mu.Lock()
+		if prev, ok := a.sessionCancels[string(p.SessionId)]; ok {
+			prev()
+		}
+		a.sessionCancels[string(p.SessionId)] = cancel
+		a.mu.Unlock()
+		resp, err := a.agent.Prompt(reqCtx, p)
+		a.mu.Lock()
+		delete(a.sessionCancels, string(p.SessionId))
+		a.mu.Unlock()
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -89,32 +110,32 @@ func (a *AgentSideConnection) handle(method string, params json.RawMessage) (any
 		return nil, NewMethodNotFound(method)
 	}
 }
-func (c *AgentSideConnection) ReadTextFile(params ReadTextFileRequest) (ReadTextFileResponse, error) {
-	resp, err := SendRequest[ReadTextFileResponse](c.conn, ClientMethodFsReadTextFile, params)
+func (c *AgentSideConnection) ReadTextFile(ctx context.Context, params ReadTextFileRequest) (ReadTextFileResponse, error) {
+	resp, err := SendRequest[ReadTextFileResponse](c.conn, ctx, ClientMethodFsReadTextFile, params)
 	return resp, err
 }
-func (c *AgentSideConnection) WriteTextFile(params WriteTextFileRequest) error {
-	return c.conn.SendRequestNoResult(ClientMethodFsWriteTextFile, params)
+func (c *AgentSideConnection) WriteTextFile(ctx context.Context, params WriteTextFileRequest) error {
+	return c.conn.SendRequestNoResult(ctx, ClientMethodFsWriteTextFile, params)
 }
-func (c *AgentSideConnection) RequestPermission(params RequestPermissionRequest) (RequestPermissionResponse, error) {
-	resp, err := SendRequest[RequestPermissionResponse](c.conn, ClientMethodSessionRequestPermission, params)
+func (c *AgentSideConnection) RequestPermission(ctx context.Context, params RequestPermissionRequest) (RequestPermissionResponse, error) {
+	resp, err := SendRequest[RequestPermissionResponse](c.conn, ctx, ClientMethodSessionRequestPermission, params)
 	return resp, err
 }
-func (c *AgentSideConnection) SessionUpdate(params SessionNotification) error {
-	return c.conn.SendNotification(ClientMethodSessionUpdate, params)
+func (c *AgentSideConnection) SessionUpdate(ctx context.Context, params SessionNotification) error {
+	return c.conn.SendNotification(ctx, ClientMethodSessionUpdate, params)
 }
-func (c *AgentSideConnection) CreateTerminal(params CreateTerminalRequest) (CreateTerminalResponse, error) {
-	resp, err := SendRequest[CreateTerminalResponse](c.conn, ClientMethodTerminalCreate, params)
+func (c *AgentSideConnection) CreateTerminal(ctx context.Context, params CreateTerminalRequest) (CreateTerminalResponse, error) {
+	resp, err := SendRequest[CreateTerminalResponse](c.conn, ctx, ClientMethodTerminalCreate, params)
 	return resp, err
 }
-func (c *AgentSideConnection) TerminalOutput(params TerminalOutputRequest) (TerminalOutputResponse, error) {
-	resp, err := SendRequest[TerminalOutputResponse](c.conn, ClientMethodTerminalOutput, params)
+func (c *AgentSideConnection) TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error) {
+	resp, err := SendRequest[TerminalOutputResponse](c.conn, ctx, ClientMethodTerminalOutput, params)
 	return resp, err
 }
-func (c *AgentSideConnection) ReleaseTerminal(params ReleaseTerminalRequest) error {
-	return c.conn.SendRequestNoResult(ClientMethodTerminalRelease, params)
+func (c *AgentSideConnection) ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error {
+	return c.conn.SendRequestNoResult(ctx, ClientMethodTerminalRelease, params)
 }
-func (c *AgentSideConnection) WaitForTerminalExit(params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
-	resp, err := SendRequest[WaitForTerminalExitResponse](c.conn, ClientMethodTerminalWaitForExit, params)
+func (c *AgentSideConnection) WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	resp, err := SendRequest[WaitForTerminalExitResponse](c.conn, ctx, ClientMethodTerminalWaitForExit, params)
 	return resp, err
 }

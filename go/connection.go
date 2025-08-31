@@ -2,6 +2,7 @@ package acp
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"sync"
@@ -21,7 +22,7 @@ type pendingResponse struct {
 	ch chan anyMessage
 }
 
-type MethodHandler func(method string, params json.RawMessage) (any, *RequestError)
+type MethodHandler func(ctx context.Context, method string, params json.RawMessage) (any, *RequestError)
 
 // Connection is a simple JSON-RPC 2.0 connection over line-delimited JSON.
 type Connection struct {
@@ -92,6 +93,12 @@ func (c *Connection) receive() {
 }
 
 func (c *Connection) handleInbound(req *anyMessage) {
+	// Context that cancels when the connection is closed
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-c.Done()
+		cancel()
+	}()
 	res := anyMessage{JSONRPC: "2.0"}
 	// copy ID if present
 	if req.ID != nil {
@@ -105,7 +112,7 @@ func (c *Connection) handleInbound(req *anyMessage) {
 		return
 	}
 
-	result, err := c.handler(req.Method, req.Params)
+	result, err := c.handler(ctx, req.Method, req.Params)
 	if req.ID == nil {
 		// notification: nothing to send
 		return
@@ -139,7 +146,7 @@ func (c *Connection) sendMessage(msg anyMessage) error {
 
 // SendRequest sends a JSON-RPC request and returns a typed result.
 // For methods that do not return a result, use SendRequestNoResult instead.
-func SendRequest[T any](c *Connection, method string, params any) (T, error) {
+func SendRequest[T any](c *Connection, ctx context.Context, method string, params any) (T, error) {
 	var zero T
 	// allocate id
 	id := c.nextID.Add(1)
@@ -169,6 +176,12 @@ func SendRequest[T any](c *Connection, method string, params any) (T, error) {
 	d := c.Done()
 	select {
 	case resp = <-pr.ch:
+	case <-ctx.Done():
+		// best-effort cleanup
+		c.mu.Lock()
+		delete(c.pending, idKey)
+		c.mu.Unlock()
+		return zero, NewInternalError(map[string]any{"error": ctx.Err().Error()})
 	case <-d:
 		return zero, NewInternalError(map[string]any{"error": "peer disconnected before response"})
 	}
@@ -185,7 +198,7 @@ func SendRequest[T any](c *Connection, method string, params any) (T, error) {
 }
 
 // SendRequestNoResult sends a JSON-RPC request that returns no result payload.
-func (c *Connection) SendRequestNoResult(method string, params any) error {
+func (c *Connection) SendRequestNoResult(ctx context.Context, method string, params any) error {
 	// allocate id
 	id := c.nextID.Add(1)
 	idRaw, _ := json.Marshal(id)
@@ -213,6 +226,11 @@ func (c *Connection) SendRequestNoResult(method string, params any) error {
 	d := c.Done()
 	select {
 	case resp = <-pr.ch:
+	case <-ctx.Done():
+		c.mu.Lock()
+		delete(c.pending, idKey)
+		c.mu.Unlock()
+		return NewInternalError(map[string]any{"error": ctx.Err().Error()})
 	case <-d:
 		return NewInternalError(map[string]any{"error": "peer disconnected before response"})
 	}
@@ -222,7 +240,12 @@ func (c *Connection) SendRequestNoResult(method string, params any) error {
 	return nil
 }
 
-func (c *Connection) SendNotification(method string, params any) error {
+func (c *Connection) SendNotification(ctx context.Context, method string, params any) error {
+	select {
+	case <-ctx.Done():
+		return NewInternalError(map[string]any{"error": ctx.Err().Error()})
+	default:
+	}
 	msg := anyMessage{JSONRPC: "2.0", Method: method}
 	if params != nil {
 		b, err := json.Marshal(params)

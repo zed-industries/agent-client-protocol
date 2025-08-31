@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,7 @@ var (
 	_ acp.ClientTerminal = (*exampleClient)(nil)
 )
 
-func (e *exampleClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
+func (e *exampleClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	fmt.Printf("\n🔐 Permission requested: %s\n", params.ToolCall.Title)
 	fmt.Println("\nOptions:")
 	for i, opt := range params.Options {
@@ -43,7 +44,7 @@ func (e *exampleClient) RequestPermission(params acp.RequestPermissionRequest) (
 	}
 }
 
-func (e *exampleClient) SessionUpdate(params acp.SessionNotification) error {
+func (e *exampleClient) SessionUpdate(ctx context.Context, params acp.SessionNotification) error {
 	u := params.Update
 	switch {
 	case u.AgentMessageChunk != nil:
@@ -83,7 +84,7 @@ func displayUpdateKind(u acp.SessionUpdate) string {
 	}
 }
 
-func (e *exampleClient) WriteTextFile(params acp.WriteTextFileRequest) error {
+func (e *exampleClient) WriteTextFile(ctx context.Context, params acp.WriteTextFileRequest) error {
 	if !filepath.IsAbs(params.Path) {
 		return fmt.Errorf("path must be absolute: %s", params.Path)
 	}
@@ -100,7 +101,7 @@ func (e *exampleClient) WriteTextFile(params acp.WriteTextFileRequest) error {
 	return nil
 }
 
-func (e *exampleClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
+func (e *exampleClient) ReadTextFile(ctx context.Context, params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
 	if !filepath.IsAbs(params.Path) {
 		return acp.ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", params.Path)
 	}
@@ -129,34 +130,37 @@ func (e *exampleClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTe
 }
 
 // Optional/UNSTABLE terminal methods: implement as no-ops for example
-func (e *exampleClient) CreateTerminal(params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
+func (e *exampleClient) CreateTerminal(ctx context.Context, params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
 	fmt.Printf("[Client] CreateTerminal: %v\n", params)
 	return acp.CreateTerminalResponse{TerminalId: "term-1"}, nil
 }
 
-func (e *exampleClient) TerminalOutput(params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
+func (e *exampleClient) TerminalOutput(ctx context.Context, params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
 	fmt.Printf("[Client] TerminalOutput: %v\n", params)
 	return acp.TerminalOutputResponse{Output: "", Truncated: false}, nil
 }
 
-func (e *exampleClient) ReleaseTerminal(params acp.ReleaseTerminalRequest) error {
+func (e *exampleClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseTerminalRequest) error {
 	fmt.Printf("[Client] ReleaseTerminal: %v\n", params)
 	return nil
 }
 
-func (e *exampleClient) WaitForTerminalExit(params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
+func (e *exampleClient) WaitForTerminalExit(ctx context.Context, params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
 	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
 	return acp.WaitForTerminalExitResponse{}, nil
 }
 
 func main() {
 	// If args provided, treat them as agent program + args. Otherwise run the Go agent example.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var cmd *exec.Cmd
 	if len(os.Args) > 1 {
-		cmd = exec.Command(os.Args[1], os.Args[2:]...)
+		cmd = exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
 	} else {
 		// Assumes running from the go/ directory; if not, adjust path accordingly.
-		cmd = exec.Command("go", "run", "./example/agent")
+		cmd = exec.CommandContext(ctx, "go", "run", "./example/agent")
 	}
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = nil
@@ -173,7 +177,7 @@ func main() {
 	conn := acp.NewClientSideConnection(client, stdin, stdout)
 
 	// Initialize
-	initResp, err := conn.Initialize(acp.InitializeRequest{
+	initResp, err := conn.Initialize(ctx, acp.InitializeRequest{
 		ProtocolVersion: acp.ProtocolVersionNumber,
 		ClientCapabilities: acp.ClientCapabilities{
 			Fs:       acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true},
@@ -196,7 +200,7 @@ func main() {
 	fmt.Printf("✅ Connected to agent (protocol v%v)\n", initResp.ProtocolVersion)
 
 	// New session
-	newSess, err := conn.NewSession(acp.NewSessionRequest{Cwd: mustCwd(), McpServers: []acp.McpServer{}})
+	newSess, err := conn.NewSession(ctx, acp.NewSessionRequest{Cwd: mustCwd(), McpServers: []acp.McpServer{}})
 	if err != nil {
 		if re, ok := err.(*acp.RequestError); ok {
 			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
@@ -215,7 +219,7 @@ func main() {
 	fmt.Print(" ")
 
 	// Send prompt
-	if _, err := conn.Prompt(acp.PromptRequest{
+	if _, err := conn.Prompt(ctx, acp.PromptRequest{
 		SessionId: newSess.SessionId,
 		Prompt:    []acp.ContentBlock{acp.TextBlock("Hello, agent!")},
 	}); err != nil {

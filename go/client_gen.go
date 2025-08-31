@@ -2,9 +2,12 @@
 
 package acp
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
-func (c *ClientSideConnection) handle(method string, params json.RawMessage) (any, *RequestError) {
+func (c *ClientSideConnection) handle(ctx context.Context, method string, params json.RawMessage) (any, *RequestError) {
 	switch method {
 	case ClientMethodFsReadTextFile:
 		var p ReadTextFileRequest
@@ -14,7 +17,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := c.client.ReadTextFile(p)
+		resp, err := c.client.ReadTextFile(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -27,7 +30,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := c.client.WriteTextFile(p); err != nil {
+		if err := c.client.WriteTextFile(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -39,7 +42,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		resp, err := c.client.RequestPermission(p)
+		resp, err := c.client.RequestPermission(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -52,7 +55,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		if err := c.client.SessionUpdate(p); err != nil {
+		if err := c.client.SessionUpdate(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -68,7 +71,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		resp, err := t.CreateTerminal(p)
+		resp, err := t.CreateTerminal(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -85,7 +88,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		resp, err := t.TerminalOutput(p)
+		resp, err := t.TerminalOutput(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -102,7 +105,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		if err := t.ReleaseTerminal(p); err != nil {
+		if err := t.ReleaseTerminal(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -118,7 +121,7 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		resp, err := t.WaitForTerminalExit(p)
+		resp, err := t.WaitForTerminalExit(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -127,24 +130,29 @@ func (c *ClientSideConnection) handle(method string, params json.RawMessage) (an
 		return nil, NewMethodNotFound(method)
 	}
 }
-func (c *ClientSideConnection) Authenticate(params AuthenticateRequest) error {
-	return c.conn.SendRequestNoResult(AgentMethodAuthenticate, params)
+func (c *ClientSideConnection) Authenticate(ctx context.Context, params AuthenticateRequest) error {
+	return c.conn.SendRequestNoResult(ctx, AgentMethodAuthenticate, params)
 }
-func (c *ClientSideConnection) Initialize(params InitializeRequest) (InitializeResponse, error) {
-	resp, err := SendRequest[InitializeResponse](c.conn, AgentMethodInitialize, params)
+func (c *ClientSideConnection) Initialize(ctx context.Context, params InitializeRequest) (InitializeResponse, error) {
+	resp, err := SendRequest[InitializeResponse](c.conn, ctx, AgentMethodInitialize, params)
 	return resp, err
 }
-func (c *ClientSideConnection) Cancel(params CancelNotification) error {
-	return c.conn.SendNotification(AgentMethodSessionCancel, params)
+func (c *ClientSideConnection) Cancel(ctx context.Context, params CancelNotification) error {
+	return c.conn.SendNotification(ctx, AgentMethodSessionCancel, params)
 }
-func (c *ClientSideConnection) LoadSession(params LoadSessionRequest) error {
-	return c.conn.SendRequestNoResult(AgentMethodSessionLoad, params)
+func (c *ClientSideConnection) LoadSession(ctx context.Context, params LoadSessionRequest) error {
+	return c.conn.SendRequestNoResult(ctx, AgentMethodSessionLoad, params)
 }
-func (c *ClientSideConnection) NewSession(params NewSessionRequest) (NewSessionResponse, error) {
-	resp, err := SendRequest[NewSessionResponse](c.conn, AgentMethodSessionNew, params)
+func (c *ClientSideConnection) NewSession(ctx context.Context, params NewSessionRequest) (NewSessionResponse, error) {
+	resp, err := SendRequest[NewSessionResponse](c.conn, ctx, AgentMethodSessionNew, params)
 	return resp, err
 }
-func (c *ClientSideConnection) Prompt(params PromptRequest) (PromptResponse, error) {
-	resp, err := SendRequest[PromptResponse](c.conn, AgentMethodSessionPrompt, params)
+func (c *ClientSideConnection) Prompt(ctx context.Context, params PromptRequest) (PromptResponse, error) {
+	resp, err := SendRequest[PromptResponse](c.conn, ctx, AgentMethodSessionPrompt, params)
+	if err != nil {
+		if ctx.Err() != nil {
+			_ = c.Cancel(context.Background(), CancelNotification{SessionId: params.SessionId})
+		}
+	}
 	return resp, err
 }

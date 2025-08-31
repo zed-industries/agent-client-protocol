@@ -132,14 +132,14 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		}
 		if mi.Notif != "" {
 			name := ir.DispatchMethodNameForNotification(k, mi.Notif)
-			*target = append(*target, Id(name).Params(Id("params").Id(mi.Notif)).Error())
+			*target = append(*target, Id(name).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Notif)).Error())
 		} else if mi.Req != "" {
 			respName := strings.TrimSuffix(mi.Req, "Request") + "Response"
 			methodName := strings.TrimSuffix(mi.Req, "Request")
 			if ir.IsNullResponse(schema.Defs[respName]) {
-				*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
+				*target = append(*target, Id(methodName).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Req)).Error())
 			} else {
-				*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
+				*target = append(*target, Id(methodName).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Req)).Params(Id(respName), Error()))
 			}
 		}
 	}
@@ -172,14 +172,14 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		}
 		if mi.Notif != "" {
 			name := ir.DispatchMethodNameForNotification(k, mi.Notif)
-			*target = append(*target, Id(name).Params(Id("params").Id(mi.Notif)).Error())
+			*target = append(*target, Id(name).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Notif)).Error())
 		} else if mi.Req != "" {
 			respName := strings.TrimSuffix(mi.Req, "Request") + "Response"
 			methodName := strings.TrimSuffix(mi.Req, "Request")
 			if ir.IsNullResponse(schema.Defs[respName]) {
-				*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Error())
+				*target = append(*target, Id(methodName).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Req)).Error())
 			} else {
-				*target = append(*target, Id(methodName).Params(Id("params").Id(mi.Req)).Params(Id(respName), Error()))
+				*target = append(*target, Id(methodName).Params(Id("ctx").Qual("context", "Context"), Id("params").Id(mi.Req)).Params(Id(respName), Error()))
 			}
 		}
 	}

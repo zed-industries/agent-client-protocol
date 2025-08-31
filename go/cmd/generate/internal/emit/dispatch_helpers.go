@@ -57,14 +57,14 @@ func jClientAssert(binding ir.MethodBinding) ([]Code, string) {
 // Request call emitters for handlers
 func jCallRequestNoResp(recv, methodName string) []Code {
 	return []Code{
-		If(List(Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("p")), Id("err").Op("!=").Nil()).Block(jRetToReqErr()),
+		If(List(Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("ctx"), Id("p")), Id("err").Op("!=").Nil()).Block(jRetToReqErr()),
 		Return(Nil(), Nil()),
 	}
 }
 
 func jCallRequestWithResp(recv, methodName, respType string) []Code {
 	return []Code{
-		List(Id("resp"), Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("p")),
+		List(Id("resp"), Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("ctx"), Id("p")),
 		If(Id("err").Op("!=").Nil()).Block(jRetToReqErr()),
 		Return(Id("resp"), Nil()),
 	}
@@ -72,7 +72,7 @@ func jCallRequestWithResp(recv, methodName, respType string) []Code {
 
 func jCallNotification(recv, methodName string) []Code {
 	return []Code{
-		If(List(Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("p")), Id("err").Op("!=").Nil()).Block(jRetToReqErr()),
+		If(List(Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("ctx"), Id("p")), Id("err").Op("!=").Nil()).Block(jRetToReqErr()),
 		Return(Nil(), Nil()),
 	}
 }

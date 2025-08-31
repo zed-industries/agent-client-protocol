@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -25,7 +26,7 @@ var (
 	_ acp.ClientTerminal = (*replClient)(nil)
 )
 
-func (c *replClient) RequestPermission(params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
+func (c *replClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	if c.autoApprove {
 		// Prefer an allow option if present; otherwise choose the first option.
 		for _, o := range params.Options {
@@ -62,7 +63,7 @@ func (c *replClient) RequestPermission(params acp.RequestPermissionRequest) (acp
 	}
 }
 
-func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
+func (c *replClient) SessionUpdate(ctx context.Context, params acp.SessionNotification) error {
 	u := params.Update
 	switch {
 	case u.AgentMessageChunk != nil:
@@ -91,7 +92,7 @@ func (c *replClient) SessionUpdate(params acp.SessionNotification) error {
 	return nil
 }
 
-func (c *replClient) WriteTextFile(params acp.WriteTextFileRequest) error {
+func (c *replClient) WriteTextFile(ctx context.Context, params acp.WriteTextFileRequest) error {
 	if !filepath.IsAbs(params.Path) {
 		return fmt.Errorf("path must be absolute: %s", params.Path)
 	}
@@ -108,7 +109,7 @@ func (c *replClient) WriteTextFile(params acp.WriteTextFileRequest) error {
 	return nil
 }
 
-func (c *replClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
+func (c *replClient) ReadTextFile(ctx context.Context, params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
 	if !filepath.IsAbs(params.Path) {
 		return acp.ReadTextFileResponse{}, fmt.Errorf("path must be absolute: %s", params.Path)
 	}
@@ -136,22 +137,22 @@ func (c *replClient) ReadTextFile(params acp.ReadTextFileRequest) (acp.ReadTextF
 }
 
 // Optional/UNSTABLE terminal methods: implement as no-ops for example
-func (c *replClient) CreateTerminal(params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
+func (c *replClient) CreateTerminal(ctx context.Context, params acp.CreateTerminalRequest) (acp.CreateTerminalResponse, error) {
 	fmt.Printf("[Client] CreateTerminal: %v\n", params)
 	return acp.CreateTerminalResponse{TerminalId: "term-1"}, nil
 }
 
-func (c *replClient) TerminalOutput(params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
+func (c *replClient) TerminalOutput(ctx context.Context, params acp.TerminalOutputRequest) (acp.TerminalOutputResponse, error) {
 	fmt.Printf("[Client] TerminalOutput: %v\n", params)
 	return acp.TerminalOutputResponse{Output: "", Truncated: false}, nil
 }
 
-func (c *replClient) ReleaseTerminal(params acp.ReleaseTerminalRequest) error {
+func (c *replClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseTerminalRequest) error {
 	fmt.Printf("[Client] ReleaseTerminal: %v\n", params)
 	return nil
 }
 
-func (c *replClient) WaitForTerminalExit(params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
+func (c *replClient) WaitForTerminalExit(ctx context.Context, params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
 	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
 	return acp.WaitForTerminalExitResponse{}, nil
 }
@@ -175,7 +176,10 @@ func main() {
 		args = append(args, "--debug")
 	}
 
-	cmd := exec.Command(*binary, args...)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, *binary, args...)
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -197,7 +201,7 @@ func main() {
 	conn := acp.NewClientSideConnection(client, stdin, stdout)
 
 	// Initialize
-	initResp, err := conn.Initialize(acp.InitializeRequest{
+	initResp, err := conn.Initialize(ctx, acp.InitializeRequest{
 		ProtocolVersion: acp.ProtocolVersionNumber,
 		ClientCapabilities: acp.ClientCapabilities{
 			Fs:       acp.FileSystemCapability{ReadTextFile: true, WriteTextFile: true},
@@ -220,7 +224,10 @@ func main() {
 	fmt.Printf("✅ Connected to Gemini (protocol v%v)\n", initResp.ProtocolVersion)
 
 	// New session
-	newSess, err := conn.NewSession(acp.NewSessionRequest{Cwd: mustCwd(), McpServers: []acp.McpServer{}})
+	newSess, err := conn.NewSession(ctx, acp.NewSessionRequest{
+		Cwd:        mustCwd(),
+		McpServers: []acp.McpServer{},
+	})
 	if err != nil {
 		if re, ok := err.(*acp.RequestError); ok {
 			if b, mErr := json.MarshalIndent(re, "", "  "); mErr == nil {
@@ -249,14 +256,14 @@ func main() {
 		}
 		switch line {
 		case ":exit", ":quit":
-			_ = cmd.Process.Kill()
+			cancel()
 			return
 		case ":cancel":
-			_ = conn.Cancel(acp.CancelNotification(newSess))
+			_ = conn.Cancel(ctx, acp.CancelNotification(newSess))
 			continue
 		}
 		// Send prompt and wait for completion while streaming updates are printed via SessionUpdate
-		if _, err := conn.Prompt(acp.PromptRequest{
+		if _, err := conn.Prompt(ctx, acp.PromptRequest{
 			SessionId: newSess.SessionId,
 			Prompt:    []acp.ContentBlock{acp.TextBlock(line)},
 		}); err != nil {
