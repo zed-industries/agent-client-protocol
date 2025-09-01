@@ -299,11 +299,6 @@ pub struct EnvVariable {
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
     pub session_id: SessionId,
-    /// **UNSTABLE**
-    ///
-    /// The name of the command that should be executed.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub command_name: Option<String>,
     /// The blocks of content that compose the user's message.
     ///
     /// As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],
