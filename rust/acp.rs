@@ -254,6 +254,10 @@ impl Side for ClientSide {
                 .map(AgentRequest::TerminalOutputRequest)
                 .map_err(Into::into),
             #[cfg(feature = "unstable")]
+            TERMINAL_KILL_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::KillTerminalRequest)
+                .map_err(Into::into),
+            #[cfg(feature = "unstable")]
             TERMINAL_RELEASE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReleaseTerminalRequest)
                 .map_err(Into::into),
@@ -314,6 +318,11 @@ impl<T: Client> MessageHandler<ClientSide> for T {
             AgentRequest::WaitForTerminalExitRequest(args) => {
                 let response = self.wait_for_terminal_exit(args).await?;
                 Ok(ClientResponse::WaitForTerminalExitResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            AgentRequest::KillTerminalRequest(args) => {
+                self.kill_terminal(args).await?;
+                Ok(ClientResponse::KillTerminalResponse)
             }
         }
     }
@@ -464,6 +473,16 @@ impl Client for AgentSideConnection {
             .request(
                 TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
                 Some(AgentRequest::WaitForTerminalExitRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn kill_terminal(&self, arguments: KillTerminalRequest) -> Result<(), Error> {
+        self.conn
+            .request(
+                TERMINAL_KILL_METHOD_NAME,
+                Some(AgentRequest::KillTerminalRequest(arguments)),
             )
             .await
     }

@@ -72,6 +72,14 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
+    #[cfg(feature = "unstable")]
+    async fn kill_terminal(
+        &self,
+        _args: acp::KillTerminalRequest,
+    ) -> anyhow::Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(
         &self,
         args: acp::SessionNotification,
