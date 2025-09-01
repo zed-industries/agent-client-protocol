@@ -295,7 +295,7 @@ export type AgentResponse =
   | LoadSessionResponse
   | PromptResponse;
 export type AuthenticateResponse = null;
-export type AvailableCommandInput = Unstructured;
+export type AvailableCommandInput = UnstructuredCommandInput;
 export type LoadSessionResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
@@ -861,7 +861,7 @@ export interface AvailableCommand {
 /**
  * All text that was typed after the command name is provided as input.
  */
-export interface Unstructured {
+export interface UnstructuredCommandInput {
   /**
    * A brief description of the expected input
    */
@@ -1169,7 +1169,7 @@ export const promptResponseSchema = z.object({
 });
 
 /** @internal */
-export const unstructuredSchema = z.object({
+export const unstructuredCommandInputSchema = z.object({
   hint: z.string(),
 });
 
@@ -1352,7 +1352,7 @@ export const promptCapabilitiesSchema = z.object({
 });
 
 /** @internal */
-export const availableCommandInputSchema = unstructuredSchema;
+export const availableCommandInputSchema = unstructuredCommandInputSchema;
 
 /** @internal */
 export const planEntrySchema = z.object({

@@ -230,6 +230,7 @@ pub struct AvailableCommand {
 #[cfg(feature = "unstable")]
 pub enum AvailableCommandInput {
     /// All text that was typed after the command name is provided as input.
+    #[schemars(rename = "UnstructuredCommandInput")]
     Unstructured {
         /// A brief description of the expected input
         hint: String,
