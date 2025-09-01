@@ -190,7 +190,7 @@ where
                                                 result: ResponseResult::Error(err),
                                             };
 
-                                            serde_json::to_writer(&mut outgoing_line, &error_response)?;
+                                            serde_json::to_writer(&mut outgoing_line, &JsonRpcMessage::wrap(&error_response))?;
                                             log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                                             outgoing_line.push(b'\n');
                                             outgoing_bytes.write_all(&outgoing_line).await.ok();
