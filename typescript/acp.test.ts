@@ -26,7 +26,6 @@ import {
   PROTOCOL_VERSION,
   ListCommandsRequest,
   ListCommandsResponse,
-  RunCommandRequest,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -84,9 +83,6 @@ describe("Connection", () => {
       async listCommands(
         _: ListCommandsRequest,
       ): Promise<ListCommandsResponse> {
-        throw new Error("not implemented");
-      }
-      async runCommand(_: RunCommandRequest): Promise<void> {
         throw new Error("not implemented");
       }
     }
@@ -184,9 +180,6 @@ describe("Connection", () => {
       async listCommands(
         _: ListCommandsRequest,
       ): Promise<ListCommandsResponse> {
-        throw new Error("not implemented");
-      }
-      async runCommand(_: RunCommandRequest): Promise<void> {
         throw new Error("not implemented");
       }
     }
@@ -298,9 +291,6 @@ describe("Connection", () => {
       async listCommands(
         _: ListCommandsRequest,
       ): Promise<ListCommandsResponse> {
-        throw new Error("not implemented");
-      }
-      async runCommand(_: RunCommandRequest): Promise<void> {
         throw new Error("not implemented");
       }
     }
@@ -439,9 +429,6 @@ describe("Connection", () => {
       ): Promise<ListCommandsResponse> {
         throw new Error("not implemented");
       }
-      async runCommand(_: RunCommandRequest): Promise<void> {
-        throw new Error("not implemented");
-      }
     }
 
     // Create shared instances
@@ -544,9 +531,6 @@ describe("Connection", () => {
       async listCommands(
         _: ListCommandsRequest,
       ): Promise<ListCommandsResponse> {
-        throw new Error("not implemented");
-      }
-      async runCommand(_: RunCommandRequest): Promise<void> {
         throw new Error("not implemented");
       }
     }
