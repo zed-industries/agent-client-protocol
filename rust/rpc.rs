@@ -158,7 +158,7 @@ where
                 message = outgoing_rx.next() => {
                     if let Some(message) = message {
                         outgoing_line.clear();
-                        serde_json::to_writer(&mut outgoing_line, &message).map_err(Error::into_internal_error)?;
+                        serde_json::to_writer(&mut outgoing_line, &JsonRpcMessage::wrap(&message)).map_err(Error::into_internal_error)?;
                         log::trace!("send: {}", String::from_utf8_lossy(&outgoing_line));
                         outgoing_line.push(b'\n');
                         outgoing_bytes.write_all(&outgoing_line).await.ok();
@@ -323,6 +323,34 @@ pub enum OutgoingMessage<Local: Side, Remote: Side> {
         #[serde(skip_serializing_if = "Option::is_none")]
         params: Option<Remote::InNotification>,
     },
+}
+
+/// Either [`OutgoingMessage`] or [`IncomingMessage`] with `"jsonrpc": "2.0"` specified as
+/// [required by JSON-RPC 2.0 Specification][1].
+///
+/// [1]: https://www.jsonrpc.org/specification#compatibility
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonRpcMessage<M> {
+    jsonrpc: &'static str,
+    #[serde(flatten)]
+    message: M,
+}
+
+impl<M> JsonRpcMessage<M> {
+    /// Used version of [JSON-RPC protocol].
+    ///
+    /// [JSON-RPC]: https://www.jsonrpc.org
+    pub const VERSION: &'static str = "2.0";
+
+    /// Wraps the provided [`OutgoingMessage`] or [`IncomingMessage`] into a versioned
+    /// [`JsonRpcMessage`].
+    #[must_use]
+    pub fn wrap(message: M) -> Self {
+        Self {
+            jsonrpc: Self::VERSION,
+            message,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
