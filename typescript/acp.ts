@@ -262,12 +262,12 @@ export class ClientSideConnection implements Agent {
     input: WritableStream<Uint8Array>,
     output: ReadableStream<Uint8Array>,
   ) {
+    const client = toClient(this);
+
     const handler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
-      const client = toClient(this);
-
       switch (method) {
         case schema.CLIENT_METHODS.fs_write_text_file: {
           const validatedParams =
