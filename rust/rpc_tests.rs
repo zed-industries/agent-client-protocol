@@ -435,6 +435,7 @@ async fn test_full_conversation_flow() {
             agent_conn
                 .prompt(PromptRequest {
                     session_id: session_id.clone(),
+                    command_name: None,
                     prompt: user_prompt,
                 })
                 .await

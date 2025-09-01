@@ -204,6 +204,36 @@ pub struct NewSessionResponse {
     ///
     /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
+    /// **UNSTABLE**
+    ///
+    /// Commands that may be executed via `session/prompt` requests
+    #[cfg(feature = "unstable")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub available_commands: Vec<AvailableCommand>,
+}
+
+/// Information about a command.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
+pub struct AvailableCommand {
+    /// Command name (e.g., "create_plan", "research_codebase").
+    pub name: String,
+    /// Human-readable description of what the command does.
+    pub description: String,
+    /// Input for the command if required
+    pub input: Option<AvailableCommandInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged, rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
+pub enum AvailableCommandInput {
+    /// All text that was typed after the command name is provided as input.
+    Unstructured {
+        /// A brief description of the expected input
+        hint: String,
+    },
 }
 
 // Load session
@@ -269,6 +299,11 @@ pub struct EnvVariable {
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
     pub session_id: SessionId,
+    /// **UNSTABLE**
+    ///
+    /// The name of the command that should be executed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command_name: Option<String>,
     /// The blocks of content that compose the user's message.
     ///
     /// As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],

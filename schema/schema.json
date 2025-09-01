@@ -172,6 +172,48 @@
       "x-method": "authenticate",
       "x-side": "agent"
     },
+    "AvailableCommand": {
+      "description": "Information about a command.",
+      "properties": {
+        "description": {
+          "description": "Human-readable description of what the command does.",
+          "type": "string"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AvailableCommandInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Input for the command if required"
+        },
+        "name": {
+          "description": "Command name (e.g., \"create_plan\", \"research_codebase\").",
+          "type": "string"
+        }
+      },
+      "required": ["name", "description"],
+      "type": "object"
+    },
+    "AvailableCommandInput": {
+      "anyOf": [
+        {
+          "description": "All text that was typed after the command name is provided as input.",
+          "properties": {
+            "hint": {
+              "description": "A brief description of the expected input",
+              "type": "string"
+            }
+          },
+          "required": ["hint"],
+          "title": "unstructured",
+          "type": "object"
+        }
+      ]
+    },
     "BlobResourceContents": {
       "description": "Binary resource contents.",
       "properties": {
@@ -723,6 +765,13 @@
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
+        "availableCommands": {
+          "description": "**UNSTABLE**\n\nCommands that may be executed via `session/prompt` requests",
+          "items": {
+            "$ref": "#/$defs/AvailableCommand"
+          },
+          "type": "array"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "Unique identifier for the created session.\n\nUsed in all subsequent requests for this conversation."
@@ -878,6 +927,10 @@
     "PromptRequest": {
       "description": "Request parameters for sending a user prompt to the agent.\n\nContains the user's message and any additional context.\n\nSee protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)",
       "properties": {
+        "commandName": {
+          "description": "**UNSTABLE**\n\nThe name of the command that should be executed.",
+          "type": ["string", "null"]
+        },
         "prompt": {
           "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::Resource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
           "items": {
