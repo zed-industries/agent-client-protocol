@@ -6,7 +6,6 @@ export const AGENT_METHODS = {
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
-  session_run_command: "session/run_command",
 };
 
 export const CLIENT_METHODS = {
@@ -227,8 +226,7 @@ export type AgentRequest =
   | NewSessionRequest
   | LoadSessionRequest
   | PromptRequest
-  | ListCommandsRequest
-  | RunCommandRequest;
+  | ListCommandsRequest;
 /**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
@@ -762,37 +760,6 @@ export interface ListCommandsRequest {
   sessionId: string;
 }
 /**
- * Request parameters for executing a command.
- */
-export interface RunCommandRequest {
-  /**
-   * Optional arguments for the command.
-   */
-  args?: string | null;
-  /**
-   * Name of the command to execute.
-   */
-  command: string;
-  /**
-   * A unique identifier for a conversation session between a client and agent.
-   *
-   * Sessions maintain their own context, conversation history, and state,
-   * allowing multiple independent interactions with the same agent.
-   *
-   * # Example
-   *
-   * ```
-   * use agent_client_protocol::SessionId;
-   * use std::sync::Arc;
-   *
-   * let session_id = SessionId(Arc::from("sess_abc123def456"));
-   * ```
-   *
-   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
-   */
-  sessionId: string;
-}
-/**
  * Response from the initialize method.
  *
  * Contains the negotiated protocol version and agent capabilities.
@@ -823,7 +790,7 @@ export interface AgentCapabilities {
   loadSession?: boolean;
   promptCapabilities?: PromptCapabilities;
   /**
-   * Agent supports commands via `list_commands` and `run_command`.
+   * Agent supports commands via `list_commands`.
    */
   supportsCommands?: boolean;
 }
@@ -1185,13 +1152,6 @@ export const authenticateRequestSchema = z.object({
 
 /** @internal */
 export const listCommandsRequestSchema = z.object({
-  sessionId: z.string(),
-});
-
-/** @internal */
-export const runCommandRequestSchema = z.object({
-  args: z.string().optional().nullable(),
-  command: z.string(),
   sessionId: z.string(),
 });
 
@@ -1599,7 +1559,6 @@ export const agentRequestSchema = z.union([
   loadSessionRequestSchema,
   promptRequestSchema,
   listCommandsRequestSchema,
-  runCommandRequestSchema,
 ]);
 
 /** @internal */

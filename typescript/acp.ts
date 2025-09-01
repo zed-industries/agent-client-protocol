@@ -454,20 +454,16 @@ export class ClientSideConnection implements Agent {
     );
   }
 
-  // todo!()
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
   async listCommands(
     params: schema.ListCommandsRequest,
   ): Promise<schema.ListCommandsResponse> {
     return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_list_commands,
-      params,
-    );
-  }
-
-  // todo!()
-  async runCommand(params: schema.RunCommandRequest): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_run_command,
       params,
     );
   }
@@ -963,6 +959,4 @@ export interface Agent {
   listCommands(
     params: schema.ListCommandsRequest,
   ): Promise<schema.ListCommandsResponse>;
-
-  runCommand(params: schema.RunCommandRequest): Promise<void>;
 }

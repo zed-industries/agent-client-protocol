@@ -228,15 +228,6 @@ impl Agent for ClientSideConnection {
             )
             .await
     }
-
-    async fn run_command(&self, arguments: RunCommandRequest) -> Result<(), Error> {
-        self.conn
-            .request(
-                SESSION_RUN_COMMAND,
-                Some(ClientRequest::RunCommandRequest(arguments)),
-            )
-            .await
-    }
 }
 
 /// Marker type representing the client side of an ACP connection.
@@ -533,9 +524,6 @@ impl Side for AgentSide {
             SESSION_LIST_COMMANDS => serde_json::from_str(params.get())
                 .map(ClientRequest::ListCommandsRequest)
                 .map_err(Into::into),
-            SESSION_RUN_COMMAND => serde_json::from_str(params.get())
-                .map(ClientRequest::RunCommandRequest)
-                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -581,10 +569,6 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
             ClientRequest::ListCommandsRequest(args) => {
                 let response = self.list_commands(args).await?;
                 Ok(AgentResponse::ListCommandsResponse(response))
-            }
-            ClientRequest::RunCommandRequest(args) => {
-                self.run_command(args).await?;
-                Ok(AgentResponse::AuthenticateResponse) // No specific response type for run_command
             }
         }
     }

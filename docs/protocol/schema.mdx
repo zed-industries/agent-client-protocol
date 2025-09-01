@@ -146,10 +146,9 @@ See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/promp
 <a id="session-list_commands"></a>
 ### <span class="font-mono">session/list_commands</span>
 
-Lists available custom commands for a session.
+**UNSTABLE**
 
-Returns all commands available in the agent's `.claude/commands` directory
-or equivalent command registry. Commands can be executed via `run_command`.
+This method is not part of the spec, and may be removed or changed at any point.
 
 #### <span class="font-mono">ListCommandsRequest</span>
 
@@ -368,36 +367,6 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
   required
 >
   Indicates why the agent stopped processing the turn.
-</ResponseField>
-
-<a id="session-run_command"></a>
-### <span class="font-mono">session/run_command</span>
-
-Executes a custom command within a session.
-
-Runs the specified command with optional arguments. The agent should
-stream results back via session update notifications.
-
-#### <span class="font-mono">RunCommandRequest</span>
-
-Request parameters for executing a command.
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="args" type={"string | null"}>
-  Optional arguments for the command.
-</ResponseField>
-<ResponseField name="command" type={"string"} required>
-  Name of the command to execute.
-</ResponseField>
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
->
-  The session ID to execute the command in.
 </ResponseField>
 
 ## Client
@@ -620,7 +589,7 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 
 </ResponseField>
 <ResponseField name="supportsCommands" type={"boolean"} >
-  Agent supports commands via `list_commands` and `run_command`.
+  Agent supports commands via `list_commands`.
 
     - Default: `false`
 

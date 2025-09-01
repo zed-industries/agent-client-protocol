@@ -167,10 +167,6 @@ impl Agent for TestAgent {
     ) -> Result<ListCommandsResponse, Error> {
         Ok(ListCommandsResponse { commands: vec![] })
     }
-
-    async fn run_command(&self, _arguments: RunCommandRequest) -> Result<(), Error> {
-        Ok(())
-    }
 }
 
 // Helper function to create a bidirectional connection

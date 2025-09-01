@@ -110,11 +110,6 @@ impl acp::Agent for ExampleAgent {
             }],
         })
     }
-
-    async fn run_command(&self, arguments: acp::RunCommandRequest) -> Result<(), acp::Error> {
-        log::info!("Received run_command request {arguments:?}");
-        Ok(())
-    }
 }
 
 #[tokio::main(flavor = "current_thread")]

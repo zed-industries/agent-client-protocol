@@ -106,20 +106,13 @@ pub trait Agent {
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 
-    /// Lists available custom commands for a session.
+    /// **UNSTABLE**
     ///
-    /// Returns all commands available in the agent's `.claude/commands` directory
-    /// or equivalent command registry. Commands can be executed via `run_command`.
+    /// This method is not part of the spec, and may be removed or changed at any point.
     fn list_commands(
         &self,
         arguments: ListCommandsRequest,
     ) -> impl Future<Output = Result<ListCommandsResponse, Error>>;
-
-    /// Executes a custom command within a session.
-    ///
-    /// Runs the specified command with optional arguments. The agent should
-    /// stream results back via session update notifications.
-    fn run_command(&self, arguments: RunCommandRequest) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
@@ -355,7 +348,7 @@ pub struct AgentCapabilities {
     #[serde(default)]
     pub prompt_capabilities: PromptCapabilities,
 
-    /// Agent supports commands via `list_commands` and `run_command`.
+    /// Agent supports commands via `list_commands`.
     #[serde(default)]
     pub supports_commands: bool,
 }
@@ -421,19 +414,6 @@ pub struct CommandInfo {
     pub requires_argument: bool,
 }
 
-/// Request parameters for executing a command.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/run_command"))]
-#[serde(rename_all = "camelCase")]
-pub struct RunCommandRequest {
-    /// The session ID to execute the command in.
-    pub session_id: SessionId,
-    /// Name of the command to execute.
-    pub command: String,
-    /// Optional arguments for the command.
-    pub args: Option<String>,
-}
-
 // Method schema
 
 /// Names of all methods that agents handle.
@@ -455,8 +435,6 @@ pub struct AgentMethodNames {
     pub session_cancel: &'static str,
     /// Method for listing available commands.
     pub session_list_commands: &'static str,
-    /// Method for running a command.
-    pub session_run_command: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -468,7 +446,6 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
     session_list_commands: SESSION_LIST_COMMANDS,
-    session_run_command: SESSION_RUN_COMMAND,
 };
 
 /// Method name for the initialize request.
@@ -484,9 +461,7 @@ pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
 pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
 /// Method name for listing custom commands in a session.
-pub const SESSION_LIST_COMMANDS: &str = "session/list_commands";
-/// Method name for running a custom command in a session.
-pub const SESSION_RUN_COMMAND: &str = "session/run_command";
+pub(crate) const SESSION_LIST_COMMANDS: &str = "session/list_commands";
 
 /// All possible requests that a client can send to an agent.
 ///
@@ -504,7 +479,6 @@ pub enum ClientRequest {
     LoadSessionRequest(LoadSessionRequest),
     PromptRequest(PromptRequest),
     ListCommandsRequest(ListCommandsRequest),
-    RunCommandRequest(RunCommandRequest),
 }
 
 /// All possible responses that an agent can send to a client.

@@ -19,7 +19,7 @@
         },
         "supportsCommands": {
           "default": false,
-          "description": "Agent supports commands via `list_commands` and `run_command`.",
+          "description": "Agent supports commands via `list_commands`.",
           "type": "boolean"
         }
       },
@@ -260,10 +260,6 @@
         {
           "$ref": "#/$defs/ListCommandsRequest",
           "title": "ListCommandsRequest"
-        },
-        {
-          "$ref": "#/$defs/RunCommandRequest",
-          "title": "RunCommandRequest"
         }
       ],
       "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent.",
@@ -1120,27 +1116,6 @@
       "description": "The sender or recipient of messages and data in a conversation.",
       "enum": ["assistant", "user"],
       "type": "string"
-    },
-    "RunCommandRequest": {
-      "description": "Request parameters for executing a command.",
-      "properties": {
-        "args": {
-          "description": "Optional arguments for the command.",
-          "type": ["string", "null"]
-        },
-        "command": {
-          "description": "Name of the command to execute.",
-          "type": "string"
-        },
-        "sessionId": {
-          "$ref": "#/$defs/SessionId",
-          "description": "The session ID to execute the command in."
-        }
-      },
-      "required": ["sessionId", "command"],
-      "type": "object",
-      "x-method": "session/run_command",
-      "x-side": "agent"
     },
     "SessionId": {
       "description": "A unique identifier for a conversation session between a client and agent.\n\nSessions maintain their own context, conversation history, and state,\nallowing multiple independent interactions with the same agent.\n\n# Example\n\n```\nuse agent_client_protocol::SessionId;\nuse std::sync::Arc;\n\nlet session_id = SessionId(Arc::from(\"sess_abc123def456\"));\n```\n\nSee protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)",
