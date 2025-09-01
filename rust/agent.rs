@@ -402,7 +402,7 @@ pub struct ListCommandsResponse {
     pub commands: Vec<CommandInfo>,
 }
 
-/// Information about a custom command.
+/// Information about a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandInfo {

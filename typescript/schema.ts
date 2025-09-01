@@ -882,7 +882,7 @@ export interface ListCommandsResponse {
   commands: CommandInfo[];
 }
 /**
- * Information about a custom command.
+ * Information about a command.
  */
 export interface CommandInfo {
   /**

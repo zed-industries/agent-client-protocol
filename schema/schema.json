@@ -300,7 +300,7 @@
       "x-docs-ignore": true
     },
     "CommandInfo": {
-      "description": "Information about a custom command.",
+      "description": "Information about a command.",
       "properties": {
         "description": {
           "description": "Human-readable description of what the command does.",
