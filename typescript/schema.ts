@@ -295,6 +295,7 @@ export type AgentResponse =
   | LoadSessionResponse
   | PromptResponse;
 export type AuthenticateResponse = null;
+export type AvailableCommandInput = UnstructuredCommandInput;
 export type LoadSessionResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
@@ -816,6 +817,12 @@ export interface AuthMethod {
  */
 export interface NewSessionResponse {
   /**
+   * **UNSTABLE**
+   *
+   * Commands that may be executed via `session/prompt` requests
+   */
+  availableCommands?: AvailableCommand[];
+  /**
    * A unique identifier for a conversation session between a client and agent.
    *
    * Sessions maintain their own context, conversation history, and state,
@@ -833,6 +840,32 @@ export interface NewSessionResponse {
    * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
+}
+/**
+ * Information about a command.
+ */
+export interface AvailableCommand {
+  /**
+   * Human-readable description of what the command does.
+   */
+  description: string;
+  /**
+   * Input for the command if required
+   */
+  input?: AvailableCommandInput | null;
+  /**
+   * Command name (e.g., "create_plan", "research_codebase").
+   */
+  name: string;
+}
+/**
+ * All text that was typed after the command name is provided as input.
+ */
+export interface UnstructuredCommandInput {
+  /**
+   * A brief description of the expected input
+   */
+  hint: string;
 }
 /**
  * Response from processing a user prompt.
@@ -1122,11 +1155,6 @@ export const embeddedResourceResourceSchema = z.union([
 export const authenticateResponseSchema = z.null();
 
 /** @internal */
-export const newSessionResponseSchema = z.object({
-  sessionId: z.string(),
-});
-
-/** @internal */
 export const loadSessionResponseSchema = z.null();
 
 /** @internal */
@@ -1138,6 +1166,11 @@ export const promptResponseSchema = z.object({
     z.literal("refusal"),
     z.literal("cancelled"),
   ]),
+});
+
+/** @internal */
+export const unstructuredCommandInputSchema = z.object({
+  hint: z.string(),
 });
 
 /** @internal */
@@ -1319,6 +1352,9 @@ export const promptCapabilitiesSchema = z.object({
 });
 
 /** @internal */
+export const availableCommandInputSchema = unstructuredCommandInputSchema;
+
+/** @internal */
 export const planEntrySchema = z.object({
   content: z.string(),
   priority: z.union([z.literal("high"), z.literal("medium"), z.literal("low")]),
@@ -1450,6 +1486,13 @@ export const agentCapabilitiesSchema = z.object({
 });
 
 /** @internal */
+export const availableCommandSchema = z.object({
+  description: z.string(),
+  input: availableCommandInputSchema.optional().nullable(),
+  name: z.string(),
+});
+
+/** @internal */
 export const clientResponseSchema = z.union([
   writeTextFileResponseSchema,
   readTextFileResponseSchema,
@@ -1482,6 +1525,12 @@ export const initializeResponseSchema = z.object({
   agentCapabilities: agentCapabilitiesSchema.optional(),
   authMethods: z.array(authMethodSchema).optional(),
   protocolVersion: z.number(),
+});
+
+/** @internal */
+export const newSessionResponseSchema = z.object({
+  availableCommands: z.array(availableCommandSchema).optional(),
+  sessionId: z.string(),
 });
 
 /** @internal */
