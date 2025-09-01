@@ -708,12 +708,6 @@ export interface LoadSessionRequest {
  */
 export interface PromptRequest {
   /**
-   * **UNSTABLE**
-   *
-   * The name of the command that should be executed.
-   */
-  commandName?: string | null;
-  /**
    * The blocks of content that compose the user's message.
    *
    * As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],
@@ -1399,7 +1393,6 @@ export const newSessionRequestSchema = z.object({
 
 /** @internal */
 export const promptRequestSchema = z.object({
-  commandName: z.string().optional().nullable(),
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
 });
