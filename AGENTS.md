@@ -21,7 +21,7 @@ All paths in the protocol should be absolute
 - Add constants for the method names
 - Add variants to {Agent|Client}{Request|Response} enums
 - Add the methods to the Client/Agent impl of {Agent|Client}SideConnection in rust/acp.rs
-- Handle the method in the decoders
+- Handle the new method in the `Side::decode_request`/`Side::decode_notification` implementation
 - Handle the new request in the blanket impl of MessageHandler<{Agent|Client}Side>
 - Add the method to markdown_generator.rs SideDocs functions
 - Run `npm run generate` and fix any issues that appear

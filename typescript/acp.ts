@@ -217,9 +217,9 @@ export class TerminalHandle {
     );
   }
 
-  async release(): Promise<schema.ReleaseTerminalResponse> {
+  async kill(): Promise<void> {
     return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_release,
+      schema.CLIENT_METHODS.terminal_kill,
       {
         sessionId: this.#sessionId,
         terminalId: this.id,
@@ -227,8 +227,15 @@ export class TerminalHandle {
     );
   }
 
-  async [Symbol.asyncDispose]() {
-    return this.release();
+  async release(): Promise<void> {
+    await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_release, {
+      sessionId: this.#sessionId,
+      terminalId: this.id,
+    });
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.release();
   }
 }
 
@@ -323,6 +330,13 @@ export class ClientSideConnection implements Agent {
             schema.waitForTerminalExitRequestSchema.parse(params);
           return client.waitForTerminalExit?.(
             validatedParams as schema.WaitForTerminalExitRequest,
+          );
+        }
+        case schema.CLIENT_METHODS.terminal_kill: {
+          const validatedParams =
+            schema.killTerminalRequestSchema.parse(params);
+          return client.killTerminal?.(
+            validatedParams as schema.KillTerminalRequest,
           );
         }
         default:
@@ -861,6 +875,13 @@ export interface Client {
   waitForTerminalExit?(
     params: schema.WaitForTerminalExitRequest,
   ): Promise<schema.WaitForTerminalExitResponse>;
+
+  /**
+   *  @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  killTerminal?(params: schema.KillTerminalRequest): Promise<void>;
 }
 
 /**
