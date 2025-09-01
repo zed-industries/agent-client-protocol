@@ -161,7 +161,6 @@ async fn main() -> anyhow::Result<()> {
                 let result = conn
                     .prompt(acp::PromptRequest {
                         session_id: response.session_id.clone(),
-                        command_name: None,
                         prompt: vec![line.into()],
                     })
                     .await;
