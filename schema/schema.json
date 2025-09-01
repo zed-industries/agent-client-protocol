@@ -59,6 +59,10 @@
         {
           "$ref": "#/$defs/WaitForTerminalExitRequest",
           "title": "WaitForTerminalExitRequest"
+        },
+        {
+          "$ref": "#/$defs/KillTerminalRequest",
+          "title": "KillTerminalRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -281,6 +285,10 @@
         {
           "$ref": "#/$defs/WaitForTerminalExitResponse",
           "title": "WaitForTerminalExitResponse"
+        },
+        {
+          "title": "KillTerminalResponse",
+          "type": "null"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -625,6 +633,19 @@
       "type": "object",
       "x-method": "initialize",
       "x-side": "agent"
+    },
+    "KillTerminalRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
     },
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
