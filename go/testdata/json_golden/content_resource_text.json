@@ -6,4 +6,3 @@
     "text": "def hello():\n    print('Hello, world!')"
   }
 }
-
