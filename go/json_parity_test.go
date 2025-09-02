@@ -73,36 +73,23 @@ func runGolden[T any](builds ...func() T) func(t *testing.T) {
 func TestJSONGolden_ContentBlocks(t *testing.T) {
 	t.Run("content_text", runGolden(
 		func() ContentBlock { return TextBlock("What's the weather like today?") },
-		func() ContentBlock { return NewContentBlockText("What's the weather like today?") },
 	))
 	t.Run("content_image", runGolden(
 		func() ContentBlock { return ImageBlock("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...", "image/png") },
-		func() ContentBlock { return NewContentBlockImage("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...", "image/png") },
 	))
 	t.Run("content_audio", runGolden(
 		func() ContentBlock { return AudioBlock("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAAB...", "audio/wav") },
-		func() ContentBlock {
-			return NewContentBlockAudio("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAAB...", "audio/wav")
-		},
 	))
 	t.Run("content_resource_text", runGolden(
 		func() ContentBlock {
 			res := EmbeddedResourceResource{TextResourceContents: &TextResourceContents{Uri: "file:///home/user/script.py", MimeType: Ptr("text/x-python"), Text: "def hello():\n    print('Hello, world!')"}}
 			return ResourceBlock(EmbeddedResource{Resource: res})
 		},
-		func() ContentBlock {
-			res := EmbeddedResourceResource{TextResourceContents: &TextResourceContents{Uri: "file:///home/user/script.py", MimeType: Ptr("text/x-python"), Text: "def hello():\n    print('Hello, world!')"}}
-			return NewContentBlockResource(res)
-		},
 	))
 	t.Run("content_resource_blob", runGolden(
 		func() ContentBlock {
 			res := EmbeddedResourceResource{BlobResourceContents: &BlobResourceContents{Uri: "file:///home/user/document.pdf", MimeType: Ptr("application/pdf"), Blob: "<b64>"}}
 			return ResourceBlock(EmbeddedResource{Resource: res})
-		},
-		func() ContentBlock {
-			res := EmbeddedResourceResource{BlobResourceContents: &BlobResourceContents{Uri: "file:///home/user/document.pdf", MimeType: Ptr("application/pdf"), Blob: "<b64>"}}
-			return NewContentBlockResource(res)
 		},
 	))
 	t.Run("content_resource_link", runGolden(
@@ -119,23 +106,12 @@ func TestJSONGolden_ContentBlocks(t *testing.T) {
 			cb.ResourceLink.Size = &sz
 			return cb
 		},
-		func() ContentBlock {
-			cb := NewContentBlockResourceLink("document.pdf", "file:///home/user/document.pdf")
-			mt := "application/pdf"
-			sz := 1024000
-			cb.ResourceLink.MimeType = &mt
-			cb.ResourceLink.Size = &sz
-			return cb
-		},
 	))
 }
 
 func TestJSONGolden_ToolCallContent(t *testing.T) {
 	t.Run("tool_content_content_text", runGolden(
 		func() ToolCallContent { return ToolContent(TextBlock("Analysis complete. Found 3 issues.")) },
-		func() ToolCallContent {
-			return NewToolCallContentContent(TextBlock("Analysis complete. Found 3 issues."))
-		},
 	))
 	t.Run("tool_content_diff", runGolden(func() ToolCallContent {
 		old := "{\n  \"debug\": false\n}"
@@ -145,13 +121,9 @@ func TestJSONGolden_ToolCallContent(t *testing.T) {
 		func() ToolCallContent {
 			return ToolDiffContent("/home/user/project/src/config.json", "{\n  \"debug\": true\n}")
 		},
-		func() ToolCallContent {
-			return NewToolCallContentDiff("/home/user/project/src/config.json", "{\n  \"debug\": true\n}")
-		},
 	))
 	t.Run("tool_content_terminal", runGolden(
 		func() ToolCallContent { return ToolTerminalRef("term_001") },
-		func() ToolCallContent { return NewToolCallContentTerminal("term_001") },
 	))
 }
 
@@ -178,27 +150,18 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 			return SessionUpdate{UserMessageChunk: &SessionUpdateUserMessageChunk{Content: TextBlock("What's the capital of France?")}}
 		},
 		func() SessionUpdate { return UpdateUserMessageText("What's the capital of France?") },
-		func() SessionUpdate {
-			return NewSessionUpdateUserMessageChunk(TextBlock("What's the capital of France?"))
-		},
 	))
 	t.Run("session_update_agent_message_chunk", runGolden(
 		func() SessionUpdate {
 			return SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: TextBlock("The capital of France is Paris.")}}
 		},
 		func() SessionUpdate { return UpdateAgentMessageText("The capital of France is Paris.") },
-		func() SessionUpdate {
-			return NewSessionUpdateAgentMessageChunk(TextBlock("The capital of France is Paris."))
-		},
 	))
 	t.Run("session_update_agent_thought_chunk", runGolden(
 		func() SessionUpdate {
 			return SessionUpdate{AgentThoughtChunk: &SessionUpdateAgentThoughtChunk{Content: TextBlock("Thinking about best approach...")}}
 		},
 		func() SessionUpdate { return UpdateAgentThoughtText("Thinking about best approach...") },
-		func() SessionUpdate {
-			return NewSessionUpdateAgentThoughtChunk(TextBlock("Thinking about best approach..."))
-		},
 	))
 	t.Run("session_update_plan", runGolden(
 		func() SessionUpdate {
@@ -210,9 +173,6 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 				PlanEntry{Content: "Identify potential type issues", Priority: PlanEntryPriorityMedium, Status: PlanEntryStatusPending},
 			)
 		},
-		func() SessionUpdate {
-			return NewSessionUpdatePlan([]PlanEntry{{Content: "Check for syntax errors", Priority: PlanEntryPriorityHigh, Status: PlanEntryStatusPending}, {Content: "Identify potential type issues", Priority: PlanEntryPriorityMedium, Status: PlanEntryStatusPending}})
-		},
 	))
 	t.Run("session_update_tool_call", runGolden(
 		func() SessionUpdate {
@@ -222,9 +182,7 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 			return StartToolCall("call_001", "Reading configuration file", WithStartKind(ToolKindRead), WithStartStatus(ToolCallStatusPending))
 		},
 	))
-	t.Run("session_update_tool_call_minimal", runGolden(
-		func() SessionUpdate { return NewSessionUpdateToolCall("call_001", "Reading configuration file") },
-	))
+    // Removed: session_update_tool_call_minimal (deprecated New helper)
 	t.Run("session_update_tool_call_read", runGolden(
 		func() SessionUpdate {
 			return StartReadToolCall("call_001", "Reading configuration file", "/home/user/project/src/config.json")
@@ -248,9 +206,7 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 			return UpdateToolCall("call_001", WithUpdateStatus(ToolCallStatusInProgress), WithUpdateContent([]ToolCallContent{ToolContent(TextBlock("Found 3 configuration files..."))}))
 		},
 	))
-	t.Run("session_update_tool_call_update_minimal", runGolden(
-		func() SessionUpdate { return NewSessionUpdateToolCallUpdate("call_001") },
-	))
+    // Removed: session_update_tool_call_update_minimal (deprecated New helper)
 	t.Run("session_update_tool_call_update_more_fields", runGolden(
 		func() SessionUpdate {
 			return UpdateToolCall(
