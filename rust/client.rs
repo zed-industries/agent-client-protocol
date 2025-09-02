@@ -111,6 +111,13 @@ pub trait Client {
         &self,
         args: WaitForTerminalExitRequest,
     ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[doc(hidden)]
+    #[cfg(feature = "unstable")]
+    fn kill_terminal(&self, args: KillTerminalRequest) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Session updates
@@ -357,6 +364,15 @@ pub struct ReleaseTerminalRequest {
 #[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "unstable")]
+pub struct KillTerminalRequest {
+    pub session_id: SessionId,
+    pub terminal_id: TerminalId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-docs-ignore" = true))]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
 pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -445,6 +461,9 @@ pub struct ClientMethodNames {
     /// Method for waiting for a terminal to finish.
     #[cfg(feature = "unstable")]
     pub terminal_wait_for_exit: &'static str,
+    /// Method for killing a terminal.
+    #[cfg(feature = "unstable")]
+    pub terminal_kill: &'static str,
 }
 
 /// Constant containing all client method names.
@@ -461,6 +480,8 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     terminal_release: TERMINAL_RELEASE_METHOD_NAME,
     #[cfg(feature = "unstable")]
     terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
+    #[cfg(feature = "unstable")]
+    terminal_kill: TERMINAL_KILL_METHOD_NAME,
 };
 
 /// Notification name for session updates.
@@ -483,6 +504,9 @@ pub(crate) const TERMINAL_RELEASE_METHOD_NAME: &str = "terminal/release";
 /// Method for waiting for a terminal to finish.
 #[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_WAIT_FOR_EXIT_METHOD_NAME: &str = "terminal/wait_for_exit";
+/// Method for killing a terminal.
+#[cfg(feature = "unstable")]
+pub(crate) const TERMINAL_KILL_METHOD_NAME: &str = "terminal/kill";
 
 /// All possible requests that an agent can send to a client.
 ///
@@ -505,6 +529,8 @@ pub enum AgentRequest {
     ReleaseTerminalRequest(ReleaseTerminalRequest),
     #[cfg(feature = "unstable")]
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
+    #[cfg(feature = "unstable")]
+    KillTerminalRequest(KillTerminalRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -528,6 +554,8 @@ pub enum ClientResponse {
     ReleaseTerminalResponse,
     #[cfg(feature = "unstable")]
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
+    #[cfg(feature = "unstable")]
+    KillTerminalResponse,
 }
 
 /// All possible notifications that an agent can send to a client.

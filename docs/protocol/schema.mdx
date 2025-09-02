@@ -250,6 +250,12 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
+<ResponseField name="availableCommands" type={<><span><a href="#availablecommand">AvailableCommand</a></span><span>[]</span></>} >
+  **UNSTABLE**
+
+Commands that may be executed via `session/prompt` requests
+
+</ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   Unique identifier for the created session.
 
@@ -604,6 +610,50 @@ Describes an available authentication method.
 Unique identifier for an authentication method.
 
 **Type:** `string`
+
+## <span class="font-mono">AvailableCommand</span>
+
+Information about a command.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="description" type={"string"} required>
+  Human-readable description of what the command does.
+</ResponseField>
+<ResponseField
+  name="input"
+  type={
+    <>
+      <span>
+        <a href="#availablecommandinput">AvailableCommandInput</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+>
+  Input for the command if required
+</ResponseField>
+<ResponseField name="name" type={"string"} required>
+  Command name (e.g., "create_plan", "research_codebase").
+</ResponseField>
+
+## <span class="font-mono">AvailableCommandInput</span>
+
+**Type:** Union
+
+<ResponseField name="Object">
+All text that was typed after the command name is provided as input.
+
+<Expandable title="Properties">
+
+<ResponseField name="hint" type={"string"} required>
+  A brief description of the expected input
+</ResponseField>
+
+</Expandable>
+</ResponseField>
 
 ## <span class="font-mono">BlobResourceContents</span>
 

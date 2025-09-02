@@ -59,6 +59,10 @@
         {
           "$ref": "#/$defs/WaitForTerminalExitRequest",
           "title": "WaitForTerminalExitRequest"
+        },
+        {
+          "$ref": "#/$defs/KillTerminalRequest",
+          "title": "KillTerminalRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -167,6 +171,48 @@
       "type": "object",
       "x-method": "authenticate",
       "x-side": "agent"
+    },
+    "AvailableCommand": {
+      "description": "Information about a command.",
+      "properties": {
+        "description": {
+          "description": "Human-readable description of what the command does.",
+          "type": "string"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AvailableCommandInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Input for the command if required"
+        },
+        "name": {
+          "description": "Command name (e.g., \"create_plan\", \"research_codebase\").",
+          "type": "string"
+        }
+      },
+      "required": ["name", "description"],
+      "type": "object"
+    },
+    "AvailableCommandInput": {
+      "anyOf": [
+        {
+          "description": "All text that was typed after the command name is provided as input.",
+          "properties": {
+            "hint": {
+              "description": "A brief description of the expected input",
+              "type": "string"
+            }
+          },
+          "required": ["hint"],
+          "title": "UnstructuredCommandInput",
+          "type": "object"
+        }
+      ]
     },
     "BlobResourceContents": {
       "description": "Binary resource contents.",
@@ -281,6 +327,10 @@
         {
           "$ref": "#/$defs/WaitForTerminalExitResponse",
           "title": "WaitForTerminalExitResponse"
+        },
+        {
+          "title": "KillTerminalResponse",
+          "type": "null"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -626,6 +676,19 @@
       "x-method": "initialize",
       "x-side": "agent"
     },
+    "KillTerminalRequest": {
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "terminalId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
       "properties": {
@@ -702,6 +765,13 @@
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
+        "availableCommands": {
+          "description": "**UNSTABLE**\n\nCommands that may be executed via `session/prompt` requests",
+          "items": {
+            "$ref": "#/$defs/AvailableCommand"
+          },
+          "type": "array"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "Unique identifier for the created session.\n\nUsed in all subsequent requests for this conversation."

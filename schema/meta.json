@@ -13,6 +13,7 @@
     "session_request_permission": "session/request_permission",
     "session_update": "session/update",
     "terminal_create": "terminal/create",
+    "terminal_kill": "terminal/kill",
     "terminal_output": "terminal/output",
     "terminal_release": "terminal/release",
     "terminal_wait_for_exit": "terminal/wait_for_exit"
