@@ -612,49 +612,54 @@ async fn test_full_conversation_flow() {
 async fn test_notification_wire_format() {
     use crate::{
         AgentNotification, AgentSide, CancelNotification, ClientNotification, ClientSide,
-        ContentBlock, SessionNotification, SessionUpdate, TextContent, rpc::OutgoingMessage,
+        ContentBlock, SessionNotification, SessionUpdate, TextContent,
+        rpc::{JsonRpcMessage, OutgoingMessage},
     };
     use serde_json::{Value, json};
 
     // Test client -> agent notification wire format
-    let outgoing_msg = OutgoingMessage::<ClientSide, AgentSide>::Notification {
-        method: "cancel",
-        params: Some(ClientNotification::CancelNotification(CancelNotification {
-            session_id: SessionId("test-123".into()),
-        })),
-    };
+    let outgoing_msg =
+        JsonRpcMessage::wrap(OutgoingMessage::<ClientSide, AgentSide>::Notification {
+            method: "cancel",
+            params: Some(ClientNotification::CancelNotification(CancelNotification {
+                session_id: SessionId("test-123".into()),
+            })),
+        });
 
     let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
     assert_eq!(
         serialized,
         json!({
+            "jsonrpc": "2.0",
             "method": "cancel",
             "params": {
                 "sessionId": "test-123"
-            }
+            },
         })
     );
 
     // Test agent -> client notification wire format
-    let outgoing_msg = OutgoingMessage::<AgentSide, ClientSide>::Notification {
-        method: "sessionUpdate",
-        params: Some(AgentNotification::SessionNotification(
-            SessionNotification {
-                session_id: SessionId("test-456".into()),
-                update: SessionUpdate::AgentMessageChunk {
-                    content: ContentBlock::Text(TextContent {
-                        annotations: None,
-                        text: "Hello".to_string(),
-                    }),
+    let outgoing_msg =
+        JsonRpcMessage::wrap(OutgoingMessage::<AgentSide, ClientSide>::Notification {
+            method: "sessionUpdate",
+            params: Some(AgentNotification::SessionNotification(
+                SessionNotification {
+                    session_id: SessionId("test-456".into()),
+                    update: SessionUpdate::AgentMessageChunk {
+                        content: ContentBlock::Text(TextContent {
+                            annotations: None,
+                            text: "Hello".to_string(),
+                        }),
+                    },
                 },
-            },
-        )),
-    };
+            )),
+        });
 
     let serialized: Value = serde_json::to_value(&outgoing_msg).unwrap();
     assert_eq!(
         serialized,
         json!({
+            "jsonrpc": "2.0",
             "method": "sessionUpdate",
             "params": {
                 "sessionId": "test-456",
