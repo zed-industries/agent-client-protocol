@@ -21,7 +21,11 @@ var (
 )
 
 func (e *exampleClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
-	fmt.Printf("\n🔐 Permission requested: %s\n", params.ToolCall.Title)
+	title := ""
+	if params.ToolCall.Title != nil {
+		title = *params.ToolCall.Title
+	}
+	fmt.Printf("\n🔐 Permission requested: %s\n", title)
 	fmt.Println("\nOptions:")
 	for i, opt := range params.Options {
 		fmt.Printf("   %d. %s (%s)\n", i+1, opt.Name, opt.Kind)
@@ -111,16 +115,16 @@ func (e *exampleClient) ReadTextFile(ctx context.Context, params acp.ReadTextFil
 	}
 	content := string(b)
 	// Apply optional line/limit (1-based line index)
-	if params.Line > 0 || params.Limit > 0 {
+	if params.Line != nil || params.Limit != nil {
 		lines := strings.Split(content, "\n")
 		start := 0
-		if params.Line > 0 {
-			start = min(max(params.Line-1, 0), len(lines))
+		if params.Line != nil && *params.Line > 0 {
+			start = min(max(*params.Line-1, 0), len(lines))
 		}
 		end := len(lines)
-		if params.Limit > 0 {
-			if start+params.Limit < end {
-				end = start + params.Limit
+		if params.Limit != nil && *params.Limit > 0 {
+			if start+*params.Limit < end {
+				end = start + *params.Limit
 			}
 		}
 		content = strings.Join(lines[start:end], "\n")

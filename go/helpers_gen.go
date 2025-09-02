@@ -54,11 +54,10 @@ func ResourceBlock(res EmbeddedResource) ContentBlock {
 
 // ToolContent wraps a content block as tool-call content.
 func ToolContent(block ContentBlock) ToolCallContent {
-	var b ContentBlock = block
-	return ToolCallContent{
-		Content: &b,
+	return ToolCallContent{Content: &ToolCallContentContent{
+		Content: block,
 		Type:    "content",
-	}
+	}}
 }
 
 // ToolDiffContent constructs a diff tool-call content. If oldText is omitted, the field is left empty.
@@ -67,22 +66,20 @@ func ToolDiffContent(path string, newText string, oldText ...string) ToolCallCon
 	if len(oldText) > 0 {
 		o = &oldText[0]
 	}
-	return ToolCallContent{
-		Diff: &DiffContent{
-			NewText: newText,
-			OldText: o,
-			Path:    path,
-		},
-		Type: "diff",
-	}
+	return ToolCallContent{Diff: &ToolCallContentDiff{
+		NewText: newText,
+		OldText: o,
+		Path:    path,
+		Type:    "diff",
+	}}
 }
 
 // ToolTerminalRef constructs a terminal reference tool-call content.
 func ToolTerminalRef(terminalId string) ToolCallContent {
-	return ToolCallContent{
-		Terminal: &TerminalRef{TerminalId: terminalId},
-		Type:     "terminal",
-	}
+	return ToolCallContent{Terminal: &ToolCallContentTerminal{
+		TerminalId: terminalId,
+		Type:       "terminal",
+	}}
 }
 
 // Ptr returns a pointer to v.

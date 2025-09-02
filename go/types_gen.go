@@ -30,9 +30,9 @@ type AgentResponse any
 
 // Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 type Annotations struct {
-	Audience     []Role  `json:"audience,omitempty"`
-	LastModified string  `json:"lastModified,omitempty"`
-	Priority     float64 `json:"priority,omitempty"`
+	Audience     []Role   `json:"audience,omitempty"`
+	LastModified *string  `json:"lastModified,omitempty"`
+	Priority     *float64 `json:"priority,omitempty"`
 }
 
 // Audio provided to or from an LLM.
@@ -45,7 +45,7 @@ type AudioContent struct {
 // Describes an available authentication method.
 type AuthMethod struct {
 	// Optional description providing more details about this authentication method.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	// Unique identifier for this authentication method.
 	Id AuthMethodId `json:"id"`
 	// Human-readable name of the authentication method.
@@ -65,11 +65,66 @@ func (v *AuthenticateRequest) Validate() error {
 	return nil
 }
 
+// Information about a command.
+type AvailableCommand struct {
+	// Human-readable description of what the command does.
+	Description string `json:"description"`
+	// Input for the command if required
+	Input *AvailableCommandInput `json:"input,omitempty"`
+	// Command name (e.g., "create_plan", "research_codebase").
+	Name string `json:"name"`
+}
+
+// All text that was typed after the command name is provided as input.
+type UnstructuredCommandInput struct {
+	// A brief description of the expected input
+	Hint string `json:"hint"`
+}
+
+type AvailableCommandInput struct {
+	UnstructuredCommandInput *UnstructuredCommandInput `json:"-"`
+}
+
+func (u *AvailableCommandInput) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v UnstructuredCommandInput
+		var match bool = true
+		if _, ok := m["hint"]; !ok {
+			match = false
+		}
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.UnstructuredCommandInput = &v
+			return nil
+		}
+	}
+	{
+		var v UnstructuredCommandInput
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.UnstructuredCommandInput = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u AvailableCommandInput) MarshalJSON() ([]byte, error) {
+	if u.UnstructuredCommandInput != nil {
+		return json.Marshal(*u.UnstructuredCommandInput)
+	}
+	return []byte{}, nil
+}
+
 // Binary resource contents.
 type BlobResourceContents struct {
-	Blob     string `json:"blob"`
-	MimeType string `json:"mimeType,omitempty"`
-	Uri      string `json:"uri"`
+	Blob     string  `json:"blob"`
+	MimeType *string `json:"mimeType,omitempty"`
+	Uri      string  `json:"uri"`
 }
 
 // Notification to cancel ongoing operations for a session.  See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
@@ -242,9 +297,9 @@ func (c *ContentBlock) Validate() error {
 type CreateTerminalRequest struct {
 	Args            []string      `json:"args,omitempty"`
 	Command         string        `json:"command"`
-	Cwd             string        `json:"cwd,omitempty"`
+	Cwd             *string       `json:"cwd,omitempty"`
 	Env             []EnvVariable `json:"env,omitempty"`
-	OutputByteLimit int           `json:"outputByteLimit,omitempty"`
+	OutputByteLimit *int          `json:"outputByteLimit,omitempty"`
 	SessionId       SessionId     `json:"sessionId"`
 }
 
@@ -278,28 +333,35 @@ type EmbeddedResourceResource struct {
 	BlobResourceContents *BlobResourceContents `json:"-"`
 }
 
-func (e *EmbeddedResourceResource) UnmarshalJSON(b []byte) error {
+func (u *EmbeddedResourceResource) UnmarshalJSON(b []byte) error {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	if _, ok := m["text"]; ok {
+	{
 		var v TextResourceContents
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.TextResourceContents = &v
+			return nil
 		}
-		e.TextResourceContents = &v
-		return nil
 	}
-	if _, ok2 := m["blob"]; ok2 {
+	{
 		var v BlobResourceContents
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.BlobResourceContents = &v
+			return nil
 		}
-		e.BlobResourceContents = &v
-		return nil
 	}
 	return nil
+}
+func (u EmbeddedResourceResource) MarshalJSON() ([]byte, error) {
+	if u.TextResourceContents != nil {
+		return json.Marshal(*u.TextResourceContents)
+	}
+	if u.BlobResourceContents != nil {
+		return json.Marshal(*u.BlobResourceContents)
+	}
+	return []byte{}, nil
 }
 
 // An environment variable to set when launching an MCP server.
@@ -323,7 +385,7 @@ type ImageContent struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Data        string       `json:"data"`
 	MimeType    string       `json:"mimeType"`
-	Uri         string       `json:"uri,omitempty"`
+	Uri         *string      `json:"uri,omitempty"`
 }
 
 // Request parameters for the initialize method.  Sent by the client to establish connection and negotiate capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
@@ -349,6 +411,18 @@ type InitializeResponse struct {
 }
 
 func (v *InitializeResponse) Validate() error {
+	return nil
+}
+
+type KillTerminalRequest struct {
+	SessionId  SessionId `json:"sessionId"`
+	TerminalId string    `json:"terminalId"`
+}
+
+func (v *KillTerminalRequest) Validate() error {
+	if v.TerminalId == "" {
+		return fmt.Errorf("terminalId is required")
+	}
 	return nil
 }
 
@@ -404,6 +478,8 @@ func (v *NewSessionRequest) Validate() error {
 
 // Response from creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 type NewSessionResponse struct {
+	// **UNSTABLE**  Commands that may be executed via 'session/prompt' requests
+	AvailableCommands []AvailableCommand `json:"availableCommands,omitempty"`
 	// Unique identifier for the created session.  Used in all subsequent requests for this conversation.
 	SessionId SessionId `json:"sessionId"`
 }
@@ -510,9 +586,9 @@ type ProtocolVersion int
 // Request to read content from a text file.  Only available if the client supports the 'fs.readTextFile' capability.
 type ReadTextFileRequest struct {
 	// Optional maximum number of lines to read.
-	Limit int `json:"limit,omitempty"`
+	Limit *int `json:"limit,omitempty"`
 	// Optional line number to start reading from (1-based).
-	Line int `json:"line,omitempty"`
+	Line *int `json:"line,omitempty"`
 	// Absolute path to the file to read.
 	Path string `json:"path"`
 	// The session ID for this request.
@@ -551,9 +627,16 @@ func (v *ReleaseTerminalRequest) Validate() error {
 }
 
 // The outcome of a permission request.
-type RequestPermissionOutcomeCancelled struct{}
+// The prompt turn was cancelled before the user responded.  When a client sends a 'session/cancel' notification to cancel an ongoing prompt turn, it MUST respond to all pending 'session/request_permission' requests with this 'Cancelled' outcome.  See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+type RequestPermissionOutcomeCancelled struct {
+	Outcome string `json:"outcome"`
+}
+
+// The user selected one of the provided options.
 type RequestPermissionOutcomeSelected struct {
+	// The ID of the option the user selected.
 	OptionId PermissionOptionId `json:"optionId"`
+	Outcome  string             `json:"outcome"`
 }
 
 type RequestPermissionOutcome struct {
@@ -561,38 +644,94 @@ type RequestPermissionOutcome struct {
 	Selected  *RequestPermissionOutcomeSelected  `json:"-"`
 }
 
-func (o *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
+func (u *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	var outcome string
-	if v, ok := m["outcome"]; ok {
-		json.Unmarshal(v, &outcome)
-	}
-	switch outcome {
-	case "cancelled":
-		o.Cancelled = &RequestPermissionOutcomeCancelled{}
-		return nil
-	case "selected":
-		var v2 RequestPermissionOutcomeSelected
-		if err := json.Unmarshal(b, &v2); err != nil {
-			return err
+	{
+		var v RequestPermissionOutcomeCancelled
+		var match bool = true
+		if _, ok := m["outcome"]; !ok {
+			match = false
 		}
-		o.Selected = &v2
-		return nil
+		var raw json.RawMessage
+		var ok bool
+		raw, ok = m["outcome"]
+		if !ok {
+			match = false
+		}
+		if ok {
+			var tmp any
+			if err := json.Unmarshal(raw, &tmp); err != nil {
+				return err
+			}
+			if fmt.Sprint(tmp) != fmt.Sprint("cancelled") {
+				match = false
+			}
+		}
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.Cancelled = &v
+			return nil
+		}
+	}
+	{
+		var v RequestPermissionOutcomeSelected
+		var match bool = true
+		if _, ok := m["outcome"]; !ok {
+			match = false
+		}
+		if _, ok := m["optionId"]; !ok {
+			match = false
+		}
+		var raw json.RawMessage
+		var ok bool
+		raw, ok = m["outcome"]
+		if !ok {
+			match = false
+		}
+		if ok {
+			var tmp any
+			if err := json.Unmarshal(raw, &tmp); err != nil {
+				return err
+			}
+			if fmt.Sprint(tmp) != fmt.Sprint("selected") {
+				match = false
+			}
+		}
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.Selected = &v
+			return nil
+		}
+	}
+	{
+		var v RequestPermissionOutcomeCancelled
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.Cancelled = &v
+			return nil
+		}
+	}
+	{
+		var v RequestPermissionOutcomeSelected
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.Selected = &v
+			return nil
+		}
 	}
 	return nil
 }
-func (o RequestPermissionOutcome) MarshalJSON() ([]byte, error) {
-	if o.Cancelled != nil {
-		return json.Marshal(map[string]any{"outcome": "cancelled"})
+func (u RequestPermissionOutcome) MarshalJSON() ([]byte, error) {
+	if u.Cancelled != nil {
+		return json.Marshal(*u.Cancelled)
 	}
-	if o.Selected != nil {
-		return json.Marshal(map[string]any{
-			"optionId": o.Selected.OptionId,
-			"outcome":  "selected",
-		})
+	if u.Selected != nil {
+		return json.Marshal(*u.Selected)
 	}
 	return []byte{}, nil
 }
@@ -627,11 +766,11 @@ func (v *RequestPermissionResponse) Validate() error {
 // A resource that the server is capable of reading, included in a prompt or tool call result.
 type ResourceLink struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
-	Description string       `json:"description,omitempty"`
-	MimeType    string       `json:"mimeType,omitempty"`
+	Description *string      `json:"description,omitempty"`
+	MimeType    *string      `json:"mimeType,omitempty"`
 	Name        string       `json:"name"`
-	Size        int          `json:"size,omitempty"`
-	Title       string       `json:"title,omitempty"`
+	Size        *int         `json:"size,omitempty"`
+	Title       *string      `json:"title,omitempty"`
 	Uri         string       `json:"uri"`
 }
 
@@ -848,8 +987,8 @@ const (
 )
 
 type TerminalExitStatus struct {
-	ExitCode int    `json:"exitCode,omitempty"`
-	Signal   string `json:"signal,omitempty"`
+	ExitCode *int    `json:"exitCode,omitempty"`
+	Signal   *string `json:"signal,omitempty"`
 }
 
 type TerminalOutputRequest struct {
@@ -885,9 +1024,9 @@ type TextContent struct {
 
 // Text-based resource contents.
 type TextResourceContents struct {
-	MimeType string `json:"mimeType,omitempty"`
-	Text     string `json:"text"`
-	Uri      string `json:"uri"`
+	MimeType *string `json:"mimeType,omitempty"`
+	Text     string  `json:"text"`
+	Uri      string  `json:"uri"`
 }
 
 // Represents a tool call that the language model has requested.  Tool calls are actions that the agent executes on behalf of the language model, such as reading files, executing code, or fetching data from external sources.  See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-calls)
@@ -911,72 +1050,173 @@ type ToolCall struct {
 }
 
 // Content produced by a tool call.  Tool calls can produce different types of content including standard content blocks (text, images) or file diffs.  See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
-type DiffContent struct {
-	NewText string  `json:"newText"`
-	OldText *string `json:"oldText,omitempty"`
-	Path    string  `json:"path"`
+// Standard content block (text, images, resources).
+type ToolCallContentContent struct {
+	// The actual content block.
+	Content ContentBlock `json:"content"`
+	Type    string       `json:"type"`
 }
-type TerminalRef struct {
+
+// File modification shown as a diff.
+type ToolCallContentDiff struct {
+	// The new content after modification.
+	NewText string `json:"newText"`
+	// The original content (None for new files).
+	OldText *string `json:"oldText,omitempty"`
+	// The file path being modified.
+	Path string `json:"path"`
+	Type string `json:"type"`
+}
+
+type ToolCallContentTerminal struct {
 	TerminalId string `json:"terminalId"`
+	Type       string `json:"type"`
 }
 
 type ToolCallContent struct {
-	Type     string        `json:"type"`
-	Content  *ContentBlock `json:"-"`
-	Diff     *DiffContent  `json:"-"`
-	Terminal *TerminalRef  `json:"-"`
+	Content  *ToolCallContentContent  `json:"-"`
+	Diff     *ToolCallContentDiff     `json:"-"`
+	Terminal *ToolCallContentTerminal `json:"-"`
 }
 
-func (t *ToolCallContent) UnmarshalJSON(b []byte) error {
-	var probe struct {
-		Type string `json:"type"`
-	}
-	if err := json.Unmarshal(b, &probe); err != nil {
+func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	t.Type = probe.Type
-	switch probe.Type {
-	case "content":
-		var v struct {
-			Type    string       `json:"type"`
-			Content ContentBlock `json:"content"`
+	{
+		var v ToolCallContentContent
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
 		}
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		if _, ok := m["content"]; !ok {
+			match = false
 		}
-		t.Content = &v.Content
-	case "diff":
-		var v DiffContent
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var raw json.RawMessage
+		var ok bool
+		raw, ok = m["type"]
+		if !ok {
+			match = false
 		}
-		t.Diff = &v
-	case "terminal":
-		var v TerminalRef
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		if ok {
+			var tmp any
+			if err := json.Unmarshal(raw, &tmp); err != nil {
+				return err
+			}
+			if fmt.Sprint(tmp) != fmt.Sprint("content") {
+				match = false
+			}
 		}
-		t.Terminal = &v
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.Content = &v
+			return nil
+		}
+	}
+	{
+		var v ToolCallContentDiff
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["path"]; !ok {
+			match = false
+		}
+		if _, ok := m["newText"]; !ok {
+			match = false
+		}
+		var raw json.RawMessage
+		var ok bool
+		raw, ok = m["type"]
+		if !ok {
+			match = false
+		}
+		if ok {
+			var tmp any
+			if err := json.Unmarshal(raw, &tmp); err != nil {
+				return err
+			}
+			if fmt.Sprint(tmp) != fmt.Sprint("diff") {
+				match = false
+			}
+		}
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.Diff = &v
+			return nil
+		}
+	}
+	{
+		var v ToolCallContentTerminal
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["terminalId"]; !ok {
+			match = false
+		}
+		var raw json.RawMessage
+		var ok bool
+		raw, ok = m["type"]
+		if !ok {
+			match = false
+		}
+		if ok {
+			var tmp any
+			if err := json.Unmarshal(raw, &tmp); err != nil {
+				return err
+			}
+			if fmt.Sprint(tmp) != fmt.Sprint("terminal") {
+				match = false
+			}
+		}
+		if match {
+			if err := json.Unmarshal(b, &v); err != nil {
+				return err
+			}
+			u.Terminal = &v
+			return nil
+		}
+	}
+	{
+		var v ToolCallContentContent
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.Content = &v
+			return nil
+		}
+	}
+	{
+		var v ToolCallContentDiff
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.Diff = &v
+			return nil
+		}
+	}
+	{
+		var v ToolCallContentTerminal
+		if err := json.Unmarshal(b, &v); err == nil {
+			u.Terminal = &v
+			return nil
+		}
 	}
 	return nil
 }
-
-func (t *ToolCallContent) Validate() error {
-	switch t.Type {
-	case "content":
-		if t.Content == nil {
-			return fmt.Errorf("toolcallcontent.content missing")
-		}
-	case "diff":
-		if t.Diff == nil {
-			return fmt.Errorf("toolcallcontent.diff missing")
-		}
-	case "terminal":
-		if t.Terminal == nil {
-			return fmt.Errorf("toolcallcontent.terminal missing")
-		}
+func (u ToolCallContent) MarshalJSON() ([]byte, error) {
+	if u.Content != nil {
+		return json.Marshal(*u.Content)
 	}
-	return nil
+	if u.Diff != nil {
+		return json.Marshal(*u.Diff)
+	}
+	if u.Terminal != nil {
+		return json.Marshal(*u.Terminal)
+	}
+	return []byte{}, nil
 }
 
 // Unique identifier for a tool call within a session.
@@ -985,7 +1225,7 @@ type ToolCallId string
 // A file location being accessed or modified by a tool.  Enables clients to implement "follow-along" features that track which files the agent is working with in real-time.  See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
 type ToolCallLocation struct {
 	// Optional line number within the file.
-	Line int `json:"line,omitempty"`
+	Line *int `json:"line,omitempty"`
 	// The file path being accessed or modified.
 	Path string `json:"path"`
 }
@@ -1015,7 +1255,7 @@ type ToolCallUpdate struct {
 	// Update the execution status.
 	Status *ToolCallStatus `json:"status,omitempty"`
 	// Update the human-readable title.
-	Title string `json:"title,omitempty"`
+	Title *string `json:"title,omitempty"`
 	// The ID of the tool call being updated.
 	ToolCallId ToolCallId `json:"toolCallId"`
 }
@@ -1055,8 +1295,8 @@ func (v *WaitForTerminalExitRequest) Validate() error {
 }
 
 type WaitForTerminalExitResponse struct {
-	ExitCode int    `json:"exitCode,omitempty"`
-	Signal   string `json:"signal,omitempty"`
+	ExitCode *int    `json:"exitCode,omitempty"`
+	Signal   *string `json:"signal,omitempty"`
 }
 
 func (v *WaitForTerminalExitResponse) Validate() error {

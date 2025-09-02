@@ -64,10 +64,8 @@ func WriteHelpersJen(outDir string, _ *load.Schema, _ *load.Meta) error {
 	// ToolCall content helpers
 	f.Comment("ToolContent wraps a content block as tool-call content.")
 	f.Func().Id("ToolContent").Params(Id("block").Id("ContentBlock")).Id("ToolCallContent").Block(
-		Var().Id("b").Id("ContentBlock").Op("=").Id("block"),
 		Return(Id("ToolCallContent").Values(Dict{
-			Id("Type"):    Lit("content"),
-			Id("Content"): Op("&").Id("b"),
+			Id("Content"): Op("&").Id("ToolCallContentContent").Values(Dict{Id("Content"): Id("block"), Id("Type"): Lit("content")}),
 		})),
 	)
 	f.Line()
@@ -79,12 +77,7 @@ func WriteHelpersJen(outDir string, _ *load.Schema, _ *load.Meta) error {
 			Id("o").Op("=").Op("&").Id("oldText").Index(Lit(0)),
 		),
 		Return(Id("ToolCallContent").Values(Dict{
-			Id("Type"): Lit("diff"),
-			Id("Diff"): Op("&").Id("DiffContent").Values(Dict{
-				Id("Path"):    Id("path"),
-				Id("NewText"): Id("newText"),
-				Id("OldText"): Id("o"),
-			}),
+			Id("Diff"): Op("&").Id("ToolCallContentDiff").Values(Dict{Id("Path"): Id("path"), Id("NewText"): Id("newText"), Id("OldText"): Id("o"), Id("Type"): Lit("diff")}),
 		})),
 	)
 	f.Line()
@@ -92,8 +85,7 @@ func WriteHelpersJen(outDir string, _ *load.Schema, _ *load.Meta) error {
 	f.Comment("ToolTerminalRef constructs a terminal reference tool-call content.")
 	f.Func().Id("ToolTerminalRef").Params(Id("terminalId").String()).Id("ToolCallContent").Block(
 		Return(Id("ToolCallContent").Values(Dict{
-			Id("Type"):     Lit("terminal"),
-			Id("Terminal"): Op("&").Id("TerminalRef").Values(Dict{Id("TerminalId"): Id("terminalId")}),
+			Id("Terminal"): Op("&").Id("ToolCallContentTerminal").Values(Dict{Id("TerminalId"): Id("terminalId"), Id("Type"): Lit("terminal")}),
 		})),
 	)
 	f.Line()

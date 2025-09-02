@@ -40,7 +40,11 @@ func (c *replClient) RequestPermission(ctx context.Context, params acp.RequestPe
 		return acp.RequestPermissionResponse{Outcome: acp.RequestPermissionOutcome{Cancelled: &acp.RequestPermissionOutcomeCancelled{}}}, nil
 	}
 
-	fmt.Printf("\n🔐 Permission requested: %s\n", params.ToolCall.Title)
+	title := ""
+	if params.ToolCall.Title != nil {
+		title = *params.ToolCall.Title
+	}
+	fmt.Printf("\n🔐 Permission requested: %s\n", title)
 	fmt.Println("\nOptions:")
 	for i, opt := range params.Options {
 		fmt.Printf("   %d. %s (%s)\n", i+1, opt.Name, opt.Kind)
@@ -118,16 +122,16 @@ func (c *replClient) ReadTextFile(ctx context.Context, params acp.ReadTextFileRe
 		return acp.ReadTextFileResponse{}, fmt.Errorf("read %s: %w", params.Path, err)
 	}
 	content := string(b)
-	if params.Line > 0 || params.Limit > 0 {
+	if params.Line != nil || params.Limit != nil {
 		lines := strings.Split(content, "\n")
 		start := 0
-		if params.Line > 0 {
-			start = min(max(params.Line-1, 0), len(lines))
+		if params.Line != nil && *params.Line > 0 {
+			start = min(max(*params.Line-1, 0), len(lines))
 		}
 		end := len(lines)
-		if params.Limit > 0 {
-			if start+params.Limit < end {
-				end = start + params.Limit
+		if params.Limit != nil && *params.Limit > 0 {
+			if start+*params.Limit < end {
+				end = start + *params.Limit
 			}
 		}
 		content = strings.Join(lines[start:end], "\n")
@@ -259,7 +263,7 @@ func main() {
 			cancel()
 			return
 		case ":cancel":
-			_ = conn.Cancel(ctx, acp.CancelNotification(newSess))
+			_ = conn.Cancel(ctx, acp.CancelNotification{SessionId: newSess.SessionId})
 			continue
 		}
 		// Send prompt and wait for completion while streaming updates are printed via SessionUpdate

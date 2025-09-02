@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -62,14 +63,18 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 			f.Line()
 		case name == "ContentBlock":
 			emitContentBlockJen(f)
-		case name == "ToolCallContent":
-			emitToolCallContentJen(f)
-		case name == "EmbeddedResourceResource":
-			emitEmbeddedResourceResourceJen(f)
-		case name == "RequestPermissionOutcome":
-			emitRequestPermissionOutcomeJen(f)
 		case name == "SessionUpdate":
 			emitSessionUpdateJen(f)
+		case len(def.AnyOf) > 0 && !def.DocsIgnore:
+			emitAnyOfUnionJen(f, name, def)
+		case len(def.OneOf) > 0 && !isStringConstUnion(def) && !def.DocsIgnore:
+			// Generic union generation for non-enum oneOf
+			// Reuse same path as anyOf by treating oneOf as anyOf here
+			// Temporarily map OneOf into def.AnyOf for emission
+			tmp := *def
+			tmp.AnyOf = def.OneOf
+			tmp.OneOf = nil
+			emitAnyOfUnionJen(f, name, &tmp)
 		case ir.PrimaryType(def) == "object" && len(def.Properties) > 0:
 			st := []Code{}
 			req := map[string]struct{}{}
@@ -105,7 +110,7 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		}
 
 		// validators for selected types
-		if strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification") || name == "ContentBlock" || name == "ToolCallContent" || name == "SessionUpdate" || name == "ToolCallUpdate" {
+		if strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification") || name == "ContentBlock" || name == "SessionUpdate" || name == "ToolCallUpdate" {
 			emitValidateJen(f, name, def)
 		}
 	}
@@ -261,7 +266,7 @@ func emitValidateJen(f *File, name string, def *load.Definition) {
 		return
 	}
 	if def != nil && ir.PrimaryType(def) == "object" {
-		if !(strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification")) {
+		if !strings.HasSuffix(name, "Request") && !strings.HasSuffix(name, "Response") && !strings.HasSuffix(name, "Notification") {
 			return
 		}
 		f.Func().Params(Id("v").Op("*").Id(name)).Id("Validate").Params().Params(Error()).BlockFunc(func(g *Group) {
@@ -272,13 +277,7 @@ func emitValidateJen(f *File, name string, def *load.Definition) {
 			sort.Strings(pkeys)
 			for _, propName := range pkeys {
 				pDef := def.Properties[propName]
-				required := false
-				for _, r := range def.Required {
-					if r == propName {
-						required = true
-						break
-					}
-				}
+				required := slices.Contains(def.Required, propName)
 				field := util.ToExportedField(propName)
 				if required {
 					switch ir.PrimaryType(pDef) {
@@ -355,6 +354,28 @@ func jenTypeForOptional(d *load.Definition) Code {
 	list := d.AnyOf
 	if len(list) == 0 {
 		list = d.OneOf
+	}
+	// Case: property type is a union like ["string","null"]
+	if arr, ok := d.Type.([]any); ok && len(arr) == 2 {
+		var other string
+		for _, v := range arr {
+			if s, ok2 := v.(string); ok2 {
+				if s == "null" {
+					continue
+				}
+				other = s
+			}
+		}
+		switch other {
+		case "string":
+			return Op("*").String()
+		case "integer":
+			return Op("*").Int()
+		case "number":
+			return Op("*").Float64()
+		case "boolean":
+			return Op("*").Bool()
+		}
 	}
 	if len(list) == 2 {
 		var nonNull *load.Definition
@@ -572,49 +593,156 @@ func emitEmbeddedResourceResourceJen(f *File) {
 	f.Line()
 }
 
-func emitRequestPermissionOutcomeJen(f *File) {
-	f.Type().Id("RequestPermissionOutcomeCancelled").Struct()
-	f.Type().Id("RequestPermissionOutcomeSelected").Struct(
-		Id("OptionId").Id("PermissionOptionId").Tag(map[string]string{"json": "optionId"}),
-	)
+// emitAvailableCommandInputJen generates a concrete variant type for anyOf and a thin union wrapper
+// that supports JSON unmarshal by probing object shape. Currently the schema defines one variant
+// (title: UnstructuredCommandInput) with a required 'hint' field.
+func emitAnyOfUnionJen(f *File, name string, def *load.Definition) {
+	// Collect variant names and generate inline structs for object variants if needed
+	type variantInfo struct {
+		fieldName string
+		typeName  string
+		required  []string
+		isObject  bool
+		consts    map[string]any
+	}
+	variants := []variantInfo{}
+	for idx, v := range def.AnyOf {
+		if v == nil {
+			continue
+		}
+		tname := v.Title
+		if tname == "" {
+			if v.Ref != "" {
+				// derive from ref path
+				if strings.HasPrefix(v.Ref, "#/$defs/") {
+					tname = v.Ref[len("#/$defs/"):]
+				}
+			} else {
+				// Derive from const outcome/type if present
+				if out, ok := v.Properties["outcome"]; ok && out != nil && out.Const != nil {
+					s := fmt.Sprint(out.Const)
+					tname = name + util.ToExportedField(s)
+				} else if typ, ok2 := v.Properties["type"]; ok2 && typ != nil && typ.Const != nil {
+					s := fmt.Sprint(typ.Const)
+					tname = name + util.ToExportedField(s)
+				} else {
+					tname = name + fmt.Sprintf("Variant%d", idx+1)
+				}
+			}
+		}
+		fieldName := tname
+		if out, ok := v.Properties["outcome"]; ok && out != nil && out.Const != nil {
+			s := fmt.Sprint(out.Const)
+			fieldName = util.ToExportedField(s)
+		} else if typ, ok2 := v.Properties["type"]; ok2 && typ != nil && typ.Const != nil {
+			s := fmt.Sprint(typ.Const)
+			fieldName = util.ToExportedField(s)
+		}
+		// If this variant is an inline object, generate its struct
+		isObj := len(v.Properties) > 0
+		if isObj && v.Ref == "" {
+			st := []Code{}
+			req := map[string]struct{}{}
+			for _, r := range v.Required {
+				req[r] = struct{}{}
+			}
+			pkeys := make([]string, 0, len(v.Properties))
+			for pk := range v.Properties {
+				pkeys = append(pkeys, pk)
+			}
+			sort.Strings(pkeys)
+			// Variant doc comment
+			if v.Description != "" {
+				f.Comment(util.SanitizeComment(v.Description))
+			}
+			for _, pk := range pkeys {
+				pDef := v.Properties[pk]
+				field := util.ToExportedField(pk)
+				if pDef.Description != "" {
+					st = append(st, Comment(util.SanitizeComment(pDef.Description)))
+				}
+				tag := pk
+				if _, ok := req[pk]; !ok {
+					tag = pk + ",omitempty"
+				}
+				st = append(st, Id(field).Add(jenTypeForOptional(pDef)).Tag(map[string]string{"json": tag}))
+			}
+			f.Type().Id(tname).Struct(st...)
+			f.Line()
+		}
+		// Collect const properties for detection
+		consts := map[string]any{}
+		for pk, pd := range v.Properties {
+			if pd != nil && pd.Const != nil {
+				consts[pk] = pd.Const
+			}
+		}
+		variants = append(variants, variantInfo{fieldName: fieldName, typeName: tname, required: v.Required, isObject: isObj, consts: consts})
+	}
+	// Union wrapper
+	st := []Code{}
+	for _, vi := range variants {
+		st = append(st, Id(vi.fieldName).Op("*").Id(vi.typeName).Tag(map[string]string{"json": "-"}))
+	}
+	f.Type().Id(name).Struct(st...)
 	f.Line()
-	f.Type().Id("RequestPermissionOutcome").Struct(
-		Id("Cancelled").Op("*").Id("RequestPermissionOutcomeCancelled").Tag(map[string]string{"json": "-"}),
-		Id("Selected").Op("*").Id("RequestPermissionOutcomeSelected").Tag(map[string]string{"json": "-"}),
-	)
-	f.Func().Params(Id("o").Op("*").Id("RequestPermissionOutcome")).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().Block(
-		Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage"),
-		If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-		Var().Id("outcome").String(),
-		If(List(Id("v"), Id("ok")).Op(":=").Id("m").Index(Lit("outcome")), Id("ok")).Block(
-			Qual("encoding/json", "Unmarshal").Call(Id("v"), Op("&").Id("outcome")),
-		),
-		Switch(Id("outcome")).Block(
-			Case(Lit("cancelled")).Block(
-				Id("o").Dot("Cancelled").Op("=").Op("&").Id("RequestPermissionOutcomeCancelled").Values(),
-				Return(Nil()),
-			),
-			Case(Lit("selected")).Block(
-				Var().Id("v2").Id("RequestPermissionOutcomeSelected"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v2")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("o").Dot("Selected").Op("=").Op("&").Id("v2"),
-				Return(Nil()),
-			),
-		),
-		Return(Nil()),
-	)
-	f.Func().Params(Id("o").Id("RequestPermissionOutcome")).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).Block(
-		If(Id("o").Dot("Cancelled").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{Lit("outcome"): Lit("cancelled")}))),
-		),
-		If(Id("o").Dot("Selected").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("optionId"): Id("o").Dot("Selected").Dot("OptionId"),
-				Lit("outcome"):  Lit("selected"),
-			}))),
-		),
-		Return(Index().Byte().Values(), Nil()),
-	)
+	// Unmarshal: prefer required-field presence checks for object variants, then fallback to try-unmarshal for all
+	f.Func().Params(Id("u").Op("*").Id(name)).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().BlockFunc(func(g *Group) {
+		g.Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage")
+		g.If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err")))
+		// Try required-field detection for object variants
+		for _, vi := range variants {
+			if vi.isObject && len(vi.required) > 0 {
+				stmts := []Code{
+					Var().Id("v").Id(vi.typeName),
+					Var().Id("match").Bool().Op("=").Lit(true),
+				}
+				for _, rk := range vi.required {
+					stmts = append(stmts, If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit(rk)), Op("!").Id("ok")).Block(Id("match").Op("=").Lit(false)))
+				}
+				// Check const-valued fields
+				for ck, cv := range vi.consts {
+					// read m[ck] and compare to const value (stringify for simplicity)
+					stmts = append(stmts,
+						Var().Id("raw").Qual("encoding/json", "RawMessage"), Var().Id("ok").Bool(),
+						List(Id("raw"), Id("ok")).Op("=").Id("m").Index(Lit(ck)),
+						If(Op("!").Id("ok")).Block(Id("match").Op("=").Lit(false)),
+						If(Id("ok")).Block(
+							Var().Id("tmp").Any(),
+							If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("raw"), Op("&").Id("tmp")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
+							If(Qual("fmt", "Sprint").Call(Id("tmp")).Op("!=").Qual("fmt", "Sprint").Call(Lit(cv))).Block(Id("match").Op("=").Lit(false)),
+						),
+					)
+				}
+				stmts = append(stmts, If(Id("match")).Block(
+					If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
+					Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
+					Return(Nil()),
+				))
+				g.Block(stmts...)
+			}
+		}
+		// Fallback: try to unmarshal into each variant sequentially
+		for _, vi := range variants {
+			g.Block(
+				Var().Id("v").Id(vi.typeName),
+				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("==").Nil()).Block(
+					Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
+					Return(Nil()),
+				),
+			)
+		}
+		g.Return(Nil())
+	})
+	// Marshal: pick first non-nil
+	f.Func().Params(Id("u").Id(name)).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).BlockFunc(func(g *Group) {
+		for _, vi := range variants {
+			g.If(Id("u").Dot(vi.fieldName).Op("!=").Nil()).Block(
+				Return(Qual("encoding/json", "Marshal").Call(Op("*").Id("u").Dot(vi.fieldName))),
+			)
+		}
+		g.Return(Index().Byte().Values(), Nil())
+	})
 	f.Line()
 }
 

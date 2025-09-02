@@ -237,7 +237,11 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 			return ReadTextFileResponse{Content: "test content"}, nil
 		},
 		RequestPermissionFunc: func(_ context.Context, req RequestPermissionRequest) (RequestPermissionResponse, error) {
-			push("requestPermission called: " + req.ToolCall.Title)
+			title := ""
+			if req.ToolCall.Title != nil {
+				title = *req.ToolCall.Title
+			}
+			push("requestPermission called: " + title)
 			return RequestPermissionResponse{Outcome: RequestPermissionOutcome{Selected: &RequestPermissionOutcomeSelected{OptionId: "allow"}}}, nil
 		},
 		SessionUpdateFunc: func(context.Context, SessionNotification) error { return nil },
@@ -280,14 +284,11 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 	if _, err := as.RequestPermission(context.Background(), RequestPermissionRequest{
 		SessionId: "test-session",
 		ToolCall: ToolCallUpdate{
-			Title:      "Execute command",
+			Title:      Ptr("Execute command"),
 			Kind:       ptr(ToolKindExecute),
 			Status:     ptr(ToolCallStatusPending),
 			ToolCallId: "tool-123",
-			Content: []ToolCallContent{{
-				Type:    "content",
-				Content: &ContentBlock{Type: "text", Text: &TextContent{Text: "ls -la"}},
-			}},
+			Content:    []ToolCallContent{ToolContent(TextBlock("ls -la"))},
 		},
 		Options: []PermissionOption{
 			{Kind: "allow_once", Name: "Allow", OptionId: "allow"},
@@ -403,7 +404,19 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 	}, c2aW, a2cR)
 	_ = NewAgentSideConnection(agentFuncs{
 		InitializeFunc: func(_ context.Context, p InitializeRequest) (InitializeResponse, error) {
-			return InitializeResponse{ProtocolVersion: p.ProtocolVersion, AgentCapabilities: AgentCapabilities{LoadSession: true}, AuthMethods: []AuthMethod{{Id: "oauth", Name: "OAuth", Description: "Authenticate with OAuth"}}}, nil
+			return InitializeResponse{
+				ProtocolVersion: p.ProtocolVersion,
+				AgentCapabilities: AgentCapabilities{
+					LoadSession: true,
+				},
+				AuthMethods: []AuthMethod{
+					{
+						Id:          "oauth",
+						Name:        "OAuth",
+						Description: Ptr("Authenticate with OAuth"),
+					},
+				},
+			}, nil
 		},
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{SessionId: "test-session"}, nil

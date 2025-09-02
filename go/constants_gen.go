@@ -22,6 +22,7 @@ const (
 	ClientMethodSessionRequestPermission = "session/request_permission"
 	ClientMethodSessionUpdate            = "session/update"
 	ClientMethodTerminalCreate           = "terminal/create"
+	ClientMethodTerminalKill             = "terminal/kill"
 	ClientMethodTerminalOutput           = "terminal/output"
 	ClientMethodTerminalRelease          = "terminal/release"
 	ClientMethodTerminalWaitForExit      = "terminal/wait_for_exit"
