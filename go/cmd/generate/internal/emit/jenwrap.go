@@ -14,6 +14,9 @@ var (
 	NewFile = jen.NewFile
 	Id      = jen.Id
 	Lit     = jen.Lit
+	Func    = jen.Func
+	For     = jen.For
+	Range   = jen.Range
 	Return  = jen.Return
 	Nil     = jen.Nil
 	String  = jen.String

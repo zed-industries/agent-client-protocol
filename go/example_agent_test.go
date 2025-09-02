@@ -28,24 +28,20 @@ func (a *agentExample) Prompt(ctx context.Context, p PromptRequest) (PromptRespo
 	// Stream an initial agent message.
 	_ = a.conn.SessionUpdate(ctx, SessionNotification{
 		SessionId: p.SessionId,
-		Update: SessionUpdate{
-			AgentMessageChunk: &SessionUpdateAgentMessageChunk{
-				Content: TextBlock("I'll help you with that."),
-			},
-		},
+		Update:    UpdateAgentMessageText("I'll help you with that."),
 	})
 
 	// Announce a tool call.
 	_ = a.conn.SessionUpdate(ctx, SessionNotification{
 		SessionId: p.SessionId,
-		Update: SessionUpdate{ToolCall: &SessionUpdateToolCall{
-			ToolCallId: ToolCallId("call_1"),
-			Title:      "Modifying configuration",
-			Kind:       ToolKindEdit,
-			Status:     ToolCallStatusPending,
-			Locations:  []ToolCallLocation{{Path: "/project/config.json"}},
-			RawInput:   map[string]any{"path": "/project/config.json"},
-		}},
+		Update: StartToolCall(
+			ToolCallId("call_1"),
+			"Modifying configuration",
+			WithStartKind(ToolKindEdit),
+			WithStartStatus(ToolCallStatusPending),
+			WithStartLocations([]ToolCallLocation{{Path: "/project/config.json"}}),
+			WithStartRawInput(map[string]any{"path": "/project/config.json"}),
+		),
 	})
 
 	// Ask the client for permission to proceed with the change.
@@ -69,15 +65,15 @@ func (a *agentExample) Prompt(ctx context.Context, p PromptRequest) (PromptRespo
 		// Mark tool call completed and stream a final message.
 		_ = a.conn.SessionUpdate(ctx, SessionNotification{
 			SessionId: p.SessionId,
-			Update: SessionUpdate{ToolCallUpdate: &SessionUpdateToolCallUpdate{
-				ToolCallId: ToolCallId("call_1"),
-				Status:     ToolCallStatusCompleted,
-				RawOutput:  map[string]any{"success": true},
-			}},
+			Update: UpdateToolCall(
+				ToolCallId("call_1"),
+				WithUpdateStatus(ToolCallStatusCompleted),
+				WithUpdateRawOutput(map[string]any{"success": true}),
+			),
 		})
 		_ = a.conn.SessionUpdate(ctx, SessionNotification{
 			SessionId: p.SessionId,
-			Update:    SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: TextBlock("Done.")}},
+			Update:    UpdateAgentMessageText("Done."),
 		})
 	}
 

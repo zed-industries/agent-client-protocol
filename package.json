@@ -36,7 +36,7 @@
     "test:ts:watch": "vitest",
     "generate:json-schema": "cd rust && cargo run --bin generate --features unstable",
     "generate:ts-schema": "node typescript/generate.js",
-    "generate:go": "cd go/cmd/generate && go run . && cd ../.. && go fmt ./...",
+    "generate:go": "cd go/cmd/generate && env -u GOPATH -u GOMODCACHE go run . && cd ../.. && env -u GOPATH -u GOMODCACHE go run mvdan.cc/gofumpt@latest -w .",
     "generate": "npm run generate:json-schema && npm run generate:ts-schema && npm run generate:go && npm run format",
     "build": "npm run generate && tsc",
     "format": "prettier --write . && cargo fmt",

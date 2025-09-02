@@ -367,7 +367,11 @@ func TestConnectionHandlesNotifications(t *testing.T) {
 
 	if err := agentSide.SessionUpdate(context.Background(), SessionNotification{
 		SessionId: "test-session",
-		Update:    SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: ContentBlock{Type: "text", Text: &TextContent{Text: "Hello from agent"}}}},
+		Update: SessionUpdate{
+			AgentMessageChunk: &SessionUpdateAgentMessageChunk{
+				Content: TextBlock("Hello from agent"),
+			},
+		},
 	}); err != nil {
 		t.Fatalf("sessionUpdate error: %v", err)
 	}

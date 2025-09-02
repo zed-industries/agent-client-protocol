@@ -20,7 +20,7 @@ func (geminiClient) RequestPermission(ctx context.Context, p RequestPermissionRe
 func (geminiClient) SessionUpdate(ctx context.Context, n SessionNotification) error {
 	if n.Update.AgentMessageChunk != nil {
 		c := n.Update.AgentMessageChunk.Content
-		if c.Type == "text" && c.Text != nil {
+		if c.Text != nil {
 			fmt.Print(c.Text.Text)
 		}
 	}

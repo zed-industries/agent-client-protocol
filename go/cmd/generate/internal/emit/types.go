@@ -61,20 +61,12 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 				f.Const().Defs(defs...)
 			}
 			f.Line()
-		case name == "ContentBlock":
-			emitContentBlockJen(f)
-		case name == "SessionUpdate":
-			emitSessionUpdateJen(f)
-		case len(def.AnyOf) > 0 && !def.DocsIgnore:
-			emitAnyOfUnionJen(f, name, def)
-		case len(def.OneOf) > 0 && !isStringConstUnion(def) && !def.DocsIgnore:
+		case len(def.AnyOf) > 0:
+			emitUnion(f, name, def.AnyOf, false)
+		case len(def.OneOf) > 0 && !isStringConstUnion(def):
 			// Generic union generation for non-enum oneOf
-			// Reuse same path as anyOf by treating oneOf as anyOf here
-			// Temporarily map OneOf into def.AnyOf for emission
-			tmp := *def
-			tmp.AnyOf = def.OneOf
-			tmp.OneOf = nil
-			emitAnyOfUnionJen(f, name, &tmp)
+			// Use the same implementation, but require exactly one variant
+			emitUnion(f, name, def.OneOf, true)
 		case ir.PrimaryType(def) == "object" && len(def.Properties) > 0:
 			st := []Code{}
 			req := map[string]struct{}{}
@@ -94,7 +86,11 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 				}
 				tag := pk
 				if _, ok := req[pk]; !ok {
-					tag = pk + ",omitempty"
+					// Default: omit if empty, except for specific always-present fields
+					// Ensure InitializeResponse.authMethods is always encoded (even when empty)
+					if !(name == "InitializeResponse" && pk == "authMethods") {
+						tag = pk + ",omitempty"
+					}
 				}
 				st = append(st, Id(field).Add(jenTypeForOptional(prop)).Tag(map[string]string{"json": tag}))
 			}
@@ -110,7 +106,8 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		}
 
 		// validators for selected types
-		if strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification") || name == "ContentBlock" || name == "SessionUpdate" || name == "ToolCallUpdate" {
+		// Note: oneOf union wrappers get a generic Validate emitted in emitUnion.
+		if strings.HasSuffix(name, "Request") || strings.HasSuffix(name, "Response") || strings.HasSuffix(name, "Notification") || name == "ToolCallUpdate" {
 			emitValidateJen(f, name, def)
 		}
 	}
@@ -221,43 +218,9 @@ func isStringConstUnion(def *load.Definition) bool {
 }
 
 // emitValidateJen generates validators for selected types (logic unchanged).
+
 func emitValidateJen(f *File, name string, def *load.Definition) {
 	switch name {
-	case "ContentBlock":
-		f.Func().Params(Id("c").Op("*").Id("ContentBlock")).Id("Validate").Params().Params(Error()).Block(
-			Switch(Id("c").Dot("Type")).Block(
-				Case(Lit("text")).Block(If(Id("c").Dot("Text").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.text missing"))))),
-				Case(Lit("image")).Block(If(Id("c").Dot("Image").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.image missing"))))),
-				Case(Lit("audio")).Block(If(Id("c").Dot("Audio").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.audio missing"))))),
-				Case(Lit("resource_link")).Block(If(Id("c").Dot("ResourceLink").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.resource_link missing"))))),
-				Case(Lit("resource")).Block(If(Id("c").Dot("Resource").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("contentblock.resource missing"))))),
-			),
-			Return(Nil()),
-		)
-		return
-	case "ToolCallContent":
-		f.Func().Params(Id("t").Op("*").Id("ToolCallContent")).Id("Validate").Params().Params(Error()).Block(
-			Switch(Id("t").Dot("Type")).Block(
-				Case(Lit("content")).Block(If(Id("t").Dot("Content").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.content missing"))))),
-				Case(Lit("diff")).Block(If(Id("t").Dot("Diff").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.diff missing"))))),
-				Case(Lit("terminal")).Block(If(Id("t").Dot("Terminal").Op("==").Nil()).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolcallcontent.terminal missing"))))),
-			),
-			Return(Nil()),
-		)
-		return
-	case "SessionUpdate":
-		f.Func().Params(Id("s").Op("*").Id("SessionUpdate")).Id("Validate").Params().Params(Error()).Block(
-			Var().Id("count").Int(),
-			If(Id("s").Dot("UserMessageChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("s").Dot("AgentMessageChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("s").Dot("AgentThoughtChunk").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("s").Dot("ToolCall").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("s").Dot("ToolCallUpdate").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("s").Dot("Plan").Op("!=").Nil()).Block(Id("count").Op("++")),
-			If(Id("count").Op("!=").Lit(1)).Block(Return(Qual("fmt", "Errorf").Call(Lit("sessionupdate must have exactly one variant set")))),
-			Return(Nil()),
-		)
-		return
 	case "ToolCallUpdate":
 		f.Func().Params(Id("t").Op("*").Id("ToolCallUpdate")).Id("Validate").Params().Params(Error()).Block(
 			If(Id("t").Dot("ToolCallId").Op("==").Lit("")).Block(Return(Qual("fmt", "Errorf").Call(Lit("toolCallId is required")))),
@@ -413,320 +376,199 @@ func jenTypeForOptional(d *load.Definition) Code {
 	return jenTypeFor(d)
 }
 
-// Specialized emitters copied from original (unchanged behavior).
-func emitContentBlockJen(f *File) {
-	f.Type().Id("ResourceLinkContent").Struct(
-		Id("Annotations").Any().Tag(map[string]string{"json": "annotations,omitempty"}),
-		Id("Description").Op("*").String().Tag(map[string]string{"json": "description,omitempty"}),
-		Id("MimeType").Op("*").String().Tag(map[string]string{"json": "mimeType,omitempty"}),
-		Id("Name").String().Tag(map[string]string{"json": "name"}),
-		Id("Size").Op("*").Int64().Tag(map[string]string{"json": "size,omitempty"}),
-		Id("Title").Op("*").String().Tag(map[string]string{"json": "title,omitempty"}),
-		Id("Uri").String().Tag(map[string]string{"json": "uri"}),
-	)
-	f.Line()
-	f.Type().Id("ContentBlock").Struct(
-		Id("Type").String().Tag(map[string]string{"json": "type"}),
-		Id("Text").Op("*").Id("TextContent").Tag(map[string]string{"json": "-"}),
-		Id("Image").Op("*").Id("ImageContent").Tag(map[string]string{"json": "-"}),
-		Id("Audio").Op("*").Id("AudioContent").Tag(map[string]string{"json": "-"}),
-		Id("ResourceLink").Op("*").Id("ResourceLinkContent").Tag(map[string]string{"json": "-"}),
-		Id("Resource").Op("*").Id("EmbeddedResource").Tag(map[string]string{"json": "-"}),
-	)
-	f.Line()
-	f.Func().Params(Id("c").Op("*").Id("ContentBlock")).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().Block(
-		Var().Id("probe").Struct(Id("Type").String().Tag(map[string]string{"json": "type"})),
-		If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("probe")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-		Id("c").Dot("Type").Op("=").Id("probe").Dot("Type"),
-		Switch(Id("probe").Dot("Type")).Block(
-			Case(Lit("text")).Block(
-				Var().Id("v").Id("TextContent"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("c").Dot("Text").Op("=").Op("&").Id("v"),
-			),
-			Case(Lit("image")).Block(
-				Var().Id("v").Id("ImageContent"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("c").Dot("Image").Op("=").Op("&").Id("v"),
-			),
-			Case(Lit("audio")).Block(
-				Var().Id("v").Id("AudioContent"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("c").Dot("Audio").Op("=").Op("&").Id("v"),
-			),
-			Case(Lit("resource_link")).Block(
-				Var().Id("v").Id("ResourceLinkContent"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("c").Dot("ResourceLink").Op("=").Op("&").Id("v"),
-			),
-			Case(Lit("resource")).Block(
-				Var().Id("v").Id("EmbeddedResource"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("c").Dot("Resource").Op("=").Op("&").Id("v"),
-			),
-		),
-		Return(Nil()),
-	)
-	f.Func().Params(Id("c").Id("ContentBlock")).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).Block(
-		Switch(Id("c").Dot("Type")).Block(
-			Case(Lit("text")).Block(
-				If(Id("c").Dot("Text").Op("!=").Nil()).Block(
-					Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-						Lit("type"): Lit("text"),
-						Lit("text"): Id("c").Dot("Text").Dot("Text"),
-					}))),
-				),
-			),
-			Case(Lit("image")).Block(
-				If(Id("c").Dot("Image").Op("!=").Nil()).Block(
-					Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-						Lit("type"):     Lit("image"),
-						Lit("data"):     Id("c").Dot("Image").Dot("Data"),
-						Lit("mimeType"): Id("c").Dot("Image").Dot("MimeType"),
-						Lit("uri"):      Id("c").Dot("Image").Dot("Uri"),
-					}))),
-				),
-			),
-			Case(Lit("audio")).Block(
-				If(Id("c").Dot("Audio").Op("!=").Nil()).Block(
-					Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-						Lit("type"):     Lit("audio"),
-						Lit("data"):     Id("c").Dot("Audio").Dot("Data"),
-						Lit("mimeType"): Id("c").Dot("Audio").Dot("MimeType"),
-					}))),
-				),
-			),
-			Case(Lit("resource_link")).Block(
-				If(Id("c").Dot("ResourceLink").Op("!=").Nil()).Block(
-					Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-						Lit("type"):        Lit("resource_link"),
-						Lit("name"):        Id("c").Dot("ResourceLink").Dot("Name"),
-						Lit("uri"):         Id("c").Dot("ResourceLink").Dot("Uri"),
-						Lit("description"): Id("c").Dot("ResourceLink").Dot("Description"),
-						Lit("mimeType"):    Id("c").Dot("ResourceLink").Dot("MimeType"),
-						Lit("size"):        Id("c").Dot("ResourceLink").Dot("Size"),
-						Lit("title"):       Id("c").Dot("ResourceLink").Dot("Title"),
-					}))),
-				),
-			),
-			Case(Lit("resource")).Block(
-				If(Id("c").Dot("Resource").Op("!=").Nil()).Block(
-					Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-						Lit("type"):     Lit("resource"),
-						Lit("resource"): Id("c").Dot("Resource").Dot("Resource"),
-					}))),
-				),
-			),
-		),
-		Return(Index().Byte().Values(), Nil()),
-	)
-	f.Line()
-}
-
-func emitToolCallContentJen(f *File) {
-	f.Type().Id("DiffContent").Struct(
-		Id("NewText").String().Tag(map[string]string{"json": "newText"}),
-		Id("OldText").Op("*").String().Tag(map[string]string{"json": "oldText,omitempty"}),
-		Id("Path").String().Tag(map[string]string{"json": "path"}),
-	)
-	f.Type().Id("TerminalRef").Struct(Id("TerminalId").String().Tag(map[string]string{"json": "terminalId"}))
-	f.Line()
-	f.Type().Id("ToolCallContent").Struct(
-		Id("Type").String().Tag(map[string]string{"json": "type"}),
-		Id("Content").Op("*").Id("ContentBlock").Tag(map[string]string{"json": "-"}),
-		Id("Diff").Op("*").Id("DiffContent").Tag(map[string]string{"json": "-"}),
-		Id("Terminal").Op("*").Id("TerminalRef").Tag(map[string]string{"json": "-"}),
-	)
-	f.Line()
-	f.Func().Params(Id("t").Op("*").Id("ToolCallContent")).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().Block(
-		Var().Id("probe").Struct(Id("Type").String().Tag(map[string]string{"json": "type"})),
-		If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("probe")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-		Id("t").Dot("Type").Op("=").Id("probe").Dot("Type"),
-		Switch(Id("probe").Dot("Type")).Block(
-			Case(Lit("content")).Block(
-				Var().Id("v").Struct(
-					Id("Type").String().Tag(map[string]string{"json": "type"}),
-					Id("Content").Id("ContentBlock").Tag(map[string]string{"json": "content"}),
-				),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("t").Dot("Content").Op("=").Op("&").Id("v").Dot("Content"),
-			),
-			Case(Lit("diff")).Block(
-				Var().Id("v").Id("DiffContent"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("t").Dot("Diff").Op("=").Op("&").Id("v"),
-			),
-			Case(Lit("terminal")).Block(
-				Var().Id("v").Id("TerminalRef"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("t").Dot("Terminal").Op("=").Op("&").Id("v"),
-			),
-		),
-		Return(Nil()),
-	)
-	f.Line()
-}
-
-func emitEmbeddedResourceResourceJen(f *File) {
-	f.Type().Id("EmbeddedResourceResource").Struct(
-		Id("TextResourceContents").Op("*").Id("TextResourceContents").Tag(map[string]string{"json": "-"}),
-		Id("BlobResourceContents").Op("*").Id("BlobResourceContents").Tag(map[string]string{"json": "-"}),
-	)
-	f.Line()
-	f.Func().Params(Id("e").Op("*").Id("EmbeddedResourceResource")).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().Block(
-		Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage"),
-		If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-		If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit("text")), Id("ok")).Block(
-			Var().Id("v").Id("TextResourceContents"),
-			If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-			Id("e").Dot("TextResourceContents").Op("=").Op("&").Id("v"),
-			Return(Nil()),
-		),
-		If(List(Id("_"), Id("ok2")).Op(":=").Id("m").Index(Lit("blob")), Id("ok2")).Block(
-			Var().Id("v").Id("BlobResourceContents"),
-			If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-			Id("e").Dot("BlobResourceContents").Op("=").Op("&").Id("v"),
-			Return(Nil()),
-		),
-		Return(Nil()),
-	)
-	f.Line()
-}
-
 // emitAvailableCommandInputJen generates a concrete variant type for anyOf and a thin union wrapper
 // that supports JSON unmarshal by probing object shape. Currently the schema defines one variant
 // (title: UnstructuredCommandInput) with a required 'hint' field.
-func emitAnyOfUnionJen(f *File, name string, def *load.Definition) {
-	// Collect variant names and generate inline structs for object variants if needed
+func emitUnion(f *File, name string, defs []*load.Definition, exactlyOne bool) {
 	type variantInfo struct {
-		fieldName string
-		typeName  string
-		required  []string
-		isObject  bool
-		consts    map[string]any
+		fieldName  string
+		typeName   string
+		required   []string
+		isObject   bool
+		discValue  string
+		constPairs [][2]string
+		isNull     bool
 	}
 	variants := []variantInfo{}
-	for idx, v := range def.AnyOf {
+	discKey := ""
+	// discover discriminator key if present (any const property)
+	for _, v := range defs {
 		if v == nil {
 			continue
 		}
+		for k, pd := range v.Properties {
+			if pd != nil && pd.Const != nil {
+				discKey = k
+				break
+			}
+		}
+		if discKey != "" {
+			break
+		}
+	}
+	for idx, v := range defs {
+		if v == nil {
+			continue
+		}
+		// Detect null-only variant
+		isNull := false
+		if s, ok := v.Type.(string); ok && s == "null" {
+			isNull = true
+		}
 		tname := v.Title
 		if tname == "" {
-			if v.Ref != "" {
-				// derive from ref path
-				if strings.HasPrefix(v.Ref, "#/$defs/") {
-					tname = v.Ref[len("#/$defs/"):]
-				}
+			if v.Ref != "" && strings.HasPrefix(v.Ref, "#/$defs/") {
+				tname = v.Ref[len("#/$defs/"):]
 			} else {
-				// Derive from const outcome/type if present
-				if out, ok := v.Properties["outcome"]; ok && out != nil && out.Const != nil {
-					s := fmt.Sprint(out.Const)
-					tname = name + util.ToExportedField(s)
-				} else if typ, ok2 := v.Properties["type"]; ok2 && typ != nil && typ.Const != nil {
-					s := fmt.Sprint(typ.Const)
-					tname = name + util.ToExportedField(s)
-				} else {
+				if discKey != "" {
+					if pd := v.Properties[discKey]; pd != nil && pd.Const != nil {
+						s := fmt.Sprint(pd.Const)
+						tname = name + util.ToExportedField(s)
+					}
+				}
+				if tname == "" {
 					tname = name + fmt.Sprintf("Variant%d", idx+1)
 				}
 			}
 		}
 		fieldName := tname
-		if out, ok := v.Properties["outcome"]; ok && out != nil && out.Const != nil {
-			s := fmt.Sprint(out.Const)
-			fieldName = util.ToExportedField(s)
-		} else if typ, ok2 := v.Properties["type"]; ok2 && typ != nil && typ.Const != nil {
-			s := fmt.Sprint(typ.Const)
-			fieldName = util.ToExportedField(s)
+		dv := ""
+		if discKey != "" {
+			if pd := v.Properties[discKey]; pd != nil && pd.Const != nil {
+				s := fmt.Sprint(pd.Const)
+				fieldName = util.ToExportedField(s)
+				dv = s
+			}
 		}
-		// If this variant is an inline object, generate its struct
 		isObj := len(v.Properties) > 0
-		if isObj && v.Ref == "" {
+		// collect const properties (e.g., type, outcome)
+		consts := [][2]string{}
+		for pk, pd := range v.Properties {
+			if pd != nil && pd.Const != nil {
+				if s, ok := pd.Const.(string); ok {
+					consts = append(consts, [2]string{pk, s})
+				}
+			}
+		}
+		if (isObj || isNull) && v.Ref == "" {
 			st := []Code{}
-			req := map[string]struct{}{}
-			for _, r := range v.Required {
-				req[r] = struct{}{}
-			}
-			pkeys := make([]string, 0, len(v.Properties))
-			for pk := range v.Properties {
-				pkeys = append(pkeys, pk)
-			}
-			sort.Strings(pkeys)
-			// Variant doc comment
-			if v.Description != "" {
-				f.Comment(util.SanitizeComment(v.Description))
-			}
-			for _, pk := range pkeys {
-				pDef := v.Properties[pk]
-				field := util.ToExportedField(pk)
-				if pDef.Description != "" {
-					st = append(st, Comment(util.SanitizeComment(pDef.Description)))
+			if !isNull {
+				req := map[string]struct{}{}
+				for _, r := range v.Required {
+					req[r] = struct{}{}
 				}
-				tag := pk
-				if _, ok := req[pk]; !ok {
-					tag = pk + ",omitempty"
+				pkeys := make([]string, 0, len(v.Properties))
+				for pk := range v.Properties {
+					pkeys = append(pkeys, pk)
 				}
-				st = append(st, Id(field).Add(jenTypeForOptional(pDef)).Tag(map[string]string{"json": tag}))
+				sort.Strings(pkeys)
+				if v.Description != "" {
+					f.Comment(util.SanitizeComment(v.Description))
+				}
+				for _, pk := range pkeys {
+					pDef := v.Properties[pk]
+					field := util.ToExportedField(pk)
+					if pDef.Description != "" {
+						st = append(st, Comment(util.SanitizeComment(pDef.Description)))
+					}
+					tag := pk
+					if _, ok := req[pk]; !ok {
+						tag = pk + ",omitempty"
+					}
+					st = append(st, Id(field).Add(jenTypeForOptional(pDef)).Tag(map[string]string{"json": tag}))
+				}
 			}
 			f.Type().Id(tname).Struct(st...)
 			f.Line()
 		}
-		// Collect const properties for detection
-		consts := map[string]any{}
-		for pk, pd := range v.Properties {
-			if pd != nil && pd.Const != nil {
-				consts[pk] = pd.Const
-			}
-		}
-		variants = append(variants, variantInfo{fieldName: fieldName, typeName: tname, required: v.Required, isObject: isObj, consts: consts})
+		variants = append(variants, variantInfo{fieldName: fieldName, typeName: tname, required: v.Required, isObject: isObj, discValue: dv, constPairs: consts, isNull: isNull})
 	}
-	// Union wrapper
+	// wrapper
 	st := []Code{}
 	for _, vi := range variants {
 		st = append(st, Id(vi.fieldName).Op("*").Id(vi.typeName).Tag(map[string]string{"json": "-"}))
 	}
 	f.Type().Id(name).Struct(st...)
 	f.Line()
-	// Unmarshal: prefer required-field presence checks for object variants, then fallback to try-unmarshal for all
+	// Unmarshal
 	f.Func().Params(Id("u").Op("*").Id(name)).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().BlockFunc(func(g *Group) {
-		g.Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage")
-		g.If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err")))
-		// Try required-field detection for object variants
-		for _, vi := range variants {
-			if vi.isObject && len(vi.required) > 0 {
-				stmts := []Code{
-					Var().Id("v").Id(vi.typeName),
-					Var().Id("match").Bool().Op("=").Lit(true),
+		// Handle literal null if a null-only variant exists
+		{
+			varNullHandled := false
+			for _, vi := range variants {
+				if vi.isNull {
+					// emit once for the first null variant
+					if !varNullHandled {
+						g.If(Id("string").Call(Id("b")).Op("==").Lit("null")).Block(
+							Var().Id("v").Id(vi.typeName),
+							Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
+							Return(Nil()),
+						)
+						varNullHandled = true
+					}
 				}
-				for _, rk := range vi.required {
-					stmts = append(stmts, If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit(rk)), Op("!").Id("ok")).Block(Id("match").Op("=").Lit(false)))
-				}
-				// Check const-valued fields
-				for ck, cv := range vi.consts {
-					// read m[ck] and compare to const value (stringify for simplicity)
-					stmts = append(stmts,
-						Var().Id("raw").Qual("encoding/json", "RawMessage"), Var().Id("ok").Bool(),
-						List(Id("raw"), Id("ok")).Op("=").Id("m").Index(Lit(ck)),
-						If(Op("!").Id("ok")).Block(Id("match").Op("=").Lit(false)),
-						If(Id("ok")).Block(
-							Var().Id("tmp").Any(),
-							If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("raw"), Op("&").Id("tmp")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-							If(Qual("fmt", "Sprint").Call(Id("tmp")).Op("!=").Qual("fmt", "Sprint").Call(Lit(cv))).Block(Id("match").Op("=").Lit(false)),
-						),
-					)
-				}
-				stmts = append(stmts, If(Id("match")).Block(
-					If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-					Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
-					Return(Nil()),
-				))
-				g.Block(stmts...)
 			}
 		}
-		// Fallback: try to unmarshal into each variant sequentially
+		g.Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage")
+		g.If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err")))
+		// Prefer discriminator-based dispatch when available (e.g. "type", "outcome")
+		if discKey != "" {
+			g.BlockFunc(func(h *Group) {
+				h.Var().Id("disc").String()
+				h.If(List(Id("v"), Id("ok")).Op(":=").Id("m").Index(Lit(discKey)), Id("ok")).Block(
+					Qual("encoding/json", "Unmarshal").Call(Id("v"), Op("&").Id("disc")),
+				)
+				h.Switch(Id("disc")).BlockFunc(func(sw *Group) {
+					for _, vi := range variants {
+						if vi.discValue != "" {
+							sw.Case(Lit(vi.discValue)).Block(
+								Var().Id("v").Id(vi.typeName),
+								If(Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")).Op("!=").Nil()).Block(Return(Qual("errors", "New").Call(Lit("invalid variant payload")))),
+								Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
+								Return(Nil()),
+							)
+						}
+					}
+				})
+			})
+		}
+		// Special-case: EmbeddedResourceResource variants distinguished by keys
+		if name == "EmbeddedResourceResource" {
+			g.If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit("text")), Id("ok")).Block(
+				Var().Id("v").Id("TextResourceContents"),
+				If(Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")).Op("!=").Nil()).Block(Return(Qual("errors", "New").Call(Lit("invalid variant payload")))),
+				Id("u").Dot("TextResourceContents").Op("=").Op("&").Id("v"),
+				Return(Nil()),
+			)
+			g.If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit("blob")), Id("ok")).Block(
+				Var().Id("v").Id("BlobResourceContents"),
+				If(Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")).Op("!=").Nil()).Block(Return(Qual("errors", "New").Call(Lit("invalid variant payload")))),
+				Id("u").Dot("BlobResourceContents").Op("=").Op("&").Id("v"),
+				Return(Nil()),
+			)
+		}
+		// required-key match
+		for _, vi := range variants {
+			if vi.isObject && len(vi.required) > 0 {
+				g.BlockFunc(func(h *Group) {
+					h.Var().Id("v").Id(vi.typeName)
+					h.Var().Id("match").Bool().Op("=").Lit(true)
+					for _, rk := range vi.required {
+						h.If(List(Id("_"), Id("ok")).Op(":=").Id("m").Index(Lit(rk)), Op("!").Id("ok")).Block(Id("match").Op("=").Lit(false))
+					}
+					h.If(Id("match")).Block(
+						If(Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")).Op("!=").Nil()).Block(Return(Qual("errors", "New").Call(Lit("invalid variant payload")))),
+						Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
+						Return(Nil()),
+					)
+				})
+			}
+		}
+		// fallback: try decode sequentially
 		for _, vi := range variants {
 			g.Block(
 				Var().Id("v").Id(vi.typeName),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("==").Nil()).Block(
+				If(Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")).Op("==").Nil()).Block(
 					Id("u").Dot(vi.fieldName).Op("=").Op("&").Id("v"),
 					Return(Nil()),
 				),
@@ -734,151 +576,112 @@ func emitAnyOfUnionJen(f *File, name string, def *load.Definition) {
 		}
 		g.Return(Nil())
 	})
-	// Marshal: pick first non-nil
+	// Marshal
 	f.Func().Params(Id("u").Id(name)).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).BlockFunc(func(g *Group) {
 		for _, vi := range variants {
-			g.If(Id("u").Dot(vi.fieldName).Op("!=").Nil()).Block(
-				Return(Qual("encoding/json", "Marshal").Call(Op("*").Id("u").Dot(vi.fieldName))),
-			)
+			g.If(Id("u").Dot(vi.fieldName).Op("!=").Nil()).BlockFunc(func(gg *Group) {
+				// Null-only variant encodes to JSON null
+				if vi.isNull {
+					gg.Return(Qual("encoding/json", "Marshal").Call(Nil()))
+				}
+				// Marshal variant to map for discriminant injection and shaping
+				gg.Var().Id("m").Map(String()).Any()
+				gg.List(Id("_b"), Id("_e")).Op(":=").Qual("encoding/json", "Marshal").Call(Op("*").Id("u").Dot(vi.fieldName))
+				gg.If(Id("_e").Op("!=").Nil()).Block(Return(Index().Byte().Values(), Id("_e")))
+				gg.If(Qual("encoding/json", "Unmarshal").Call(Id("_b"), Op("&").Id("m")).Op("!=").Nil()).Block(Return(Index().Byte().Values(), Qual("errors", "New").Call(Lit("invalid variant payload"))))
+				// Inject const discriminants
+				if len(vi.constPairs) > 0 {
+					for _, kv := range vi.constPairs {
+						gg.Id("m").Index(Lit(kv[0])).Op("=").Lit(kv[1])
+					}
+				}
+				// Special shaping for ContentBlock variants to preserve exact wire JSON
+				if name == "ContentBlock" {
+					switch vi.discValue {
+					case "text":
+						gg.Block(
+							Var().Id("nm").Map(String()).Any(),
+							Id("nm").Op("=").Make(Map(String()).Any()),
+							Id("nm").Index(Lit("type")).Op("=").Lit("text"),
+							Id("nm").Index(Lit("text")).Op("=").Id("m").Index(Lit("text")),
+							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
+						)
+					case "image":
+						gg.Block(
+							Var().Id("nm").Map(String()).Any(),
+							Id("nm").Op("=").Make(Map(String()).Any()),
+							Id("nm").Index(Lit("type")).Op("=").Lit("image"),
+							Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
+							Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
+							// Only include uri if present; do not emit null
+							If(List(Id("_v"), Id("_ok")).Op(":=").Id("m").Index(Lit("uri")), Id("_ok")).Block(
+								Id("nm").Index(Lit("uri")).Op("=").Id("_v"),
+							),
+							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
+						)
+					case "audio":
+						gg.Block(
+							Var().Id("nm").Map(String()).Any(),
+							Id("nm").Op("=").Make(Map(String()).Any()),
+							Id("nm").Index(Lit("type")).Op("=").Lit("audio"),
+							Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
+							Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
+							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
+						)
+					case "resource_link":
+						gg.BlockFunc(func(b *Group) {
+							b.Var().Id("nm").Map(String()).Any()
+							b.Id("nm").Op("=").Make(Map(String()).Any())
+							b.Id("nm").Index(Lit("type")).Op("=").Lit("resource_link")
+							b.Id("nm").Index(Lit("name")).Op("=").Id("m").Index(Lit("name"))
+							b.Id("nm").Index(Lit("uri")).Op("=").Id("m").Index(Lit("uri"))
+							// Only include optional keys if present
+							b.If(List(Id("v1"), Id("ok1")).Op(":=").Id("m").Index(Lit("description")), Id("ok1")).Block(
+								Id("nm").Index(Lit("description")).Op("=").Id("v1"),
+							)
+							b.If(List(Id("v2"), Id("ok2")).Op(":=").Id("m").Index(Lit("mimeType")), Id("ok2")).Block(
+								Id("nm").Index(Lit("mimeType")).Op("=").Id("v2"),
+							)
+							b.If(List(Id("v3"), Id("ok3")).Op(":=").Id("m").Index(Lit("size")), Id("ok3")).Block(
+								Id("nm").Index(Lit("size")).Op("=").Id("v3"),
+							)
+							b.If(List(Id("v4"), Id("ok4")).Op(":=").Id("m").Index(Lit("title")), Id("ok4")).Block(
+								Id("nm").Index(Lit("title")).Op("=").Id("v4"),
+							)
+							b.Return(Qual("encoding/json", "Marshal").Call(Id("nm")))
+						})
+					case "resource":
+						gg.Block(
+							Var().Id("nm").Map(String()).Any(),
+							Id("nm").Op("=").Make(Map(String()).Any()),
+							Id("nm").Index(Lit("type")).Op("=").Lit("resource"),
+							Id("nm").Index(Lit("resource")).Op("=").Id("m").Index(Lit("resource")),
+							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
+						)
+					}
+				}
+				// default: remarshal possibly with injected discriminant
+				if name != "ContentBlock" {
+					gg.Return(Qual("encoding/json", "Marshal").Call(Id("m")))
+				}
+			})
 		}
 		g.Return(Index().Byte().Values(), Nil())
 	})
 	f.Line()
-}
 
-func emitSessionUpdateJen(f *File) {
-	f.Type().Id("SessionUpdateUserMessageChunk").Struct(Id("Content").Id("ContentBlock").Tag(map[string]string{"json": "content"}))
-	f.Type().Id("SessionUpdateAgentMessageChunk").Struct(Id("Content").Id("ContentBlock").Tag(map[string]string{"json": "content"}))
-	f.Type().Id("SessionUpdateAgentThoughtChunk").Struct(Id("Content").Id("ContentBlock").Tag(map[string]string{"json": "content"}))
-	f.Type().Id("SessionUpdateToolCall").Struct(
-		Id("Content").Index().Id("ToolCallContent").Tag(map[string]string{"json": "content,omitempty"}),
-		Id("Kind").Id("ToolKind").Tag(map[string]string{"json": "kind,omitempty"}),
-		Id("Locations").Index().Id("ToolCallLocation").Tag(map[string]string{"json": "locations,omitempty"}),
-		Id("RawInput").Any().Tag(map[string]string{"json": "rawInput,omitempty"}),
-		Id("RawOutput").Any().Tag(map[string]string{"json": "rawOutput,omitempty"}),
-		Id("Status").Id("ToolCallStatus").Tag(map[string]string{"json": "status,omitempty"}),
-		Id("Title").String().Tag(map[string]string{"json": "title"}),
-		Id("ToolCallId").Id("ToolCallId").Tag(map[string]string{"json": "toolCallId"}),
-	)
-	f.Type().Id("SessionUpdateToolCallUpdate").Struct(
-		Id("Content").Index().Id("ToolCallContent").Tag(map[string]string{"json": "content,omitempty"}),
-		Id("Kind").Any().Tag(map[string]string{"json": "kind,omitempty"}),
-		Id("Locations").Index().Id("ToolCallLocation").Tag(map[string]string{"json": "locations,omitempty"}),
-		Id("RawInput").Any().Tag(map[string]string{"json": "rawInput,omitempty"}),
-		Id("RawOutput").Any().Tag(map[string]string{"json": "rawOutput,omitempty"}),
-		Id("Status").Any().Tag(map[string]string{"json": "status,omitempty"}),
-		Id("Title").Op("*").String().Tag(map[string]string{"json": "title,omitempty"}),
-		Id("ToolCallId").Id("ToolCallId").Tag(map[string]string{"json": "toolCallId"}),
-	)
-	f.Type().Id("SessionUpdatePlan").Struct(Id("Entries").Index().Id("PlanEntry").Tag(map[string]string{"json": "entries"}))
-	f.Line()
-	f.Type().Id("SessionUpdate").Struct(
-		Id("UserMessageChunk").Op("*").Id("SessionUpdateUserMessageChunk").Tag(map[string]string{"json": "-"}),
-		Id("AgentMessageChunk").Op("*").Id("SessionUpdateAgentMessageChunk").Tag(map[string]string{"json": "-"}),
-		Id("AgentThoughtChunk").Op("*").Id("SessionUpdateAgentThoughtChunk").Tag(map[string]string{"json": "-"}),
-		Id("ToolCall").Op("*").Id("SessionUpdateToolCall").Tag(map[string]string{"json": "-"}),
-		Id("ToolCallUpdate").Op("*").Id("SessionUpdateToolCallUpdate").Tag(map[string]string{"json": "-"}),
-		Id("Plan").Op("*").Id("SessionUpdatePlan").Tag(map[string]string{"json": "-"}),
-	)
-	f.Func().Params(Id("s").Op("*").Id("SessionUpdate")).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().Block(
-		Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage"),
-		If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-		Var().Id("kind").String(),
-		If(List(Id("v"), Id("ok")).Op(":=").Id("m").Index(Lit("sessionUpdate")), Id("ok")).Block(
-			Qual("encoding/json", "Unmarshal").Call(Id("v"), Op("&").Id("kind")),
-		),
-		Switch(Id("kind")).Block(
-			Case(Lit("user_message_chunk")).Block(
-				Var().Id("v").Id("SessionUpdateUserMessageChunk"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("UserMessageChunk").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-			Case(Lit("agent_message_chunk")).Block(
-				Var().Id("v").Id("SessionUpdateAgentMessageChunk"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("AgentMessageChunk").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-			Case(Lit("agent_thought_chunk")).Block(
-				Var().Id("v").Id("SessionUpdateAgentThoughtChunk"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("AgentThoughtChunk").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-			Case(Lit("tool_call")).Block(
-				Var().Id("v").Id("SessionUpdateToolCall"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("ToolCall").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-			Case(Lit("tool_call_update")).Block(
-				Var().Id("v").Id("SessionUpdateToolCallUpdate"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("ToolCallUpdate").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-			Case(Lit("plan")).Block(
-				Var().Id("v").Id("SessionUpdatePlan"),
-				If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("v")), Id("err").Op("!=").Nil()).Block(Return(Id("err"))),
-				Id("s").Dot("Plan").Op("=").Op("&").Id("v"),
-				Return(Nil()),
-			),
-		),
-		Return(Nil()),
-	)
-	f.Func().Params(Id("s").Id("SessionUpdate")).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).Block(
-		If(Id("s").Dot("UserMessageChunk").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("user_message_chunk"),
-				Lit("content"):       Id("s").Dot("UserMessageChunk").Dot("Content"),
-			}))),
-		),
-		If(Id("s").Dot("AgentMessageChunk").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("agent_message_chunk"),
-				Lit("content"):       Id("s").Dot("AgentMessageChunk").Dot("Content"),
-			}))),
-		),
-		If(Id("s").Dot("AgentThoughtChunk").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("agent_thought_chunk"),
-				Lit("content"):       Id("s").Dot("AgentThoughtChunk").Dot("Content"),
-			}))),
-		),
-		If(Id("s").Dot("ToolCall").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("tool_call"),
-				Lit("content"):       Id("s").Dot("ToolCall").Dot("Content"),
-				Lit("kind"):          Id("s").Dot("ToolCall").Dot("Kind"),
-				Lit("locations"):     Id("s").Dot("ToolCall").Dot("Locations"),
-				Lit("rawInput"):      Id("s").Dot("ToolCall").Dot("RawInput"),
-				Lit("rawOutput"):     Id("s").Dot("ToolCall").Dot("RawOutput"),
-				Lit("status"):        Id("s").Dot("ToolCall").Dot("Status"),
-				Lit("title"):         Id("s").Dot("ToolCall").Dot("Title"),
-				Lit("toolCallId"):    Id("s").Dot("ToolCall").Dot("ToolCallId"),
-			}))),
-		),
-		If(Id("s").Dot("ToolCallUpdate").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("tool_call_update"),
-				Lit("content"):       Id("s").Dot("ToolCallUpdate").Dot("Content"),
-				Lit("kind"):          Id("s").Dot("ToolCallUpdate").Dot("Kind"),
-				Lit("locations"):     Id("s").Dot("ToolCallUpdate").Dot("Locations"),
-				Lit("rawInput"):      Id("s").Dot("ToolCallUpdate").Dot("RawInput"),
-				Lit("rawOutput"):     Id("s").Dot("ToolCallUpdate").Dot("RawOutput"),
-				Lit("status"):        Id("s").Dot("ToolCallUpdate").Dot("Status"),
-				Lit("title"):         Id("s").Dot("ToolCallUpdate").Dot("Title"),
-				Lit("toolCallId"):    Id("s").Dot("ToolCallUpdate").Dot("ToolCallId"),
-			}))),
-		),
-		If(Id("s").Dot("Plan").Op("!=").Nil()).Block(
-			Return(Qual("encoding/json", "Marshal").Call(Map(String()).Any().Values(Dict{
-				Lit("sessionUpdate"): Lit("plan"),
-				Lit("entries"):       Id("s").Dot("Plan").Dot("Entries"),
-			}))),
-		),
-		Return(Index().Byte().Values(), Nil()),
-	)
-	f.Line()
+	// Generic validator for oneOf unions: exactly one variant must be set
+	if exactlyOne {
+		f.Func().Params(Id("u").Op("*").Id(name)).Id("Validate").Params().Params(Error()).BlockFunc(func(g *Group) {
+			g.Var().Id("count").Int()
+			for _, vi := range variants {
+				g.If(Id("u").Dot(vi.fieldName).Op("!=").Nil()).Block(Id("count").Op("++"))
+			}
+			g.If(Id("count").Op("!=").Lit(1)).Block(
+				Return(Qual("errors", "New").Call(Lit(name + " must have exactly one variant set"))),
+			)
+			g.Return(Nil())
+		})
+		f.Line()
+	}
 }

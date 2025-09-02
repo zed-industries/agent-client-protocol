@@ -53,10 +53,8 @@ func (e *exampleClient) SessionUpdate(ctx context.Context, params acp.SessionNot
 	switch {
 	case u.AgentMessageChunk != nil:
 		c := u.AgentMessageChunk.Content
-		if c.Type == "text" && c.Text != nil {
+		if c.Text != nil {
 			fmt.Println(c.Text.Text)
-		} else {
-			fmt.Printf("[%s]\n", c.Type)
 		}
 	case u.ToolCall != nil:
 		fmt.Printf("\n🔧 %s (%s)\n", u.ToolCall.Title, u.ToolCall.Status)

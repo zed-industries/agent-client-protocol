@@ -5,6 +5,7 @@ package acp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -17,16 +18,326 @@ type AgentCapabilities struct {
 }
 
 // All possible notifications that an agent can send to a client.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Client'] trait instead.  Notifications do not expect a response.
-// AgentNotification is a union or complex schema; represented generically.
-type AgentNotification any
+type AgentNotification struct {
+	SessionNotification *SessionNotification `json:"-"`
+}
+
+func (u *AgentNotification) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v SessionNotification
+		if json.Unmarshal(b, &v) == nil {
+			u.SessionNotification = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u AgentNotification) MarshalJSON() ([]byte, error) {
+	if u.SessionNotification != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.SessionNotification)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
 
 // All possible requests that an agent can send to a client.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Client'] trait.  This enum encompasses all method calls from agent to client.
-// AgentRequest is a union or complex schema; represented generically.
-type AgentRequest any
+type AgentRequest struct {
+	WriteTextFileRequest       *WriteTextFileRequest       `json:"-"`
+	ReadTextFileRequest        *ReadTextFileRequest        `json:"-"`
+	RequestPermissionRequest   *RequestPermissionRequest   `json:"-"`
+	CreateTerminalRequest      *CreateTerminalRequest      `json:"-"`
+	TerminalOutputRequest      *TerminalOutputRequest      `json:"-"`
+	ReleaseTerminalRequest     *ReleaseTerminalRequest     `json:"-"`
+	WaitForTerminalExitRequest *WaitForTerminalExitRequest `json:"-"`
+	KillTerminalRequest        *KillTerminalRequest        `json:"-"`
+}
+
+func (u *AgentRequest) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v WriteTextFileRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.WriteTextFileRequest = &v
+			return nil
+		}
+	}
+	{
+		var v ReadTextFileRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.ReadTextFileRequest = &v
+			return nil
+		}
+	}
+	{
+		var v RequestPermissionRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.RequestPermissionRequest = &v
+			return nil
+		}
+	}
+	{
+		var v CreateTerminalRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.CreateTerminalRequest = &v
+			return nil
+		}
+	}
+	{
+		var v TerminalOutputRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.TerminalOutputRequest = &v
+			return nil
+		}
+	}
+	{
+		var v ReleaseTerminalRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.ReleaseTerminalRequest = &v
+			return nil
+		}
+	}
+	{
+		var v WaitForTerminalExitRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.WaitForTerminalExitRequest = &v
+			return nil
+		}
+	}
+	{
+		var v KillTerminalRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.KillTerminalRequest = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u AgentRequest) MarshalJSON() ([]byte, error) {
+	if u.WriteTextFileRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.WriteTextFileRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.ReadTextFileRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ReadTextFileRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.RequestPermissionRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.RequestPermissionRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.CreateTerminalRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.CreateTerminalRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.TerminalOutputRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.TerminalOutputRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.ReleaseTerminalRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ReleaseTerminalRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.WaitForTerminalExitRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.WaitForTerminalExitRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.KillTerminalRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.KillTerminalRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
 
 // All possible responses that an agent can send to a client.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding ClientRequest variants.
-// AgentResponse is a union or complex schema; represented generically.
-type AgentResponse any
+type AuthenticateResponse struct{}
+
+type LoadSessionResponse struct{}
+
+type AgentResponse struct {
+	InitializeResponse   *InitializeResponse   `json:"-"`
+	AuthenticateResponse *AuthenticateResponse `json:"-"`
+	NewSessionResponse   *NewSessionResponse   `json:"-"`
+	LoadSessionResponse  *LoadSessionResponse  `json:"-"`
+	PromptResponse       *PromptResponse       `json:"-"`
+}
+
+func (u *AgentResponse) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" {
+		var v AuthenticateResponse
+		u.AuthenticateResponse = &v
+		return nil
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v InitializeResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.InitializeResponse = &v
+			return nil
+		}
+	}
+	{
+		var v AuthenticateResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.AuthenticateResponse = &v
+			return nil
+		}
+	}
+	{
+		var v NewSessionResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.NewSessionResponse = &v
+			return nil
+		}
+	}
+	{
+		var v LoadSessionResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.LoadSessionResponse = &v
+			return nil
+		}
+	}
+	{
+		var v PromptResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.PromptResponse = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u AgentResponse) MarshalJSON() ([]byte, error) {
+	if u.InitializeResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.InitializeResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.AuthenticateResponse != nil {
+		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AuthenticateResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.NewSessionResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.NewSessionResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.LoadSessionResponse != nil {
+		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.LoadSessionResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.PromptResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.PromptResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
 
 // Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 type Annotations struct {
@@ -97,8 +408,8 @@ func (u *AvailableCommandInput) UnmarshalJSON(b []byte) error {
 			match = false
 		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.UnstructuredCommandInput = &v
 			return nil
@@ -106,7 +417,7 @@ func (u *AvailableCommandInput) UnmarshalJSON(b []byte) error {
 	}
 	{
 		var v UnstructuredCommandInput
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.UnstructuredCommandInput = &v
 			return nil
 		}
@@ -115,7 +426,15 @@ func (u *AvailableCommandInput) UnmarshalJSON(b []byte) error {
 }
 func (u AvailableCommandInput) MarshalJSON() ([]byte, error) {
 	if u.UnstructuredCommandInput != nil {
-		return json.Marshal(*u.UnstructuredCommandInput)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.UnstructuredCommandInput)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
 }
@@ -146,150 +465,692 @@ type ClientCapabilities struct {
 }
 
 // All possible notifications that a client can send to an agent.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Agent'] trait instead.  Notifications do not expect a response.
-// ClientNotification is a union or complex schema; represented generically.
-type ClientNotification any
-
-// All possible requests that a client can send to an agent.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Agent'] trait.  This enum encompasses all method calls from client to agent.
-// ClientRequest is a union or complex schema; represented generically.
-type ClientRequest any
-
-// All possible responses that a client can send to an agent.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding AgentRequest variants.
-// ClientResponse is a union or complex schema; represented generically.
-type ClientResponse any
-
-// Content blocks represent displayable information in the Agent Client Protocol.  They provide a structured way to handle various types of user-facing content—whether it's text from language models, images for analysis, or embedded resources for context.  Content blocks appear in: - User prompts sent via 'session/prompt' - Language model output streamed through 'session/update' notifications - Progress updates and results from tool calls  This structure is compatible with the Model Context Protocol (MCP), enabling agents to seamlessly forward content from MCP tool outputs without transformation.  See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
-type ResourceLinkContent struct {
-	Annotations any     `json:"annotations,omitempty"`
-	Description *string `json:"description,omitempty"`
-	MimeType    *string `json:"mimeType,omitempty"`
-	Name        string  `json:"name"`
-	Size        *int64  `json:"size,omitempty"`
-	Title       *string `json:"title,omitempty"`
-	Uri         string  `json:"uri"`
+type ClientNotification struct {
+	CancelNotification *CancelNotification `json:"-"`
 }
 
-type ContentBlock struct {
-	Type         string               `json:"type"`
-	Text         *TextContent         `json:"-"`
-	Image        *ImageContent        `json:"-"`
-	Audio        *AudioContent        `json:"-"`
-	ResourceLink *ResourceLinkContent `json:"-"`
-	Resource     *EmbeddedResource    `json:"-"`
-}
-
-func (c *ContentBlock) UnmarshalJSON(b []byte) error {
-	var probe struct {
-		Type string `json:"type"`
-	}
-	if err := json.Unmarshal(b, &probe); err != nil {
+func (u *ClientNotification) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	c.Type = probe.Type
-	switch probe.Type {
-	case "text":
-		var v TextContent
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+	{
+		var v CancelNotification
+		if json.Unmarshal(b, &v) == nil {
+			u.CancelNotification = &v
+			return nil
 		}
-		c.Text = &v
-	case "image":
-		var v ImageContent
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
-		}
-		c.Image = &v
-	case "audio":
-		var v AudioContent
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
-		}
-		c.Audio = &v
-	case "resource_link":
-		var v ResourceLinkContent
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
-		}
-		c.ResourceLink = &v
-	case "resource":
-		var v EmbeddedResource
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
-		}
-		c.Resource = &v
 	}
 	return nil
 }
-func (c ContentBlock) MarshalJSON() ([]byte, error) {
-	switch c.Type {
-	case "text":
-		if c.Text != nil {
-			return json.Marshal(map[string]any{
-				"text": c.Text.Text,
-				"type": "text",
-			})
+func (u ClientNotification) MarshalJSON() ([]byte, error) {
+	if u.CancelNotification != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.CancelNotification)
+		if _e != nil {
+			return []byte{}, _e
 		}
-	case "image":
-		if c.Image != nil {
-			return json.Marshal(map[string]any{
-				"data":     c.Image.Data,
-				"mimeType": c.Image.MimeType,
-				"type":     "image",
-				"uri":      c.Image.Uri,
-			})
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
 		}
-	case "audio":
-		if c.Audio != nil {
-			return json.Marshal(map[string]any{
-				"data":     c.Audio.Data,
-				"mimeType": c.Audio.MimeType,
-				"type":     "audio",
-			})
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
+
+// All possible requests that a client can send to an agent.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Agent'] trait.  This enum encompasses all method calls from client to agent.
+type ClientRequest struct {
+	InitializeRequest   *InitializeRequest   `json:"-"`
+	AuthenticateRequest *AuthenticateRequest `json:"-"`
+	NewSessionRequest   *NewSessionRequest   `json:"-"`
+	LoadSessionRequest  *LoadSessionRequest  `json:"-"`
+	PromptRequest       *PromptRequest       `json:"-"`
+}
+
+func (u *ClientRequest) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v InitializeRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.InitializeRequest = &v
+			return nil
 		}
-	case "resource_link":
-		if c.ResourceLink != nil {
-			return json.Marshal(map[string]any{
-				"description": c.ResourceLink.Description,
-				"mimeType":    c.ResourceLink.MimeType,
-				"name":        c.ResourceLink.Name,
-				"size":        c.ResourceLink.Size,
-				"title":       c.ResourceLink.Title,
-				"type":        "resource_link",
-				"uri":         c.ResourceLink.Uri,
-			})
+	}
+	{
+		var v AuthenticateRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.AuthenticateRequest = &v
+			return nil
 		}
-	case "resource":
-		if c.Resource != nil {
-			return json.Marshal(map[string]any{
-				"resource": c.Resource.Resource,
-				"type":     "resource",
-			})
+	}
+	{
+		var v NewSessionRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.NewSessionRequest = &v
+			return nil
+		}
+	}
+	{
+		var v LoadSessionRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.LoadSessionRequest = &v
+			return nil
+		}
+	}
+	{
+		var v PromptRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.PromptRequest = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u ClientRequest) MarshalJSON() ([]byte, error) {
+	if u.InitializeRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.InitializeRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.AuthenticateRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AuthenticateRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.NewSessionRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.NewSessionRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.LoadSessionRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.LoadSessionRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.PromptRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.PromptRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
+
+// All possible responses that a client can send to an agent.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding AgentRequest variants.
+type WriteTextFileResponse struct{}
+
+type ReleaseTerminalResponse struct{}
+
+type KillTerminalResponse struct{}
+
+type ClientResponse struct {
+	WriteTextFileResponse       *WriteTextFileResponse       `json:"-"`
+	ReadTextFileResponse        *ReadTextFileResponse        `json:"-"`
+	RequestPermissionResponse   *RequestPermissionResponse   `json:"-"`
+	CreateTerminalResponse      *CreateTerminalResponse      `json:"-"`
+	TerminalOutputResponse      *TerminalOutputResponse      `json:"-"`
+	ReleaseTerminalResponse     *ReleaseTerminalResponse     `json:"-"`
+	WaitForTerminalExitResponse *WaitForTerminalExitResponse `json:"-"`
+	KillTerminalResponse        *KillTerminalResponse        `json:"-"`
+}
+
+func (u *ClientResponse) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" {
+		var v WriteTextFileResponse
+		u.WriteTextFileResponse = &v
+		return nil
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var v WriteTextFileResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.WriteTextFileResponse = &v
+			return nil
+		}
+	}
+	{
+		var v ReadTextFileResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.ReadTextFileResponse = &v
+			return nil
+		}
+	}
+	{
+		var v RequestPermissionResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.RequestPermissionResponse = &v
+			return nil
+		}
+	}
+	{
+		var v CreateTerminalResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.CreateTerminalResponse = &v
+			return nil
+		}
+	}
+	{
+		var v TerminalOutputResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.TerminalOutputResponse = &v
+			return nil
+		}
+	}
+	{
+		var v ReleaseTerminalResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.ReleaseTerminalResponse = &v
+			return nil
+		}
+	}
+	{
+		var v WaitForTerminalExitResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.WaitForTerminalExitResponse = &v
+			return nil
+		}
+	}
+	{
+		var v KillTerminalResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.KillTerminalResponse = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u ClientResponse) MarshalJSON() ([]byte, error) {
+	if u.WriteTextFileResponse != nil {
+		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.WriteTextFileResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.ReadTextFileResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ReadTextFileResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.RequestPermissionResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.RequestPermissionResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.CreateTerminalResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.CreateTerminalResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.TerminalOutputResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.TerminalOutputResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.ReleaseTerminalResponse != nil {
+		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ReleaseTerminalResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.WaitForTerminalExitResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.WaitForTerminalExitResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.KillTerminalResponse != nil {
+		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.KillTerminalResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
+}
+
+// Content blocks represent displayable information in the Agent Client Protocol.  They provide a structured way to handle various types of user-facing content—whether it's text from language models, images for analysis, or embedded resources for context.  Content blocks appear in: - User prompts sent via 'session/prompt' - Language model output streamed through 'session/update' notifications - Progress updates and results from tool calls  This structure is compatible with the Model Context Protocol (MCP), enabling agents to seamlessly forward content from MCP tool outputs without transformation.  See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
+// Plain text content  All agents MUST support text content blocks in prompts.
+type ContentBlockText struct {
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Text        string       `json:"text"`
+	Type        string       `json:"type"`
+}
+
+// Images for visual context or analysis.  Requires the 'image' prompt capability when included in prompts.
+type ContentBlockImage struct {
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Data        string       `json:"data"`
+	MimeType    string       `json:"mimeType"`
+	Type        string       `json:"type"`
+	Uri         *string      `json:"uri,omitempty"`
+}
+
+// Audio data for transcription or analysis.  Requires the 'audio' prompt capability when included in prompts.
+type ContentBlockAudio struct {
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Data        string       `json:"data"`
+	MimeType    string       `json:"mimeType"`
+	Type        string       `json:"type"`
+}
+
+// References to resources that the agent can access.  All agents MUST support resource links in prompts.
+type ContentBlockResourceLink struct {
+	Annotations *Annotations `json:"annotations,omitempty"`
+	Description *string      `json:"description,omitempty"`
+	MimeType    *string      `json:"mimeType,omitempty"`
+	Name        string       `json:"name"`
+	Size        *int         `json:"size,omitempty"`
+	Title       *string      `json:"title,omitempty"`
+	Type        string       `json:"type"`
+	Uri         string       `json:"uri"`
+}
+
+// Complete resource contents embedded directly in the message.  Preferred for including context as it avoids extra round-trips.  Requires the 'embeddedContext' prompt capability when included in prompts.
+type ContentBlockResource struct {
+	Annotations *Annotations             `json:"annotations,omitempty"`
+	Resource    EmbeddedResourceResource `json:"resource"`
+	Type        string                   `json:"type"`
+}
+
+type ContentBlock struct {
+	Text         *ContentBlockText         `json:"-"`
+	Image        *ContentBlockImage        `json:"-"`
+	Audio        *ContentBlockAudio        `json:"-"`
+	ResourceLink *ContentBlockResourceLink `json:"-"`
+	Resource     *ContentBlockResource     `json:"-"`
+}
+
+func (u *ContentBlock) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var disc string
+		if v, ok := m["type"]; ok {
+			json.Unmarshal(v, &disc)
+		}
+		switch disc {
+		case "text":
+			var v ContentBlockText
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Text = &v
+			return nil
+		case "image":
+			var v ContentBlockImage
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Image = &v
+			return nil
+		case "audio":
+			var v ContentBlockAudio
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Audio = &v
+			return nil
+		case "resource_link":
+			var v ContentBlockResourceLink
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ResourceLink = &v
+			return nil
+		case "resource":
+			var v ContentBlockResource
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Resource = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockText
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["text"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Text = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockImage
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["data"]; !ok {
+			match = false
+		}
+		if _, ok := m["mimeType"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Image = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockAudio
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["data"]; !ok {
+			match = false
+		}
+		if _, ok := m["mimeType"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Audio = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockResourceLink
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["name"]; !ok {
+			match = false
+		}
+		if _, ok := m["uri"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ResourceLink = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockResource
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["resource"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Resource = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockText
+		if json.Unmarshal(b, &v) == nil {
+			u.Text = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockImage
+		if json.Unmarshal(b, &v) == nil {
+			u.Image = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockAudio
+		if json.Unmarshal(b, &v) == nil {
+			u.Audio = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockResourceLink
+		if json.Unmarshal(b, &v) == nil {
+			u.ResourceLink = &v
+			return nil
+		}
+	}
+	{
+		var v ContentBlockResource
+		if json.Unmarshal(b, &v) == nil {
+			u.Resource = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u ContentBlock) MarshalJSON() ([]byte, error) {
+	if u.Text != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Text)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "text"
+		{
+			var nm map[string]any
+			nm = make(map[string]any)
+			nm["type"] = "text"
+			nm["text"] = m["text"]
+			return json.Marshal(nm)
+		}
+	}
+	if u.Image != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Image)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "image"
+		{
+			var nm map[string]any
+			nm = make(map[string]any)
+			nm["type"] = "image"
+			nm["data"] = m["data"]
+			nm["mimeType"] = m["mimeType"]
+			if _v, _ok := m["uri"]; _ok {
+				nm["uri"] = _v
+			}
+			return json.Marshal(nm)
+		}
+	}
+	if u.Audio != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Audio)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "audio"
+		{
+			var nm map[string]any
+			nm = make(map[string]any)
+			nm["type"] = "audio"
+			nm["data"] = m["data"]
+			nm["mimeType"] = m["mimeType"]
+			return json.Marshal(nm)
+		}
+	}
+	if u.ResourceLink != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ResourceLink)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "resource_link"
+		{
+			var nm map[string]any
+			nm = make(map[string]any)
+			nm["type"] = "resource_link"
+			nm["name"] = m["name"]
+			nm["uri"] = m["uri"]
+			if v1, ok1 := m["description"]; ok1 {
+				nm["description"] = v1
+			}
+			if v2, ok2 := m["mimeType"]; ok2 {
+				nm["mimeType"] = v2
+			}
+			if v3, ok3 := m["size"]; ok3 {
+				nm["size"] = v3
+			}
+			if v4, ok4 := m["title"]; ok4 {
+				nm["title"] = v4
+			}
+			return json.Marshal(nm)
+		}
+	}
+	if u.Resource != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Resource)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "resource"
+		{
+			var nm map[string]any
+			nm = make(map[string]any)
+			nm["type"] = "resource"
+			nm["resource"] = m["resource"]
+			return json.Marshal(nm)
 		}
 	}
 	return []byte{}, nil
 }
 
-func (c *ContentBlock) Validate() error {
-	switch c.Type {
-	case "text":
-		if c.Text == nil {
-			return fmt.Errorf("contentblock.text missing")
-		}
-	case "image":
-		if c.Image == nil {
-			return fmt.Errorf("contentblock.image missing")
-		}
-	case "audio":
-		if c.Audio == nil {
-			return fmt.Errorf("contentblock.audio missing")
-		}
-	case "resource_link":
-		if c.ResourceLink == nil {
-			return fmt.Errorf("contentblock.resource_link missing")
-		}
-	case "resource":
-		if c.Resource == nil {
-			return fmt.Errorf("contentblock.resource missing")
-		}
+func (u *ContentBlock) Validate() error {
+	var count int
+	if u.Text != nil {
+		count++
+	}
+	if u.Image != nil {
+		count++
+	}
+	if u.Audio != nil {
+		count++
+	}
+	if u.ResourceLink != nil {
+		count++
+	}
+	if u.Resource != nil {
+		count++
+	}
+	if count != 1 {
+		return errors.New("ContentBlock must have exactly one variant set")
 	}
 	return nil
 }
@@ -338,16 +1199,32 @@ func (u *EmbeddedResourceResource) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
+	if _, ok := m["text"]; ok {
+		var v TextResourceContents
+		if json.Unmarshal(b, &v) != nil {
+			return errors.New("invalid variant payload")
+		}
+		u.TextResourceContents = &v
+		return nil
+	}
+	if _, ok := m["blob"]; ok {
+		var v BlobResourceContents
+		if json.Unmarshal(b, &v) != nil {
+			return errors.New("invalid variant payload")
+		}
+		u.BlobResourceContents = &v
+		return nil
+	}
 	{
 		var v TextResourceContents
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.TextResourceContents = &v
 			return nil
 		}
 	}
 	{
 		var v BlobResourceContents
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.BlobResourceContents = &v
 			return nil
 		}
@@ -356,10 +1233,26 @@ func (u *EmbeddedResourceResource) UnmarshalJSON(b []byte) error {
 }
 func (u EmbeddedResourceResource) MarshalJSON() ([]byte, error) {
 	if u.TextResourceContents != nil {
-		return json.Marshal(*u.TextResourceContents)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.TextResourceContents)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	if u.BlobResourceContents != nil {
-		return json.Marshal(*u.BlobResourceContents)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.BlobResourceContents)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
 }
@@ -405,7 +1298,7 @@ type InitializeResponse struct {
 	// Capabilities supported by the agent.
 	AgentCapabilities AgentCapabilities `json:"agentCapabilities,omitempty"`
 	// Authentication methods supported by the agent.
-	AuthMethods []AuthMethod `json:"authMethods,omitempty"`
+	AuthMethods []AuthMethod `json:"authMethods"`
 	// The protocol version the client specified if supported by the agent, or the latest protocol version supported by the agent.  The client should disconnect, if it doesn't support this version.
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
 }
@@ -650,29 +1543,36 @@ func (u *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	{
+		var disc string
+		if v, ok := m["outcome"]; ok {
+			json.Unmarshal(v, &disc)
+		}
+		switch disc {
+		case "cancelled":
+			var v RequestPermissionOutcomeCancelled
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Cancelled = &v
+			return nil
+		case "selected":
+			var v RequestPermissionOutcomeSelected
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Selected = &v
+			return nil
+		}
+	}
+	{
 		var v RequestPermissionOutcomeCancelled
 		var match bool = true
 		if _, ok := m["outcome"]; !ok {
 			match = false
 		}
-		var raw json.RawMessage
-		var ok bool
-		raw, ok = m["outcome"]
-		if !ok {
-			match = false
-		}
-		if ok {
-			var tmp any
-			if err := json.Unmarshal(raw, &tmp); err != nil {
-				return err
-			}
-			if fmt.Sprint(tmp) != fmt.Sprint("cancelled") {
-				match = false
-			}
-		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.Cancelled = &v
 			return nil
@@ -687,24 +1587,9 @@ func (u *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
 		if _, ok := m["optionId"]; !ok {
 			match = false
 		}
-		var raw json.RawMessage
-		var ok bool
-		raw, ok = m["outcome"]
-		if !ok {
-			match = false
-		}
-		if ok {
-			var tmp any
-			if err := json.Unmarshal(raw, &tmp); err != nil {
-				return err
-			}
-			if fmt.Sprint(tmp) != fmt.Sprint("selected") {
-				match = false
-			}
-		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.Selected = &v
 			return nil
@@ -712,14 +1597,14 @@ func (u *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
 	}
 	{
 		var v RequestPermissionOutcomeCancelled
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.Cancelled = &v
 			return nil
 		}
 	}
 	{
 		var v RequestPermissionOutcomeSelected
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.Selected = &v
 			return nil
 		}
@@ -728,12 +1613,44 @@ func (u *RequestPermissionOutcome) UnmarshalJSON(b []byte) error {
 }
 func (u RequestPermissionOutcome) MarshalJSON() ([]byte, error) {
 	if u.Cancelled != nil {
-		return json.Marshal(*u.Cancelled)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Cancelled)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["outcome"] = "cancelled"
+		return json.Marshal(m)
 	}
 	if u.Selected != nil {
-		return json.Marshal(*u.Selected)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Selected)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["outcome"] = "selected"
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
+}
+
+func (u *RequestPermissionOutcome) Validate() error {
+	var count int
+	if u.Cancelled != nil {
+		count++
+	}
+	if u.Selected != nil {
+		count++
+	}
+	if count != 1 {
+		return errors.New("RequestPermissionOutcome must have exactly one variant set")
+	}
+	return nil
 }
 
 // Request for user permission to execute a tool call.  Sent when the agent needs authorization before performing a sensitive operation.  See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
@@ -798,37 +1715,71 @@ func (v *SessionNotification) Validate() error {
 }
 
 // Different types of updates that can be sent during session processing.  These updates provide real-time feedback about the agent's progress.  See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+// A chunk of the user's message being streamed.
 type SessionUpdateUserMessageChunk struct {
-	Content ContentBlock `json:"content"`
+	Content       ContentBlock `json:"content"`
+	SessionUpdate string       `json:"sessionUpdate"`
 }
+
+// A chunk of the agent's response being streamed.
 type SessionUpdateAgentMessageChunk struct {
-	Content ContentBlock `json:"content"`
+	Content       ContentBlock `json:"content"`
+	SessionUpdate string       `json:"sessionUpdate"`
 }
+
+// A chunk of the agent's internal reasoning being streamed.
 type SessionUpdateAgentThoughtChunk struct {
-	Content ContentBlock `json:"content"`
+	Content       ContentBlock `json:"content"`
+	SessionUpdate string       `json:"sessionUpdate"`
 }
+
+// Notification that a new tool call has been initiated.
 type SessionUpdateToolCall struct {
-	Content    []ToolCallContent  `json:"content,omitempty"`
-	Kind       ToolKind           `json:"kind,omitempty"`
-	Locations  []ToolCallLocation `json:"locations,omitempty"`
-	RawInput   any                `json:"rawInput,omitempty"`
-	RawOutput  any                `json:"rawOutput,omitempty"`
-	Status     ToolCallStatus     `json:"status,omitempty"`
-	Title      string             `json:"title"`
-	ToolCallId ToolCallId         `json:"toolCallId"`
+	// Content produced by the tool call.
+	Content []ToolCallContent `json:"content,omitempty"`
+	// The category of tool being invoked. Helps clients choose appropriate icons and UI treatment.
+	Kind ToolKind `json:"kind,omitempty"`
+	// File locations affected by this tool call. Enables "follow-along" features in clients.
+	Locations []ToolCallLocation `json:"locations,omitempty"`
+	// Raw input parameters sent to the tool.
+	RawInput any `json:"rawInput,omitempty"`
+	// Raw output returned by the tool.
+	RawOutput     any    `json:"rawOutput,omitempty"`
+	SessionUpdate string `json:"sessionUpdate"`
+	// Current execution status of the tool call.
+	Status ToolCallStatus `json:"status,omitempty"`
+	// Human-readable title describing what the tool is doing.
+	Title string `json:"title"`
+	// Unique identifier for this tool call within the session.
+	ToolCallId ToolCallId `json:"toolCallId"`
 }
+
+// Update on the status or results of a tool call.
 type SessionUpdateToolCallUpdate struct {
-	Content    []ToolCallContent  `json:"content,omitempty"`
-	Kind       any                `json:"kind,omitempty"`
-	Locations  []ToolCallLocation `json:"locations,omitempty"`
-	RawInput   any                `json:"rawInput,omitempty"`
-	RawOutput  any                `json:"rawOutput,omitempty"`
-	Status     any                `json:"status,omitempty"`
-	Title      *string            `json:"title,omitempty"`
-	ToolCallId ToolCallId         `json:"toolCallId"`
+	// Replace the content collection.
+	Content []ToolCallContent `json:"content,omitempty"`
+	// Update the tool kind.
+	Kind *ToolKind `json:"kind,omitempty"`
+	// Replace the locations collection.
+	Locations []ToolCallLocation `json:"locations,omitempty"`
+	// Update the raw input.
+	RawInput any `json:"rawInput,omitempty"`
+	// Update the raw output.
+	RawOutput     any    `json:"rawOutput,omitempty"`
+	SessionUpdate string `json:"sessionUpdate"`
+	// Update the execution status.
+	Status *ToolCallStatus `json:"status,omitempty"`
+	// Update the human-readable title.
+	Title *string `json:"title,omitempty"`
+	// The ID of the tool call being updated.
+	ToolCallId ToolCallId `json:"toolCallId"`
 }
+
+// The agent's execution plan for complex tasks. See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
 type SessionUpdatePlan struct {
-	Entries []PlanEntry `json:"entries"`
+	// The list of tasks to be accomplished.  When updating a plan, the agent must send a complete list of all entries with their current status. The client replaces the entire plan with each update.
+	Entries       []PlanEntry `json:"entries"`
+	SessionUpdate string      `json:"sessionUpdate"`
 }
 
 type SessionUpdate struct {
@@ -840,137 +1791,308 @@ type SessionUpdate struct {
 	Plan              *SessionUpdatePlan              `json:"-"`
 }
 
-func (s *SessionUpdate) UnmarshalJSON(b []byte) error {
+func (u *SessionUpdate) UnmarshalJSON(b []byte) error {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	var kind string
-	if v, ok := m["sessionUpdate"]; ok {
-		json.Unmarshal(v, &kind)
+	{
+		var disc string
+		if v, ok := m["sessionUpdate"]; ok {
+			json.Unmarshal(v, &disc)
+		}
+		switch disc {
+		case "user_message_chunk":
+			var v SessionUpdateUserMessageChunk
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.UserMessageChunk = &v
+			return nil
+		case "agent_message_chunk":
+			var v SessionUpdateAgentMessageChunk
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AgentMessageChunk = &v
+			return nil
+		case "agent_thought_chunk":
+			var v SessionUpdateAgentThoughtChunk
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AgentThoughtChunk = &v
+			return nil
+		case "tool_call":
+			var v SessionUpdateToolCall
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ToolCall = &v
+			return nil
+		case "tool_call_update":
+			var v SessionUpdateToolCallUpdate
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ToolCallUpdate = &v
+			return nil
+		case "plan":
+			var v SessionUpdatePlan
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Plan = &v
+			return nil
+		}
 	}
-	switch kind {
-	case "user_message_chunk":
+	{
 		var v SessionUpdateUserMessageChunk
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.UserMessageChunk = &v
-		return nil
-	case "agent_message_chunk":
+		if _, ok := m["content"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.UserMessageChunk = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdateAgentMessageChunk
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.AgentMessageChunk = &v
-		return nil
-	case "agent_thought_chunk":
+		if _, ok := m["content"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AgentMessageChunk = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdateAgentThoughtChunk
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.AgentThoughtChunk = &v
-		return nil
-	case "tool_call":
+		if _, ok := m["content"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AgentThoughtChunk = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdateToolCall
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.ToolCall = &v
-		return nil
-	case "tool_call_update":
+		if _, ok := m["toolCallId"]; !ok {
+			match = false
+		}
+		if _, ok := m["title"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ToolCall = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdateToolCallUpdate
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.ToolCallUpdate = &v
-		return nil
-	case "plan":
+		if _, ok := m["toolCallId"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.ToolCallUpdate = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdatePlan
-		if err := json.Unmarshal(b, &v); err != nil {
-			return err
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
 		}
-		s.Plan = &v
-		return nil
+		if _, ok := m["entries"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Plan = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateUserMessageChunk
+		if json.Unmarshal(b, &v) == nil {
+			u.UserMessageChunk = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateAgentMessageChunk
+		if json.Unmarshal(b, &v) == nil {
+			u.AgentMessageChunk = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateAgentThoughtChunk
+		if json.Unmarshal(b, &v) == nil {
+			u.AgentThoughtChunk = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateToolCall
+		if json.Unmarshal(b, &v) == nil {
+			u.ToolCall = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateToolCallUpdate
+		if json.Unmarshal(b, &v) == nil {
+			u.ToolCallUpdate = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdatePlan
+		if json.Unmarshal(b, &v) == nil {
+			u.Plan = &v
+			return nil
+		}
 	}
 	return nil
 }
-func (s SessionUpdate) MarshalJSON() ([]byte, error) {
-	if s.UserMessageChunk != nil {
-		return json.Marshal(map[string]any{
-			"content":       s.UserMessageChunk.Content,
-			"sessionUpdate": "user_message_chunk",
-		})
+func (u SessionUpdate) MarshalJSON() ([]byte, error) {
+	if u.UserMessageChunk != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.UserMessageChunk)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "user_message_chunk"
+		return json.Marshal(m)
 	}
-	if s.AgentMessageChunk != nil {
-		return json.Marshal(map[string]any{
-			"content":       s.AgentMessageChunk.Content,
-			"sessionUpdate": "agent_message_chunk",
-		})
+	if u.AgentMessageChunk != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AgentMessageChunk)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "agent_message_chunk"
+		return json.Marshal(m)
 	}
-	if s.AgentThoughtChunk != nil {
-		return json.Marshal(map[string]any{
-			"content":       s.AgentThoughtChunk.Content,
-			"sessionUpdate": "agent_thought_chunk",
-		})
+	if u.AgentThoughtChunk != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AgentThoughtChunk)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "agent_thought_chunk"
+		return json.Marshal(m)
 	}
-	if s.ToolCall != nil {
-		return json.Marshal(map[string]any{
-			"content":       s.ToolCall.Content,
-			"kind":          s.ToolCall.Kind,
-			"locations":     s.ToolCall.Locations,
-			"rawInput":      s.ToolCall.RawInput,
-			"rawOutput":     s.ToolCall.RawOutput,
-			"sessionUpdate": "tool_call",
-			"status":        s.ToolCall.Status,
-			"title":         s.ToolCall.Title,
-			"toolCallId":    s.ToolCall.ToolCallId,
-		})
+	if u.ToolCall != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ToolCall)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "tool_call"
+		return json.Marshal(m)
 	}
-	if s.ToolCallUpdate != nil {
-		return json.Marshal(map[string]any{
-			"content":       s.ToolCallUpdate.Content,
-			"kind":          s.ToolCallUpdate.Kind,
-			"locations":     s.ToolCallUpdate.Locations,
-			"rawInput":      s.ToolCallUpdate.RawInput,
-			"rawOutput":     s.ToolCallUpdate.RawOutput,
-			"sessionUpdate": "tool_call_update",
-			"status":        s.ToolCallUpdate.Status,
-			"title":         s.ToolCallUpdate.Title,
-			"toolCallId":    s.ToolCallUpdate.ToolCallId,
-		})
+	if u.ToolCallUpdate != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ToolCallUpdate)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "tool_call_update"
+		return json.Marshal(m)
 	}
-	if s.Plan != nil {
-		return json.Marshal(map[string]any{
-			"entries":       s.Plan.Entries,
-			"sessionUpdate": "plan",
-		})
+	if u.Plan != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Plan)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "plan"
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
 }
 
-func (s *SessionUpdate) Validate() error {
+func (u *SessionUpdate) Validate() error {
 	var count int
-	if s.UserMessageChunk != nil {
+	if u.UserMessageChunk != nil {
 		count++
 	}
-	if s.AgentMessageChunk != nil {
+	if u.AgentMessageChunk != nil {
 		count++
 	}
-	if s.AgentThoughtChunk != nil {
+	if u.AgentThoughtChunk != nil {
 		count++
 	}
-	if s.ToolCall != nil {
+	if u.ToolCall != nil {
 		count++
 	}
-	if s.ToolCallUpdate != nil {
+	if u.ToolCallUpdate != nil {
 		count++
 	}
-	if s.Plan != nil {
+	if u.Plan != nil {
 		count++
 	}
 	if count != 1 {
-		return fmt.Errorf("sessionupdate must have exactly one variant set")
+		return errors.New("SessionUpdate must have exactly one variant set")
 	}
 	return nil
 }
@@ -1085,6 +2207,35 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	{
+		var disc string
+		if v, ok := m["type"]; ok {
+			json.Unmarshal(v, &disc)
+		}
+		switch disc {
+		case "content":
+			var v ToolCallContentContent
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Content = &v
+			return nil
+		case "diff":
+			var v ToolCallContentDiff
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Diff = &v
+			return nil
+		case "terminal":
+			var v ToolCallContentTerminal
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Terminal = &v
+			return nil
+		}
+	}
+	{
 		var v ToolCallContentContent
 		var match bool = true
 		if _, ok := m["type"]; !ok {
@@ -1093,24 +2244,9 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 		if _, ok := m["content"]; !ok {
 			match = false
 		}
-		var raw json.RawMessage
-		var ok bool
-		raw, ok = m["type"]
-		if !ok {
-			match = false
-		}
-		if ok {
-			var tmp any
-			if err := json.Unmarshal(raw, &tmp); err != nil {
-				return err
-			}
-			if fmt.Sprint(tmp) != fmt.Sprint("content") {
-				match = false
-			}
-		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.Content = &v
 			return nil
@@ -1128,24 +2264,9 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 		if _, ok := m["newText"]; !ok {
 			match = false
 		}
-		var raw json.RawMessage
-		var ok bool
-		raw, ok = m["type"]
-		if !ok {
-			match = false
-		}
-		if ok {
-			var tmp any
-			if err := json.Unmarshal(raw, &tmp); err != nil {
-				return err
-			}
-			if fmt.Sprint(tmp) != fmt.Sprint("diff") {
-				match = false
-			}
-		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.Diff = &v
 			return nil
@@ -1160,24 +2281,9 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 		if _, ok := m["terminalId"]; !ok {
 			match = false
 		}
-		var raw json.RawMessage
-		var ok bool
-		raw, ok = m["type"]
-		if !ok {
-			match = false
-		}
-		if ok {
-			var tmp any
-			if err := json.Unmarshal(raw, &tmp); err != nil {
-				return err
-			}
-			if fmt.Sprint(tmp) != fmt.Sprint("terminal") {
-				match = false
-			}
-		}
 		if match {
-			if err := json.Unmarshal(b, &v); err != nil {
-				return err
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
 			}
 			u.Terminal = &v
 			return nil
@@ -1185,21 +2291,21 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 	}
 	{
 		var v ToolCallContentContent
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.Content = &v
 			return nil
 		}
 	}
 	{
 		var v ToolCallContentDiff
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.Diff = &v
 			return nil
 		}
 	}
 	{
 		var v ToolCallContentTerminal
-		if err := json.Unmarshal(b, &v); err == nil {
+		if json.Unmarshal(b, &v) == nil {
 			u.Terminal = &v
 			return nil
 		}
@@ -1208,15 +2314,59 @@ func (u *ToolCallContent) UnmarshalJSON(b []byte) error {
 }
 func (u ToolCallContent) MarshalJSON() ([]byte, error) {
 	if u.Content != nil {
-		return json.Marshal(*u.Content)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Content)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "content"
+		return json.Marshal(m)
 	}
 	if u.Diff != nil {
-		return json.Marshal(*u.Diff)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Diff)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "diff"
+		return json.Marshal(m)
 	}
 	if u.Terminal != nil {
-		return json.Marshal(*u.Terminal)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Terminal)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "terminal"
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
+}
+
+func (u *ToolCallContent) Validate() error {
+	var count int
+	if u.Content != nil {
+		count++
+	}
+	if u.Diff != nil {
+		count++
+	}
+	if u.Terminal != nil {
+		count++
+	}
+	if count != 1 {
+		return errors.New("ToolCallContent must have exactly one variant set")
+	}
+	return nil
 }
 
 // Unique identifier for a tool call within a session.

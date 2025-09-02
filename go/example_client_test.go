@@ -34,10 +34,8 @@ func (clientExample) SessionUpdate(ctx context.Context, n SessionNotification) e
 	switch {
 	case u.AgentMessageChunk != nil:
 		c := u.AgentMessageChunk.Content
-		if c.Type == "text" && c.Text != nil {
+		if c.Text != nil {
 			fmt.Print(c.Text.Text)
-		} else {
-			fmt.Println("[", c.Type, "]")
 		}
 	case u.ToolCall != nil:
 		title := u.ToolCall.Title

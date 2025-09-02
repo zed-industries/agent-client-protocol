@@ -1,0 +1,10 @@
+{
+  "protocolVersion": 1,
+  "clientCapabilities": {
+    "fs": {
+      "readTextFile": true,
+      "writeTextFile": true
+    }
+  }
+}
+

@@ -72,10 +72,8 @@ func (c *replClient) SessionUpdate(ctx context.Context, params acp.SessionNotifi
 	switch {
 	case u.AgentMessageChunk != nil:
 		content := u.AgentMessageChunk.Content
-		if content.Type == "text" && content.Text != nil {
+		if content.Text != nil {
 			fmt.Printf("%s", content.Text.Text)
-		} else {
-			fmt.Printf("[agent] %s\n", content.Type)
 		}
 	case u.ToolCall != nil:
 		fmt.Printf("\n🔧 %s (%s)\n", u.ToolCall.Title, u.ToolCall.Status)
@@ -85,10 +83,8 @@ func (c *replClient) SessionUpdate(ctx context.Context, params acp.SessionNotifi
 		fmt.Println("[plan update]")
 	case u.AgentThoughtChunk != nil:
 		thought := u.AgentThoughtChunk.Content
-		if thought.Type == "text" && thought.Text != nil {
+		if thought.Text != nil {
 			fmt.Printf("[agent_thought_chunk] \n%s\n", thought.Text.Text)
-		} else {
-			fmt.Println("[agent_thought_chunk]", "(", thought.Type, ")")
 		}
 	case u.UserMessageChunk != nil:
 		fmt.Println("[user_message_chunk]")
