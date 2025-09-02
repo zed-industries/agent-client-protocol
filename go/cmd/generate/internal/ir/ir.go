@@ -1,3 +1,6 @@
+// Package ir defines the intermediate representation used by the Go
+// code generator. It organizes methods, bindings, and schema-derived
+// types so the emit package can produce helpers, types, and dispatch code.
 package ir
 
 import (
@@ -144,14 +147,14 @@ func BuildMethodGroups(schema *load.Schema, meta *load.Meta) Groups {
 	}
 	// Post-process bindings and docs-ignore
 	for _, mi := range groups {
-		mi.Binding = classifyBinding(schema, meta, mi)
+		mi.Binding = classifyBinding(schema, mi)
 		mi.DocsIgnored = isDocsIgnoredMethod(schema, mi)
 	}
 	return groups
 }
 
 // classifyBinding determines interface binding for each method.
-func classifyBinding(schema *load.Schema, meta *load.Meta, mi *MethodInfo) MethodBinding {
+func classifyBinding(schema *load.Schema, mi *MethodInfo) MethodBinding {
 	if mi == nil {
 		return BindUnknown
 	}

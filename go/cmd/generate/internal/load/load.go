@@ -1,3 +1,5 @@
+// Package load provides utilities to read the ACP JSON schema and
+// accompanying metadata into minimal structures used by the generator.
 package load
 
 import (

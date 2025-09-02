@@ -292,15 +292,6 @@ func (u AgentResponse) MarshalJSON() ([]byte, error) {
 	}
 	if u.AuthenticateResponse != nil {
 		return json.Marshal(nil)
-		var m map[string]any
-		_b, _e := json.Marshal(*u.AuthenticateResponse)
-		if _e != nil {
-			return []byte{}, _e
-		}
-		if json.Unmarshal(_b, &m) != nil {
-			return []byte{}, errors.New("invalid variant payload")
-		}
-		return json.Marshal(m)
 	}
 	if u.NewSessionResponse != nil {
 		var m map[string]any
@@ -315,15 +306,6 @@ func (u AgentResponse) MarshalJSON() ([]byte, error) {
 	}
 	if u.LoadSessionResponse != nil {
 		return json.Marshal(nil)
-		var m map[string]any
-		_b, _e := json.Marshal(*u.LoadSessionResponse)
-		if _e != nil {
-			return []byte{}, _e
-		}
-		if json.Unmarshal(_b, &m) != nil {
-			return []byte{}, errors.New("invalid variant payload")
-		}
-		return json.Marshal(m)
 	}
 	if u.PromptResponse != nil {
 		var m map[string]any
@@ -697,15 +679,6 @@ func (u *ClientResponse) UnmarshalJSON(b []byte) error {
 func (u ClientResponse) MarshalJSON() ([]byte, error) {
 	if u.WriteTextFileResponse != nil {
 		return json.Marshal(nil)
-		var m map[string]any
-		_b, _e := json.Marshal(*u.WriteTextFileResponse)
-		if _e != nil {
-			return []byte{}, _e
-		}
-		if json.Unmarshal(_b, &m) != nil {
-			return []byte{}, errors.New("invalid variant payload")
-		}
-		return json.Marshal(m)
 	}
 	if u.ReadTextFileResponse != nil {
 		var m map[string]any
@@ -753,15 +726,6 @@ func (u ClientResponse) MarshalJSON() ([]byte, error) {
 	}
 	if u.ReleaseTerminalResponse != nil {
 		return json.Marshal(nil)
-		var m map[string]any
-		_b, _e := json.Marshal(*u.ReleaseTerminalResponse)
-		if _e != nil {
-			return []byte{}, _e
-		}
-		if json.Unmarshal(_b, &m) != nil {
-			return []byte{}, errors.New("invalid variant payload")
-		}
-		return json.Marshal(m)
 	}
 	if u.WaitForTerminalExitResponse != nil {
 		var m map[string]any
@@ -776,15 +740,6 @@ func (u ClientResponse) MarshalJSON() ([]byte, error) {
 	}
 	if u.KillTerminalResponse != nil {
 		return json.Marshal(nil)
-		var m map[string]any
-		_b, _e := json.Marshal(*u.KillTerminalResponse)
-		if _e != nil {
-			return []byte{}, _e
-		}
-		if json.Unmarshal(_b, &m) != nil {
-			return []byte{}, errors.New("invalid variant payload")
-		}
-		return json.Marshal(m)
 	}
 	return []byte{}, nil
 }

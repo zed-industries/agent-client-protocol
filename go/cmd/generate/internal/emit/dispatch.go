@@ -79,7 +79,7 @@ func WriteDispatchJen(outDir string, schema *load.Schema, meta *load.Meta) error
 			} else if ir.IsNullResponse(schema.Defs[respName]) {
 				caseBody = append(caseBody, jCallRequestNoResp(recv, methodName)...)
 			} else {
-				caseBody = append(caseBody, jCallRequestWithResp(recv, methodName, respName)...)
+				caseBody = append(caseBody, jCallRequestWithResp(recv, methodName)...)
 			}
 		}
 		if len(caseBody) > 0 {
@@ -186,7 +186,7 @@ func WriteDispatchJen(outDir string, schema *load.Schema, meta *load.Meta) error
 			if ir.IsNullResponse(schema.Defs[respName]) {
 				body = append(body, jCallRequestNoResp(recv, methodName)...)
 			} else {
-				body = append(body, jCallRequestWithResp(recv, methodName, respName)...)
+				body = append(body, jCallRequestWithResp(recv, methodName)...)
 			}
 		}
 		if len(body) > 0 {

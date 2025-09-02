@@ -88,7 +88,7 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 				if _, ok := req[pk]; !ok {
 					// Default: omit if empty, except for specific always-present fields
 					// Ensure InitializeResponse.authMethods is always encoded (even when empty)
-					if !(name == "InitializeResponse" && pk == "authMethods") {
+					if name != "InitializeResponse" || pk != "authMethods" {
 						tag = pk + ",omitempty"
 					}
 				}
@@ -583,86 +583,87 @@ func emitUnion(f *File, name string, defs []*load.Definition, exactlyOne bool) {
 				// Null-only variant encodes to JSON null
 				if vi.isNull {
 					gg.Return(Qual("encoding/json", "Marshal").Call(Nil()))
-				}
-				// Marshal variant to map for discriminant injection and shaping
-				gg.Var().Id("m").Map(String()).Any()
-				gg.List(Id("_b"), Id("_e")).Op(":=").Qual("encoding/json", "Marshal").Call(Op("*").Id("u").Dot(vi.fieldName))
-				gg.If(Id("_e").Op("!=").Nil()).Block(Return(Index().Byte().Values(), Id("_e")))
-				gg.If(Qual("encoding/json", "Unmarshal").Call(Id("_b"), Op("&").Id("m")).Op("!=").Nil()).Block(Return(Index().Byte().Values(), Qual("errors", "New").Call(Lit("invalid variant payload"))))
-				// Inject const discriminants
-				if len(vi.constPairs) > 0 {
-					for _, kv := range vi.constPairs {
-						gg.Id("m").Index(Lit(kv[0])).Op("=").Lit(kv[1])
+				} else {
+					// Marshal variant to map for discriminant injection and shaping
+					gg.Var().Id("m").Map(String()).Any()
+					gg.List(Id("_b"), Id("_e")).Op(":=").Qual("encoding/json", "Marshal").Call(Op("*").Id("u").Dot(vi.fieldName))
+					gg.If(Id("_e").Op("!=").Nil()).Block(Return(Index().Byte().Values(), Id("_e")))
+					gg.If(Qual("encoding/json", "Unmarshal").Call(Id("_b"), Op("&").Id("m")).Op("!=").Nil()).Block(Return(Index().Byte().Values(), Qual("errors", "New").Call(Lit("invalid variant payload"))))
+					// Inject const discriminants
+					if len(vi.constPairs) > 0 {
+						for _, kv := range vi.constPairs {
+							gg.Id("m").Index(Lit(kv[0])).Op("=").Lit(kv[1])
+						}
 					}
-				}
-				// Special shaping for ContentBlock variants to preserve exact wire JSON
-				if name == "ContentBlock" {
-					switch vi.discValue {
-					case "text":
-						gg.Block(
-							Var().Id("nm").Map(String()).Any(),
-							Id("nm").Op("=").Make(Map(String()).Any()),
-							Id("nm").Index(Lit("type")).Op("=").Lit("text"),
-							Id("nm").Index(Lit("text")).Op("=").Id("m").Index(Lit("text")),
-							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
-						)
-					case "image":
-						gg.Block(
-							Var().Id("nm").Map(String()).Any(),
-							Id("nm").Op("=").Make(Map(String()).Any()),
-							Id("nm").Index(Lit("type")).Op("=").Lit("image"),
-							Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
-							Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
-							// Only include uri if present; do not emit null
-							If(List(Id("_v"), Id("_ok")).Op(":=").Id("m").Index(Lit("uri")), Id("_ok")).Block(
-								Id("nm").Index(Lit("uri")).Op("=").Id("_v"),
-							),
-							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
-						)
-					case "audio":
-						gg.Block(
-							Var().Id("nm").Map(String()).Any(),
-							Id("nm").Op("=").Make(Map(String()).Any()),
-							Id("nm").Index(Lit("type")).Op("=").Lit("audio"),
-							Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
-							Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
-							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
-						)
-					case "resource_link":
-						gg.BlockFunc(func(b *Group) {
-							b.Var().Id("nm").Map(String()).Any()
-							b.Id("nm").Op("=").Make(Map(String()).Any())
-							b.Id("nm").Index(Lit("type")).Op("=").Lit("resource_link")
-							b.Id("nm").Index(Lit("name")).Op("=").Id("m").Index(Lit("name"))
-							b.Id("nm").Index(Lit("uri")).Op("=").Id("m").Index(Lit("uri"))
-							// Only include optional keys if present
-							b.If(List(Id("v1"), Id("ok1")).Op(":=").Id("m").Index(Lit("description")), Id("ok1")).Block(
-								Id("nm").Index(Lit("description")).Op("=").Id("v1"),
+					// Special shaping for ContentBlock variants to preserve exact wire JSON
+					if name == "ContentBlock" {
+						switch vi.discValue {
+						case "text":
+							gg.Block(
+								Var().Id("nm").Map(String()).Any(),
+								Id("nm").Op("=").Make(Map(String()).Any()),
+								Id("nm").Index(Lit("type")).Op("=").Lit("text"),
+								Id("nm").Index(Lit("text")).Op("=").Id("m").Index(Lit("text")),
+								Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
 							)
-							b.If(List(Id("v2"), Id("ok2")).Op(":=").Id("m").Index(Lit("mimeType")), Id("ok2")).Block(
-								Id("nm").Index(Lit("mimeType")).Op("=").Id("v2"),
+						case "image":
+							gg.Block(
+								Var().Id("nm").Map(String()).Any(),
+								Id("nm").Op("=").Make(Map(String()).Any()),
+								Id("nm").Index(Lit("type")).Op("=").Lit("image"),
+								Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
+								Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
+								// Only include uri if present; do not emit null
+								If(List(Id("_v"), Id("_ok")).Op(":=").Id("m").Index(Lit("uri")), Id("_ok")).Block(
+									Id("nm").Index(Lit("uri")).Op("=").Id("_v"),
+								),
+								Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
 							)
-							b.If(List(Id("v3"), Id("ok3")).Op(":=").Id("m").Index(Lit("size")), Id("ok3")).Block(
-								Id("nm").Index(Lit("size")).Op("=").Id("v3"),
+						case "audio":
+							gg.Block(
+								Var().Id("nm").Map(String()).Any(),
+								Id("nm").Op("=").Make(Map(String()).Any()),
+								Id("nm").Index(Lit("type")).Op("=").Lit("audio"),
+								Id("nm").Index(Lit("data")).Op("=").Id("m").Index(Lit("data")),
+								Id("nm").Index(Lit("mimeType")).Op("=").Id("m").Index(Lit("mimeType")),
+								Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
 							)
-							b.If(List(Id("v4"), Id("ok4")).Op(":=").Id("m").Index(Lit("title")), Id("ok4")).Block(
-								Id("nm").Index(Lit("title")).Op("=").Id("v4"),
+						case "resource_link":
+							gg.BlockFunc(func(b *Group) {
+								b.Var().Id("nm").Map(String()).Any()
+								b.Id("nm").Op("=").Make(Map(String()).Any())
+								b.Id("nm").Index(Lit("type")).Op("=").Lit("resource_link")
+								b.Id("nm").Index(Lit("name")).Op("=").Id("m").Index(Lit("name"))
+								b.Id("nm").Index(Lit("uri")).Op("=").Id("m").Index(Lit("uri"))
+								// Only include optional keys if present
+								b.If(List(Id("v1"), Id("ok1")).Op(":=").Id("m").Index(Lit("description")), Id("ok1")).Block(
+									Id("nm").Index(Lit("description")).Op("=").Id("v1"),
+								)
+								b.If(List(Id("v2"), Id("ok2")).Op(":=").Id("m").Index(Lit("mimeType")), Id("ok2")).Block(
+									Id("nm").Index(Lit("mimeType")).Op("=").Id("v2"),
+								)
+								b.If(List(Id("v3"), Id("ok3")).Op(":=").Id("m").Index(Lit("size")), Id("ok3")).Block(
+									Id("nm").Index(Lit("size")).Op("=").Id("v3"),
+								)
+								b.If(List(Id("v4"), Id("ok4")).Op(":=").Id("m").Index(Lit("title")), Id("ok4")).Block(
+									Id("nm").Index(Lit("title")).Op("=").Id("v4"),
+								)
+								b.Return(Qual("encoding/json", "Marshal").Call(Id("nm")))
+							})
+						case "resource":
+							gg.Block(
+								Var().Id("nm").Map(String()).Any(),
+								Id("nm").Op("=").Make(Map(String()).Any()),
+								Id("nm").Index(Lit("type")).Op("=").Lit("resource"),
+								Id("nm").Index(Lit("resource")).Op("=").Id("m").Index(Lit("resource")),
+								Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
 							)
-							b.Return(Qual("encoding/json", "Marshal").Call(Id("nm")))
-						})
-					case "resource":
-						gg.Block(
-							Var().Id("nm").Map(String()).Any(),
-							Id("nm").Op("=").Make(Map(String()).Any()),
-							Id("nm").Index(Lit("type")).Op("=").Lit("resource"),
-							Id("nm").Index(Lit("resource")).Op("=").Id("m").Index(Lit("resource")),
-							Return(Qual("encoding/json", "Marshal").Call(Id("nm"))),
-						)
+						}
 					}
-				}
-				// default: remarshal possibly with injected discriminant
-				if name != "ContentBlock" {
-					gg.Return(Qual("encoding/json", "Marshal").Call(Id("m")))
+					// default: remarshal possibly with injected discriminant
+					if name != "ContentBlock" {
+						gg.Return(Qual("encoding/json", "Marshal").Call(Id("m")))
+					}
 				}
 			})
 		}

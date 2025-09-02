@@ -61,7 +61,7 @@ func (a *exampleAgent) Cancel(ctx context.Context, params acp.CancelNotification
 	return nil
 }
 
-func (a *exampleAgent) Prompt(ctx context.Context, params acp.PromptRequest) (acp.PromptResponse, error) {
+func (a *exampleAgent) Prompt(_ context.Context, params acp.PromptRequest) (acp.PromptResponse, error) {
 	sid := string(params.SessionId)
 	s, ok := a.sessions[sid]
 	if !ok {

@@ -62,7 +62,7 @@ func jCallRequestNoResp(recv, methodName string) []Code {
 	}
 }
 
-func jCallRequestWithResp(recv, methodName, respType string) []Code {
+func jCallRequestWithResp(recv, methodName string) []Code {
 	return []Code{
 		List(Id("resp"), Id("err")).Op(":=").Id(recv).Dot(methodName).Call(Id("ctx"), Id("p")),
 		If(Id("err").Op("!=").Nil()).Block(jRetToReqErr()),

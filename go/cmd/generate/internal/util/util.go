@@ -1,3 +1,5 @@
+// Package util contains small string and identifier helpers used by the
+// code generator for formatting names and comments.
 package util
 
 import (
