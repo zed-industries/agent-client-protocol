@@ -32,8 +32,10 @@ func mustReadGolden(t *testing.T, name string) []byte {
 	return b
 }
 
-// Generic golden runner for a specific type T
-func runGolden[T any](t *testing.T, build func() T) {
+// Generic golden runner for a specific type T. Accepts one or more builders and
+// asserts that all of them serialize to the same golden file derived from the
+// subtest name.
+func runGolden[T any](t *testing.T, builds ...func() T) {
 	t.Helper()
 	// Use the current subtest name; expect pattern like "<Group>/<case_name>".
 	name := t.Name()
@@ -42,15 +44,17 @@ func runGolden[T any](t *testing.T, build func() T) {
 		base = base[i+1:]
 	}
 	want := mustReadGolden(t, base+".json")
-	// Marshal from constructed value and compare with golden JSON.
-	got, err := json.Marshal(build())
-	if err != nil {
-		t.Fatalf("marshal %s: %v", base, err)
+	// Forward serialization for each builder matches the same golden JSON.
+	for _, build := range builds {
+		got, err := json.Marshal(build())
+		if err != nil {
+			t.Fatalf("marshal %s: %v", base, err)
+		}
+		if ok, ga, gw := equalJSON(got, want); !ok {
+			t.Fatalf("%s marshal mismatch\n got: %s\nwant: %s", base, ga, gw)
+		}
 	}
-	if ok, ga, gw := equalJSON(got, want); !ok {
-		t.Fatalf("%s marshal mismatch\n got: %s\nwant: %s", base, ga, gw)
-	}
-	// Unmarshal golden into type, then marshal again and compare.
+	// Unmarshal golden into type, then marshal again and compare (one round-trip check).
 	var v T
 	if err := json.Unmarshal(want, &v); err != nil {
 		t.Fatalf("unmarshal %s: %v", base, err)
@@ -109,47 +113,82 @@ func TestJSONGolden_ToolCallContent(t *testing.T) {
 
 func TestJSONGolden_RequestPermissionOutcome(t *testing.T) {
 	t.Run("permission_outcome_selected", func(t *testing.T) {
-		runGolden(t, func() RequestPermissionOutcome {
-			return RequestPermissionOutcome{Selected: &RequestPermissionOutcomeSelected{Outcome: "selected", OptionId: "allow-once"}}
-		})
+		runGolden(t,
+			func() RequestPermissionOutcome {
+				return RequestPermissionOutcome{Selected: &RequestPermissionOutcomeSelected{Outcome: "selected", OptionId: "allow-once"}}
+			},
+			func() RequestPermissionOutcome {
+				return NewRequestPermissionOutcomeSelected("allow-once")
+			},
+		)
 	})
 	t.Run("permission_outcome_cancelled", func(t *testing.T) {
-		runGolden(t, func() RequestPermissionOutcome {
-			return RequestPermissionOutcome{Cancelled: &RequestPermissionOutcomeCancelled{Outcome: "cancelled"}}
-		})
+		runGolden(t,
+			func() RequestPermissionOutcome {
+				return RequestPermissionOutcome{Cancelled: &RequestPermissionOutcomeCancelled{Outcome: "cancelled"}}
+			},
+			func() RequestPermissionOutcome { return NewRequestPermissionOutcomeCancelled() },
+		)
 	})
 }
 
 func TestJSONGolden_SessionUpdates(t *testing.T) {
 	t.Run("session_update_user_message_chunk", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{UserMessageChunk: &SessionUpdateUserMessageChunk{Content: TextBlock("What's the capital of France?")}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{UserMessageChunk: &SessionUpdateUserMessageChunk{Content: TextBlock("What's the capital of France?")}}
+			},
+			func() SessionUpdate { return UpdateUserMessageText("What's the capital of France?") },
+		)
 	})
 	t.Run("session_update_agent_message_chunk", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: TextBlock("The capital of France is Paris.")}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{AgentMessageChunk: &SessionUpdateAgentMessageChunk{Content: TextBlock("The capital of France is Paris.")}}
+			},
+			func() SessionUpdate { return UpdateAgentMessageText("The capital of France is Paris.") },
+		)
 	})
 	t.Run("session_update_agent_thought_chunk", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{AgentThoughtChunk: &SessionUpdateAgentThoughtChunk{Content: TextBlock("Thinking about best approach...")}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{AgentThoughtChunk: &SessionUpdateAgentThoughtChunk{Content: TextBlock("Thinking about best approach...")}}
+			},
+			func() SessionUpdate { return UpdateAgentThoughtText("Thinking about best approach...") },
+		)
 	})
 	t.Run("session_update_plan", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{Plan: &SessionUpdatePlan{Entries: []PlanEntry{{Content: "Check for syntax errors", Priority: PlanEntryPriorityHigh, Status: PlanEntryStatusPending}, {Content: "Identify potential type issues", Priority: PlanEntryPriorityMedium, Status: PlanEntryStatusPending}}}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{Plan: &SessionUpdatePlan{Entries: []PlanEntry{{Content: "Check for syntax errors", Priority: PlanEntryPriorityHigh, Status: PlanEntryStatusPending}, {Content: "Identify potential type issues", Priority: PlanEntryPriorityMedium, Status: PlanEntryStatusPending}}}}
+			},
+			func() SessionUpdate {
+				return UpdatePlan(
+					PlanEntry{Content: "Check for syntax errors", Priority: PlanEntryPriorityHigh, Status: PlanEntryStatusPending},
+					PlanEntry{Content: "Identify potential type issues", Priority: PlanEntryPriorityMedium, Status: PlanEntryStatusPending},
+				)
+			},
+		)
 	})
 	t.Run("session_update_tool_call", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{ToolCall: &SessionUpdateToolCall{ToolCallId: "call_001", Title: "Reading configuration file", Kind: ToolKindRead, Status: ToolCallStatusPending}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{ToolCall: &SessionUpdateToolCall{ToolCallId: "call_001", Title: "Reading configuration file", Kind: ToolKindRead, Status: ToolCallStatusPending}}
+			},
+			func() SessionUpdate {
+				return StartToolCall("call_001", "Reading configuration file", WithStartKind(ToolKindRead), WithStartStatus(ToolCallStatusPending))
+			},
+		)
 	})
 	t.Run("session_update_tool_call_update_content", func(t *testing.T) {
-		runGolden(t, func() SessionUpdate {
-			return SessionUpdate{ToolCallUpdate: &SessionUpdateToolCallUpdate{ToolCallId: "call_001", Status: Ptr(ToolCallStatusInProgress), Content: []ToolCallContent{ToolContent(TextBlock("Found 3 configuration files..."))}}}
-		})
+		runGolden(t,
+			func() SessionUpdate {
+				return SessionUpdate{ToolCallUpdate: &SessionUpdateToolCallUpdate{ToolCallId: "call_001", Status: Ptr(ToolCallStatusInProgress), Content: []ToolCallContent{ToolContent(TextBlock("Found 3 configuration files..."))}}}
+			},
+			func() SessionUpdate {
+				return UpdateToolCall("call_001", WithUpdateStatus(ToolCallStatusInProgress), WithUpdateContent([]ToolCallContent{ToolContent(TextBlock("Found 3 configuration files..."))}))
+			},
+		)
 	})
 }
 
