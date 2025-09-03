@@ -62,7 +62,7 @@
       },
       {
         "group": "Libraries",
-        "pages": ["libraries/typescript", "libraries/rust"]
+        "pages": ["libraries/typescript", "libraries/rust", "libraries/go"]
       },
       {
         "group": "Community",
