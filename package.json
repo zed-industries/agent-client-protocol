@@ -30,7 +30,7 @@
   "scripts": {
     "prepublishOnly": "cp typescript/README.md README.md",
     "postpublish": "git checkout README.md",
-    "clean": "rm -rf dist typescript/*.js typescript/*.d.ts typescript/*.js.map tsconfig.tsbuildinfo && cargo clean",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo && cargo clean",
     "test": "cargo check --all-targets && cargo test && vitest run",
     "test:ts": "vitest run",
     "test:ts:watch": "vitest",
