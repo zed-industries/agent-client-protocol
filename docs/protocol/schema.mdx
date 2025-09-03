@@ -250,12 +250,6 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
-<ResponseField name="availableCommands" type={<><span><a href="#availablecommand">AvailableCommand</a></span><span>[]</span></>} >
-  **UNSTABLE**
-
-Commands that may be executed via `session/prompt` requests
-
-</ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   Unique identifier for the created session.
 
@@ -1514,6 +1508,28 @@ with their current status. The client replaces the entire plan with each update.
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
 </ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="available_commands_update">
+Available commands are ready or have changed
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="availableCommands"
+  type={
+    <>
+      <span>
+        <a href="#availablecommand">AvailableCommand</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
 
 </Expandable>
 </ResponseField>
