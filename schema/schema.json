@@ -765,13 +765,6 @@
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
-        "availableCommands": {
-          "description": "**UNSTABLE**\n\nCommands that may be executed via `session/prompt` requests",
-          "items": {
-            "$ref": "#/$defs/AvailableCommand"
-          },
-          "type": "array"
-        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "Unique identifier for the created session.\n\nUsed in all subsequent requests for this conversation."
@@ -1316,6 +1309,24 @@
           },
           "required": ["sessionUpdate", "entries"],
           "type": "object"
+        },
+        {
+          "description": "Available commands are ready or have changed",
+          "properties": {
+            "availableCommands": {
+              "items": {
+                "$ref": "#/$defs/AvailableCommand"
+              },
+              "type": "array"
+            },
+            "sessionUpdate": {
+              "const": "available_commands_update",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "availableCommands"],
+          "type": "object",
+          "x-docs-ignore": true
         }
       ]
     },
