@@ -1,0 +1,70 @@
+[project]
+name = "agent-client-protocol"
+version = "0.1.0a0"
+description = "Python implementation of the Agent Client Protocol (ACP)"
+requires-python = ">=3.12, <4.0"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Chojan Shang", email = "psiace@apache.org" },
+  { name = "Zed Industries" },
+]
+keywords = ["acp", "agent", "client", "protocol", "jsonrpc"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+
+# Keep dependencies minimal and well-known
+dependencies = [
+  "pydantic>=2.7",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "datamodel-code-generator>=0.25",
+]
+
+[project.urls]
+Homepage = "https://agentclientprotocol.com"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/src/acp", "python/scripts"]
+
+[tool.hatch.version]
+path = "python/src/acp/__init__.py"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+show_error_codes = true
+strict = false
+
+[tool.uv]
+
+[project.scripts]
+# Developer convenience commands
+# Example: 
+# uv sync --dev 
+# uv run gen-all
+
+gen-schema = "scripts.gen_schema:main"
+gen-meta = "scripts.gen_meta:main"
+gen-all = "scripts.gen_all:main"

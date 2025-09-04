@@ -13,3 +13,11 @@ typescript/*.js.map
 
 # TypeDoc generated documentation
 typescript/docs/
+
+# Python generated files
+__pycache__
+*.pyc
+.pytest_cache
+# python virtual environment
+.venv
+venv
