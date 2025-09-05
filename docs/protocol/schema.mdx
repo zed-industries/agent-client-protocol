@@ -250,6 +250,12 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
+<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
+  **UNSTABLE**
+
+This field is not part of the spec, and may be removed or changed at any point.
+
+</ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   Unique identifier for the created session.
 
@@ -960,6 +966,21 @@ An image provided to or from an LLM.
 <ResponseField name="mimeType" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string | null"}></ResponseField>
 
+## <span class="font-mono">LoadSessionResponse</span>
+
+Response from loading an existing session.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
+  **UNSTABLE**
+
+This field is not part of the spec, and may be removed or changed at any point.
+
+</ResponseField>
+
 ## <span class="font-mono">McpServer</span>
 
 Configuration for connecting to an MCP (Model Context Protocol) server.
@@ -1317,6 +1338,60 @@ See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session
 
 **Type:** `string`
 
+## <span class="font-mono">SessionMode</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="description" type={"string | null"}></ResponseField>
+<ResponseField
+  name="id"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+<ResponseField name="name" type={"string"} required></ResponseField>
+
+## <span class="font-mono">SessionModeId</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** `string`
+
+## <span class="font-mono">SessionModeState</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="availableModes"
+  type={
+    <>
+      <span>
+        <a href="#sessionmode">SessionMode</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+></ResponseField>
+<ResponseField
+  name="currentModeId"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+
 ## <span class="font-mono">SessionUpdate</span>
 
 Different types of updates that can be sent during session processing.
@@ -1533,6 +1608,14 @@ Available commands are ready or have changed
 
 </Expandable>
 </ResponseField>
+
+## <span class="font-mono">SetSessionModeResponse</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** `object`
 
 ## <span class="font-mono">StopReason</span>
 

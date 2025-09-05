@@ -58,6 +58,16 @@ export class AgentSideConnection {
             validatedParams as schema.LoadSessionRequest,
           );
         }
+        case schema.AGENT_METHODS.session_set_mode: {
+          if (!agent.setSessionMode) {
+            throw RequestError.methodNotFound(method);
+          }
+          const validatedParams =
+            schema.setSessionModeRequestSchema.parse(params);
+          return agent.setSessionMode(
+            validatedParams as schema.SetSessionModeRequest,
+          );
+        }
         case schema.AGENT_METHODS.authenticate: {
           const validatedParams =
             schema.authenticateRequestSchema.parse(params);
@@ -396,9 +406,28 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  async loadSession(params: schema.LoadSessionRequest): Promise<void> {
-    await this.#connection.sendRequest(
+  async loadSession(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse> {
+    return await this.#connection.sendRequest(
       schema.AGENT_METHODS.session_load,
+      params,
+    );
+  }
+
+  /**
+   * Sets the mode for an existing session.
+   *
+   * This method allows changing the operational mode of an existing session.
+   * The available modes are advertised in the agent's capabilities during initialization.
+   *
+   * See protocol docs: [Session Mode Management](https://agentclientprotocol.com/protocol/session-management#mode-setting)
+   */
+  async setSessionMode(
+    params: schema.SetSessionModeRequest,
+  ): Promise<void | schema.SetSessionModeResponse> {
+    return await this.#connection.sendRequest(
+      schema.AGENT_METHODS.session_set_mode,
       params,
     );
   }
@@ -914,7 +943,17 @@ export interface Agent {
    *
    * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
    */
-  loadSession?(params: schema.LoadSessionRequest): Promise<void>;
+  loadSession?(
+    params: schema.LoadSessionRequest,
+  ): Promise<schema.LoadSessionResponse>;
+  /**
+   * @internal **UNSTABLE**
+   *
+   * This method is not part of the spec, and may be removed or changed at any point.
+   */
+  setSessionMode?(
+    params: schema.SetSessionModeRequest,
+  ): Promise<void | schema.SetSessionModeResponse>;
   /**
    * Authenticates the client using the specified authentication method.
    *

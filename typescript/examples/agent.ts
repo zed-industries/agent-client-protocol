@@ -47,6 +47,13 @@ class ExampleAgent implements Agent {
     // No auth needed
   }
 
+  async setSessionMode(
+    params: schema.SetSessionModeRequest,
+  ): Promise<schema.SetSessionModeResponse> {
+    // Session mode changes not implemented in this example
+    return {};
+  }
+
   async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
     const session = this.sessions.get(params.sessionId);
 

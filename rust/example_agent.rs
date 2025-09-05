@@ -61,12 +61,16 @@ impl acp::Agent for ExampleAgent {
         self.next_session_id.set(session_id + 1);
         Ok(acp::NewSessionResponse {
             session_id: acp::SessionId(session_id.to_string().into()),
+            modes: None,
         })
     }
 
-    async fn load_session(&self, arguments: acp::LoadSessionRequest) -> Result<(), acp::Error> {
+    async fn load_session(
+        &self,
+        arguments: acp::LoadSessionRequest,
+    ) -> Result<acp::LoadSessionResponse, acp::Error> {
         log::info!("Received load session request {arguments:?}");
-        Err(acp::Error::method_not_found())
+        Ok(acp::LoadSessionResponse { modes: None })
     }
 
     async fn prompt(
