@@ -136,11 +136,22 @@ impl Agent for TestAgent {
     ) -> Result<NewSessionResponse, Error> {
         let session_id = SessionId(Arc::from("test-session-123"));
         self.sessions.lock().unwrap().insert(session_id.clone());
-        Ok(NewSessionResponse { session_id })
+        Ok(NewSessionResponse {
+            session_id,
+            modes: None,
+        })
     }
 
-    async fn load_session(&self, _: LoadSessionRequest) -> Result<(), Error> {
-        Ok(())
+    async fn load_session(&self, _: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
+        Ok(LoadSessionResponse { modes: None })
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn set_session_mode(
+        &self,
+        _arguments: SetSessionModeRequest,
+    ) -> Result<SetSessionModeResponse, Error> {
+        Ok(SetSessionModeResponse {})
     }
 
     async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {

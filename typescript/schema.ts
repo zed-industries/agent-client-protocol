@@ -5,6 +5,7 @@ export const AGENT_METHODS = {
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
+  session_set_mode: "session/set_mode",
 };
 
 export const CLIENT_METHODS = {
@@ -228,7 +229,14 @@ export type AgentRequest =
   | AuthenticateRequest
   | NewSessionRequest
   | LoadSessionRequest
+  | SetSessionModeRequest
   | PromptRequest;
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export type SessionModeId = string;
 /**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
@@ -293,9 +301,9 @@ export type AgentResponse =
   | AuthenticateResponse
   | NewSessionResponse
   | LoadSessionResponse
+  | SetSessionModeResponse
   | PromptResponse;
 export type AuthenticateResponse = null;
-export type LoadSessionResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
  *
@@ -700,6 +708,15 @@ export interface LoadSessionRequest {
   sessionId: string;
 }
 /**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SetSessionModeRequest {
+  modeId: SessionModeId;
+  sessionId: SessionId;
+}
+/**
  * Request parameters for sending a user prompt to the agent.
  *
  * Contains the user's message and any additional context.
@@ -817,6 +834,12 @@ export interface AuthMethod {
  */
 export interface NewSessionResponse {
   /**
+   * **UNSTABLE**
+   *
+   * This field is not part of the spec, and may be removed or changed at any point.
+   */
+  modes?: SessionModeState | null;
+  /**
    * A unique identifier for a conversation session between a client and agent.
    *
    * Sessions maintain their own context, conversation history, and state,
@@ -835,6 +858,42 @@ export interface NewSessionResponse {
    */
   sessionId: string;
 }
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SessionModeState {
+  availableModes: SessionMode[];
+  currentModeId: SessionModeId;
+}
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SessionMode {
+  description?: string | null;
+  id: SessionModeId;
+  name: string;
+}
+/**
+ * Response from loading an existing session.
+ */
+export interface LoadSessionResponse {
+  /**
+   * **UNSTABLE**
+   *
+   * This field is not part of the spec, and may be removed or changed at any point.
+   */
+  modes?: SessionModeState | null;
+}
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SetSessionModeResponse {}
 /**
  * Response from processing a user prompt.
  *
@@ -1137,6 +1196,9 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
+export const sessionModeIdSchema = z.string();
+
+/** @internal */
 export const annotationsSchema = z.object({
   audience: z.array(roleSchema).optional().nullable(),
   lastModified: z.string().optional().nullable(),
@@ -1153,12 +1215,7 @@ export const embeddedResourceResourceSchema = z.union([
 export const authenticateResponseSchema = z.null();
 
 /** @internal */
-export const newSessionResponseSchema = z.object({
-  sessionId: z.string(),
-});
-
-/** @internal */
-export const loadSessionResponseSchema = z.null();
+export const setSessionModeResponseSchema = z.object({});
 
 /** @internal */
 export const promptResponseSchema = z.object({
@@ -1304,6 +1361,12 @@ export const loadSessionRequestSchema = z.object({
 });
 
 /** @internal */
+export const setSessionModeRequestSchema = z.object({
+  modeId: sessionModeIdSchema,
+  sessionId: sessionIdSchema,
+});
+
+/** @internal */
 export const contentBlockSchema = z.union([
   z.object({
     annotations: annotationsSchema.optional().nullable(),
@@ -1355,6 +1418,19 @@ export const promptCapabilitiesSchema = z.object({
 });
 
 /** @internal */
+export const sessionModeSchema = z.object({
+  description: z.string().optional().nullable(),
+  id: sessionModeIdSchema,
+  name: z.string(),
+});
+
+/** @internal */
+export const sessionModeStateSchema = z.object({
+  availableModes: z.array(sessionModeSchema),
+  currentModeId: sessionModeIdSchema,
+});
+
+/** @internal */
 export const planEntrySchema = z.object({
   content: z.string(),
   priority: z.union([z.literal("high"), z.literal("medium"), z.literal("low")]),
@@ -1398,6 +1474,17 @@ export const newSessionRequestSchema = z.object({
 export const promptRequestSchema = z.object({
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
+});
+
+/** @internal */
+export const newSessionResponseSchema = z.object({
+  modes: sessionModeStateSchema.optional().nullable(),
+  sessionId: z.string(),
+});
+
+/** @internal */
+export const loadSessionResponseSchema = z.object({
+  modes: sessionModeStateSchema.optional().nullable(),
 });
 
 /** @internal */
@@ -1549,6 +1636,7 @@ export const agentRequestSchema = z.union([
   authenticateRequestSchema,
   newSessionRequestSchema,
   loadSessionRequestSchema,
+  setSessionModeRequestSchema,
   promptRequestSchema,
 ]);
 
@@ -1558,6 +1646,7 @@ export const agentResponseSchema = z.union([
   authenticateResponseSchema,
   newSessionResponseSchema,
   loadSessionResponseSchema,
+  setSessionModeResponseSchema,
   promptResponseSchema,
 ]);
 
