@@ -118,6 +118,10 @@ The Agent **SHOULD** specify whether it supports the following capabilities:
   The [`session/load`](./session-setup#loading-sessions) method is available.
 </ResponseField>
 
+<ResponseField name="rewindSession" type="boolean" post={["default: false"]}>
+  The `session/rewind` method is available.
+</ResponseField>
+
 <ResponseField name="promptCapabilities" type="PromptCapabilities Object">
   Object indicating the different types of [content](./content) that may be
   included in `session/prompt` requests.

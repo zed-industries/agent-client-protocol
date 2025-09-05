@@ -107,6 +107,22 @@ impl fmt::Display for SessionId {
     }
 }
 
+/// A unique identifier for a prompt sent from the client to the agent.
+///
+/// This is used when both the agent and the client support rewinding conversations
+/// to identify the point in the conversation to rewind to.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#rewind>
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct PromptId(pub Arc<str>);
+
+impl fmt::Display for PromptId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 // Client to Agent
 
 /// A client-side connection to an agent.
@@ -197,6 +213,15 @@ impl Agent for ClientSideConnection {
             .request(
                 SESSION_LOAD_METHOD_NAME,
                 Some(ClientRequest::LoadSessionRequest(arguments)),
+            )
+            .await
+    }
+
+    async fn rewind(&self, arguments: RewindRequest) -> Result<(), Error> {
+        self.conn
+            .request(
+                SESSION_REWIND_METHOD_NAME,
+                Some(ClientRequest::RewindRequest(arguments)),
             )
             .await
     }
@@ -569,6 +594,10 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
             ClientRequest::PromptRequest(args) => {
                 let response = self.prompt(args).await?;
                 Ok(AgentResponse::PromptResponse(response))
+            }
+            ClientRequest::RewindRequest(args) => {
+                self.rewind(args).await?;
+                Ok(AgentResponse::RewindResponse)
             }
         }
     }
