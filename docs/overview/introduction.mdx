@@ -28,16 +28,3 @@ ACP assumes that the user is primarily in their editor, and wants to reach out a
 Agents run as sub-processes of the code editor, and communicate using JSON-RPC over stdio. The protocol re-uses the JSON representations used in MCP where possible, but includes custom types for useful agentic coding UX elements, like displaying diffs.
 
 The default format for user-readable text is Markdown, which allows enough flexibility to represent rich formatting without requiring that the code editor is capable of rendering HTML.
-
-## Supported Editors
-
-- [Zed](https://zed.dev/docs/ai/external-agents)
-- [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
-- [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
-
-## Supported Agents
-
-- [Gemini](https://github.com/google-gemini/gemini-cli)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
-  - [via Zed's SDK adapter](https://github.com/zed-industries/claude-code-acp)
-  - [via Xuanwo's SDK adapter](https://github.com/Xuanwo/acp-claude-code)
