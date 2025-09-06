@@ -16,13 +16,15 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
 - **JSON Schema**: [schema.json](./schema/schema.json)
 
-## Supported Editors
+## Integrations
+
+### Editors
 
 - [Zed](https://zed.dev/docs/ai/external-agents)
 - [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
 - [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
 
-## Supported Agents
+### Agents
 
 - [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
