@@ -1,0 +1,77 @@
+---
+title: "Python"
+description: "Python library for the Agent Client Protocol"
+---
+
+The [agent-client-protocol](https://pypi.org/project/agent-client-protocol/) Python
+SDK provides implementations of both sides of the Agent Client Protocol that
+you can use to build your own agent server or client.
+
+To get started, add the package as a dependency to your project:
+
+```bash
+pip install agent-client-protocol
+```
+
+Depending on what kind of tool you're building, you'll typically create an
+`AgentSideConnection` (to expose your agent to an ACP-capable client like Zed)
+or a `ClientSideConnection` (to embed an ACP client into your own app).
+
+Minimal agent example:
+
+```python
+import asyncio
+
+from acp import (
+    Agent,
+    AgentSideConnection,
+    AuthenticateRequest,
+    CancelNotification,
+    InitializeRequest,
+    InitializeResponse,
+    LoadSessionRequest,
+    NewSessionRequest,
+    NewSessionResponse,
+    PromptRequest,
+    PromptResponse,
+    stdio_streams,
+)
+
+
+class EchoAgent(Agent):
+    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
+        return InitializeResponse(protocolVersion=params.protocolVersion)
+
+    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
+        return NewSessionResponse(sessionId="sess-1")
+
+    async def loadSession(self, params: LoadSessionRequest) -> None:
+        return None
+
+    async def authenticate(self, params: AuthenticateRequest) -> None:
+        return None
+
+    async def prompt(self, params: PromptRequest) -> PromptResponse:
+        # Normally you'd stream updates via sessionUpdate
+        return PromptResponse(stopReason="end_turn")
+
+    async def cancel(self, params: CancelNotification) -> None:
+        return None
+
+
+async def main() -> None:
+    reader, writer = await stdio_streams()
+    # For an agent process, local writes go to client stdin (writer=stdout)
+    AgentSideConnection(lambda _conn: EchoAgent(), writer, reader)
+    # Keep running; in a real agent you would await tasks or add your own loop
+    await asyncio.Event().wait()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+You can run this program from an ACP-capable client such as [Zed](https://zed.dev/docs/ai/external-agents).
+
+- Browse the Python SDK docs and examples: https://github.com/psiace/agent-client-protocol-python
+- Quickstart and a runnable Mini SWE Agent bridge: https://psiace.github.io/agent-client-protocol-python

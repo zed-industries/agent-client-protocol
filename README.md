@@ -14,6 +14,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
+- **Python**: [`agent-client-protocol`](https://pypi.org/project/agent-client-protocol/) - See the [Python SDK repo](https://github.com/psiace/agent-client-protocol-python) and its [Quickstart](https://psiace.github.io/agent-client-protocol-python/quickstart/), maintained by [PsiACE](https://github.com/PsiACE)
 - **JSON Schema**: [schema.json](./schema/schema.json)
 
 ## Contributing
