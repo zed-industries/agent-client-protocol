@@ -1609,6 +1609,21 @@ Available commands are ready or have changed
 </Expandable>
 </ResponseField>
 
+<ResponseField name="current_mode_update">
+The current mode of the session has changed
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="currentModeId"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
 ## <span class="font-mono">SetSessionModeResponse</span>
 
 **UNSTABLE**

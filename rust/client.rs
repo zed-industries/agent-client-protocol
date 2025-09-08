@@ -9,6 +9,8 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "unstable")]
+use crate::SessionModeId;
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 /// Defines the interface that ACP-compliant clients must implement.
@@ -165,6 +167,11 @@ pub enum SessionUpdate {
     AvailableCommandsUpdate {
         available_commands: Vec<AvailableCommand>,
     },
+    /// The current mode of the session has changed
+    #[cfg(feature = "unstable")]
+    #[serde(rename_all = "camelCase")]
+    #[schemars(extend("x-docs-ignore" = true))]
+    CurrentModeUpdate { current_mode_id: SessionModeId },
 }
 
 /// Information about a command.

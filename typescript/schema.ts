@@ -1040,6 +1040,10 @@ export interface SessionNotification {
     | {
         availableCommands: AvailableCommand[];
         sessionUpdate: "available_commands_update";
+      }
+    | {
+        currentModeId: SessionModeId;
+        sessionUpdate: "current_mode_update";
       };
 }
 /**
@@ -1614,6 +1618,10 @@ export const sessionNotificationSchema = z.object({
     z.object({
       availableCommands: z.array(availableCommandSchema),
       sessionUpdate: z.literal("available_commands_update"),
+    }),
+    z.object({
+      currentModeId: sessionModeIdSchema,
+      sessionUpdate: z.literal("current_mode_update"),
     }),
   ]),
 });
