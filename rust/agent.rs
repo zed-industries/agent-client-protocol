@@ -224,7 +224,7 @@ pub struct NewSessionResponse {
 
 /// Request parameters for loading an existing session.
 ///
-/// Only available if the agent supports the `loadSession` capability.
+/// Only available if the Agent supports the `loadSession` capability.
 ///
 /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -308,16 +308,46 @@ pub struct SetSessionModeResponse {}
 ///
 /// See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct McpServer {
-    /// Human-readable name identifying this MCP server.
-    pub name: String,
-    /// Path to the MCP server executable.
-    pub command: PathBuf,
-    /// Command-line arguments to pass to the MCP server.
-    pub args: Vec<String>,
-    /// Environment variables to set when launching the MCP server.
-    pub env: Vec<EnvVariable>,
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum McpServer {
+    /// HTTP transport configuration
+    ///
+    /// Only available when the Agent capabilities indicate `mcp_capabilities.http` is `true`.
+    #[serde(rename_all = "camelCase")]
+    Http {
+        /// Human-readable name identifying this MCP server.
+        name: String,
+        /// URL to the MCP server.
+        url: String,
+        /// HTTP headers to set when making requests to the MCP server.
+        headers: Vec<HttpHeader>,
+    },
+    /// SSE transport configuration
+    ///
+    /// Only available when the Agent capabilities indicate `mcp_capabilities.sse` is `true`.
+    #[serde(rename_all = "camelCase")]
+    Sse {
+        /// Human-readable name identifying this MCP server.
+        name: String,
+        /// URL to the MCP server.
+        url: String,
+        /// HTTP headers to set when making requests to the MCP server.
+        headers: Vec<HttpHeader>,
+    },
+    /// Stdio transport configuration
+    ///
+    /// All Agents MUST support this transport.
+    #[serde(untagged, rename_all = "camelCase")]
+    Stdio {
+        /// Human-readable name identifying this MCP server.
+        name: String,
+        /// Path to the MCP server executable.
+        command: PathBuf,
+        /// Command-line arguments to pass to the MCP server.
+        args: Vec<String>,
+        /// Environment variables to set when launching the MCP server.
+        env: Vec<EnvVariable>,
+    },
 }
 
 /// An environment variable to set when launching an MCP server.
@@ -327,6 +357,16 @@ pub struct EnvVariable {
     /// The name of the environment variable.
     pub name: String,
     /// The value to set for the environment variable.
+    pub value: String,
+}
+
+/// An HTTP header to set when making requests to the MCP server.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HttpHeader {
+    /// The name of the HTTP header.
+    pub name: String,
+    /// The value to set for the HTTP header.
     pub value: String,
 }
 
@@ -413,6 +453,9 @@ pub struct AgentCapabilities {
     /// Prompt capabilities supported by the agent.
     #[serde(default)]
     pub prompt_capabilities: PromptCapabilities,
+    /// MCP capabilities supported by the agent.
+    #[serde(default)]
+    pub mcp_capabilities: McpCapabilities,
 }
 
 /// Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -442,6 +485,18 @@ pub struct PromptCapabilities {
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
+}
+
+/// MCP capabilities supported by the agent
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct McpCapabilities {
+    /// Agent supports [`McpServer::Http`].
+    #[serde(default)]
+    pub http: bool,
+    /// Agent supports [`McpServer::Sse`].
+    #[serde(default)]
+    pub sse: bool,
 }
 
 // Method schema
@@ -556,4 +611,149 @@ pub enum ClientNotification {
 pub struct CancelNotification {
     /// The ID of the session to cancel operations for.
     pub session_id: SessionId,
+}
+
+#[cfg(test)]
+mod test_serialization {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_mcp_server_stdio_serialization() {
+        let server = McpServer::Stdio {
+            name: "test-server".to_string(),
+            command: PathBuf::from("/usr/bin/server"),
+            args: vec!["--port".to_string(), "3000".to_string()],
+            env: vec![EnvVariable {
+                name: "API_KEY".to_string(),
+                value: "secret123".to_string(),
+            }],
+        };
+
+        let json = serde_json::to_value(&server).unwrap();
+        assert_eq!(
+            json,
+            json!({
+                "name": "test-server",
+                "command": "/usr/bin/server",
+                "args": ["--port", "3000"],
+                "env": [
+                    {
+                        "name": "API_KEY",
+                        "value": "secret123"
+                    }
+                ]
+            })
+        );
+
+        let deserialized: McpServer = serde_json::from_value(json).unwrap();
+        match deserialized {
+            McpServer::Stdio {
+                name,
+                command,
+                args,
+                env,
+            } => {
+                assert_eq!(name, "test-server");
+                assert_eq!(command, PathBuf::from("/usr/bin/server"));
+                assert_eq!(args, vec!["--port", "3000"]);
+                assert_eq!(env.len(), 1);
+                assert_eq!(env[0].name, "API_KEY");
+                assert_eq!(env[0].value, "secret123");
+            }
+            _ => panic!("Expected Stdio variant"),
+        }
+    }
+
+    #[test]
+    fn test_mcp_server_http_serialization() {
+        let server = McpServer::Http {
+            name: "http-server".to_string(),
+            url: "https://api.example.com".to_string(),
+            headers: vec![
+                HttpHeader {
+                    name: "Authorization".to_string(),
+                    value: "Bearer token123".to_string(),
+                },
+                HttpHeader {
+                    name: "Content-Type".to_string(),
+                    value: "application/json".to_string(),
+                },
+            ],
+        };
+
+        let json = serde_json::to_value(&server).unwrap();
+        assert_eq!(
+            json,
+            json!({
+                "type": "http",
+                "name": "http-server",
+                "url": "https://api.example.com",
+                "headers": [
+                    {
+                        "name": "Authorization",
+                        "value": "Bearer token123"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }
+                ]
+            })
+        );
+
+        let deserialized: McpServer = serde_json::from_value(json).unwrap();
+        match deserialized {
+            McpServer::Http { name, url, headers } => {
+                assert_eq!(name, "http-server");
+                assert_eq!(url, "https://api.example.com");
+                assert_eq!(headers.len(), 2);
+                assert_eq!(headers[0].name, "Authorization");
+                assert_eq!(headers[0].value, "Bearer token123");
+                assert_eq!(headers[1].name, "Content-Type");
+                assert_eq!(headers[1].value, "application/json");
+            }
+            _ => panic!("Expected Http variant"),
+        }
+    }
+
+    #[test]
+    fn test_mcp_server_sse_serialization() {
+        let server = McpServer::Sse {
+            name: "sse-server".to_string(),
+            url: "https://sse.example.com/events".to_string(),
+            headers: vec![HttpHeader {
+                name: "X-API-Key".to_string(),
+                value: "apikey456".to_string(),
+            }],
+        };
+
+        let json = serde_json::to_value(&server).unwrap();
+        assert_eq!(
+            json,
+            json!({
+                "type": "sse",
+                "name": "sse-server",
+                "url": "https://sse.example.com/events",
+                "headers": [
+                    {
+                        "name": "X-API-Key",
+                        "value": "apikey456"
+                    }
+                ]
+            })
+        );
+
+        let deserialized: McpServer = serde_json::from_value(json).unwrap();
+        match deserialized {
+            McpServer::Sse { name, url, headers } => {
+                assert_eq!(name, "sse-server");
+                assert_eq!(url, "https://sse.example.com/events");
+                assert_eq!(headers.len(), 1);
+                assert_eq!(headers[0].name, "X-API-Key");
+                assert_eq!(headers[0].value, "apikey456");
+            }
+            _ => panic!("Expected Sse variant"),
+        }
+    }
 }

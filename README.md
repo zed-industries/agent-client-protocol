@@ -10,6 +10,21 @@ The protocol is still under heavy development, and we aim to mature it as we get
 
 Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
+## Integrations
+
+### Editors
+
+- [Zed](https://zed.dev/docs/ai/external-agents)
+- [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
+- [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
+
+### Agents
+
+- [Gemini](https://github.com/google-gemini/gemini-cli)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+  - [via Zed's SDK adapter](https://github.com/zed-industries/claude-code-acp)
+  - [via Xuanwo's SDK adapter](https://github.com/Xuanwo/acp-claude-code)
+
 ## Libraries and Schema
 
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)

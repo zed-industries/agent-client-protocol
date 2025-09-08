@@ -232,6 +232,46 @@ export type AgentRequest =
   | SetSessionModeRequest
   | PromptRequest;
 /**
+ * Configuration for connecting to an MCP (Model Context Protocol) server.
+ *
+ * MCP servers provide tools and context that the agent can use when
+ * processing prompts.
+ *
+ * See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+ */
+export type McpServer =
+  | {
+      /**
+       * HTTP headers to set when making requests to the MCP server.
+       */
+      headers: HttpHeader[];
+      /**
+       * Human-readable name identifying this MCP server.
+       */
+      name: string;
+      type: "http";
+      /**
+       * URL to the MCP server.
+       */
+      url: string;
+    }
+  | {
+      /**
+       * HTTP headers to set when making requests to the MCP server.
+       */
+      headers: HttpHeader[];
+      /**
+       * Human-readable name identifying this MCP server.
+       */
+      name: string;
+      type: "sse";
+      /**
+       * URL to the MCP server.
+       */
+      url: string;
+    }
+  | Stdio;
+/**
  * **UNSTABLE**
  *
  * This type is not part of the spec, and may be removed or changed at any point.
@@ -647,14 +687,24 @@ export interface NewSessionRequest {
   mcpServers: McpServer[];
 }
 /**
- * Configuration for connecting to an MCP (Model Context Protocol) server.
- *
- * MCP servers provide tools and context that the agent can use when
- * processing prompts.
- *
- * See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+ * An HTTP header to set when making requests to the MCP server.
  */
-export interface McpServer {
+export interface HttpHeader {
+  /**
+   * The name of the HTTP header.
+   */
+  name: string;
+  /**
+   * The value to set for the HTTP header.
+   */
+  value: string;
+}
+/**
+ * Stdio transport configuration
+ *
+ * All Agents MUST support this transport.
+ */
+export interface Stdio {
   /**
    * Command-line arguments to pass to the MCP server.
    */
@@ -675,7 +725,7 @@ export interface McpServer {
 /**
  * Request parameters for loading an existing session.
  *
- * Only available if the agent supports the `loadSession` capability.
+ * Only available if the Agent supports the `loadSession` capability.
  *
  * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
  */
@@ -788,7 +838,21 @@ export interface AgentCapabilities {
    * Whether the agent supports `session/load`.
    */
   loadSession?: boolean;
+  mcpCapabilities?: McpCapabilities;
   promptCapabilities?: PromptCapabilities;
+}
+/**
+ * MCP capabilities supported by the agent.
+ */
+export interface McpCapabilities {
+  /**
+   * Agent supports [`McpServer::Http`].
+   */
+  http?: boolean;
+  /**
+   * Agent supports [`McpServer::Sse`].
+   */
+  sse?: boolean;
 }
 /**
  * Prompt capabilities supported by the agent.
@@ -1200,6 +1264,12 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
+export const httpHeaderSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+});
+
+/** @internal */
 export const sessionModeIdSchema = z.string();
 
 /** @internal */
@@ -1350,7 +1420,7 @@ export const fileSystemCapabilitySchema = z.object({
 });
 
 /** @internal */
-export const mcpServerSchema = z.object({
+export const stdioSchema = z.object({
   args: z.array(z.string()),
   command: z.string(),
   env: z.array(envVariableSchema),
@@ -1358,11 +1428,21 @@ export const mcpServerSchema = z.object({
 });
 
 /** @internal */
-export const loadSessionRequestSchema = z.object({
-  cwd: z.string(),
-  mcpServers: z.array(mcpServerSchema),
-  sessionId: z.string(),
-});
+export const mcpServerSchema = z.union([
+  z.object({
+    headers: z.array(httpHeaderSchema),
+    name: z.string(),
+    type: z.literal("http"),
+    url: z.string(),
+  }),
+  z.object({
+    headers: z.array(httpHeaderSchema),
+    name: z.string(),
+    type: z.literal("sse"),
+    url: z.string(),
+  }),
+  stdioSchema,
+]);
 
 /** @internal */
 export const setSessionModeRequestSchema = z.object({
@@ -1412,6 +1492,12 @@ export const authMethodSchema = z.object({
   description: z.string().optional().nullable(),
   id: z.string(),
   name: z.string(),
+});
+
+/** @internal */
+export const mcpCapabilitiesSchema = z.object({
+  http: z.boolean().optional(),
+  sse: z.boolean().optional(),
 });
 
 /** @internal */
@@ -1475,6 +1561,13 @@ export const newSessionRequestSchema = z.object({
 });
 
 /** @internal */
+export const loadSessionRequestSchema = z.object({
+  cwd: z.string(),
+  mcpServers: z.array(mcpServerSchema),
+  sessionId: z.string(),
+});
+
+/** @internal */
 export const promptRequestSchema = z.object({
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
@@ -1512,6 +1605,7 @@ export const clientCapabilitiesSchema = z.object({
 /** @internal */
 export const agentCapabilitiesSchema = z.object({
   loadSession: z.boolean().optional(),
+  mcpCapabilities: mcpCapabilitiesSchema.optional(),
   promptCapabilities: promptCapabilitiesSchema.optional(),
 });
 
