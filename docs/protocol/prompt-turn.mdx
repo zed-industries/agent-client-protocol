@@ -65,6 +65,7 @@ The turn begins when the Client sends a `session/prompt`:
   "method": "session/prompt",
   "params": {
     "sessionId": "sess_abc123def456",
+    "promptId": "prompt_1234567890",
     "prompt": [
       {
         "type": "text",
@@ -85,6 +86,9 @@ The turn begins when the Client sends a `session/prompt`:
 
 <ParamField path="sessionId" type="SessionId">
     The [ID](./session-setup#session-id) of the session to send this message to.
+</ParamField>
+<ParamField path="promptId" type="PromptId">
+    The ID of this prompt, required only when the agent and the client support `session/rewind`.
 </ParamField>
 <ParamField path="prompt" type="ContentBlock[]">
     The contents of the user message, e.g. text, images, files, etc.
@@ -317,3 +321,31 @@ The Client **SHOULD** still accept tool call updates received after sending `ses
 ---
 
 Once a prompt turn completes, the Client may send another `session/prompt` to continue the conversation, building on the context established in previous turns.
+
+## Rewind
+
+If the agent and the client support `session/rewind`, the Client can at any point send a `session/rewind` request to restore the conversation to the point immediately before the specified promptId.
+
+If this is the first prompt in the session, the thread will now be empty.
+
+If the agent receives this request while generating, it may also need to cancel.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "session/rewind",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "promptId": "prompt_1234567890"
+  }
+}
+```
+
+<ParamField path="sessionId" type="SessionId">
+  The [ID](./session-setup#session-id) of the session to send this message to.
+</ParamField>
+
+<ParamField path="promptId" type="PromptId">
+  The ID of the prompt to rewind to.
+</ParamField>

@@ -9,7 +9,7 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
+use crate::{ClientCapabilities, ContentBlock, Error, PromptId, ProtocolVersion, SessionId};
 
 /// Defines the interface that all ACP-compliant agents must implement.
 ///
@@ -92,6 +92,11 @@ pub trait Agent {
         &self,
         arguments: PromptRequest,
     ) -> impl Future<Output = Result<PromptResponse, Error>>;
+
+    /// Rewinds a session.
+    ///
+    /// See: <https://agentclientprotocol.com/protocol/prompt-turn#rewind>
+    fn rewind(&self, arguments: RewindRequest) -> impl Future<Output = Result<(), Error>>;
 
     /// Cancels ongoing operations for a session.
     ///
@@ -225,6 +230,26 @@ pub struct LoadSessionRequest {
     pub session_id: SessionId,
 }
 
+// Rewind session
+
+/// Request parameters for rewinding a session.
+///
+/// Only available if the agent supports the `rewindSession` capability.
+///
+/// The conversation is rewound to the moment just before the given prompt was
+/// submitted. This allows the user to submit a new version of that prompt through
+/// the UI to attempt to get better results.
+///
+/// See: <https://agentclientprotocol.com/protocol/prompt-turn#rewind>
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RewindRequest {
+    /// The prompt ID to rewind to. This prompt, and all subsequent user and agent
+    /// messages should be discarded.
+    pub prompt_id: PromptId,
+    pub session_id: SessionId,
+}
+
 // MCP
 
 /// Configuration for connecting to an MCP (Model Context Protocol) server.
@@ -309,6 +334,9 @@ pub struct HttpHeader {
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
     pub session_id: SessionId,
+    /// The ID of the prompt. Required if both the client and
+    /// the server support rewinding.
+    pub prompt_id: Option<PromptId>,
     /// The blocks of content that compose the user's message.
     ///
     /// As a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],
@@ -376,6 +404,9 @@ pub struct AgentCapabilities {
     /// Whether the agent supports `session/load`.
     #[serde(default)]
     pub load_session: bool,
+    /// Whether the agent supports `session/rewind`.
+    #[serde(default)]
+    pub rewind_session: bool,
     /// Prompt capabilities supported by the agent.
     #[serde(default)]
     pub prompt_capabilities: PromptCapabilities,
@@ -440,6 +471,8 @@ pub struct AgentMethodNames {
     pub session_new: &'static str,
     /// Method for loading an existing session.
     pub session_load: &'static str,
+    /// Method for rewinding the current session.
+    pub session_rewind: &'static str,
     /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
@@ -452,6 +485,7 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     authenticate: AUTHENTICATE_METHOD_NAME,
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
+    session_rewind: SESSION_REWIND_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
 };
@@ -464,6 +498,8 @@ pub(crate) const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 pub(crate) const SESSION_NEW_METHOD_NAME: &str = "session/new";
 /// Method name for loading an existing session.
 pub(crate) const SESSION_LOAD_METHOD_NAME: &str = "session/load";
+/// Method name for truncating the current session.
+pub(crate) const SESSION_REWIND_METHOD_NAME: &str = "session/rewind";
 /// Method name for sending a prompt.
 pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
@@ -483,6 +519,7 @@ pub enum ClientRequest {
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
     LoadSessionRequest(LoadSessionRequest),
+    RewindRequest(RewindRequest),
     PromptRequest(PromptRequest),
 }
 
@@ -500,6 +537,7 @@ pub enum AgentResponse {
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
     LoadSessionResponse,
+    RewindResponse,
     PromptResponse(PromptResponse),
 }
 
