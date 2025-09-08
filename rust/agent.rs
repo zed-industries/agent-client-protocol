@@ -413,10 +413,7 @@ pub struct PromptCapabilities {
     pub embedded_context: bool,
 }
 
-/// MCP transport capabilities supported by the agent.
-///
-/// Indicates which MCP server transport mechanisms the agent can use
-/// to connect to Model Context Protocol servers.
+/// MCP capabilities supported by the agent
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpCapabilities {
