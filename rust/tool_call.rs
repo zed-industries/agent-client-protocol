@@ -198,7 +198,7 @@ pub struct ToolCallId(pub Arc<str>);
 /// display tool execution progress.
 ///
 /// See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolKind {
     /// Reading files or data.
@@ -217,8 +217,14 @@ pub enum ToolKind {
     Think,
     /// Retrieving external data.
     Fetch,
+    /// **UNSTABLE**
+    ///
+    /// This tool kind is not part of the spec and may be removed at any point.
+    #[cfg(feature = "unstable")]
+    SwitchMode,
     /// Other tool types (default).
     #[default]
+    #[serde(other)]
     Other,
 }
 

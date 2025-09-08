@@ -1898,6 +1898,11 @@
           "type": "string"
         },
         {
+          "const": "switch_mode",
+          "description": "**UNSTABLE**\n\nThis tool kind is not part of the spec and may be removed at any point.",
+          "type": "string"
+        },
+        {
           "const": "other",
           "description": "Other tool types (default).",
           "type": "string"

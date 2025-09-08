@@ -157,6 +157,7 @@ export type ToolKind =
   | "execute"
   | "think"
   | "fetch"
+  | "switch_mode"
   | "other";
 /**
  * Execution status of a tool call.
@@ -1020,6 +1021,7 @@ export interface SessionNotification {
           | "execute"
           | "think"
           | "fetch"
+          | "switch_mode"
           | "other";
         /**
          * File locations affected by this tool call.
@@ -1201,6 +1203,7 @@ export const toolKindSchema = z.union([
   z.literal("execute"),
   z.literal("think"),
   z.literal("fetch"),
+  z.literal("switch_mode"),
   z.literal("other"),
 ]);
 
@@ -1676,6 +1679,7 @@ export const sessionNotificationSchema = z.object({
           z.literal("execute"),
           z.literal("think"),
           z.literal("fetch"),
+          z.literal("switch_mode"),
           z.literal("other"),
         ])
         .optional(),
