@@ -741,7 +741,7 @@
       "x-side": "agent"
     },
     "McpCapabilities": {
-      "description": "MCP transport capabilities supported by the agent.\n\nIndicates which MCP server transport mechanisms the agent can use\nto connect to Model Context Protocol servers.",
+      "description": "MCP capabilities supported by the agent",
       "properties": {
         "http": {
           "default": false,
