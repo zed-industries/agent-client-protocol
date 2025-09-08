@@ -8,6 +8,14 @@
           "description": "Whether the agent supports `session/load`.",
           "type": "boolean"
         },
+        "mcpCapabilities": {
+          "$ref": "#/$defs/McpCapabilities",
+          "default": {
+            "http": false,
+            "sse": false
+          },
+          "description": "MCP capabilities supported by the agent."
+        },
         "promptCapabilities": {
           "$ref": "#/$defs/PromptCapabilities",
           "default": {
@@ -593,6 +601,21 @@
       },
       "type": "object"
     },
+    "HttpHeader": {
+      "description": "An HTTP header to set when making requests to the MCP server.",
+      "properties": {
+        "name": {
+          "description": "The name of the HTTP header.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value to set for the HTTP header.",
+          "type": "string"
+        }
+      },
+      "required": ["name", "value"],
+      "type": "object"
+    },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "properties": {
@@ -650,6 +673,10 @@
           "$ref": "#/$defs/AgentCapabilities",
           "default": {
             "loadSession": false,
+            "mcpCapabilities": {
+              "http": false,
+              "sse": false
+            },
             "promptCapabilities": {
               "audio": false,
               "embeddedContext": false,
@@ -690,7 +717,7 @@
       "x-docs-ignore": true
     },
     "LoadSessionRequest": {
-      "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
+      "description": "Request parameters for loading an existing session.\n\nOnly available if the Agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
       "properties": {
         "cwd": {
           "description": "The working directory for this session.",
@@ -713,34 +740,108 @@
       "x-method": "session/load",
       "x-side": "agent"
     },
-    "McpServer": {
-      "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)",
+    "McpCapabilities": {
+      "description": "MCP capabilities supported by the agent",
       "properties": {
-        "args": {
-          "description": "Command-line arguments to pass to the MCP server.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+        "http": {
+          "default": false,
+          "description": "Agent supports [`McpServer::Http`].",
+          "type": "boolean"
         },
-        "command": {
-          "description": "Path to the MCP server executable.",
-          "type": "string"
-        },
-        "env": {
-          "description": "Environment variables to set when launching the MCP server.",
-          "items": {
-            "$ref": "#/$defs/EnvVariable"
-          },
-          "type": "array"
-        },
-        "name": {
-          "description": "Human-readable name identifying this MCP server.",
-          "type": "string"
+        "sse": {
+          "default": false,
+          "description": "Agent supports [`McpServer::Sse`].",
+          "type": "boolean"
         }
       },
-      "required": ["name", "command", "args", "env"],
       "type": "object"
+    },
+    "McpServer": {
+      "anyOf": [
+        {
+          "description": "HTTP transport configuration\n\nOnly available when the Agent capabilities indicate `mcp_capabilities.http` is `true`.",
+          "properties": {
+            "headers": {
+              "description": "HTTP headers to set when making requests to the MCP server.",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL to the MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "name", "url", "headers"],
+          "type": "object"
+        },
+        {
+          "description": "SSE transport configuration\n\nOnly available when the Agent capabilities indicate `mcp_capabilities.sse` is `true`.",
+          "properties": {
+            "headers": {
+              "description": "HTTP headers to set when making requests to the MCP server.",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            },
+            "type": {
+              "const": "sse",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL to the MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "name", "url", "headers"],
+          "type": "object"
+        },
+        {
+          "description": "Stdio transport configuration\n\nAll Agents MUST support this transport.",
+          "properties": {
+            "args": {
+              "description": "Command-line arguments to pass to the MCP server.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "command": {
+              "description": "Path to the MCP server executable.",
+              "type": "string"
+            },
+            "env": {
+              "description": "Environment variables to set when launching the MCP server.",
+              "items": {
+                "$ref": "#/$defs/EnvVariable"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["name", "command", "args", "env"],
+          "title": "stdio",
+          "type": "object"
+        }
+      ],
+      "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)"
     },
     "NewSessionRequest": {
       "description": "Request parameters for creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",

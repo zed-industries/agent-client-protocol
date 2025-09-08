@@ -200,7 +200,15 @@ The `cwd` (current working directory) parameter establishes the file system cont
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) allows Agents to access external tools and data sources. When creating a session, Clients **MAY** include connection details for MCP servers that the Agent should connect to.
 
-Each MCP server specification includes:
+MCP servers can be connected to using different transports. All Agents **MUST** support the stdio transport, while HTTP and SSE transports are optional capabilities that can be checked during initialization.
+
+While they are not required to by the spec, new Agents **SHOULD** support the HTTP transport to ensure compatibility with modern MCP servers.
+
+### Transport Types
+
+#### Stdio Transport
+
+All Agents **MUST** support connecting to MCP servers via stdio (standard input/output). This is the default transport mechanism.
 
 <ParamField path="name" type="string" required>
   A human-readable identifier for the server
@@ -226,6 +234,141 @@ Each MCP server specification includes:
       </ParamField>
   </Expandable>
 </ParamField>
+
+Example stdio transport configuration:
+
+```json
+{
+  "name": "filesystem",
+  "command": "/path/to/mcp-server",
+  "args": ["--stdio"],
+  "env": [
+    {
+      "name": "API_KEY",
+      "value": "secret123"
+    }
+  ]
+}
+```
+
+#### HTTP Transport
+
+When the Agent supports `mcpCapabilities.http`, Clients can specify MCP servers configurations using the HTTP transport.
+
+<ParamField path="type" type="string" required>
+  Must be `"http"` to indicate HTTP transport
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  A human-readable identifier for the server
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  The URL of the MCP server
+</ParamField>
+
+<ParamField path="headers" type="HttpHeader[]" required>
+  HTTP headers to include in requests to the server
+
+  <Expandable title="HttpHeader">
+      <ParamField path="name" type="string">
+        The name of the HTTP header.
+      </ParamField>
+      <ParamField path="value" type="string">
+        The value to set for the HTTP header.
+      </ParamField>
+  </Expandable>
+</ParamField>
+
+Example HTTP transport configuration:
+
+```json
+{
+  "type": "http",
+  "name": "api-server",
+  "url": "https://api.example.com/mcp",
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer token123"
+    },
+    {
+      "name": "Content-Type",
+      "value": "application/json"
+    }
+  ]
+}
+```
+
+#### SSE Transport
+
+When the Agent supports `mcpCapabilities.sse`, Clients can specify MCP servers configurations using the SSE transport.
+
+<Warning>This transport was deprecated by the MCP spec.</Warning>
+
+<ParamField path="type" type="string" required>
+  Must be `"sse"` to indicate SSE transport
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  A human-readable identifier for the server
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  The URL of the SSE endpoint
+</ParamField>
+
+<ParamField path="headers" type="HttpHeader[]" required>
+  HTTP headers to include when establishing the SSE connection
+
+  <Expandable title="HttpHeader">
+      <ParamField path="name" type="string">
+        The name of the HTTP header.
+      </ParamField>
+      <ParamField path="value" type="string">
+        The value to set for the HTTP header.
+      </ParamField>
+  </Expandable>
+</ParamField>
+
+Example SSE transport configuration:
+
+```json
+{
+  "type": "sse",
+  "name": "event-stream",
+  "url": "https://events.example.com/mcp",
+  "headers": [
+    {
+      "name": "X-API-Key",
+      "value": "apikey456"
+    }
+  ]
+}
+```
+
+### Checking Transport Support
+
+Before using HTTP or SSE transports, Clients **MUST** verify the Agent's capabilities during initialization:
+
+```json highlight={7-10}
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      }
+    }
+  }
+}
+```
+
+If `mcpCapabilities.http` is `false` or not present, the Agent does not support HTTP transport.
+If `mcpCapabilities.sse` is `false` or not present, the Agent does not support SSE transport.
 
 Agents **SHOULD** connect to all MCP servers specified by the Client.
 
