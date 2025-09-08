@@ -141,6 +141,19 @@ Optionally, they **MAY** support richer types of [content](./content) by specify
   The prompt may include `ContentBlock::Resource`
 </ResponseField>
 
+#### MCP capabilities
+
+<ResponseField name="http" type="boolean" post={["default: false"]}>
+  The Agent supports connecting to MCP servers over HTTP.
+</ResponseField>
+
+<ResponseField name="sse" type="boolean" post={["default: false"]}>
+  The Agent supports connecting to MCP servers over SSE.
+
+Note: This transport has been deprecated by the MCP spec.
+
+</ResponseField>
+
 ---
 
 Once the connection is initialized, you're ready to [create a session](./session-setup) and begin the conversation with the Agent.

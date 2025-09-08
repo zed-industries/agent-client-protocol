@@ -58,3 +58,4 @@ futures-util = { version = "0.3", features = ["io"] }
 async-pipe = { git = "https://github.com/zed-industries/async-pipe-rs", rev = "82d00a04211cf4e1236029aa03e6b6ce2a74c553" }
 env_logger = "0.11"
 rustyline = "17.0.1"
+pretty_assertions = "1.4.1"
