@@ -75,7 +75,16 @@ pub trait Agent {
     fn load_session(
         &self,
         arguments: LoadSessionRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
+
+    /// **UNSTABLE**
+    ///
+    /// This method is not part of the spec, and may be removed or changed at any point.
+    #[cfg(feature = "unstable")]
+    fn set_session_mode(
+        &self,
+        arguments: SetSessionModeRequest,
+    ) -> impl Future<Output = Result<SetSessionModeResponse, Error>>;
 
     /// Processes a user prompt within a session.
     ///
@@ -204,6 +213,11 @@ pub struct NewSessionResponse {
     ///
     /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
+    /// **UNSTABLE**
+    ///
+    /// This field is not part of the spec, and may be removed or changed at any point.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modes: Option<SessionModeState>,
 }
 
 // Load session
@@ -224,6 +238,72 @@ pub struct LoadSessionRequest {
     /// The ID of the session to load.
     pub session_id: SessionId,
 }
+
+/// Response from loading an existing session.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadSessionResponse {
+    /// **UNSTABLE**
+    ///
+    /// This field is not part of the spec, and may be removed or changed at any point.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modes: Option<SessionModeState>,
+}
+
+// Session modes
+
+/// **UNSTABLE**
+///
+/// This type is not part of the spec, and may be removed or changed at any point.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionModeState {
+    pub current_mode_id: SessionModeId,
+    pub available_modes: Vec<SessionMode>,
+}
+
+/// **UNSTABLE**
+///
+/// This type is not part of the spec, and may be removed or changed at any point.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionMode {
+    pub id: SessionModeId,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+/// **UNSTABLE**
+///
+/// This type is not part of the spec, and may be removed or changed at any point.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionModeId(pub Arc<str>);
+
+impl std::fmt::Display for SessionModeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This type is not part of the spec, and may be removed or changed at any point.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-docs-ignore" = true))]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModeRequest {
+    pub session_id: SessionId,
+    pub mode_id: SessionModeId,
+}
+
+/// **UNSTABLE**
+///
+/// This type is not part of the spec, and may be removed or changed at any point.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModeResponse {}
 
 // MCP
 
@@ -440,6 +520,9 @@ pub struct AgentMethodNames {
     pub session_new: &'static str,
     /// Method for loading an existing session.
     pub session_load: &'static str,
+    /// Method for setting the mode for a session.
+    #[cfg(feature = "unstable")]
+    pub session_set_mode: &'static str,
     /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
@@ -452,6 +535,8 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     authenticate: AUTHENTICATE_METHOD_NAME,
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
+    #[cfg(feature = "unstable")]
+    session_set_mode: SESSION_SET_MODE_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
 };
@@ -464,6 +549,9 @@ pub(crate) const AUTHENTICATE_METHOD_NAME: &str = "authenticate";
 pub(crate) const SESSION_NEW_METHOD_NAME: &str = "session/new";
 /// Method name for loading an existing session.
 pub(crate) const SESSION_LOAD_METHOD_NAME: &str = "session/load";
+/// Method name for setting the mode for a session.
+#[cfg(feature = "unstable")]
+pub(crate) const SESSION_SET_MODE_METHOD_NAME: &str = "session/set_mode";
 /// Method name for sending a prompt.
 pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
@@ -483,6 +571,8 @@ pub enum ClientRequest {
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
     LoadSessionRequest(LoadSessionRequest),
+    #[cfg(feature = "unstable")]
+    SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
 }
 
@@ -499,7 +589,9 @@ pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
     AuthenticateResponse,
     NewSessionResponse(NewSessionResponse),
-    LoadSessionResponse,
+    LoadSessionResponse(LoadSessionResponse),
+    #[cfg(feature = "unstable")]
+    SetSessionModeResponse(SetSessionModeResponse),
     PromptResponse(PromptResponse),
 }
 
