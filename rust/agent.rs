@@ -281,6 +281,12 @@ pub struct SessionMode {
 #[serde(rename_all = "camelCase")]
 pub struct SessionModeId(pub Arc<str>);
 
+impl std::fmt::Display for SessionModeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// **UNSTABLE**
 ///
 /// This type is not part of the spec, and may be removed or changed at any point.
