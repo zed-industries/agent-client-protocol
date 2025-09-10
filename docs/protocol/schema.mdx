@@ -92,7 +92,7 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
-    - Default: `{"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
+    - Default: `{"loadSession":false,"mcpCapabilities":{"http":false,"sse":false},"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}}`
 
 </ResponseField>
 <ResponseField name="authMethods" type={<><span><a href="#authmethod">AuthMethod</a></span><span>[]</span></>} >
@@ -162,7 +162,7 @@ See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/s
 
 Request parameters for loading an existing session.
 
-Only available if the agent supports the `loadSession` capability.
+Only available if the Agent supports the `loadSession` capability.
 
 See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 
@@ -250,10 +250,10 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
-<ResponseField name="availableCommands" type={<><span><a href="#availablecommand">AvailableCommand</a></span><span>[]</span></>} >
+<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
   **UNSTABLE**
 
-Commands that may be executed via `session/prompt` requests
+This field is not part of the spec, and may be removed or changed at any point.
 
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
@@ -540,6 +540,12 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
   Whether the agent supports `session/load`.
 
     - Default: `false`
+
+</ResponseField>
+<ResponseField name="mcpCapabilities" type={<a href="#mcpcapabilities">McpCapabilities</a>} >
+  MCP capabilities supported by the agent.
+
+    - Default: `{"http":false,"sse":false}`
 
 </ResponseField>
 <ResponseField name="promptCapabilities" type={<a href="#promptcapabilities">PromptCapabilities</a>} >
@@ -943,6 +949,21 @@ See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initial
 
 </ResponseField>
 
+## <span class="font-mono">HttpHeader</span>
+
+An HTTP header to set when making requests to the MCP server.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="name" type={"string"} required>
+  The name of the HTTP header.
+</ResponseField>
+<ResponseField name="value" type={"string"} required>
+  The value to set for the HTTP header.
+</ResponseField>
+
 ## <span class="font-mono">ImageContent</span>
 
 An image provided to or from an LLM.
@@ -966,6 +987,42 @@ An image provided to or from an LLM.
 <ResponseField name="mimeType" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string | null"}></ResponseField>
 
+## <span class="font-mono">LoadSessionResponse</span>
+
+Response from loading an existing session.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
+  **UNSTABLE**
+
+This field is not part of the spec, and may be removed or changed at any point.
+
+</ResponseField>
+
+## <span class="font-mono">McpCapabilities</span>
+
+MCP capabilities supported by the agent
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="http" type={"boolean"} >
+  Agent supports `McpServer::Http`.
+
+    - Default: `false`
+
+</ResponseField>
+<ResponseField name="sse" type={"boolean"} >
+  Agent supports `McpServer::Sse`.
+
+    - Default: `false`
+
+</ResponseField>
+
 ## <span class="font-mono">McpServer</span>
 
 Configuration for connecting to an MCP (Model Context Protocol) server.
@@ -975,9 +1032,78 @@ processing prompts.
 
 See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
 
-**Type:** Object
+**Type:** Union
 
-**Properties:**
+<ResponseField name="http">
+HTTP transport configuration
+
+Only available when the Agent capabilities indicate `mcp_capabilities.http` is `true`.
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="headers"
+  type={
+    <>
+      <span>
+        <a href="#httpheader">HttpHeader</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+>
+  HTTP headers to set when making requests to the MCP server.
+</ResponseField>
+<ResponseField name="name" type={"string"} required>
+  Human-readable name identifying this MCP server.
+</ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+<ResponseField name="url" type={"string"} required>
+  URL to the MCP server.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="sse">
+SSE transport configuration
+
+Only available when the Agent capabilities indicate `mcp_capabilities.sse` is `true`.
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="headers"
+  type={
+    <>
+      <span>
+        <a href="#httpheader">HttpHeader</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+>
+  HTTP headers to set when making requests to the MCP server.
+</ResponseField>
+<ResponseField name="name" type={"string"} required>
+  Human-readable name identifying this MCP server.
+</ResponseField>
+<ResponseField name="type" type={"string"} required></ResponseField>
+<ResponseField name="url" type={"string"} required>
+  URL to the MCP server.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="Object">
+Stdio transport configuration
+
+All Agents MUST support this transport.
+
+<Expandable title="Properties">
 
 <ResponseField
   name="args"
@@ -1010,6 +1136,9 @@ See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/sessio
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   Human-readable name identifying this MCP server.
+</ResponseField>
+
+</Expandable>
 </ResponseField>
 
 ## <span class="font-mono">PermissionOption</span>
@@ -1323,6 +1452,60 @@ See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session
 
 **Type:** `string`
 
+## <span class="font-mono">SessionMode</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="description" type={"string | null"}></ResponseField>
+<ResponseField
+  name="id"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+<ResponseField name="name" type={"string"} required></ResponseField>
+
+## <span class="font-mono">SessionModeId</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** `string`
+
+## <span class="font-mono">SessionModeState</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="availableModes"
+  type={
+    <>
+      <span>
+        <a href="#sessionmode">SessionMode</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+></ResponseField>
+<ResponseField
+  name="currentModeId"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+
 ## <span class="font-mono">SessionUpdate</span>
 
 Different types of updates that can be sent during session processing.
@@ -1517,6 +1700,51 @@ with their current status. The client replaces the entire plan with each update.
 
 </Expandable>
 </ResponseField>
+
+<ResponseField name="available_commands_update">
+Available commands are ready or have changed
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="availableCommands"
+  type={
+    <>
+      <span>
+        <a href="#availablecommand">AvailableCommand</a>
+      </span>
+      <span>[]</span>
+    </>
+  }
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="current_mode_update">
+The current mode of the session has changed
+
+<Expandable title="Properties">
+
+<ResponseField
+  name="currentModeId"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+></ResponseField>
+<ResponseField name="sessionUpdate" type={"string"} required></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+## <span class="font-mono">SetSessionModeResponse</span>
+
+**UNSTABLE**
+
+This type is not part of the spec, and may be removed or changed at any point.
+
+**Type:** `object`
 
 ## <span class="font-mono">StopReason</span>
 
@@ -1853,5 +2081,12 @@ See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-call
 <ResponseField name="think">Internal reasoning or planning.</ResponseField>
 
 <ResponseField name="fetch">Retrieving external data.</ResponseField>
+
+<ResponseField name="switch_mode">
+**UNSTABLE**
+
+This tool kind is not part of the spec and may be removed at any point.
+
+</ResponseField>
 
 <ResponseField name="other">Other tool types (default).</ResponseField>

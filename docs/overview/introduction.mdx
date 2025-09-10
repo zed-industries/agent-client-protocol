@@ -28,13 +28,3 @@ ACP assumes that the user is primarily in their editor, and wants to reach out a
 Agents run as sub-processes of the code editor, and communicate using JSON-RPC over stdio. The protocol re-uses the JSON representations used in MCP where possible, but includes custom types for useful agentic coding UX elements, like displaying diffs.
 
 The default format for user-readable text is Markdown, which allows enough flexibility to represent rich formatting without requiring that the code editor is capable of rendering HTML.
-
-## Supported Editors
-
-- [Zed](https://zed.dev/docs/ai/external-agents)
-- [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
-
-## Supported Agents
-
-- [Gemini](https://github.com/google-gemini/gemini-cli)
-- ... more coming soon ;)

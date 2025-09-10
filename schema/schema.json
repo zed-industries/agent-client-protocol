@@ -8,6 +8,14 @@
           "description": "Whether the agent supports `session/load`.",
           "type": "boolean"
         },
+        "mcpCapabilities": {
+          "$ref": "#/$defs/McpCapabilities",
+          "default": {
+            "http": false,
+            "sse": false
+          },
+          "description": "MCP capabilities supported by the agent."
+        },
         "promptCapabilities": {
           "$ref": "#/$defs/PromptCapabilities",
           "default": {
@@ -83,8 +91,12 @@
           "title": "NewSessionResponse"
         },
         {
-          "title": "LoadSessionResponse",
-          "type": "null"
+          "$ref": "#/$defs/LoadSessionResponse",
+          "title": "LoadSessionResponse"
+        },
+        {
+          "$ref": "#/$defs/SetSessionModeResponse",
+          "title": "SetSessionModeResponse"
         },
         {
           "$ref": "#/$defs/PromptResponse",
@@ -289,6 +301,10 @@
         {
           "$ref": "#/$defs/LoadSessionRequest",
           "title": "LoadSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/SetSessionModeRequest",
+          "title": "SetSessionModeRequest"
         },
         {
           "$ref": "#/$defs/PromptRequest",
@@ -593,6 +609,21 @@
       },
       "type": "object"
     },
+    "HttpHeader": {
+      "description": "An HTTP header to set when making requests to the MCP server.",
+      "properties": {
+        "name": {
+          "description": "The name of the HTTP header.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value to set for the HTTP header.",
+          "type": "string"
+        }
+      },
+      "required": ["name", "value"],
+      "type": "object"
+    },
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "properties": {
@@ -650,6 +681,10 @@
           "$ref": "#/$defs/AgentCapabilities",
           "default": {
             "loadSession": false,
+            "mcpCapabilities": {
+              "http": false,
+              "sse": false
+            },
             "promptCapabilities": {
               "audio": false,
               "embeddedContext": false,
@@ -690,7 +725,7 @@
       "x-docs-ignore": true
     },
     "LoadSessionRequest": {
-      "description": "Request parameters for loading an existing session.\n\nOnly available if the agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
+      "description": "Request parameters for loading an existing session.\n\nOnly available if the Agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
       "properties": {
         "cwd": {
           "description": "The working directory for this session.",
@@ -713,34 +748,125 @@
       "x-method": "session/load",
       "x-side": "agent"
     },
-    "McpServer": {
-      "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)",
+    "LoadSessionResponse": {
+      "description": "Response from loading an existing session.",
       "properties": {
-        "args": {
-          "description": "Command-line arguments to pass to the MCP server.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "command": {
-          "description": "Path to the MCP server executable.",
-          "type": "string"
-        },
-        "env": {
-          "description": "Environment variables to set when launching the MCP server.",
-          "items": {
-            "$ref": "#/$defs/EnvVariable"
-          },
-          "type": "array"
-        },
-        "name": {
-          "description": "Human-readable name identifying this MCP server.",
-          "type": "string"
+        "modes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionModeState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "**UNSTABLE**\n\nThis field is not part of the spec, and may be removed or changed at any point."
         }
       },
-      "required": ["name", "command", "args", "env"],
       "type": "object"
+    },
+    "McpCapabilities": {
+      "description": "MCP capabilities supported by the agent",
+      "properties": {
+        "http": {
+          "default": false,
+          "description": "Agent supports [`McpServer::Http`].",
+          "type": "boolean"
+        },
+        "sse": {
+          "default": false,
+          "description": "Agent supports [`McpServer::Sse`].",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "McpServer": {
+      "anyOf": [
+        {
+          "description": "HTTP transport configuration\n\nOnly available when the Agent capabilities indicate `mcp_capabilities.http` is `true`.",
+          "properties": {
+            "headers": {
+              "description": "HTTP headers to set when making requests to the MCP server.",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL to the MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "name", "url", "headers"],
+          "type": "object"
+        },
+        {
+          "description": "SSE transport configuration\n\nOnly available when the Agent capabilities indicate `mcp_capabilities.sse` is `true`.",
+          "properties": {
+            "headers": {
+              "description": "HTTP headers to set when making requests to the MCP server.",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            },
+            "type": {
+              "const": "sse",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL to the MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "name", "url", "headers"],
+          "type": "object"
+        },
+        {
+          "description": "Stdio transport configuration\n\nAll Agents MUST support this transport.",
+          "properties": {
+            "args": {
+              "description": "Command-line arguments to pass to the MCP server.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "command": {
+              "description": "Path to the MCP server executable.",
+              "type": "string"
+            },
+            "env": {
+              "description": "Environment variables to set when launching the MCP server.",
+              "items": {
+                "$ref": "#/$defs/EnvVariable"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Human-readable name identifying this MCP server.",
+              "type": "string"
+            }
+          },
+          "required": ["name", "command", "args", "env"],
+          "title": "stdio",
+          "type": "object"
+        }
+      ],
+      "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)"
     },
     "NewSessionRequest": {
       "description": "Request parameters for creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
@@ -765,12 +891,16 @@
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
-        "availableCommands": {
-          "description": "**UNSTABLE**\n\nCommands that may be executed via `session/prompt` requests",
-          "items": {
-            "$ref": "#/$defs/AvailableCommand"
-          },
-          "type": "array"
+        "modes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionModeState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "**UNSTABLE**\n\nThis field is not part of the spec, and may be removed or changed at any point."
         },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
@@ -1129,6 +1259,42 @@
       "description": "A unique identifier for a conversation session between a client and agent.\n\nSessions maintain their own context, conversation history, and state,\nallowing multiple independent interactions with the same agent.\n\n# Example\n\n```\nuse agent_client_protocol::SessionId;\nuse std::sync::Arc;\n\nlet session_id = SessionId(Arc::from(\"sess_abc123def456\"));\n```\n\nSee protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)",
       "type": "string"
     },
+    "SessionMode": {
+      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "properties": {
+        "description": {
+          "type": ["string", "null"]
+        },
+        "id": {
+          "$ref": "#/$defs/SessionModeId"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "name"],
+      "type": "object"
+    },
+    "SessionModeId": {
+      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "type": "string"
+    },
+    "SessionModeState": {
+      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "properties": {
+        "availableModes": {
+          "items": {
+            "$ref": "#/$defs/SessionMode"
+          },
+          "type": "array"
+        },
+        "currentModeId": {
+          "$ref": "#/$defs/SessionModeId"
+        }
+      },
+      "required": ["currentModeId", "availableModes"],
+      "type": "object"
+    },
     "SessionNotification": {
       "description": "Notification containing a session update from the agent.\n\nUsed to stream real-time progress and results during prompt processing.\n\nSee protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)",
       "properties": {
@@ -1316,8 +1482,59 @@
           },
           "required": ["sessionUpdate", "entries"],
           "type": "object"
+        },
+        {
+          "description": "Available commands are ready or have changed",
+          "properties": {
+            "availableCommands": {
+              "items": {
+                "$ref": "#/$defs/AvailableCommand"
+              },
+              "type": "array"
+            },
+            "sessionUpdate": {
+              "const": "available_commands_update",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "availableCommands"],
+          "type": "object",
+          "x-docs-ignore": true
+        },
+        {
+          "description": "The current mode of the session has changed",
+          "properties": {
+            "currentModeId": {
+              "$ref": "#/$defs/SessionModeId"
+            },
+            "sessionUpdate": {
+              "const": "current_mode_update",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "currentModeId"],
+          "type": "object",
+          "x-docs-ignore": true
         }
       ]
+    },
+    "SetSessionModeRequest": {
+      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "properties": {
+        "modeId": {
+          "$ref": "#/$defs/SessionModeId"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/SessionId"
+        }
+      },
+      "required": ["sessionId", "modeId"],
+      "type": "object",
+      "x-docs-ignore": true
+    },
+    "SetSessionModeResponse": {
+      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "type": "object"
     },
     "StopReason": {
       "description": "Reasons why an agent stops processing a prompt turn.\n\nSee protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)",
@@ -1678,6 +1895,11 @@
         {
           "const": "fetch",
           "description": "Retrieving external data.",
+          "type": "string"
+        },
+        {
+          "const": "switch_mode",
+          "description": "**UNSTABLE**\n\nThis tool kind is not part of the spec and may be removed at any point.",
           "type": "string"
         },
         {

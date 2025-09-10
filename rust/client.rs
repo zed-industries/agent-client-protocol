@@ -9,6 +9,8 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "unstable")]
+use crate::SessionModeId;
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 /// Defines the interface that ACP-compliant clients must implement.
@@ -158,6 +160,43 @@ pub enum SessionUpdate {
     /// The agent's execution plan for complex tasks.
     /// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
+    /// Available commands are ready or have changed
+    #[cfg(feature = "unstable")]
+    #[serde(rename_all = "camelCase")]
+    #[schemars(extend("x-docs-ignore" = true))]
+    AvailableCommandsUpdate {
+        available_commands: Vec<AvailableCommand>,
+    },
+    /// The current mode of the session has changed
+    #[cfg(feature = "unstable")]
+    #[serde(rename_all = "camelCase")]
+    #[schemars(extend("x-docs-ignore" = true))]
+    CurrentModeUpdate { current_mode_id: SessionModeId },
+}
+
+/// Information about a command.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
+pub struct AvailableCommand {
+    /// Command name (e.g., "create_plan", "research_codebase").
+    pub name: String,
+    /// Human-readable description of what the command does.
+    pub description: String,
+    /// Input for the command if required
+    pub input: Option<AvailableCommandInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged, rename_all = "camelCase")]
+#[cfg(feature = "unstable")]
+pub enum AvailableCommandInput {
+    /// All text that was typed after the command name is provided as input.
+    #[schemars(rename = "UnstructuredCommandInput")]
+    Unstructured {
+        /// A brief description of the expected input
+        hint: String,
+    },
 }
 
 // Permission

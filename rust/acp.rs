@@ -192,11 +192,27 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn load_session(&self, arguments: LoadSessionRequest) -> Result<(), Error> {
+    async fn load_session(
+        &self,
+        arguments: LoadSessionRequest,
+    ) -> Result<LoadSessionResponse, Error> {
         self.conn
             .request(
                 SESSION_LOAD_METHOD_NAME,
                 Some(ClientRequest::LoadSessionRequest(arguments)),
+            )
+            .await
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn set_session_mode(
+        &self,
+        arguments: SetSessionModeRequest,
+    ) -> Result<SetSessionModeResponse, Error> {
+        self.conn
+            .request(
+                SESSION_SET_MODE_METHOD_NAME,
+                Some(ClientRequest::SetSessionModeRequest(arguments)),
             )
             .await
     }
@@ -525,6 +541,10 @@ impl Side for AgentSide {
             SESSION_LOAD_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::LoadSessionRequest)
                 .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            SESSION_SET_MODE_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::SetSessionModeRequest)
+                .map_err(Into::into),
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::PromptRequest)
                 .map_err(Into::into),
@@ -563,12 +583,17 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::NewSessionResponse(response))
             }
             ClientRequest::LoadSessionRequest(args) => {
-                self.load_session(args).await?;
-                Ok(AgentResponse::LoadSessionResponse)
+                let response = self.load_session(args).await?;
+                Ok(AgentResponse::LoadSessionResponse(response))
             }
             ClientRequest::PromptRequest(args) => {
                 let response = self.prompt(args).await?;
                 Ok(AgentResponse::PromptResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            ClientRequest::SetSessionModeRequest(args) => {
+                let response = self.set_session_mode(args).await?;
+                Ok(AgentResponse::SetSessionModeResponse(response))
             }
         }
     }

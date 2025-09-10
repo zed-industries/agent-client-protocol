@@ -5,6 +5,7 @@ export const AGENT_METHODS = {
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
+  session_set_mode: "session/set_mode",
 };
 
 export const CLIENT_METHODS = {
@@ -156,6 +157,7 @@ export type ToolKind =
   | "execute"
   | "think"
   | "fetch"
+  | "switch_mode"
   | "other";
 /**
  * Execution status of a tool call.
@@ -228,7 +230,54 @@ export type AgentRequest =
   | AuthenticateRequest
   | NewSessionRequest
   | LoadSessionRequest
+  | SetSessionModeRequest
   | PromptRequest;
+/**
+ * Configuration for connecting to an MCP (Model Context Protocol) server.
+ *
+ * MCP servers provide tools and context that the agent can use when
+ * processing prompts.
+ *
+ * See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+ */
+export type McpServer =
+  | {
+      /**
+       * HTTP headers to set when making requests to the MCP server.
+       */
+      headers: HttpHeader[];
+      /**
+       * Human-readable name identifying this MCP server.
+       */
+      name: string;
+      type: "http";
+      /**
+       * URL to the MCP server.
+       */
+      url: string;
+    }
+  | {
+      /**
+       * HTTP headers to set when making requests to the MCP server.
+       */
+      headers: HttpHeader[];
+      /**
+       * Human-readable name identifying this MCP server.
+       */
+      name: string;
+      type: "sse";
+      /**
+       * URL to the MCP server.
+       */
+      url: string;
+    }
+  | Stdio;
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export type SessionModeId = string;
 /**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
@@ -293,10 +342,9 @@ export type AgentResponse =
   | AuthenticateResponse
   | NewSessionResponse
   | LoadSessionResponse
+  | SetSessionModeResponse
   | PromptResponse;
 export type AuthenticateResponse = null;
-export type AvailableCommandInput = UnstructuredCommandInput;
-export type LoadSessionResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
  *
@@ -307,6 +355,7 @@ export type LoadSessionResponse = null;
  */
 /** @internal */
 export type AgentNotification = SessionNotification;
+export type AvailableCommandInput = UnstructuredCommandInput;
 
 /**
  * Request to write content to a text file.
@@ -639,14 +688,24 @@ export interface NewSessionRequest {
   mcpServers: McpServer[];
 }
 /**
- * Configuration for connecting to an MCP (Model Context Protocol) server.
- *
- * MCP servers provide tools and context that the agent can use when
- * processing prompts.
- *
- * See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
+ * An HTTP header to set when making requests to the MCP server.
  */
-export interface McpServer {
+export interface HttpHeader {
+  /**
+   * The name of the HTTP header.
+   */
+  name: string;
+  /**
+   * The value to set for the HTTP header.
+   */
+  value: string;
+}
+/**
+ * Stdio transport configuration
+ *
+ * All Agents MUST support this transport.
+ */
+export interface Stdio {
   /**
    * Command-line arguments to pass to the MCP server.
    */
@@ -667,7 +726,7 @@ export interface McpServer {
 /**
  * Request parameters for loading an existing session.
  *
- * Only available if the agent supports the `loadSession` capability.
+ * Only available if the Agent supports the `loadSession` capability.
  *
  * See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
  */
@@ -698,6 +757,15 @@ export interface LoadSessionRequest {
    * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
+}
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SetSessionModeRequest {
+  modeId: SessionModeId;
+  sessionId: SessionId;
 }
 /**
  * Request parameters for sending a user prompt to the agent.
@@ -771,7 +839,21 @@ export interface AgentCapabilities {
    * Whether the agent supports `session/load`.
    */
   loadSession?: boolean;
+  mcpCapabilities?: McpCapabilities;
   promptCapabilities?: PromptCapabilities;
+}
+/**
+ * MCP capabilities supported by the agent.
+ */
+export interface McpCapabilities {
+  /**
+   * Agent supports [`McpServer::Http`].
+   */
+  http?: boolean;
+  /**
+   * Agent supports [`McpServer::Sse`].
+   */
+  sse?: boolean;
 }
 /**
  * Prompt capabilities supported by the agent.
@@ -819,9 +901,9 @@ export interface NewSessionResponse {
   /**
    * **UNSTABLE**
    *
-   * Commands that may be executed via `session/prompt` requests
+   * This field is not part of the spec, and may be removed or changed at any point.
    */
-  availableCommands?: AvailableCommand[];
+  modes?: SessionModeState | null;
   /**
    * A unique identifier for a conversation session between a client and agent.
    *
@@ -842,31 +924,41 @@ export interface NewSessionResponse {
   sessionId: string;
 }
 /**
- * Information about a command.
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
  */
-export interface AvailableCommand {
-  /**
-   * Human-readable description of what the command does.
-   */
-  description: string;
-  /**
-   * Input for the command if required
-   */
-  input?: AvailableCommandInput | null;
-  /**
-   * Command name (e.g., "create_plan", "research_codebase").
-   */
+export interface SessionModeState {
+  availableModes: SessionMode[];
+  currentModeId: SessionModeId;
+}
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SessionMode {
+  description?: string | null;
+  id: SessionModeId;
   name: string;
 }
 /**
- * All text that was typed after the command name is provided as input.
+ * Response from loading an existing session.
  */
-export interface UnstructuredCommandInput {
+export interface LoadSessionResponse {
   /**
-   * A brief description of the expected input
+   * **UNSTABLE**
+   *
+   * This field is not part of the spec, and may be removed or changed at any point.
    */
-  hint: string;
+  modes?: SessionModeState | null;
 }
+/**
+ * **UNSTABLE**
+ *
+ * This type is not part of the spec, and may be removed or changed at any point.
+ */
+export interface SetSessionModeResponse {}
 /**
  * Response from processing a user prompt.
  *
@@ -929,6 +1021,7 @@ export interface SessionNotification {
           | "execute"
           | "think"
           | "fetch"
+          | "switch_mode"
           | "other";
         /**
          * File locations affected by this tool call.
@@ -1009,6 +1102,14 @@ export interface SessionNotification {
          */
         entries: PlanEntry[];
         sessionUpdate: "plan";
+      }
+    | {
+        availableCommands: AvailableCommand[];
+        sessionUpdate: "available_commands_update";
+      }
+    | {
+        currentModeId: SessionModeId;
+        sessionUpdate: "current_mode_update";
       };
 }
 /**
@@ -1032,6 +1133,32 @@ export interface PlanEntry {
    * Current execution status of this task.
    */
   status: "pending" | "in_progress" | "completed";
+}
+/**
+ * Information about a command.
+ */
+export interface AvailableCommand {
+  /**
+   * Human-readable description of what the command does.
+   */
+  description: string;
+  /**
+   * Input for the command if required
+   */
+  input?: AvailableCommandInput | null;
+  /**
+   * Command name (e.g., "create_plan", "research_codebase").
+   */
+  name: string;
+}
+/**
+ * All text that was typed after the command name is provided as input.
+ */
+export interface UnstructuredCommandInput {
+  /**
+   * A brief description of the expected input
+   */
+  hint: string;
 }
 
 /** @internal */
@@ -1076,6 +1203,7 @@ export const toolKindSchema = z.union([
   z.literal("execute"),
   z.literal("think"),
   z.literal("fetch"),
+  z.literal("switch_mode"),
   z.literal("other"),
 ]);
 
@@ -1139,6 +1267,15 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
+export const httpHeaderSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+});
+
+/** @internal */
+export const sessionModeIdSchema = z.string();
+
+/** @internal */
 export const annotationsSchema = z.object({
   audience: z.array(roleSchema).optional().nullable(),
   lastModified: z.string().optional().nullable(),
@@ -1155,7 +1292,7 @@ export const embeddedResourceResourceSchema = z.union([
 export const authenticateResponseSchema = z.null();
 
 /** @internal */
-export const loadSessionResponseSchema = z.null();
+export const setSessionModeResponseSchema = z.object({});
 
 /** @internal */
 export const promptResponseSchema = z.object({
@@ -1286,7 +1423,7 @@ export const fileSystemCapabilitySchema = z.object({
 });
 
 /** @internal */
-export const mcpServerSchema = z.object({
+export const stdioSchema = z.object({
   args: z.array(z.string()),
   command: z.string(),
   env: z.array(envVariableSchema),
@@ -1294,10 +1431,26 @@ export const mcpServerSchema = z.object({
 });
 
 /** @internal */
-export const loadSessionRequestSchema = z.object({
-  cwd: z.string(),
-  mcpServers: z.array(mcpServerSchema),
-  sessionId: z.string(),
+export const mcpServerSchema = z.union([
+  z.object({
+    headers: z.array(httpHeaderSchema),
+    name: z.string(),
+    type: z.literal("http"),
+    url: z.string(),
+  }),
+  z.object({
+    headers: z.array(httpHeaderSchema),
+    name: z.string(),
+    type: z.literal("sse"),
+    url: z.string(),
+  }),
+  stdioSchema,
+]);
+
+/** @internal */
+export const setSessionModeRequestSchema = z.object({
+  modeId: sessionModeIdSchema,
+  sessionId: sessionIdSchema,
 });
 
 /** @internal */
@@ -1345,6 +1498,12 @@ export const authMethodSchema = z.object({
 });
 
 /** @internal */
+export const mcpCapabilitiesSchema = z.object({
+  http: z.boolean().optional(),
+  sse: z.boolean().optional(),
+});
+
+/** @internal */
 export const promptCapabilitiesSchema = z.object({
   audio: z.boolean().optional(),
   embeddedContext: z.boolean().optional(),
@@ -1352,7 +1511,17 @@ export const promptCapabilitiesSchema = z.object({
 });
 
 /** @internal */
-export const availableCommandInputSchema = unstructuredCommandInputSchema;
+export const sessionModeSchema = z.object({
+  description: z.string().optional().nullable(),
+  id: sessionModeIdSchema,
+  name: z.string(),
+});
+
+/** @internal */
+export const sessionModeStateSchema = z.object({
+  availableModes: z.array(sessionModeSchema),
+  currentModeId: sessionModeIdSchema,
+});
 
 /** @internal */
 export const planEntrySchema = z.object({
@@ -1364,6 +1533,9 @@ export const planEntrySchema = z.object({
     z.literal("completed"),
   ]),
 });
+
+/** @internal */
+export const availableCommandInputSchema = unstructuredCommandInputSchema;
 
 /** @internal */
 export const clientNotificationSchema = cancelNotificationSchema;
@@ -1392,9 +1564,91 @@ export const newSessionRequestSchema = z.object({
 });
 
 /** @internal */
+export const loadSessionRequestSchema = z.object({
+  cwd: z.string(),
+  mcpServers: z.array(mcpServerSchema),
+  sessionId: z.string(),
+});
+
+/** @internal */
 export const promptRequestSchema = z.object({
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
+});
+
+/** @internal */
+export const newSessionResponseSchema = z.object({
+  modes: sessionModeStateSchema.optional().nullable(),
+  sessionId: z.string(),
+});
+
+/** @internal */
+export const loadSessionResponseSchema = z.object({
+  modes: sessionModeStateSchema.optional().nullable(),
+});
+
+/** @internal */
+export const toolCallUpdateSchema = z.object({
+  content: z.array(toolCallContentSchema).optional().nullable(),
+  kind: toolKindSchema.optional().nullable(),
+  locations: z.array(toolCallLocationSchema).optional().nullable(),
+  rawInput: z.record(z.unknown()).optional(),
+  rawOutput: z.record(z.unknown()).optional(),
+  status: toolCallStatusSchema.optional().nullable(),
+  title: z.string().optional().nullable(),
+  toolCallId: z.string(),
+});
+
+/** @internal */
+export const clientCapabilitiesSchema = z.object({
+  fs: fileSystemCapabilitySchema.optional(),
+  terminal: z.boolean().optional(),
+});
+
+/** @internal */
+export const agentCapabilitiesSchema = z.object({
+  loadSession: z.boolean().optional(),
+  mcpCapabilities: mcpCapabilitiesSchema.optional(),
+  promptCapabilities: promptCapabilitiesSchema.optional(),
+});
+
+/** @internal */
+export const availableCommandSchema = z.object({
+  description: z.string(),
+  input: availableCommandInputSchema.optional().nullable(),
+  name: z.string(),
+});
+
+/** @internal */
+export const clientResponseSchema = z.union([
+  writeTextFileResponseSchema,
+  readTextFileResponseSchema,
+  requestPermissionResponseSchema,
+  createTerminalResponseSchema,
+  terminalOutputResponseSchema,
+  releaseTerminalResponseSchema,
+  waitForTerminalExitResponseSchema,
+  killTerminalResponseSchema,
+]);
+
+/** @internal */
+export const requestPermissionRequestSchema = z.object({
+  options: z.array(permissionOptionSchema),
+  sessionId: z.string(),
+  toolCall: toolCallUpdateSchema,
+});
+
+/** @internal */
+export const initializeRequestSchema = z.object({
+  clientCapabilities: clientCapabilitiesSchema.optional(),
+  protocolVersion: z.number(),
+});
+
+/** @internal */
+export const initializeResponseSchema = z.object({
+  agentCapabilities: agentCapabilitiesSchema.optional(),
+  authMethods: z.array(authMethodSchema).optional(),
+  protocolVersion: z.number(),
 });
 
 /** @internal */
@@ -1425,6 +1679,7 @@ export const sessionNotificationSchema = z.object({
           z.literal("execute"),
           z.literal("think"),
           z.literal("fetch"),
+          z.literal("switch_mode"),
           z.literal("other"),
         ])
         .optional(),
@@ -1458,79 +1713,15 @@ export const sessionNotificationSchema = z.object({
       entries: z.array(planEntrySchema),
       sessionUpdate: z.literal("plan"),
     }),
+    z.object({
+      availableCommands: z.array(availableCommandSchema),
+      sessionUpdate: z.literal("available_commands_update"),
+    }),
+    z.object({
+      currentModeId: sessionModeIdSchema,
+      sessionUpdate: z.literal("current_mode_update"),
+    }),
   ]),
-});
-
-/** @internal */
-export const toolCallUpdateSchema = z.object({
-  content: z.array(toolCallContentSchema).optional().nullable(),
-  kind: toolKindSchema.optional().nullable(),
-  locations: z.array(toolCallLocationSchema).optional().nullable(),
-  rawInput: z.record(z.unknown()).optional(),
-  rawOutput: z.record(z.unknown()).optional(),
-  status: toolCallStatusSchema.optional().nullable(),
-  title: z.string().optional().nullable(),
-  toolCallId: z.string(),
-});
-
-/** @internal */
-export const clientCapabilitiesSchema = z.object({
-  fs: fileSystemCapabilitySchema.optional(),
-  terminal: z.boolean().optional(),
-});
-
-/** @internal */
-export const agentCapabilitiesSchema = z.object({
-  loadSession: z.boolean().optional(),
-  promptCapabilities: promptCapabilitiesSchema.optional(),
-});
-
-/** @internal */
-export const availableCommandSchema = z.object({
-  description: z.string(),
-  input: availableCommandInputSchema.optional().nullable(),
-  name: z.string(),
-});
-
-/** @internal */
-export const clientResponseSchema = z.union([
-  writeTextFileResponseSchema,
-  readTextFileResponseSchema,
-  requestPermissionResponseSchema,
-  createTerminalResponseSchema,
-  terminalOutputResponseSchema,
-  releaseTerminalResponseSchema,
-  waitForTerminalExitResponseSchema,
-  killTerminalResponseSchema,
-]);
-
-/** @internal */
-export const agentNotificationSchema = sessionNotificationSchema;
-
-/** @internal */
-export const requestPermissionRequestSchema = z.object({
-  options: z.array(permissionOptionSchema),
-  sessionId: z.string(),
-  toolCall: toolCallUpdateSchema,
-});
-
-/** @internal */
-export const initializeRequestSchema = z.object({
-  clientCapabilities: clientCapabilitiesSchema.optional(),
-  protocolVersion: z.number(),
-});
-
-/** @internal */
-export const initializeResponseSchema = z.object({
-  agentCapabilities: agentCapabilitiesSchema.optional(),
-  authMethods: z.array(authMethodSchema).optional(),
-  protocolVersion: z.number(),
-});
-
-/** @internal */
-export const newSessionResponseSchema = z.object({
-  availableCommands: z.array(availableCommandSchema).optional(),
-  sessionId: z.string(),
 });
 
 /** @internal */
@@ -1551,6 +1742,7 @@ export const agentRequestSchema = z.union([
   authenticateRequestSchema,
   newSessionRequestSchema,
   loadSessionRequestSchema,
+  setSessionModeRequestSchema,
   promptRequestSchema,
 ]);
 
@@ -1560,8 +1752,12 @@ export const agentResponseSchema = z.union([
   authenticateResponseSchema,
   newSessionResponseSchema,
   loadSessionResponseSchema,
+  setSessionModeResponseSchema,
   promptResponseSchema,
 ]);
+
+/** @internal */
+export const agentNotificationSchema = sessionNotificationSchema;
 
 /** @internal */
 export const agentClientProtocolSchema = z.union([
