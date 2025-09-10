@@ -2,8 +2,10 @@ package acp
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -34,71 +36,72 @@ type Connection struct {
 	nextID  atomic.Uint64
 	pending map[string]*pendingResponse
 
-	done chan struct{}
+	ctx    context.Context
+	cancel context.CancelCauseFunc
 }
 
 func NewConnection(handler MethodHandler, peerInput io.Writer, peerOutput io.Reader) *Connection {
+	ctx, cancel := context.WithCancelCause(context.Background())
 	c := &Connection{
 		w:       peerInput,
 		r:       peerOutput,
 		handler: handler,
 		pending: make(map[string]*pendingResponse),
-		done:    make(chan struct{}),
+		ctx:     ctx,
+		cancel:  cancel,
 	}
 	go c.receive()
 	return c
 }
 
 func (c *Connection) receive() {
+	const (
+		initialBufSize = 1024 * 1024
+		maxBufSize     = 10 * 1024 * 1024
+	)
+
 	scanner := bufio.NewScanner(c.r)
-	// increase buffer if needed
-	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	buf := make([]byte, 0, initialBufSize)
+	scanner.Buffer(buf, maxBufSize)
+
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		if len(bytesTrimSpace(line)) == 0 {
+		if len(bytes.TrimSpace(line)) == 0 {
 			continue
 		}
+
 		var msg anyMessage
 		if err := json.Unmarshal(line, &msg); err != nil {
-			// ignore parse errors on inbound
 			continue
 		}
-		if msg.ID != nil && msg.Method == "" {
-			// response
-			idStr := string(*msg.ID)
-			c.mu.Lock()
-			pr := c.pending[idStr]
-			if pr != nil {
-				delete(c.pending, idStr)
-			}
-			c.mu.Unlock()
-			if pr != nil {
-				pr.ch <- msg
-			}
-			continue
-		}
-		if msg.Method != "" {
-			// request or notification
+
+		switch {
+		case msg.ID != nil && msg.Method == "":
+			c.handleResponse(&msg)
+		case msg.Method != "":
 			go c.handleInbound(&msg)
 		}
 	}
-	// Signal completion on EOF or read error
+
+	c.cancel(errors.New("peer connection closed"))
+}
+
+func (c *Connection) handleResponse(msg *anyMessage) {
+	idStr := string(*msg.ID)
+
 	c.mu.Lock()
-	if c.done != nil {
-		close(c.done)
-		c.done = nil
+	pr := c.pending[idStr]
+	if pr != nil {
+		delete(c.pending, idStr)
 	}
 	c.mu.Unlock()
+
+	if pr != nil {
+		pr.ch <- *msg
+	}
 }
 
 func (c *Connection) handleInbound(req *anyMessage) {
-	// Context that cancels when the connection is closed
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-c.Done()
-		cancel()
-	}()
 	res := anyMessage{JSONRPC: "2.0"}
 	// copy ID if present
 	if req.ID != nil {
@@ -112,7 +115,7 @@ func (c *Connection) handleInbound(req *anyMessage) {
 		return
 	}
 
-	result, err := c.handler(ctx, req.Method, req.Params)
+	result, err := c.handler(c.ctx, req.Method, req.Params)
 	if req.ID == nil {
 		// notification: nothing to send
 		return
@@ -147,93 +150,101 @@ func (c *Connection) sendMessage(msg anyMessage) error {
 // SendRequest sends a JSON-RPC request and returns a typed result.
 // For methods that do not return a result, use SendRequestNoResult instead.
 func SendRequest[T any](c *Connection, ctx context.Context, method string, params any) (T, error) {
-	var zero T
-	// allocate id
+	var result T
+
+	msg, idKey, err := c.prepareRequest(method, params)
+	if err != nil {
+		return result, err
+	}
+
+	pr := &pendingResponse{ch: make(chan anyMessage, 1)}
+	c.mu.Lock()
+	c.pending[idKey] = pr
+	c.mu.Unlock()
+
+	if err := c.sendMessage(msg); err != nil {
+		c.cleanupPending(idKey)
+		return result, NewInternalError(map[string]any{"error": err.Error()})
+	}
+
+	resp, err := c.waitForResponse(ctx, pr, idKey)
+	if err != nil {
+		return result, err
+	}
+
+	if resp.Error != nil {
+		return result, resp.Error
+	}
+
+	if len(resp.Result) > 0 {
+		if err := json.Unmarshal(resp.Result, &result); err != nil {
+			return result, NewInternalError(map[string]any{"error": err.Error()})
+		}
+	}
+	return result, nil
+}
+
+func (c *Connection) prepareRequest(method string, params any) (anyMessage, string, error) {
 	id := c.nextID.Add(1)
 	idRaw, _ := json.Marshal(id)
+
 	msg := anyMessage{
 		JSONRPC: "2.0",
 		ID:      (*json.RawMessage)(&idRaw),
 		Method:  method,
 	}
+
 	if params != nil {
 		b, err := json.Marshal(params)
 		if err != nil {
-			return zero, NewInvalidParams(map[string]any{"error": err.Error()})
+			return msg, "", NewInvalidParams(map[string]any{"error": err.Error()})
 		}
 		msg.Params = b
 	}
-	pr := &pendingResponse{ch: make(chan anyMessage, 1)}
-	idKey := string(idRaw)
-	c.mu.Lock()
-	c.pending[idKey] = pr
-	c.mu.Unlock()
-	if err := c.sendMessage(msg); err != nil {
-		return zero, NewInternalError(map[string]any{"error": err.Error()})
-	}
-	// wait for response or peer disconnect
-	var resp anyMessage
-	d := c.Done()
+
+	return msg, string(idRaw), nil
+}
+
+func (c *Connection) waitForResponse(ctx context.Context, pr *pendingResponse, idKey string) (anyMessage, error) {
 	select {
-	case resp = <-pr.ch:
+	case resp := <-pr.ch:
+		return resp, nil
 	case <-ctx.Done():
-		// best-effort cleanup
-		c.mu.Lock()
-		delete(c.pending, idKey)
-		c.mu.Unlock()
-		return zero, NewInternalError(map[string]any{"error": ctx.Err().Error()})
-	case <-d:
-		return zero, NewInternalError(map[string]any{"error": "peer disconnected before response"})
+		c.cleanupPending(idKey)
+		return anyMessage{}, NewInternalError(map[string]any{"error": context.Cause(ctx).Error()})
+	case <-c.Done():
+		return anyMessage{}, NewInternalError(map[string]any{"error": "peer disconnected before response"})
 	}
-	if resp.Error != nil {
-		return zero, resp.Error
-	}
-	var out T
-	if len(resp.Result) > 0 {
-		if err := json.Unmarshal(resp.Result, &out); err != nil {
-			return zero, NewInternalError(map[string]any{"error": err.Error()})
-		}
-	}
-	return out, nil
+}
+
+func (c *Connection) cleanupPending(idKey string) {
+	c.mu.Lock()
+	delete(c.pending, idKey)
+	c.mu.Unlock()
 }
 
 // SendRequestNoResult sends a JSON-RPC request that returns no result payload.
 func (c *Connection) SendRequestNoResult(ctx context.Context, method string, params any) error {
-	// allocate id
-	id := c.nextID.Add(1)
-	idRaw, _ := json.Marshal(id)
-	msg := anyMessage{
-		JSONRPC: "2.0",
-		ID:      (*json.RawMessage)(&idRaw),
-		Method:  method,
+	msg, idKey, err := c.prepareRequest(method, params)
+	if err != nil {
+		return err
 	}
-	if params != nil {
-		b, err := json.Marshal(params)
-		if err != nil {
-			return NewInvalidParams(map[string]any{"error": err.Error()})
-		}
-		msg.Params = b
-	}
+
 	pr := &pendingResponse{ch: make(chan anyMessage, 1)}
-	idKey := string(idRaw)
 	c.mu.Lock()
 	c.pending[idKey] = pr
 	c.mu.Unlock()
+
 	if err := c.sendMessage(msg); err != nil {
+		c.cleanupPending(idKey)
 		return NewInternalError(map[string]any{"error": err.Error()})
 	}
-	var resp anyMessage
-	d := c.Done()
-	select {
-	case resp = <-pr.ch:
-	case <-ctx.Done():
-		c.mu.Lock()
-		delete(c.pending, idKey)
-		c.mu.Unlock()
-		return NewInternalError(map[string]any{"error": ctx.Err().Error()})
-	case <-d:
-		return NewInternalError(map[string]any{"error": "peer disconnected before response"})
+
+	resp, err := c.waitForResponse(ctx, pr, idKey)
+	if err != nil {
+		return err
 	}
+
 	if resp.Error != nil {
 		return resp.Error
 	}
@@ -246,43 +257,37 @@ func (c *Connection) SendNotification(ctx context.Context, method string, params
 		return NewInternalError(map[string]any{"error": ctx.Err().Error()})
 	default:
 	}
-	msg := anyMessage{JSONRPC: "2.0", Method: method}
-	if params != nil {
-		b, err := json.Marshal(params)
-		if err != nil {
-			return NewInvalidParams(map[string]any{"error": err.Error()})
-		}
-		msg.Params = b
+
+	msg, err := c.prepareNotification(method, params)
+	if err != nil {
+		return err
 	}
+
 	if err := c.sendMessage(msg); err != nil {
 		return NewInternalError(map[string]any{"error": err.Error()})
 	}
 	return nil
 }
 
+func (c *Connection) prepareNotification(method string, params any) (anyMessage, error) {
+	msg := anyMessage{
+		JSONRPC: "2.0",
+		Method:  method,
+	}
+
+	if params != nil {
+		b, err := json.Marshal(params)
+		if err != nil {
+			return msg, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		msg.Params = b
+	}
+
+	return msg, nil
+}
+
 // Done returns a channel that is closed when the underlying reader loop exits
 // (typically when the peer disconnects or the input stream is closed).
 func (c *Connection) Done() <-chan struct{} {
-	c.mu.Lock()
-	d := c.done
-	c.mu.Unlock()
-	return d
-}
-
-// Helper: lightweight TrimSpace for []byte without importing bytes only for this.
-func bytesTrimSpace(b []byte) []byte {
-	i := 0
-	for ; i < len(b); i++ {
-		if b[i] != ' ' && b[i] != '\t' && b[i] != '\r' && b[i] != '\n' {
-			break
-		}
-	}
-	j := len(b)
-	for j > i {
-		if b[j-1] != ' ' && b[j-1] != '\t' && b[j-1] != '\r' && b[j-1] != '\n' {
-			break
-		}
-		j--
-	}
-	return b[i:j]
+	return c.ctx.Done()
 }

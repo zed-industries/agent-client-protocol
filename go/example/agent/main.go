@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"time"
 
 	acp "github.com/zed-industries/agent-client-protocol/go"
@@ -21,6 +22,7 @@ type agentSession struct {
 type exampleAgent struct {
 	conn     *acp.AgentSideConnection
 	sessions map[string]*agentSession
+	mu       sync.Mutex
 }
 
 var (
@@ -46,7 +48,9 @@ func (a *exampleAgent) Initialize(ctx context.Context, params acp.InitializeRequ
 
 func (a *exampleAgent) NewSession(ctx context.Context, params acp.NewSessionRequest) (acp.NewSessionResponse, error) {
 	sid := randomID()
+	a.mu.Lock()
 	a.sessions[sid] = &agentSession{}
+	a.mu.Unlock()
 	return acp.NewSessionResponse{SessionId: acp.SessionId(sid)}, nil
 }
 
@@ -55,27 +59,37 @@ func (a *exampleAgent) Authenticate(ctx context.Context, _ acp.AuthenticateReque
 func (a *exampleAgent) LoadSession(ctx context.Context, _ acp.LoadSessionRequest) error { return nil }
 
 func (a *exampleAgent) Cancel(ctx context.Context, params acp.CancelNotification) error {
-	if s, ok := a.sessions[string(params.SessionId)]; ok {
-		if s.cancel != nil {
-			s.cancel()
-		}
+	a.mu.Lock()
+	s, ok := a.sessions[string(params.SessionId)]
+	a.mu.Unlock()
+	if ok && s != nil && s.cancel != nil {
+		s.cancel()
 	}
 	return nil
 }
 
 func (a *exampleAgent) Prompt(_ context.Context, params acp.PromptRequest) (acp.PromptResponse, error) {
 	sid := string(params.SessionId)
+	a.mu.Lock()
 	s, ok := a.sessions[sid]
+	a.mu.Unlock()
 	if !ok {
 		return acp.PromptResponse{}, fmt.Errorf("session %s not found", sid)
 	}
 
 	// cancel any previous turn
+	a.mu.Lock()
 	if s.cancel != nil {
-		s.cancel()
+		prev := s.cancel
+		a.mu.Unlock()
+		prev()
+	} else {
+		a.mu.Unlock()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	a.mu.Lock()
 	s.cancel = cancel
+	a.mu.Unlock()
 
 	// simulate a full turn with streaming updates and a permission request
 	if err := a.simulateTurn(ctx, sid); err != nil {
@@ -84,7 +98,9 @@ func (a *exampleAgent) Prompt(_ context.Context, params acp.PromptRequest) (acp.
 		}
 		return acp.PromptResponse{}, err
 	}
+	a.mu.Lock()
 	s.cancel = nil
+	a.mu.Unlock()
 	return acp.PromptResponse{StopReason: acp.StopReasonEndTurn}, nil
 }
 
