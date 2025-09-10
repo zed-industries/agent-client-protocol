@@ -15,6 +15,10 @@ type AgentCapabilities struct {
 	//
 	// Defaults to false if unset.
 	LoadSession bool `json:"loadSession,omitempty"`
+	// MCP capabilities supported by the agent.
+	//
+	// Defaults to {"http":false,"sse":false} if unset.
+	McpCapabilities McpCapabilities `json:"mcpCapabilities"`
 	// Prompt capabilities supported by the agent.
 	//
 	// Defaults to {"audio":false,"embeddedContext":false,"image":false} if unset.
@@ -42,6 +46,12 @@ func (v *AgentCapabilities) UnmarshalJSON(b []byte) error {
 		_rm, _ok := m["loadSession"]
 		if !_ok || (string(_rm) == "null") {
 			json.Unmarshal([]byte("false"), &a.LoadSession)
+		}
+	}
+	{
+		_rm, _ok := m["mcpCapabilities"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("{\"http\":false,\"sse\":false}"), &a.McpCapabilities)
 		}
 	}
 	{
@@ -258,14 +268,13 @@ func (u AgentRequest) MarshalJSON() ([]byte, error) {
 // All possible responses that an agent can send to a client.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding ClientRequest variants.
 type AuthenticateResponse struct{}
 
-type LoadSessionResponse struct{}
-
 type AgentResponse struct {
-	InitializeResponse   *InitializeResponse   `json:"-"`
-	AuthenticateResponse *AuthenticateResponse `json:"-"`
-	NewSessionResponse   *NewSessionResponse   `json:"-"`
-	LoadSessionResponse  *LoadSessionResponse  `json:"-"`
-	PromptResponse       *PromptResponse       `json:"-"`
+	InitializeResponse     *InitializeResponse     `json:"-"`
+	AuthenticateResponse   *AuthenticateResponse   `json:"-"`
+	NewSessionResponse     *NewSessionResponse     `json:"-"`
+	LoadSessionResponse    *LoadSessionResponse    `json:"-"`
+	SetSessionModeResponse *SetSessionModeResponse `json:"-"`
+	PromptResponse         *PromptResponse         `json:"-"`
 }
 
 func (u *AgentResponse) UnmarshalJSON(b []byte) error {
@@ -307,6 +316,13 @@ func (u *AgentResponse) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
+		var v SetSessionModeResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.SetSessionModeResponse = &v
+			return nil
+		}
+	}
+	{
 		var v PromptResponse
 		if json.Unmarshal(b, &v) == nil {
 			u.PromptResponse = &v
@@ -342,7 +358,26 @@ func (u AgentResponse) MarshalJSON() ([]byte, error) {
 		return json.Marshal(m)
 	}
 	if u.LoadSessionResponse != nil {
-		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.LoadSessionResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.SetSessionModeResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.SetSessionModeResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	if u.PromptResponse != nil {
 		var m map[string]any
@@ -556,11 +591,12 @@ func (u ClientNotification) MarshalJSON() ([]byte, error) {
 
 // All possible requests that a client can send to an agent.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Agent'] trait.  This enum encompasses all method calls from client to agent.
 type ClientRequest struct {
-	InitializeRequest   *InitializeRequest   `json:"-"`
-	AuthenticateRequest *AuthenticateRequest `json:"-"`
-	NewSessionRequest   *NewSessionRequest   `json:"-"`
-	LoadSessionRequest  *LoadSessionRequest  `json:"-"`
-	PromptRequest       *PromptRequest       `json:"-"`
+	InitializeRequest     *InitializeRequest     `json:"-"`
+	AuthenticateRequest   *AuthenticateRequest   `json:"-"`
+	NewSessionRequest     *NewSessionRequest     `json:"-"`
+	LoadSessionRequest    *LoadSessionRequest    `json:"-"`
+	SetSessionModeRequest *SetSessionModeRequest `json:"-"`
+	PromptRequest         *PromptRequest         `json:"-"`
 }
 
 func (u *ClientRequest) UnmarshalJSON(b []byte) error {
@@ -593,6 +629,13 @@ func (u *ClientRequest) UnmarshalJSON(b []byte) error {
 		var v LoadSessionRequest
 		if json.Unmarshal(b, &v) == nil {
 			u.LoadSessionRequest = &v
+			return nil
+		}
+	}
+	{
+		var v SetSessionModeRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.SetSessionModeRequest = &v
 			return nil
 		}
 	}
@@ -642,6 +685,17 @@ func (u ClientRequest) MarshalJSON() ([]byte, error) {
 	if u.LoadSessionRequest != nil {
 		var m map[string]any
 		_b, _e := json.Marshal(*u.LoadSessionRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	if u.SetSessionModeRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.SetSessionModeRequest)
 		if _e != nil {
 			return []byte{}, _e
 		}
@@ -1339,6 +1393,14 @@ func (v *FileSystemCapability) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// An HTTP header to set when making requests to the MCP server.
+type HttpHeader struct {
+	// The name of the HTTP header.
+	Name string `json:"name"`
+	// The value to set for the HTTP header.
+	Value string `json:"value"`
+}
+
 // An image provided to or from an LLM.
 type ImageContent struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
@@ -1392,7 +1454,7 @@ func (v *InitializeRequest) Validate() error {
 type InitializeResponse struct {
 	// Capabilities supported by the agent.
 	//
-	// Defaults to {"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}} if unset.
+	// Defaults to {"loadSession":false,"mcpCapabilities":{"http":false,"sse":false},"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}} if unset.
 	AgentCapabilities AgentCapabilities `json:"agentCapabilities"`
 	// Authentication methods supported by the agent.
 	//
@@ -1425,7 +1487,7 @@ func (v *InitializeResponse) UnmarshalJSON(b []byte) error {
 	{
 		_rm, _ok := m["agentCapabilities"]
 		if !_ok || (string(_rm) == "null") {
-			json.Unmarshal([]byte("{\"loadSession\":false,\"promptCapabilities\":{\"audio\":false,\"embeddedContext\":false,\"image\":false}}"), &a.AgentCapabilities)
+			json.Unmarshal([]byte("{\"loadSession\":false,\"mcpCapabilities\":{\"http\":false,\"sse\":false},\"promptCapabilities\":{\"audio\":false,\"embeddedContext\":false,\"image\":false}}"), &a.AgentCapabilities)
 		}
 	}
 	{
@@ -1454,7 +1516,7 @@ func (v *KillTerminalRequest) Validate() error {
 	return nil
 }
 
-// Request parameters for loading an existing session.  Only available if the agent supports the 'loadSession' capability.  See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
+// Request parameters for loading an existing session.  Only available if the Agent supports the 'loadSession' capability.  See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 type LoadSessionRequest struct {
 	// The working directory for this session.
 	Cwd string `json:"cwd"`
@@ -1474,8 +1536,86 @@ func (v *LoadSessionRequest) Validate() error {
 	return nil
 }
 
+// Response from loading an existing session.
+type LoadSessionResponse struct {
+	// **UNSTABLE**  This field is not part of the spec, and may be removed or changed at any point.
+	Modes *SessionModeState `json:"modes,omitempty"`
+}
+
+func (v *LoadSessionResponse) Validate() error {
+	return nil
+}
+
+// MCP capabilities supported by the agent
+type McpCapabilities struct {
+	// Agent supports ['McpServer::Http'].
+	//
+	// Defaults to false if unset.
+	Http bool `json:"http,omitempty"`
+	// Agent supports ['McpServer::Sse'].
+	//
+	// Defaults to false if unset.
+	Sse bool `json:"sse,omitempty"`
+}
+
+func (v McpCapabilities) MarshalJSON() ([]byte, error) {
+	type Alias McpCapabilities
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *McpCapabilities) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias McpCapabilities
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["http"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.Http)
+		}
+	}
+	{
+		_rm, _ok := m["sse"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.Sse)
+		}
+	}
+	*v = McpCapabilities(a)
+	return nil
+}
+
 // Configuration for connecting to an MCP (Model Context Protocol) server.  MCP servers provide tools and context that the agent can use when processing prompts.  See protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)
-type McpServer struct {
+// HTTP transport configuration  Only available when the Agent capabilities indicate 'mcp_capabilities.http' is 'true'.
+type McpServerHttp struct {
+	// HTTP headers to set when making requests to the MCP server.
+	Headers []HttpHeader `json:"headers"`
+	// Human-readable name identifying this MCP server.
+	Name string `json:"name"`
+	Type string `json:"type"`
+	// URL to the MCP server.
+	Url string `json:"url"`
+}
+
+// SSE transport configuration  Only available when the Agent capabilities indicate 'mcp_capabilities.sse' is 'true'.
+type McpServerSse struct {
+	// HTTP headers to set when making requests to the MCP server.
+	Headers []HttpHeader `json:"headers"`
+	// Human-readable name identifying this MCP server.
+	Name string `json:"name"`
+	Type string `json:"type"`
+	// URL to the MCP server.
+	Url string `json:"url"`
+}
+
+// Stdio transport configuration  All Agents MUST support this transport.
+type stdio struct {
 	// Command-line arguments to pass to the MCP server.
 	Args []string `json:"args"`
 	// Path to the MCP server executable.
@@ -1484,6 +1624,170 @@ type McpServer struct {
 	Env []EnvVariable `json:"env"`
 	// Human-readable name identifying this MCP server.
 	Name string `json:"name"`
+}
+
+type McpServer struct {
+	Http  *McpServerHttp `json:"-"`
+	Sse   *McpServerSse  `json:"-"`
+	stdio *stdio         `json:"-"`
+}
+
+func (u *McpServer) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	{
+		var disc string
+		if v, ok := m["type"]; ok {
+			json.Unmarshal(v, &disc)
+		}
+		switch disc {
+		case "http":
+			var v McpServerHttp
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Http = &v
+			return nil
+		case "sse":
+			var v McpServerSse
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Sse = &v
+			return nil
+		}
+	}
+	{
+		var v McpServerHttp
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["name"]; !ok {
+			match = false
+		}
+		if _, ok := m["url"]; !ok {
+			match = false
+		}
+		if _, ok := m["headers"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Http = &v
+			return nil
+		}
+	}
+	{
+		var v McpServerSse
+		var match bool = true
+		if _, ok := m["type"]; !ok {
+			match = false
+		}
+		if _, ok := m["name"]; !ok {
+			match = false
+		}
+		if _, ok := m["url"]; !ok {
+			match = false
+		}
+		if _, ok := m["headers"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.Sse = &v
+			return nil
+		}
+	}
+	{
+		var v stdio
+		var match bool = true
+		if _, ok := m["name"]; !ok {
+			match = false
+		}
+		if _, ok := m["command"]; !ok {
+			match = false
+		}
+		if _, ok := m["args"]; !ok {
+			match = false
+		}
+		if _, ok := m["env"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.stdio = &v
+			return nil
+		}
+	}
+	{
+		var v McpServerHttp
+		if json.Unmarshal(b, &v) == nil {
+			u.Http = &v
+			return nil
+		}
+	}
+	{
+		var v McpServerSse
+		if json.Unmarshal(b, &v) == nil {
+			u.Sse = &v
+			return nil
+		}
+	}
+	{
+		var v stdio
+		if json.Unmarshal(b, &v) == nil {
+			u.stdio = &v
+			return nil
+		}
+	}
+	return nil
+}
+func (u McpServer) MarshalJSON() ([]byte, error) {
+	if u.Http != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Http)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "http"
+		return json.Marshal(m)
+	}
+	if u.Sse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.Sse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["type"] = "sse"
+		return json.Marshal(m)
+	}
+	if u.stdio != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.stdio)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
+	return []byte{}, nil
 }
 
 // Request parameters for creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
@@ -1506,8 +1810,8 @@ func (v *NewSessionRequest) Validate() error {
 
 // Response from creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 type NewSessionResponse struct {
-	// **UNSTABLE**  Commands that may be executed via 'session/prompt' requests
-	AvailableCommands []AvailableCommand `json:"availableCommands,omitempty"`
+	// **UNSTABLE**  This field is not part of the spec, and may be removed or changed at any point.
+	Modes *SessionModeState `json:"modes,omitempty"`
 	// Unique identifier for the created session.  Used in all subsequent requests for this conversation.
 	SessionId SessionId `json:"sessionId"`
 }
@@ -1882,6 +2186,22 @@ const (
 // A unique identifier for a conversation session between a client and agent.  Sessions maintain their own context, conversation history, and state, allowing multiple independent interactions with the same agent.  # Example  ”' use agent_client_protocol::SessionId; use std::sync::Arc;  let session_id = SessionId(Arc::from("sess_abc123def456")); ”'  See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
 type SessionId string
 
+// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+type SessionMode struct {
+	Description *string       `json:"description,omitempty"`
+	Id          SessionModeId `json:"id"`
+	Name        string        `json:"name"`
+}
+
+// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+type SessionModeId string
+
+// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+type SessionModeState struct {
+	AvailableModes []SessionMode `json:"availableModes"`
+	CurrentModeId  SessionModeId `json:"currentModeId"`
+}
+
 // Notification containing a session update from the agent.  Used to stream real-time progress and results during prompt processing.  See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 type SessionNotification struct {
 	// The ID of the session this update pertains to.
@@ -1962,13 +2282,27 @@ type SessionUpdatePlan struct {
 	SessionUpdate string      `json:"sessionUpdate"`
 }
 
+// Available commands are ready or have changed
+type SessionUpdateAvailableCommandsUpdate struct {
+	AvailableCommands []AvailableCommand `json:"availableCommands"`
+	SessionUpdate     string             `json:"sessionUpdate"`
+}
+
+// The current mode of the session has changed
+type SessionUpdateCurrentModeUpdate struct {
+	CurrentModeId SessionModeId `json:"currentModeId"`
+	SessionUpdate string        `json:"sessionUpdate"`
+}
+
 type SessionUpdate struct {
-	UserMessageChunk  *SessionUpdateUserMessageChunk  `json:"-"`
-	AgentMessageChunk *SessionUpdateAgentMessageChunk `json:"-"`
-	AgentThoughtChunk *SessionUpdateAgentThoughtChunk `json:"-"`
-	ToolCall          *SessionUpdateToolCall          `json:"-"`
-	ToolCallUpdate    *SessionUpdateToolCallUpdate    `json:"-"`
-	Plan              *SessionUpdatePlan              `json:"-"`
+	UserMessageChunk        *SessionUpdateUserMessageChunk        `json:"-"`
+	AgentMessageChunk       *SessionUpdateAgentMessageChunk       `json:"-"`
+	AgentThoughtChunk       *SessionUpdateAgentThoughtChunk       `json:"-"`
+	ToolCall                *SessionUpdateToolCall                `json:"-"`
+	ToolCallUpdate          *SessionUpdateToolCallUpdate          `json:"-"`
+	Plan                    *SessionUpdatePlan                    `json:"-"`
+	AvailableCommandsUpdate *SessionUpdateAvailableCommandsUpdate `json:"-"`
+	CurrentModeUpdate       *SessionUpdateCurrentModeUpdate       `json:"-"`
 }
 
 func (u *SessionUpdate) UnmarshalJSON(b []byte) error {
@@ -2023,6 +2357,20 @@ func (u *SessionUpdate) UnmarshalJSON(b []byte) error {
 				return errors.New("invalid variant payload")
 			}
 			u.Plan = &v
+			return nil
+		case "available_commands_update":
+			var v SessionUpdateAvailableCommandsUpdate
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AvailableCommandsUpdate = &v
+			return nil
+		case "current_mode_update":
+			var v SessionUpdateCurrentModeUpdate
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.CurrentModeUpdate = &v
 			return nil
 		}
 	}
@@ -2132,6 +2480,40 @@ func (u *SessionUpdate) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
+		var v SessionUpdateAvailableCommandsUpdate
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
+		}
+		if _, ok := m["availableCommands"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.AvailableCommandsUpdate = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateCurrentModeUpdate
+		var match bool = true
+		if _, ok := m["sessionUpdate"]; !ok {
+			match = false
+		}
+		if _, ok := m["currentModeId"]; !ok {
+			match = false
+		}
+		if match {
+			if json.Unmarshal(b, &v) != nil {
+				return errors.New("invalid variant payload")
+			}
+			u.CurrentModeUpdate = &v
+			return nil
+		}
+	}
+	{
 		var v SessionUpdateUserMessageChunk
 		if json.Unmarshal(b, &v) == nil {
 			u.UserMessageChunk = &v
@@ -2170,6 +2552,20 @@ func (u *SessionUpdate) UnmarshalJSON(b []byte) error {
 		var v SessionUpdatePlan
 		if json.Unmarshal(b, &v) == nil {
 			u.Plan = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateAvailableCommandsUpdate
+		if json.Unmarshal(b, &v) == nil {
+			u.AvailableCommandsUpdate = &v
+			return nil
+		}
+	}
+	{
+		var v SessionUpdateCurrentModeUpdate
+		if json.Unmarshal(b, &v) == nil {
+			u.CurrentModeUpdate = &v
 			return nil
 		}
 	}
@@ -2248,6 +2644,30 @@ func (u SessionUpdate) MarshalJSON() ([]byte, error) {
 		m["sessionUpdate"] = "plan"
 		return json.Marshal(m)
 	}
+	if u.AvailableCommandsUpdate != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AvailableCommandsUpdate)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "available_commands_update"
+		return json.Marshal(m)
+	}
+	if u.CurrentModeUpdate != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.CurrentModeUpdate)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		m["sessionUpdate"] = "current_mode_update"
+		return json.Marshal(m)
+	}
 	return []byte{}, nil
 }
 
@@ -2271,9 +2691,33 @@ func (u *SessionUpdate) Validate() error {
 	if u.Plan != nil {
 		count++
 	}
+	if u.AvailableCommandsUpdate != nil {
+		count++
+	}
+	if u.CurrentModeUpdate != nil {
+		count++
+	}
 	if count != 1 {
 		return errors.New("SessionUpdate must have exactly one variant set")
 	}
+	return nil
+}
+
+// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+type SetSessionModeRequest struct {
+	ModeId    SessionModeId `json:"modeId"`
+	SessionId SessionId     `json:"sessionId"`
+}
+
+func (v *SetSessionModeRequest) Validate() error {
+	return nil
+}
+
+// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+// SetSessionModeResponse is a union or complex schema; represented generically.
+type SetSessionModeResponse any
+
+func (v *SetSessionModeResponse) Validate() error {
 	return nil
 }
 
@@ -2601,15 +3045,16 @@ func (t *ToolCallUpdate) Validate() error {
 type ToolKind string
 
 const (
-	ToolKindRead    ToolKind = "read"
-	ToolKindEdit    ToolKind = "edit"
-	ToolKindDelete  ToolKind = "delete"
-	ToolKindMove    ToolKind = "move"
-	ToolKindSearch  ToolKind = "search"
-	ToolKindExecute ToolKind = "execute"
-	ToolKindThink   ToolKind = "think"
-	ToolKindFetch   ToolKind = "fetch"
-	ToolKindOther   ToolKind = "other"
+	ToolKindRead       ToolKind = "read"
+	ToolKindEdit       ToolKind = "edit"
+	ToolKindDelete     ToolKind = "delete"
+	ToolKindMove       ToolKind = "move"
+	ToolKindSearch     ToolKind = "search"
+	ToolKindExecute    ToolKind = "execute"
+	ToolKindThink      ToolKind = "think"
+	ToolKindFetch      ToolKind = "fetch"
+	ToolKindSwitchMode ToolKind = "switch_mode"
+	ToolKindOther      ToolKind = "other"
 )
 
 type WaitForTerminalExitRequest struct {
@@ -2663,7 +3108,7 @@ type Agent interface {
 
 // AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.
 type AgentLoader interface {
-	LoadSession(ctx context.Context, params LoadSessionRequest) error
+	LoadSession(ctx context.Context, params LoadSessionRequest) (LoadSessionResponse, error)
 }
 type Client interface {
 	ReadTextFile(ctx context.Context, params ReadTextFileRequest) (ReadTextFileResponse, error)

@@ -656,11 +656,9 @@ impl SideDocs {
 }
 
 fn extract_side_docs() -> SideDocs {
-    // Try to run cargo rustdoc with the current toolchain first (works with rustup via rust-toolchain.toml
-    // and with Nix-provided nightly toolchains). If that fails, fall back to the rustup-style '+nightly'
-    // invocation for environments where a default stable toolchain is active.
-    let mut output = Command::new("cargo")
+    let output = Command::new("cargo")
         .args([
+            "+nightly",
             "rustdoc",
             "--lib",
             "--",
@@ -673,28 +671,10 @@ fn extract_side_docs() -> SideDocs {
         .unwrap();
 
     if !output.status.success() {
-        let fallback = Command::new("cargo")
-            .args([
-                "+nightly",
-                "rustdoc",
-                "--lib",
-                "--",
-                "-Z",
-                "unstable-options",
-                "--output-format",
-                "json",
-            ])
-            .output()
-            .unwrap();
-
-        if !fallback.status.success() {
-            panic!(
-                "Failed to generate rustdoc JSON. First attempt (no +nightly): {}\nFallback (+nightly) failed: {}",
-                String::from_utf8_lossy(&output.stderr),
-                String::from_utf8_lossy(&fallback.stderr)
-            );
-        }
-        output = fallback;
+        panic!(
+            "Failed to generate rustdoc JSON: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     // Parse the JSON output

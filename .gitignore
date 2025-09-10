@@ -20,3 +20,5 @@ typescript/docs/
 
 .envrc
 .direnv
+.rustup/
+.cargo/

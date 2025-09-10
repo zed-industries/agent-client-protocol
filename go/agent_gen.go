@@ -64,10 +64,11 @@ func (a *AgentSideConnection) handle(ctx context.Context, method string, params 
 		if !ok {
 			return nil, NewMethodNotFound(method)
 		}
-		if err := loader.LoadSession(ctx, p); err != nil {
+		resp, err := loader.LoadSession(ctx, p)
+		if err != nil {
 			return nil, toReqErr(err)
 		}
-		return nil, nil
+		return resp, nil
 	case AgentMethodSessionNew:
 		var p NewSessionRequest
 		if err := json.Unmarshal(params, &p); err != nil {

@@ -140,8 +140,9 @@ func (c *ClientSideConnection) Initialize(ctx context.Context, params Initialize
 func (c *ClientSideConnection) Cancel(ctx context.Context, params CancelNotification) error {
 	return c.conn.SendNotification(ctx, AgentMethodSessionCancel, params)
 }
-func (c *ClientSideConnection) LoadSession(ctx context.Context, params LoadSessionRequest) error {
-	return c.conn.SendRequestNoResult(ctx, AgentMethodSessionLoad, params)
+func (c *ClientSideConnection) LoadSession(ctx context.Context, params LoadSessionRequest) (LoadSessionResponse, error) {
+	resp, err := SendRequest[LoadSessionResponse](c.conn, ctx, AgentMethodSessionLoad, params)
+	return resp, err
 }
 func (c *ClientSideConnection) NewSession(ctx context.Context, params NewSessionRequest) (NewSessionResponse, error) {
 	resp, err := SendRequest[NewSessionResponse](c.conn, ctx, AgentMethodSessionNew, params)
