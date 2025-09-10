@@ -12,9 +12,46 @@ import (
 // Capabilities supported by the agent.  Advertised during initialization to inform the client about available features and content types.  See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
 type AgentCapabilities struct {
 	// Whether the agent supports 'session/load'.
+	//
+	// Defaults to false if unset.
 	LoadSession bool `json:"loadSession,omitempty"`
 	// Prompt capabilities supported by the agent.
-	PromptCapabilities PromptCapabilities `json:"promptCapabilities,omitempty"`
+	//
+	// Defaults to {"audio":false,"embeddedContext":false,"image":false} if unset.
+	PromptCapabilities PromptCapabilities `json:"promptCapabilities"`
+}
+
+func (v AgentCapabilities) MarshalJSON() ([]byte, error) {
+	type Alias AgentCapabilities
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *AgentCapabilities) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias AgentCapabilities
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["loadSession"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.LoadSession)
+		}
+	}
+	{
+		_rm, _ok := m["promptCapabilities"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("{\"audio\":false,\"embeddedContext\":false,\"image\":false}"), &a.PromptCapabilities)
+		}
+	}
+	*v = AgentCapabilities(a)
+	return nil
 }
 
 // All possible notifications that an agent can send to a client.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Client'] trait instead.  Notifications do not expect a response.
@@ -441,9 +478,46 @@ func (v *CancelNotification) Validate() error {
 // Capabilities supported by the client.  Advertised during initialization to inform the agent about available features and methods.  See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 type ClientCapabilities struct {
 	// File system capabilities supported by the client. Determines which file operations the agent can request.
-	Fs FileSystemCapability `json:"fs,omitempty"`
+	//
+	// Defaults to {"readTextFile":false,"writeTextFile":false} if unset.
+	Fs FileSystemCapability `json:"fs"`
 	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.
+	//
+	// Defaults to false if unset.
 	Terminal bool `json:"terminal,omitempty"`
+}
+
+func (v ClientCapabilities) MarshalJSON() ([]byte, error) {
+	type Alias ClientCapabilities
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *ClientCapabilities) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias ClientCapabilities
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["fs"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("{\"readTextFile\":false,\"writeTextFile\":false}"), &a.Fs)
+		}
+	}
+	{
+		_rm, _ok := m["terminal"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.Terminal)
+		}
+	}
+	*v = ClientCapabilities(a)
+	return nil
 }
 
 // All possible notifications that a client can send to an agent.  This enum is used internally for routing RPC notifications. You typically won't need to use this directly - use the notification methods on the ['Agent'] trait instead.  Notifications do not expect a response.
@@ -1223,9 +1297,46 @@ type EnvVariable struct {
 // File system capabilities that a client may support.  See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 type FileSystemCapability struct {
 	// Whether the Client supports 'fs/read_text_file' requests.
+	//
+	// Defaults to false if unset.
 	ReadTextFile bool `json:"readTextFile,omitempty"`
 	// Whether the Client supports 'fs/write_text_file' requests.
+	//
+	// Defaults to false if unset.
 	WriteTextFile bool `json:"writeTextFile,omitempty"`
+}
+
+func (v FileSystemCapability) MarshalJSON() ([]byte, error) {
+	type Alias FileSystemCapability
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *FileSystemCapability) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias FileSystemCapability
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["readTextFile"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.ReadTextFile)
+		}
+	}
+	{
+		_rm, _ok := m["writeTextFile"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.WriteTextFile)
+		}
+	}
+	*v = FileSystemCapability(a)
+	return nil
 }
 
 // An image provided to or from an LLM.
@@ -1239,9 +1350,38 @@ type ImageContent struct {
 // Request parameters for the initialize method.  Sent by the client to establish connection and negotiate capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 type InitializeRequest struct {
 	// Capabilities supported by the client.
-	ClientCapabilities ClientCapabilities `json:"clientCapabilities,omitempty"`
+	//
+	// Defaults to {"fs":{"readTextFile":false,"writeTextFile":false},"terminal":false} if unset.
+	ClientCapabilities ClientCapabilities `json:"clientCapabilities"`
 	// The latest protocol version supported by the client.
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
+}
+
+func (v InitializeRequest) MarshalJSON() ([]byte, error) {
+	type Alias InitializeRequest
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *InitializeRequest) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias InitializeRequest
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["clientCapabilities"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("{\"fs\":{\"readTextFile\":false,\"writeTextFile\":false},\"terminal\":false}"), &a.ClientCapabilities)
+		}
+	}
+	*v = InitializeRequest(a)
+	return nil
 }
 
 func (v *InitializeRequest) Validate() error {
@@ -1251,11 +1391,51 @@ func (v *InitializeRequest) Validate() error {
 // Response from the initialize method.  Contains the negotiated protocol version and agent capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 type InitializeResponse struct {
 	// Capabilities supported by the agent.
-	AgentCapabilities AgentCapabilities `json:"agentCapabilities,omitempty"`
+	//
+	// Defaults to {"loadSession":false,"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}} if unset.
+	AgentCapabilities AgentCapabilities `json:"agentCapabilities"`
 	// Authentication methods supported by the agent.
+	//
+	// Defaults to [] if unset.
 	AuthMethods []AuthMethod `json:"authMethods"`
 	// The protocol version the client specified if supported by the agent, or the latest protocol version supported by the agent.  The client should disconnect, if it doesn't support this version.
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
+}
+
+func (v InitializeResponse) MarshalJSON() ([]byte, error) {
+	type Alias InitializeResponse
+	var a Alias
+	a = Alias(v)
+	if a.AuthMethods == nil {
+		json.Unmarshal([]byte("[]"), &a.AuthMethods)
+	}
+	return json.Marshal(a)
+}
+
+func (v *InitializeResponse) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias InitializeResponse
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["agentCapabilities"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("{\"loadSession\":false,\"promptCapabilities\":{\"audio\":false,\"embeddedContext\":false,\"image\":false}}"), &a.AgentCapabilities)
+		}
+	}
+	{
+		_rm, _ok := m["authMethods"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("[]"), &a.AuthMethods)
+		}
+	}
+	*v = InitializeResponse(a)
+	return nil
 }
 
 func (v *InitializeResponse) Validate() error {
@@ -1396,11 +1576,56 @@ const (
 // Prompt capabilities supported by the agent in 'session/prompt' requests.  Baseline agent functionality requires support for ['ContentBlock::Text'] and ['ContentBlock::ResourceLink'] in prompt requests.  Other variants must be explicitly opted in to. Capabilities for different types of content in prompt requests.  Indicates which content types beyond the baseline (text and resource links) the agent can process.  See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
 type PromptCapabilities struct {
 	// Agent supports ['ContentBlock::Audio'].
+	//
+	// Defaults to false if unset.
 	Audio bool `json:"audio,omitempty"`
 	// Agent supports embedded context in 'session/prompt' requests.  When enabled, the Client is allowed to include ['ContentBlock::Resource'] in prompt requests for pieces of context that are referenced in the message.
+	//
+	// Defaults to false if unset.
 	EmbeddedContext bool `json:"embeddedContext,omitempty"`
 	// Agent supports ['ContentBlock::Image'].
+	//
+	// Defaults to false if unset.
 	Image bool `json:"image,omitempty"`
+}
+
+func (v PromptCapabilities) MarshalJSON() ([]byte, error) {
+	type Alias PromptCapabilities
+	var a Alias
+	a = Alias(v)
+	return json.Marshal(a)
+}
+
+func (v *PromptCapabilities) UnmarshalJSON(b []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	type Alias PromptCapabilities
+	var a Alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	{
+		_rm, _ok := m["audio"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.Audio)
+		}
+	}
+	{
+		_rm, _ok := m["embeddedContext"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.EmbeddedContext)
+		}
+	}
+	{
+		_rm, _ok := m["image"]
+		if !_ok || (string(_rm) == "null") {
+			json.Unmarshal([]byte("false"), &a.Image)
+		}
+	}
+	*v = PromptCapabilities(a)
+	return nil
 }
 
 // Request parameters for sending a user prompt to the agent.  Contains the user's message and any additional context.  See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)

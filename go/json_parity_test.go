@@ -38,6 +38,7 @@ func mustReadGolden(t *testing.T, name string) []byte {
 func runGolden[T any](builds ...func() T) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 		// Use the current subtest name; expect pattern like "<Group>/<case_name>".
 		name := t.Name()
 		base := name
@@ -71,6 +72,7 @@ func runGolden[T any](builds ...func() T) func(t *testing.T) {
 }
 
 func TestJSONGolden_ContentBlocks(t *testing.T) {
+	t.Parallel()
 	t.Run("content_text", runGolden(
 		func() ContentBlock { return TextBlock("What's the weather like today?") },
 	))
@@ -110,6 +112,7 @@ func TestJSONGolden_ContentBlocks(t *testing.T) {
 }
 
 func TestJSONGolden_ToolCallContent(t *testing.T) {
+	t.Parallel()
 	t.Run("tool_content_content_text", runGolden(
 		func() ToolCallContent { return ToolContent(TextBlock("Analysis complete. Found 3 issues.")) },
 	))
@@ -128,6 +131,7 @@ func TestJSONGolden_ToolCallContent(t *testing.T) {
 }
 
 func TestJSONGolden_RequestPermissionOutcome(t *testing.T) {
+	t.Parallel()
 	t.Run("permission_outcome_selected", runGolden(
 		func() RequestPermissionOutcome {
 			return RequestPermissionOutcome{Selected: &RequestPermissionOutcomeSelected{Outcome: "selected", OptionId: "allow-once"}}
@@ -145,6 +149,7 @@ func TestJSONGolden_RequestPermissionOutcome(t *testing.T) {
 }
 
 func TestJSONGolden_SessionUpdates(t *testing.T) {
+	t.Parallel()
 	t.Run("session_update_user_message_chunk", runGolden(
 		func() SessionUpdate {
 			return SessionUpdate{UserMessageChunk: &SessionUpdateUserMessageChunk{Content: TextBlock("What's the capital of France?")}}
@@ -182,7 +187,6 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 			return StartToolCall("call_001", "Reading configuration file", WithStartKind(ToolKindRead), WithStartStatus(ToolCallStatusPending))
 		},
 	))
-    // Removed: session_update_tool_call_minimal (deprecated New helper)
 	t.Run("session_update_tool_call_read", runGolden(
 		func() SessionUpdate {
 			return StartReadToolCall("call_001", "Reading configuration file", "/home/user/project/src/config.json")
@@ -206,7 +210,6 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 			return UpdateToolCall("call_001", WithUpdateStatus(ToolCallStatusInProgress), WithUpdateContent([]ToolCallContent{ToolContent(TextBlock("Found 3 configuration files..."))}))
 		},
 	))
-    // Removed: session_update_tool_call_update_minimal (deprecated New helper)
 	t.Run("session_update_tool_call_update_more_fields", runGolden(
 		func() SessionUpdate {
 			return UpdateToolCall(
@@ -224,11 +227,12 @@ func TestJSONGolden_SessionUpdates(t *testing.T) {
 }
 
 func TestJSONGolden_MethodPayloads(t *testing.T) {
+	t.Parallel()
 	t.Run("initialize_request", runGolden(func() InitializeRequest {
 		return InitializeRequest{ProtocolVersion: 1, ClientCapabilities: ClientCapabilities{Fs: FileSystemCapability{ReadTextFile: true, WriteTextFile: true}}}
 	}))
 	t.Run("initialize_response", runGolden(func() InitializeResponse {
-		return InitializeResponse{ProtocolVersion: 1, AgentCapabilities: AgentCapabilities{LoadSession: true, PromptCapabilities: PromptCapabilities{Image: true, Audio: true, EmbeddedContext: true}}, AuthMethods: []AuthMethod{}}
+		return InitializeResponse{ProtocolVersion: 1, AgentCapabilities: AgentCapabilities{LoadSession: true, PromptCapabilities: PromptCapabilities{Image: true, Audio: true, EmbeddedContext: true}}}
 	}))
 	t.Run("new_session_request", runGolden(func() NewSessionRequest {
 		return NewSessionRequest{Cwd: "/home/user/project", McpServers: []McpServer{{Name: "filesystem", Command: "/path/to/mcp-server", Args: []string{"--stdio"}, Env: []EnvVariable{}}}}

@@ -37,6 +37,9 @@ type Definition struct {
 	Const       any                    `json:"const"`
 	XSide       string                 `json:"x-side"`
 	XMethod     string                 `json:"x-method"`
+	// Default holds the JSON Schema default value, when present.
+	// Used by generators to synthesize defaulting behavior.
+	Default any `json:"default"`
 }
 
 // ReadMeta loads schema/meta.json.

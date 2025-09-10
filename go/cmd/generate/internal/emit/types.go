@@ -2,6 +2,7 @@ package emit
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,6 +79,24 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 				pkeys = append(pkeys, pk)
 			}
 			sort.Strings(pkeys)
+			// Track fields with schema defaults for generic (de)serialization
+			type DefaultKind int
+			const (
+				KindNone DefaultKind = iota
+				KindScalar
+				KindArray
+				KindObject
+			)
+			type defaultProp struct {
+				fieldName   string
+				propName    string
+				defaultJSON string
+				kind        DefaultKind
+				allowNull   bool
+				nilable     bool // whether zero-value is nil (slice/map)
+			}
+			defaults := []defaultProp{}
+
 			for _, pk := range pkeys {
 				prop := def.Properties[pk]
 				field := util.ToExportedField(pk)
@@ -85,17 +104,97 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 					st = append(st, Comment(util.SanitizeComment(prop.Description)))
 				}
 				tag := pk
+				// Detect defaults generically
+				var dp *defaultProp
+				if prop.Default != nil {
+					// Compute kind from default value
+					k := defaultKindOf(prop.Default)
+					// Whether field zero is nil (slice/map) for Marshal fill-in
+					nilable := ir.PrimaryType(prop) == "array" || (ir.PrimaryType(prop) == "object" && len(prop.Properties) == 0 && prop.Ref == "")
+					// Capture canonical JSON of default
+					defJSON := "null"
+					if b, err := json.Marshal(prop.Default); err == nil {
+						defJSON = string(b)
+					}
+					dp = &defaultProp{
+						fieldName:   field,
+						propName:    pk,
+						defaultJSON: defJSON,
+						kind:        DefaultKind(k),
+						allowNull:   includesNull(prop),
+						nilable:     nilable,
+					}
+					defaults = append(defaults, *dp)
+				}
 				if _, ok := req[pk]; !ok {
-					// Default: omit if empty, except for specific always-present fields
-					// Ensure InitializeResponse.authMethods is always encoded (even when empty)
-					if name != "InitializeResponse" || pk != "authMethods" {
+					// Default: omit if empty for optional fields, unless schema specifies
+					// a default array/object (always present on wire).
+					if dp == nil || (dp.kind != KindArray && dp.kind != KindObject) {
 						tag = pk + ",omitempty"
 					}
+				}
+				// Emit an additional comment line indicating the default, if any.
+				if dp != nil && dp.defaultJSON != "null" {
+					// Insert an empty comment line before default comment (visual separator)
+					if prop.Description != "" {
+						st = append(st, Comment(""))
+					}
+					st = append(st, Comment(util.SanitizeComment(fmt.Sprintf("Defaults to %s if unset.", dp.defaultJSON))))
 				}
 				st = append(st, Id(field).Add(jenTypeForOptional(prop)).Tag(map[string]string{"json": tag}))
 			}
 			f.Type().Id(name).Struct(st...)
 			f.Line()
+
+			// If the struct has any fields with schema defaults, synthesize MarshalJSON and UnmarshalJSON
+			if len(defaults) > 0 {
+				// MarshalJSON: coerce nil slices to empty slices before encoding
+				f.Func().Params(Id("v").Id(name)).Id("MarshalJSON").Params().Params(Index().Byte(), Error()).BlockFunc(func(g *Group) {
+					g.Type().Id("Alias").Id(name)
+					g.Var().Id("a").Id("Alias")
+					g.Id("a").Op("=").Id("Alias").Call(Id("v"))
+					for _, dp := range defaults {
+						// For array/map defaults: if zero is nil, fill with default JSON when nil
+						if dp.kind == KindArray || dp.kind == KindObject {
+							if dp.nilable {
+								g.If(Id("a").Dot(dp.fieldName).Op("==").Nil()).Block(
+									Qual("encoding/json", "Unmarshal").Call(Index().Byte().Parens(Lit(dp.defaultJSON)), Op("&").Id("a").Dot(dp.fieldName)),
+								)
+							}
+						}
+						// For typed object defaults (non-nilable), we keep Option A: do not inject values on encode.
+					}
+					g.Return(Qual("encoding/json", "Marshal").Call(Id("a")))
+				})
+				f.Line()
+
+				// UnmarshalJSON: apply defaults when field is missing or null (and schema doesn't include null)
+				f.Func().Params(Id("v").Op("*").Id(name)).Id("UnmarshalJSON").Params(Id("b").Index().Byte()).Error().BlockFunc(func(g *Group) {
+					g.Var().Id("m").Map(String()).Qual("encoding/json", "RawMessage")
+					g.If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("m")), Id("err").Op("!=").Nil()).Block(Return(Id("err")))
+					g.Type().Id("Alias").Id(name)
+					g.Var().Id("a").Id("Alias")
+					g.If(List(Id("err")).Op(":=").Qual("encoding/json", "Unmarshal").Call(Id("b"), Op("&").Id("a")), Id("err").Op("!=").Nil()).Block(Return(Id("err")))
+					for _, dp := range defaults {
+						g.BlockFunc(func(h *Group) {
+							h.List(Id("_rm"), Id("_ok")).Op(":=").Id("m").Index(Lit(dp.propName))
+							// Apply default when missing, or when null and null is not allowed
+							if dp.allowNull {
+								h.If(Op("!").Id("_ok")).Block(
+									Qual("encoding/json", "Unmarshal").Call(Index().Byte().Parens(Lit(dp.defaultJSON)), Op("&").Id("a").Dot(dp.fieldName)),
+								)
+							} else {
+								h.If(Op("!").Id("_ok").Op("||").Parens(Id("string").Call(Id("_rm")).Op("==").Lit("null"))).Block(
+									Qual("encoding/json", "Unmarshal").Call(Index().Byte().Parens(Lit(dp.defaultJSON)), Op("&").Id("a").Dot(dp.fieldName)),
+								)
+							}
+						})
+					}
+					g.Op("*").Id("v").Op("=").Id(name).Call(Id("a"))
+					g.Return(Nil())
+				})
+				f.Line()
+			}
 		case ir.PrimaryType(def) == "string" || ir.PrimaryType(def) == "integer" || ir.PrimaryType(def) == "number" || ir.PrimaryType(def) == "boolean":
 			f.Type().Id(name).Add(primitiveJenType(ir.PrimaryType(def)))
 			f.Line()
@@ -270,6 +369,45 @@ func primitiveJenType(t string) Code {
 	default:
 		return Any()
 	}
+}
+
+// defaultKindOf classifies the JSON Schema default value into a coarse kind.
+func defaultKindOf(val any) int {
+	switch val.(type) {
+	case nil:
+		return 0 // KindNone
+	case []any:
+		return 2 // KindArray
+	case map[string]any:
+		return 3 // KindObject
+	case string, float64, bool:
+		return 1 // KindScalar
+	default:
+		// Fallback: classify by fmt string
+		s := fmt.Sprint(val)
+		if strings.HasPrefix(s, "[") {
+			return 2
+		}
+		if strings.HasPrefix(s, "map[") || strings.HasPrefix(s, "{") {
+			return 3
+		}
+		return 1
+	}
+}
+
+// includesNull reports whether the property's type union contains null.
+func includesNull(d *load.Definition) bool {
+	if d == nil || d.Type == nil {
+		return false
+	}
+	if arr, ok := d.Type.([]any); ok {
+		for _, v := range arr {
+			if s, ok2 := v.(string); ok2 && s == "null" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func jenTypeFor(d *load.Definition) Code {

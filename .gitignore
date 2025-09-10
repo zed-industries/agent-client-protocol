@@ -17,3 +17,6 @@ typescript/docs/
 # Go files
 .gocache
 .gopath
+
+.envrc
+.direnv

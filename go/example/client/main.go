@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	acp "github.com/zed-industries/agent-client-protocol/go"
@@ -161,12 +162,25 @@ func main() {
 	if len(os.Args) > 1 {
 		cmd = exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
 	} else {
-		// Assumes running from the go/ directory; if not, adjust path accordingly.
-		cmd = exec.CommandContext(ctx, "go", "run", "./example/agent")
+		// Default: run the Go example agent. Detect relative to this client's location.
+		_, filename, _, ok := runtime.Caller(0)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "failed to determine current file location\n")
+			os.Exit(1)
+		}
+
+		// Get directory of this client file and find sibling agent directory
+		clientDir := filepath.Dir(filename)
+		agentPath := filepath.Join(clientDir, "..", "agent")
+
+		if _, err := os.Stat(agentPath); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to find agent directory at %s: %v\n", agentPath, err)
+			os.Exit(1)
+		}
+
+		cmd = exec.CommandContext(ctx, "go", "run", agentPath)
 	}
 	cmd.Stderr = os.Stderr
-	cmd.Stdout = nil
-	cmd.Stdin = nil
 	// Set up pipes for stdio
 	stdin, _ := cmd.StdinPipe()
 	stdout, _ := cmd.StdoutPipe()

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"os/signal"
 	"time"
 
 	acp "github.com/zed-industries/agent-client-protocol/go"
@@ -254,11 +256,37 @@ func pause(ctx context.Context, d time.Duration) error {
 }
 
 func main() {
-	// Wire up stdio: write to stdout, read from stdin
+	// If args provided, treat them as client program + args to spawn and connect via stdio.
+	// Otherwise, default to stdio (allowing manual wiring or use by another process).
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer cancel()
+
+	var (
+		out io.Writer = os.Stdout
+		in  io.Reader = os.Stdin
+		cmd *exec.Cmd
+	)
+	if len(os.Args) > 1 {
+		cmd = exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
+		cmd.Stderr = os.Stderr
+		stdin, _ := cmd.StdinPipe()
+		stdout, _ := cmd.StdoutPipe()
+		if err := cmd.Start(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to start client: %v\n", err)
+			os.Exit(1)
+		}
+		out = stdin
+		in = stdout
+	}
+
 	ag := newExampleAgent()
-	asc := acp.NewAgentSideConnection(ag, os.Stdout, os.Stdin)
+	asc := acp.NewAgentSideConnection(ag, out, in)
 	ag.SetAgentConnection(asc)
 
-	// Block until the peer disconnects (stdin closes).
+	// Block until the peer disconnects.
 	<-asc.Done()
+
+	if cmd != nil && cmd.Process != nil {
+		_ = cmd.Process.Kill()
+	}
 }
