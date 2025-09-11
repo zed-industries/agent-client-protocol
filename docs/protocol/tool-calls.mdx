@@ -269,6 +269,27 @@ File modifications shown as diffs:
   The new content after modification
 </ParamField>
 
+### Terminals
+
+Live terminal output from command execution:
+
+```json
+{
+  "type": "terminal",
+  "terminalId": "term_xyz789"
+}
+```
+
+<ParamField path="terminalId" type="string" required>
+  The ID of a terminal created with `terminal/create`
+</ParamField>
+
+When a terminal is embedded in a tool call, the Client displays live output as it's generated and continues to display it even after the terminal is released.
+
+<Card icon="terminal" horizontal href="./terminals">
+  Learn more about Terminals
+</Card>
+
 ## Following the Agent
 
 Tool calls can report file locations they're working with, enabling Clients to implement "follow-along" features that track which files the Agent is accessing or modifying in real-time.

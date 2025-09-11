@@ -56,6 +56,7 @@
           "protocol/content",
           "protocol/tool-calls",
           "protocol/file-system",
+          "protocol/terminals",
           "protocol/agent-plan",
           "protocol/schema"
         ]
