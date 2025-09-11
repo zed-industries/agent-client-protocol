@@ -281,7 +281,6 @@ pub enum ToolCallContent {
         diff: Diff,
     },
     #[serde(rename_all = "camelCase")]
-    #[cfg(feature = "unstable")]
     Terminal { terminal_id: crate::TerminalId },
 }
 
