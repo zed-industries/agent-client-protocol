@@ -39,7 +39,8 @@ Before a Session can be created, Clients **MUST** initialize the connection by c
       "fs": {
         "readTextFile": true,
         "writeTextFile": true
-      }
+      },
+      "terminal": true
     }
   }
 }
@@ -59,6 +60,10 @@ The Agent **MUST** respond with the chosen [protocol version](#protocol-version)
         "image": true,
         "audio": true,
         "embeddedContext": true
+      },
+      "mcp": {
+        "http": true,
+        "sse": true
       }
     },
     "authMethods": []
@@ -96,11 +101,9 @@ Capabilities may specify the availability of protocol methods, notifications, or
 
 ### Client Capabilities
 
-The Client **SHOULD** specify whether it supports the following capability:
+The Client **SHOULD** specify whether it supports the following capabilities:
 
 #### File System
-
-The Client **MAY** expose its [File System](./file-system) abstraction to varying degrees:
 
 <ParamField path="readTextFile" type="boolean">
   The `fs/read_text_file` method is available.
@@ -109,6 +112,20 @@ The Client **MAY** expose its [File System](./file-system) abstraction to varyin
 <ParamField path="writeTextFile" type="boolean">
   The `fs/write_text_file` method is available.
 </ParamField>
+
+<Card icon="file" horizontal href="./file-system">
+  Learn more about File System methods
+</Card>
+
+#### Terminal
+
+<ParamField path="terminal" type="boolean">
+  All `terminal/*` methods are available, allowing the Agent to execute and manage shell commands.
+</ParamField>
+
+<Card icon="terminal" horizontal href="./terminals">
+  Learn more about Terminals
+</Card>
 
 ### Agent Capabilities
 
