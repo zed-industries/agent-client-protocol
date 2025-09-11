@@ -137,6 +137,9 @@ pub struct SessionNotification {
     pub session_id: SessionId,
     /// The actual update content.
     pub update: SessionUpdate,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Different types of updates that can be sent during session processing.
@@ -185,6 +188,9 @@ pub struct AvailableCommand {
     pub description: String,
     /// Input for the command if required
     pub input: Option<AvailableCommandInput>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -216,6 +222,9 @@ pub struct RequestPermissionRequest {
     pub tool_call: ToolCallUpdate,
     /// Available permission options for the user to choose from.
     pub options: Vec<PermissionOption>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// An option presented to the user when requesting permission.
@@ -228,6 +237,9 @@ pub struct PermissionOption {
     pub name: String,
     /// Hint about the nature of this permission option.
     pub kind: PermissionOptionKind,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Unique identifier for a permission option.
@@ -265,6 +277,9 @@ pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// The outcome of a permission request.
@@ -302,6 +317,9 @@ pub struct WriteTextFileRequest {
     pub path: PathBuf,
     /// The text content to write to the file.
     pub content: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Read text file
@@ -323,6 +341,9 @@ pub struct ReadTextFileRequest {
     /// Optional maximum number of lines to read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response containing the contents of a text file.
@@ -330,6 +351,9 @@ pub struct ReadTextFileRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Terminals
@@ -361,6 +385,9 @@ pub struct CreateTerminalRequest {
     pub cwd: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_byte_limit: Option<u64>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -369,6 +396,9 @@ pub struct CreateTerminalRequest {
 #[cfg(feature = "unstable")]
 pub struct CreateTerminalResponse {
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -378,6 +408,9 @@ pub struct CreateTerminalResponse {
 pub struct TerminalOutputRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -388,6 +421,9 @@ pub struct TerminalOutputResponse {
     pub output: String,
     pub truncated: bool,
     pub exit_status: Option<TerminalExitStatus>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -397,6 +433,9 @@ pub struct TerminalOutputResponse {
 pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -406,6 +445,9 @@ pub struct ReleaseTerminalRequest {
 pub struct KillTerminalRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -415,6 +457,9 @@ pub struct KillTerminalRequest {
 pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -424,6 +469,9 @@ pub struct WaitForTerminalExitRequest {
 pub struct WaitForTerminalExitResponse {
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -433,6 +481,9 @@ pub struct WaitForTerminalExitResponse {
 pub struct TerminalExitStatus {
     pub exit_code: Option<u32>,
     pub signal: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Capabilities
@@ -457,6 +508,9 @@ pub struct ClientCapabilities {
     #[serde(default)]
     #[doc(hidden)]
     pub terminal: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// File system capabilities that a client may support.
@@ -471,6 +525,9 @@ pub struct FileSystemCapability {
     /// Whether the Client supports `fs/write_text_file` requests.
     #[serde(default)]
     pub write_text_file: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Method schema

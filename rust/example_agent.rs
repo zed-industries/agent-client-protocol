@@ -44,6 +44,7 @@ impl acp::Agent for ExampleAgent {
             protocol_version: acp::V1,
             agent_capabilities: acp::AgentCapabilities::default(),
             auth_methods: Vec::new(),
+            meta: None,
         })
     }
 
@@ -62,6 +63,7 @@ impl acp::Agent for ExampleAgent {
         Ok(acp::NewSessionResponse {
             session_id: acp::SessionId(session_id.to_string().into()),
             modes: None,
+            meta: None,
         })
     }
 
@@ -70,7 +72,10 @@ impl acp::Agent for ExampleAgent {
         arguments: acp::LoadSessionRequest,
     ) -> Result<acp::LoadSessionResponse, acp::Error> {
         log::info!("Received load session request {arguments:?}");
-        Ok(acp::LoadSessionResponse { modes: None })
+        Ok(acp::LoadSessionResponse {
+            modes: None,
+            meta: None,
+        })
     }
 
     async fn prompt(
@@ -85,6 +90,7 @@ impl acp::Agent for ExampleAgent {
                     SessionNotification {
                         session_id: arguments.session_id.clone(),
                         update: acp::SessionUpdate::AgentMessageChunk { content },
+                        meta: None,
                     },
                     tx,
                 ))
@@ -93,6 +99,7 @@ impl acp::Agent for ExampleAgent {
         }
         Ok(acp::PromptResponse {
             stop_reason: acp::StopReason::EndTurn,
+            meta: None,
         })
     }
 

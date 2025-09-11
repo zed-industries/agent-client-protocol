@@ -146,12 +146,14 @@ async fn main() -> anyhow::Result<()> {
             conn.initialize(acp::InitializeRequest {
                 protocol_version: acp::V1,
                 client_capabilities: acp::ClientCapabilities::default(),
+                meta: None,
             })
             .await?;
             let response = conn
                 .new_session(acp::NewSessionRequest {
                     mcp_servers: Vec::new(),
                     cwd: std::env::current_dir()?,
+                    meta: None,
                 })
                 .await?;
 
@@ -162,6 +164,7 @@ async fn main() -> anyhow::Result<()> {
                     .prompt(acp::PromptRequest {
                         session_id: response.session_id.clone(),
                         prompt: vec![line.into()],
+                        meta: None,
                     })
                     .await;
                 if let Err(e) = result {

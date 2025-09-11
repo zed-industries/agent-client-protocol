@@ -40,7 +40,10 @@ impl Client for TestClient {
         let outcome = responses
             .pop()
             .unwrap_or(RequestPermissionOutcome::Cancelled);
-        Ok(RequestPermissionResponse { outcome })
+        Ok(RequestPermissionResponse {
+            outcome,
+            meta: None,
+        })
     }
 
     async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
@@ -60,7 +63,10 @@ impl Client for TestClient {
             .get(&arguments.path)
             .cloned()
             .unwrap_or_else(|| "default content".to_string());
-        Ok(ReadTextFileResponse { content })
+        Ok(ReadTextFileResponse {
+            content,
+            meta: None,
+        })
     }
 
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {
@@ -123,6 +129,7 @@ impl Agent for TestAgent {
             protocol_version: arguments.protocol_version,
             agent_capabilities: Default::default(),
             auth_methods: vec![],
+            meta: None,
         })
     }
 
@@ -139,11 +146,15 @@ impl Agent for TestAgent {
         Ok(NewSessionResponse {
             session_id,
             modes: None,
+            meta: None,
         })
     }
 
     async fn load_session(&self, _: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
-        Ok(LoadSessionResponse { modes: None })
+        Ok(LoadSessionResponse {
+            modes: None,
+            meta: None,
+        })
     }
 
     #[cfg(feature = "unstable")]
@@ -161,6 +172,7 @@ impl Agent for TestAgent {
             .push((arguments.session_id, arguments.prompt));
         Ok(PromptResponse {
             stop_reason: StopReason::EndTurn,
+            meta: None,
         })
     }
 
@@ -220,6 +232,7 @@ async fn test_initialize() {
                 .initialize(InitializeRequest {
                     protocol_version: VERSION,
                     client_capabilities: Default::default(),
+                    meta: None,
                 })
                 .await;
 
@@ -244,6 +257,7 @@ async fn test_basic_session_creation() {
                 .new_session(NewSessionRequest {
                     mcp_servers: vec![],
                     cwd: std::path::PathBuf::from("/test"),
+                    meta: None,
                 })
                 .await
                 .expect("new_session failed");
@@ -273,6 +287,7 @@ async fn test_bidirectional_file_operations() {
                     path: test_path.clone(),
                     line: None,
                     limit: None,
+                    meta: None,
                 })
                 .await
                 .expect("read_text_file failed");
@@ -285,6 +300,7 @@ async fn test_bidirectional_file_operations() {
                     session_id: session_id.clone(),
                     path: test_path.clone(),
                     content: "Updated content".to_string(),
+                    meta: None,
                 })
                 .await;
 
@@ -312,8 +328,10 @@ async fn test_session_notifications() {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Hello from user".to_string(),
+                            meta: None,
                         }),
                     },
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -325,8 +343,10 @@ async fn test_session_notifications() {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Hello from agent".to_string(),
+                            meta: None,
                         }),
                     },
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -356,6 +376,7 @@ async fn test_cancel_notification() {
             agent_conn
                 .cancel(CancelNotification {
                     session_id: session_id.clone(),
+                    meta: None,
                 })
                 .await
                 .expect("cancel failed");
@@ -396,6 +417,7 @@ async fn test_concurrent_operations() {
                     path,
                     line: None,
                     limit: None,
+                    meta: None,
                 });
                 read_futures.push(future);
             }
@@ -431,6 +453,7 @@ async fn test_full_conversation_flow() {
                 .new_session(NewSessionRequest {
                     mcp_servers: vec![],
                     cwd: std::path::PathBuf::from("/test"),
+                    meta: None,
                 })
                 .await
                 .expect("new_session failed");
@@ -441,12 +464,14 @@ async fn test_full_conversation_flow() {
             let user_prompt = vec![ContentBlock::Text(TextContent {
                 annotations: None,
                 text: "Please analyze the file and summarize it".to_string(),
+                meta: None,
             })];
 
             agent_conn
                 .prompt(PromptRequest {
                     session_id: session_id.clone(),
                     prompt: user_prompt,
+                    meta: None,
                 })
                 .await
                 .expect("prompt failed");
@@ -459,8 +484,10 @@ async fn test_full_conversation_flow() {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "I'll analyze the file for you. ".to_string(),
+                            meta: None,
                         }),
                     },
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -479,10 +506,13 @@ async fn test_full_conversation_flow() {
                         locations: vec![ToolCallLocation {
                             path: std::path::PathBuf::from("/test/data.txt"),
                             line: None,
+                            meta: None,
                         }],
                         raw_input: None,
                         raw_output: None,
+                        meta: None,
                     }),
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -498,22 +528,27 @@ async fn test_full_conversation_flow() {
                             locations: Some(vec![ToolCallLocation {
                                 path: std::path::PathBuf::from("/test/data.txt"),
                                 line: None,
+                                meta: None,
                             }]),
                             ..Default::default()
-                        }
+                        },
+                        meta: None,
                     },
                     options: vec![
                         PermissionOption {
                             id: PermissionOptionId(Arc::from("allow-once")),
                             name: "Allow once".to_string(),
                             kind: PermissionOptionKind::AllowOnce,
+                            meta: None,
                         },
                         PermissionOption {
                             id: PermissionOptionId(Arc::from("reject-once")),
                             name: "Reject".to_string(),
                             kind: PermissionOptionKind::RejectOnce,
+                            meta: None,
                         },
                     ],
+                    meta: None,
                 })
                 .await
                 .expect("request_permission failed");
@@ -536,7 +571,9 @@ async fn test_full_conversation_flow() {
                             status: Some(ToolCallStatus::InProgress),
                             ..Default::default()
                         },
+                        meta: None,
                     }),
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -553,11 +590,14 @@ async fn test_full_conversation_flow() {
                                 content: ContentBlock::Text(TextContent {
                                     annotations: None,
                                     text: "File contents: Lorem ipsum dolor sit amet".to_string(),
+                                    meta: None,
                                 }),
                             }]),
                             ..Default::default()
                         },
+                        meta: None,
                     }),
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -570,8 +610,10 @@ async fn test_full_conversation_flow() {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Based on the file contents, here's my summary: The file contains placeholder text commonly used in the printing industry.".to_string(),
+                            meta: None,
                         }),
                     },
+                    meta: None,
                 })
                 .await
                 .expect("session_notification failed");
@@ -634,6 +676,7 @@ async fn test_notification_wire_format() {
             method: "cancel",
             params: Some(ClientNotification::CancelNotification(CancelNotification {
                 session_id: SessionId("test-123".into()),
+                meta: None,
             })),
         });
 
@@ -660,8 +703,10 @@ async fn test_notification_wire_format() {
                         content: ContentBlock::Text(TextContent {
                             annotations: None,
                             text: "Hello".to_string(),
+                            meta: None,
                         }),
                     },
+                    meta: None,
                 },
             )),
         });
