@@ -503,32 +503,39 @@
       ]
     },
     "CreateTerminalRequest": {
+      "description": "Request to create a new terminal and execute a command.",
       "properties": {
         "args": {
+          "description": "Array of command arguments.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "command": {
+          "description": "The command to execute.",
           "type": "string"
         },
         "cwd": {
+          "description": "Working directory for the command (absolute path).",
           "type": ["string", "null"]
         },
         "env": {
+          "description": "Environment variables for the command.",
           "items": {
             "$ref": "#/$defs/EnvVariable"
           },
           "type": "array"
         },
         "outputByteLimit": {
+          "description": "Maximum number of output bytes to retain.\n\nWhen the limit is exceeded, the Client truncates from the beginning of the output\nto stay within the limit.\n\nThe Client MUST ensure truncation happens at a character boundary to maintain valid\nstring output, even if this means the retained output is slightly less than the\nspecified limit.",
           "format": "uint64",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         }
       },
       "required": ["sessionId", "command"],
@@ -537,8 +544,10 @@
       "x-side": "client"
     },
     "CreateTerminalResponse": {
+      "description": "Response containing the ID of the created terminal.",
       "properties": {
         "terminalId": {
+          "description": "The unique identifier for the created terminal.",
           "type": "string"
         }
       },
@@ -714,11 +723,14 @@
       "x-side": "agent"
     },
     "KillTerminalCommandRequest": {
+      "description": "Request to kill a terminal command without releasing the terminal.",
       "properties": {
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         },
         "terminalId": {
+          "description": "The ID of the terminal to kill.",
           "type": "string"
         }
       },
@@ -1101,13 +1113,13 @@
       "description": "Request to read content from a text file.\n\nOnly available if the client supports the `fs.readTextFile` capability.",
       "properties": {
         "limit": {
-          "description": "Optional maximum number of lines to read.",
+          "description": "Maximum number of lines to read.",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "line": {
-          "description": "Optional line number to start reading from (1-based).",
+          "description": "Line number to start reading from (1-based).",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
@@ -1137,11 +1149,14 @@
       "type": "object"
     },
     "ReleaseTerminalRequest": {
+      "description": "Request to release a terminal and free its resources.",
       "properties": {
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         },
         "terminalId": {
+          "description": "The ID of the terminal to release.",
           "type": "string"
         }
       },
@@ -1571,24 +1586,30 @@
       ]
     },
     "TerminalExitStatus": {
+      "description": "Exit status of a terminal command.",
       "properties": {
         "exitCode": {
+          "description": "The process exit code (may be null if terminated by signal).",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "signal": {
+          "description": "The signal that terminated the process (may be null if exited normally).",
           "type": ["string", "null"]
         }
       },
       "type": "object"
     },
     "TerminalOutputRequest": {
+      "description": "Request to get the current output and status of a terminal.",
       "properties": {
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         },
         "terminalId": {
+          "description": "The ID of the terminal to get output from.",
           "type": "string"
         }
       },
@@ -1598,6 +1619,7 @@
       "x-side": "client"
     },
     "TerminalOutputResponse": {
+      "description": "Response containing the terminal output and exit status.",
       "properties": {
         "exitStatus": {
           "anyOf": [
@@ -1607,12 +1629,15 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Exit status if the command has completed."
         },
         "output": {
+          "description": "The terminal output captured so far.",
           "type": "string"
         },
         "truncated": {
+          "description": "Whether the output was truncated due to byte limits.",
           "type": "boolean"
         }
       },
@@ -1916,11 +1941,14 @@
       ]
     },
     "WaitForTerminalExitRequest": {
+      "description": "Request to wait for a terminal command to exit.",
       "properties": {
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The session ID for this request."
         },
         "terminalId": {
+          "description": "The ID of the terminal to wait for.",
           "type": "string"
         }
       },
@@ -1930,13 +1958,16 @@
       "x-side": "client"
     },
     "WaitForTerminalExitResponse": {
+      "description": "Response containing the exit status of a terminal command.",
       "properties": {
         "exitCode": {
+          "description": "The process exit code (may be null if terminated by signal).",
           "format": "uint32",
           "minimum": 0,
           "type": ["integer", "null"]
         },
         "signal": {
+          "description": "The signal that terminated the process (may be null if exited normally).",
           "type": ["string", "null"]
         }
       },

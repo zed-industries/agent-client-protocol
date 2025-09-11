@@ -340,10 +340,10 @@ pub struct ReadTextFileRequest {
     pub session_id: SessionId,
     /// Absolute path to the file to read.
     pub path: PathBuf,
-    /// Optional line number to start reading from (1-based).
+    /// Line number to start reading from (1-based).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
-    /// Optional maximum number of lines to read.
+    /// Maximum number of lines to read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
 }
@@ -368,82 +368,119 @@ impl std::fmt::Display for TerminalId {
     }
 }
 
+/// Request to create a new terminal and execute a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The command to execute.
     pub command: String,
+    /// Array of command arguments.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
+    /// Environment variables for the command.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub env: Vec<crate::EnvVariable>,
+    /// Working directory for the command (absolute path).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<PathBuf>,
+    /// Maximum number of output bytes to retain.
+    ///
+    /// When the limit is exceeded, the Client truncates from the beginning of the output
+    /// to stay within the limit.
+    ///
+    /// The Client MUST ensure truncation happens at a character boundary to maintain valid
+    /// string output, even if this means the retained output is slightly less than the
+    /// specified limit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_byte_limit: Option<u64>,
 }
 
+/// Response containing the ID of the created terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalResponse {
+    /// The unique identifier for the created terminal.
     pub terminal_id: TerminalId,
 }
 
+/// Request to get the current output and status of a terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to get output from.
     pub terminal_id: TerminalId,
 }
 
+/// Response containing the terminal output and exit status.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputResponse {
+    /// The terminal output captured so far.
     pub output: String,
+    /// Whether the output was truncated due to byte limits.
     pub truncated: bool,
+    /// Exit status if the command has completed.
     pub exit_status: Option<TerminalExitStatus>,
 }
 
+/// Request to release a terminal and free its resources.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_RELEASE_METHOD_NAME))]
 pub struct ReleaseTerminalRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to release.
     pub terminal_id: TerminalId,
 }
 
+/// Request to kill a terminal command without releasing the terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_KILL_METHOD_NAME))]
 pub struct KillTerminalCommandRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to kill.
     pub terminal_id: TerminalId,
 }
 
+/// Request to wait for a terminal command to exit.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to wait for.
     pub terminal_id: TerminalId,
 }
 
+/// Response containing the exit status of a terminal command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitResponse {
+    /// The exit status of the terminal command.
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
 }
 
+/// Exit status of a terminal command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalExitStatus {
+    /// The process exit code (may be null if terminated by signal).
     pub exit_code: Option<u32>,
+    /// The signal that terminated the process (may be null if exited normally).
     pub signal: Option<String>,
 }
 

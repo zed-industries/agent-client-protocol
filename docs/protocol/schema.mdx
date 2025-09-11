@@ -358,13 +358,13 @@ Only available if the client supports the `fs.readTextFile` capability.
 **Properties:**
 
 <ResponseField name="limit" type={"integer | null"} >
-  Optional maximum number of lines to read.
+  Maximum number of lines to read.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="line" type={"integer | null"} >
-  Optional line number to start reading from (1-based).
+  Line number to start reading from (1-based).
 
     - Minimum: `0`
 
@@ -543,33 +543,52 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
 
 #### <span class="font-mono">CreateTerminalRequest</span>
 
+Request to create a new terminal and execute a command.
+
 **Type:** Object
 
 **Properties:**
 
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
+  Array of command arguments.
 </ResponseField>
 <ResponseField name="command" type={"string"} required>
+  The command to execute.
 </ResponseField>
 <ResponseField name="cwd" type={"string | null"} >
+  Working directory for the command (absolute path).
 </ResponseField>
 <ResponseField name="env" type={<><span><a href="#envvariable">EnvVariable</a></span><span>[]</span></>} >
+  Environment variables for the command.
 </ResponseField>
 <ResponseField name="outputByteLimit" type={"integer | null"} >
+  Maximum number of output bytes to retain.
+
+When the limit is exceeded, the Client truncates from the beginning of the output
+to stay within the limit.
+
+The Client MUST ensure truncation happens at a character boundary to maintain valid
+string output, even if this means the retained output is slightly less than the
+specified limit.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
+  The session ID for this request.
 </ResponseField>
 
 #### <span class="font-mono">CreateTerminalResponse</span>
+
+Response containing the ID of the created terminal.
 
 **Type:** Object
 
 **Properties:**
 
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
+<ResponseField name="terminalId" type={"string"} required>
+  The unique identifier for the created terminal.
+</ResponseField>
 
 <a id="terminal-kill"></a>
 ### <span class="font-mono">terminal/kill</span>
@@ -589,6 +608,8 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
 
 #### <span class="font-mono">KillTerminalCommandRequest</span>
 
+Request to kill a terminal command without releasing the terminal.
+
 **Type:** Object
 
 **Properties:**
@@ -597,8 +618,12 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
   required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
+>
+  The session ID for this request.
+</ResponseField>
+<ResponseField name="terminalId" type={"string"} required>
+  The ID of the terminal to kill.
+</ResponseField>
 
 <a id="terminal-output"></a>
 ### <span class="font-mono">terminal/output</span>
@@ -612,6 +637,8 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
 
 #### <span class="font-mono">TerminalOutputRequest</span>
 
+Request to get the current output and status of a terminal.
+
 **Type:** Object
 
 **Properties:**
@@ -620,10 +647,16 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
   required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
+>
+  The session ID for this request.
+</ResponseField>
+<ResponseField name="terminalId" type={"string"} required>
+  The ID of the terminal to get output from.
+</ResponseField>
 
 #### <span class="font-mono">TerminalOutputResponse</span>
+
+Response containing the terminal output and exit status.
 
 **Type:** Object
 
@@ -639,9 +672,15 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
       <span> | null</span>
     </>
   }
-></ResponseField>
-<ResponseField name="output" type={"string"} required></ResponseField>
-<ResponseField name="truncated" type={"boolean"} required></ResponseField>
+>
+  Exit status if the command has completed.
+</ResponseField>
+<ResponseField name="output" type={"string"} required>
+  The terminal output captured so far.
+</ResponseField>
+<ResponseField name="truncated" type={"boolean"} required>
+  Whether the output was truncated due to byte limits.
+</ResponseField>
 
 <a id="terminal-release"></a>
 ### <span class="font-mono">terminal/release</span>
@@ -661,6 +700,8 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
 
 #### <span class="font-mono">ReleaseTerminalRequest</span>
 
+Request to release a terminal and free its resources.
+
 **Type:** Object
 
 **Properties:**
@@ -669,8 +710,12 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
   required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
+>
+  The session ID for this request.
+</ResponseField>
+<ResponseField name="terminalId" type={"string"} required>
+  The ID of the terminal to release.
+</ResponseField>
 
 <a id="terminal-wait_for_exit"></a>
 ### <span class="font-mono">terminal/wait_for_exit</span>
@@ -681,6 +726,8 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
 
 #### <span class="font-mono">WaitForTerminalExitRequest</span>
 
+Request to wait for a terminal command to exit.
+
 **Type:** Object
 
 **Properties:**
@@ -689,21 +736,29 @@ See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminal
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
   required
-></ResponseField>
-<ResponseField name="terminalId" type={"string"} required></ResponseField>
+>
+  The session ID for this request.
+</ResponseField>
+<ResponseField name="terminalId" type={"string"} required>
+  The ID of the terminal to wait for.
+</ResponseField>
 
 #### <span class="font-mono">WaitForTerminalExitResponse</span>
+
+Response containing the exit status of a terminal command.
 
 **Type:** Object
 
 **Properties:**
 
 <ResponseField name="exitCode" type={"integer | null"} >
+  The process exit code (may be null if terminated by signal).
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="signal" type={"string | null"} >
+  The signal that terminated the process (may be null if exited normally).
 </ResponseField>
 
 ## <span class="font-mono">AgentCapabilities</span>
@@ -1964,16 +2019,20 @@ response to confirm successful cancellation.
 
 ## <span class="font-mono">TerminalExitStatus</span>
 
+Exit status of a terminal command.
+
 **Type:** Object
 
 **Properties:**
 
 <ResponseField name="exitCode" type={"integer | null"} >
+  The process exit code (may be null if terminated by signal).
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="signal" type={"string | null"} >
+  The signal that terminated the process (may be null if exited normally).
 </ResponseField>
 
 ## <span class="font-mono">TextContent</span>
