@@ -523,6 +523,189 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
   The actual update content.
 </ResponseField>
 
+<a id="terminal-create"></a>
+### <span class="font-mono">terminal/create</span>
+
+Executes a command in a new terminal
+
+Only available if the `terminal` Client capability is set to `true`.
+
+Returns a `TerminalId` that can be used with other terminal methods
+to get the current output, wait for exit, and kill the command.
+
+The `TerminalId` can also be used to embed the terminal in a tool call
+by using the `ToolCallContent::Terminal` variant.
+
+The Agent is responsible for releasing the terminal by using the `terminal/release`
+method.
+
+See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+
+#### <span class="font-mono">CreateTerminalRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
+</ResponseField>
+<ResponseField name="command" type={"string"} required>
+</ResponseField>
+<ResponseField name="cwd" type={"string | null"} >
+</ResponseField>
+<ResponseField name="env" type={<><span><a href="#envvariable">EnvVariable</a></span><span>[]</span></>} >
+</ResponseField>
+<ResponseField name="outputByteLimit" type={"integer | null"} >
+
+    - Minimum: `0`
+
+</ResponseField>
+<ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
+</ResponseField>
+
+#### <span class="font-mono">CreateTerminalResponse</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+<a id="terminal-kill"></a>
+### <span class="font-mono">terminal/kill</span>
+
+Kills the terminal command without releasing the terminal
+
+While `terminal/release` will also kill the command, this method will keep
+the `TerminalId` valid so it can be used with other methods.
+
+This method can be helpful when implementing command timeouts which terminate
+the command as soon as elapsed, and then get the final output so it can be sent
+to the model.
+
+Note: `terminal/release` when `TerminalId` is no longer needed.
+
+See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+
+#### <span class="font-mono">KillTerminalCommandRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+<a id="terminal-output"></a>
+### <span class="font-mono">terminal/output</span>
+
+Gets the terminal ouput and exit status
+
+Returns the current content in the terminal without waiting for the command to exit.
+If the command has already exited, the exit status is included.
+
+See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+
+#### <span class="font-mono">TerminalOutputRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+#### <span class="font-mono">TerminalOutputResponse</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="exitStatus"
+  type={
+    <>
+      <span>
+        <a href="#terminalexitstatus">TerminalExitStatus</a>
+      </span>
+      <span> | null</span>
+    </>
+  }
+></ResponseField>
+<ResponseField name="output" type={"string"} required></ResponseField>
+<ResponseField name="truncated" type={"boolean"} required></ResponseField>
+
+<a id="terminal-release"></a>
+### <span class="font-mono">terminal/release</span>
+
+Releases a terminal
+
+The command is killed if it hasn't exited yet. Use `terminal/wait_for_exit`
+to wait for the command to exit before releasing the terminal.
+
+After release, the `TerminalId` can no longer be used with other `terminal/*` methods,
+but tool calls that already contain it, continue to display its output.
+
+The `terminal/kill` method can be used to terminate the command without releasing
+the terminal, allowing the Agent to call `terminal/output` and other methods.
+
+See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+
+#### <span class="font-mono">ReleaseTerminalRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+<a id="terminal-wait_for_exit"></a>
+### <span class="font-mono">terminal/wait_for_exit</span>
+
+Waits for the terminal command to exit and return its exit status
+
+See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+
+#### <span class="font-mono">WaitForTerminalExitRequest</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+></ResponseField>
+<ResponseField name="terminalId" type={"string"} required></ResponseField>
+
+#### <span class="font-mono">WaitForTerminalExitResponse</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="exitCode" type={"integer | null"} >
+
+    - Minimum: `0`
+
+</ResponseField>
+<ResponseField name="signal" type={"string | null"} >
+</ResponseField>
+
 ## <span class="font-mono">AgentCapabilities</span>
 
 Capabilities supported by the agent.
@@ -694,9 +877,7 @@ Determines which file operations the agent can request.
 
 </ResponseField>
 <ResponseField name="terminal" type={"boolean"} >
-  **UNSTABLE**
-
-This capability is not part of the spec yet, and may be removed or changed at any point.
+  Whether the Client support all `terminal/*` methods.
 
     - Default: `false`
 
@@ -1781,6 +1962,20 @@ response to confirm successful cancellation.
 
 </ResponseField>
 
+## <span class="font-mono">TerminalExitStatus</span>
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="exitCode" type={"integer | null"} >
+
+    - Minimum: `0`
+
+</ResponseField>
+<ResponseField name="signal" type={"string | null"} >
+</ResponseField>
+
 ## <span class="font-mono">TextContent</span>
 
 Text provided to or from an LLM.
@@ -1929,7 +2124,9 @@ File modification shown as a diff.
 </ResponseField>
 
 <ResponseField name="terminal">
-{""}
+Embed a terminal created with `terminal/create`
+
+The terminal must be added to the tool call before calling `terminal/release`.
 
 <Expandable title="Properties">
 

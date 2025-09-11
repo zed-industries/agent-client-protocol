@@ -69,8 +69,8 @@
           "title": "WaitForTerminalExitRequest"
         },
         {
-          "$ref": "#/$defs/KillTerminalRequest",
-          "title": "KillTerminalRequest"
+          "$ref": "#/$defs/KillTerminalCommandRequest",
+          "title": "KillTerminalCommandRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -268,7 +268,7 @@
         },
         "terminal": {
           "default": false,
-          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.",
+          "description": "Whether the Client support all `terminal/*` methods.",
           "type": "boolean"
         }
       },
@@ -533,7 +533,8 @@
       },
       "required": ["sessionId", "command"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/create",
+      "x-side": "client"
     },
     "CreateTerminalResponse": {
       "properties": {
@@ -543,7 +544,8 @@
       },
       "required": ["terminalId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/create",
+      "x-side": "client"
     },
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
@@ -711,7 +713,7 @@
       "x-method": "initialize",
       "x-side": "agent"
     },
-    "KillTerminalRequest": {
+    "KillTerminalCommandRequest": {
       "properties": {
         "sessionId": {
           "$ref": "#/$defs/SessionId"
@@ -722,7 +724,8 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/kill",
+      "x-side": "client"
     },
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the Agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
@@ -1144,7 +1147,8 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/release",
+      "x-side": "client"
     },
     "RequestPermissionOutcome": {
       "description": "The outcome of a permission request.",
@@ -1577,8 +1581,7 @@
           "type": ["string", "null"]
         }
       },
-      "type": "object",
-      "x-docs-ignore": true
+      "type": "object"
     },
     "TerminalOutputRequest": {
       "properties": {
@@ -1591,7 +1594,8 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/output",
+      "x-side": "client"
     },
     "TerminalOutputResponse": {
       "properties": {
@@ -1614,7 +1618,8 @@
       },
       "required": ["output", "truncated"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/output",
+      "x-side": "client"
     },
     "TextContent": {
       "description": "Text provided to or from an LLM.",
@@ -1737,6 +1742,7 @@
           "type": "object"
         },
         {
+          "description": "Embed a terminal created with `terminal/create`\n\nThe terminal must be added to the tool call before calling `terminal/release`.",
           "properties": {
             "terminalId": {
               "type": "string"
@@ -1920,7 +1926,8 @@
       },
       "required": ["sessionId", "terminalId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/wait_for_exit",
+      "x-side": "client"
     },
     "WaitForTerminalExitResponse": {
       "properties": {
@@ -1934,7 +1941,8 @@
         }
       },
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "terminal/wait_for_exit",
+      "x-side": "client"
     },
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",

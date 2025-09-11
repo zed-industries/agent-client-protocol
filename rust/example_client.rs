@@ -68,9 +68,9 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    async fn kill_terminal(
+    async fn kill_terminal_command(
         &self,
-        _args: acp::KillTerminalRequest,
+        _args: acp::KillTerminalCommandRequest,
     ) -> anyhow::Result<(), acp::Error> {
         Err(acp::Error::method_not_found())
     }

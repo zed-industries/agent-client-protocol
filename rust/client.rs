@@ -72,44 +72,77 @@ pub trait Client {
         args: SessionNotification,
     ) -> impl Future<Output = Result<(), Error>>;
 
-    // Experimental terminal support
-
-    /// **UNSTABLE**
+    /// Executes a command in a new terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
+    /// Only available if the `terminal` Client capability is set to `true`.
+    ///
+    /// Returns a `TerminalId` that can be used with other terminal methods
+    /// to get the current output, wait for exit, and kill the command.
+    ///
+    /// The `TerminalId` can also be used to embed the terminal in a tool call
+    /// by using the `ToolCallContent::Terminal` variant.
+    ///
+    /// The Agent is responsible for releasing the terminal by using the `terminal/release`
+    /// method.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn create_terminal(
         &self,
         args: CreateTerminalRequest,
     ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Gets the terminal ouput and exit status
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
+    /// Returns the current content in the terminal without waiting for the command to exit.
+    /// If the command has already exited, the exit status is included.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn terminal_output(
         &self,
         args: TerminalOutputRequest,
     ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Releases a terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
+    /// The command is killed if it hasn't exited yet. Use `terminal/wait_for_exit`
+    /// to wait for the command to exit before releasing the terminal.
+    ///
+    /// After release, the `TerminalId` can no longer be used with other `terminal/*` methods,
+    /// but tool calls that already contain it, continue to display its output.
+    ///
+    /// The `terminal/kill` method can be used to terminate the command without releasing
+    /// the terminal, allowing the Agent to call `terminal/output` and other methods.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
-    /// **UNSTABLE**
+    /// Waits for the terminal command to exit and return its exit status
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
     ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Kills the terminal command without releasing the terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    fn kill_terminal(&self, args: KillTerminalRequest) -> impl Future<Output = Result<(), Error>>;
+    /// While `terminal/release` will also kill the command, this method will keep
+    /// the `TerminalId` valid so it can be used with other methods.
+    ///
+    /// This method can be helpful when implementing command timeouts which terminate
+    /// the command as soon as elapsed, and then get the final output so it can be sent
+    /// to the model.
+    ///
+    /// Note: `terminal/release` when `TerminalId` is no longer needed.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+    fn kill_terminal_command(
+        &self,
+        args: KillTerminalCommandRequest,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Session updates
@@ -337,6 +370,7 @@ impl std::fmt::Display for TerminalId {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalRequest {
     pub session_id: SessionId,
     pub command: String,
@@ -352,12 +386,14 @@ pub struct CreateTerminalRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalResponse {
     pub terminal_id: TerminalId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -365,6 +401,7 @@ pub struct TerminalOutputRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputResponse {
     pub output: String,
     pub truncated: bool,
@@ -373,6 +410,7 @@ pub struct TerminalOutputResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_RELEASE_METHOD_NAME))]
 pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -380,13 +418,15 @@ pub struct ReleaseTerminalRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct KillTerminalRequest {
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_KILL_METHOD_NAME))]
+pub struct KillTerminalCommandRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
     pub terminal_id: TerminalId,
@@ -394,6 +434,7 @@ pub struct WaitForTerminalExitRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitResponse {
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
@@ -422,11 +463,8 @@ pub struct ClientCapabilities {
     #[serde(default)]
     pub fs: FileSystemCapability,
 
-    /// **UNSTABLE**
-    ///
-    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    /// Whether the Client support all `terminal/*` methods.
     #[serde(default)]
-    #[doc(hidden)]
     pub terminal: bool,
 }
 
@@ -520,7 +558,7 @@ pub enum AgentRequest {
     TerminalOutputRequest(TerminalOutputRequest),
     ReleaseTerminalRequest(ReleaseTerminalRequest),
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
-    KillTerminalRequest(KillTerminalRequest),
+    KillTerminalCommandRequest(KillTerminalCommandRequest),
 }
 
 /// All possible responses that a client can send to an agent.

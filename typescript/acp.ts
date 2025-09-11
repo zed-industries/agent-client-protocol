@@ -337,9 +337,9 @@ export class ClientSideConnection implements Agent {
         }
         case schema.CLIENT_METHODS.terminal_kill: {
           const validatedParams =
-            schema.killTerminalRequestSchema.parse(params);
+            schema.killTerminalCommandRequestSchema.parse(params);
           return client.killTerminal?.(
-            validatedParams as schema.KillTerminalRequest,
+            validatedParams as schema.KillTerminalCommandRequest,
           );
         }
         default:
@@ -889,7 +889,7 @@ export interface Client {
    *
    * This method is not part of the spec, and may be removed or changed at any point.
    */
-  killTerminal?(params: schema.KillTerminalRequest): Promise<void>;
+  killTerminal?(params: schema.KillTerminalCommandRequest): Promise<void>;
 }
 
 /**

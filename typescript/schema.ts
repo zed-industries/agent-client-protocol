@@ -48,7 +48,7 @@ export type ClientRequest =
   | TerminalOutputRequest
   | ReleaseTerminalRequest
   | WaitForTerminalExitRequest
-  | KillTerminalRequest;
+  | KillTerminalCommandRequest;
 /**
  * Content produced by a tool call.
  *
@@ -550,7 +550,7 @@ export interface WaitForTerminalExitRequest {
   sessionId: SessionId;
   terminalId: string;
 }
-export interface KillTerminalRequest {
+export interface KillTerminalCommandRequest {
   sessionId: SessionId;
   terminalId: string;
 }
@@ -640,9 +640,7 @@ export interface InitializeRequest {
 export interface ClientCapabilities {
   fs?: FileSystemCapability;
   /**
-   * **UNSTABLE**
-   *
-   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   * Whether the Client support all `terminal/*` methods.
    */
   terminal?: boolean;
 }
@@ -1405,7 +1403,7 @@ export const waitForTerminalExitRequestSchema = z.object({
 });
 
 /** @internal */
-export const killTerminalRequestSchema = z.object({
+export const killTerminalCommandRequestSchema = z.object({
   sessionId: sessionIdSchema,
   terminalId: z.string(),
 });
@@ -1733,7 +1731,7 @@ export const clientRequestSchema = z.union([
   terminalOutputRequestSchema,
   releaseTerminalRequestSchema,
   waitForTerminalExitRequestSchema,
-  killTerminalRequestSchema,
+  killTerminalCommandRequestSchema,
 ]);
 
 /** @internal */
