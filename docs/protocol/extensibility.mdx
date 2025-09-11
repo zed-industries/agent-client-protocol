@@ -1,0 +1,124 @@
+---
+title: "Extensibility"
+description: "Adding extra information and functionality"
+---
+
+The Agent Client Protocol provides built-in extension mechanisms that allow implementations to add custom functionality while maintaining compatibility with the core protocol. These mechanisms ensure that Agents and Clients can innovate without breaking interoperability.
+
+## The `_meta` Field
+
+All types in the protocol include a `_meta` field that implementations can use to attach custom information. This includes requests, responses, notifications, and even nested types like content blocks, tool calls, plan entries, and capability objects.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "session/prompt",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "prompt": [
+      {
+        "type": "text",
+        "text": "Hello, world!"
+      }
+    ],
+    "_meta": {
+      "zed.dev/debugMode": true
+    }
+  }
+}
+```
+
+All possible fiels names at the root of an object are reserved by the protocol and may be used in future versions.
+
+## Extension Methods
+
+The protocol reserves two special method names for custom extensions:
+
+- `_method` - For request-response extensions
+- `_notification` - For one-way notification extensions
+
+These allow implementations to add entirely new functionality without conflicting with future protocol versions.
+
+### Custom Methods
+
+To add a custom method, use the `_method` endpoint with your extension identifier:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "_method",
+  "params": {
+    "method": "zed.dev/workspace/buffers",
+    "params": {
+      "language": "rust"
+    }
+  }
+}
+```
+
+The response follows the same pattern:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "buffers": [
+      { "id": 0, "path": "/home/user/project/src/main.rs" }
+      { "id": 1, "path": "/home/user/project/src/editor.rs" }
+    ]
+  }
+}
+```
+
+Implementations **MUST** respond to custom method requests even if they don't recognize the identifier. To avoid such cases, extensions **SHOULD** advertise their [custom capabilities](#advertising-custom-capabilities) so that callers can check their availability first and adapt their interface accordingly.
+
+### Custom Notifications
+
+For one-way communications, use the `_notification` endpoint:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "_notification",
+  "params": {
+    "method": "zed.dev/file_opened",
+    "params": {
+      "path": "/home/user/project/src/editor.rs"
+    }
+  }
+}
+```
+
+Unlike with [Custom Methods](#custom-methods), implementations **SHOULD** ignore unrecognized notifications.
+
+## Namespacing
+
+Implementations **SHOULD** make a best effort to avoid conflicting with other extensions by prefixing their method and field names with a unique name such as a domain or repository identifier.
+
+### Advertising Custom Capabilities
+
+Implementations **MAY** use the `_meta` field in capability objects to advertise support for custom extensions:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,
+      "_meta": {
+        "zed.dev": {
+          "workspace": true,
+          "fileNotifications": true
+        }
+      }
+    }
+  }
+}
+```
+
+This allows implementations to negotiate custom features during initialization without breaking compatibility with standard clients.

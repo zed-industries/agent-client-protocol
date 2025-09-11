@@ -57,6 +57,7 @@
           "protocol/tool-calls",
           "protocol/file-system",
           "protocol/agent-plan",
+          "protocol/extensibility",
           "protocol/schema"
         ]
       },
