@@ -83,6 +83,26 @@ export class AgentSideConnection {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
           return agent.cancel(validatedParams as schema.CancelNotification);
         }
+        case schema.AGENT_METHODS.ext_method: {
+          const validatedParams = schema.extMethodRequest1Schema.parse(params);
+          if (!agent.extMethod) {
+            throw RequestError.methodNotFound(validatedParams.method);
+          }
+          return agent.extMethod(
+            validatedParams.method,
+            validatedParams.params,
+          );
+        }
+        case schema.AGENT_METHODS.ext_notification: {
+          const validatedParams = schema.extNotification1Schema.parse(params);
+          if (!agent.extNotification) {
+            return;
+          }
+          return agent.extNotification(
+            validatedParams.method,
+            validatedParams.params,
+          );
+        }
         default:
           throw RequestError.methodNotFound(method);
       }
@@ -183,6 +203,36 @@ export class AgentSideConnection {
       response.terminalId,
       params.sessionId,
       this.#connection,
+    );
+  }
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(
+      schema.CLIENT_METHODS.ext_method,
+      { method, params },
+    );
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(
+      schema.CLIENT_METHODS.ext_notification,
+      { method, params },
     );
   }
 }
@@ -342,6 +392,26 @@ export class ClientSideConnection implements Agent {
             validatedParams as schema.KillTerminalRequest,
           );
         }
+        case schema.CLIENT_METHODS.ext_method: {
+          const validatedParams = schema.extMethodRequestSchema.parse(params);
+          if (!client.extMethod) {
+            throw RequestError.methodNotFound(validatedParams.method);
+          }
+          return client.extMethod(
+            validatedParams.method,
+            validatedParams.params,
+          );
+        }
+        case schema.CLIENT_METHODS.ext_notification: {
+          const validatedParams = schema.extNotificationSchema.parse(params);
+          if (!client.extNotification) {
+            return;
+          }
+          return client.extNotification(
+            validatedParams.method,
+            validatedParams.params,
+          );
+        }
         default:
           throw RequestError.methodNotFound(method);
       }
@@ -487,6 +557,36 @@ export class ClientSideConnection implements Agent {
     return await this.#connection.sendNotification(
       schema.AGENT_METHODS.session_cancel,
       params,
+    );
+  }
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(schema.AGENT_METHODS.ext_method, {
+      method,
+      params,
+    });
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(
+      schema.AGENT_METHODS.ext_notification,
+      { method, params },
     );
   }
 }
@@ -890,6 +990,29 @@ export interface Client {
    * This method is not part of the spec, and may be removed or changed at any point.
    */
   killTerminal?(params: schema.KillTerminalRequest): Promise<void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }
 
 /**
@@ -994,4 +1117,27 @@ export interface Agent {
    * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   cancel(params: schema.CancelNotification): Promise<void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }
