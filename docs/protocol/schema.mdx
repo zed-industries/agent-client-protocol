@@ -1016,6 +1016,48 @@ An environment variable to set when launching an MCP server.
   The value to set for the environment variable.
 </ResponseField>
 
+## <span class="font-mono">ExtMethodRequest</span>
+
+Request parameters for extension method calls.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="method" type={"string"} required>
+  The identifier for the extension method.
+
+To help avoid conflicts, it's a good practice to prefix extension
+methods with a unique identifier such as domain name.
+
+</ResponseField>
+<ResponseField name="params" type={"object"} required>
+  The parameters for the extension method, can be any JSON value.
+</ResponseField>
+
+## <span class="font-mono">ExtMethodResponse</span>
+
+Response from extension method calls.
+
+## <span class="font-mono">ExtNotification</span>
+
+Extension notification parameters
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="method" type={"string"} required>
+  The identifier for the extension method.
+
+To help avoid conflicts, it's a good practice to prefix extension
+methods with a unique identifier such as domain name.
+
+</ResponseField>
+<ResponseField name="params" type={"object"} required>
+  The parameters for the extension notification, can be any JSON value.
+</ResponseField>
+
 ## <span class="font-mono">FileSystemCapability</span>
 
 File system capabilities that a client may support.

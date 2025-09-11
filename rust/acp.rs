@@ -54,6 +54,7 @@ mod agent;
 mod client;
 mod content;
 mod error;
+mod ext;
 mod plan;
 mod rpc;
 #[cfg(test)]
@@ -66,6 +67,7 @@ pub use agent::*;
 pub use client::*;
 pub use content::*;
 pub use error::*;
+pub use ext::*;
 pub use plan::*;
 pub use stream_broadcast::{
     StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver,
@@ -232,6 +234,38 @@ impl Agent for ClientSideConnection {
             Some(ClientNotification::CancelNotification(notification)),
         )
     }
+
+    async fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value, Error> {
+        let response: ExtMethodResponse = self
+            .conn
+            .request(
+                EXT_METHOD_NAME,
+                Some(ClientRequest::ExtMethodRequest(ExtMethodRequest {
+                    method,
+                    params,
+                })),
+            )
+            .await?;
+        Ok(response.0)
+    }
+
+    async fn ext_notification(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<(), Error> {
+        self.conn.notify(
+            EXT_NOTIFICATION_NAME,
+            Some(ClientNotification::ExtNotification(ExtNotification {
+                method,
+                params,
+            })),
+        )
+    }
 }
 
 /// Marker type representing the client side of an ACP connection.
@@ -340,6 +374,12 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 self.kill_terminal(args).await?;
                 Ok(ClientResponse::KillTerminalResponse)
             }
+            AgentRequest::ExtMethodRequest(args) => {
+                let response = self.ext_method(args.method, args.params).await?;
+                Ok(ClientResponse::ExtMethodResponse(ExtMethodResponse(
+                    response,
+                )))
+            }
         }
     }
 
@@ -347,6 +387,9 @@ impl<T: Client> MessageHandler<ClientSide> for T {
         match notification {
             AgentNotification::SessionNotification(notification) => {
                 self.session_notification(notification).await?;
+            }
+            AgentNotification::ExtNotification(args) => {
+                self.ext_notification(args.method, args.params).await?;
             }
         }
         Ok(())
@@ -509,6 +552,38 @@ impl Client for AgentSideConnection {
             Some(AgentNotification::SessionNotification(notification)),
         )
     }
+
+    async fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value, Error> {
+        let response: ExtMethodResponse = self
+            .conn
+            .request(
+                EXT_METHOD_NAME,
+                Some(AgentRequest::ExtMethodRequest(ExtMethodRequest {
+                    method,
+                    params,
+                })),
+            )
+            .await?;
+        Ok(response.0)
+    }
+
+    async fn ext_notification(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<(), Error> {
+        self.conn.notify(
+            EXT_NOTIFICATION_NAME,
+            Some(AgentNotification::ExtNotification(ExtNotification {
+                method,
+                params,
+            })),
+        )
+    }
 }
 
 /// Marker type representing the agent side of an ACP connection.
@@ -595,6 +670,12 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 let response = self.set_session_mode(args).await?;
                 Ok(AgentResponse::SetSessionModeResponse(response))
             }
+            ClientRequest::ExtMethodRequest(args) => {
+                let response = self.ext_method(args.method, args.params).await?;
+                Ok(AgentResponse::ExtMethodResponse(ExtMethodResponse(
+                    response,
+                )))
+            }
         }
     }
 
@@ -602,6 +683,9 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
         match notification {
             ClientNotification::CancelNotification(notification) => {
                 self.cancel(notification).await?;
+            }
+            ClientNotification::ExtNotification(args) => {
+                self.ext_notification(args.method, args.params).await?;
             }
         }
         Ok(())

@@ -1,6 +1,8 @@
 {
   "agentMethods": {
     "authenticate": "authenticate",
+    "ext_method": "_method",
+    "ext_notification": "_notification",
     "initialize": "initialize",
     "session_cancel": "session/cancel",
     "session_load": "session/load",
@@ -9,6 +11,8 @@
     "session_set_mode": "session/set_mode"
   },
   "clientMethods": {
+    "ext_method": "_method",
+    "ext_notification": "_notification",
     "fs_read_text_file": "fs/read_text_file",
     "fs_write_text_file": "fs/write_text_file",
     "session_request_permission": "session/request_permission",

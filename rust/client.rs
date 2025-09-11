@@ -11,6 +11,9 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "unstable")]
 use crate::SessionModeId;
+use crate::ext::{
+    EXT_METHOD_NAME, EXT_NOTIFICATION_NAME, ExtMethodRequest, ExtMethodResponse, ExtNotification,
+};
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
 
 /// Defines the interface that ACP-compliant clients must implement.
@@ -120,6 +123,24 @@ pub trait Client {
     #[doc(hidden)]
     #[cfg(feature = "unstable")]
     fn kill_terminal(&self, args: KillTerminalRequest) -> impl Future<Output = Result<(), Error>>;
+
+    /// Extension method
+    ///
+    /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+    fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> impl Future<Output = Result<serde_json::Value, Error>>;
+
+    /// Extension notification
+    ///
+    /// Allows the Agent to send an arbitrary notifiation that is not part of the ACP spec.
+    fn ext_notification(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Session updates
@@ -560,6 +581,10 @@ pub struct ClientMethodNames {
     /// Method for killing a terminal.
     #[cfg(feature = "unstable")]
     pub terminal_kill: &'static str,
+    /// Extension method for custom functionality.
+    pub ext_method: &'static str,
+    /// Extension notification for custom functionality.
+    pub ext_notification: &'static str,
 }
 
 /// Constant containing all client method names.
@@ -578,6 +603,8 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
     #[cfg(feature = "unstable")]
     terminal_kill: TERMINAL_KILL_METHOD_NAME,
+    ext_method: EXT_METHOD_NAME,
+    ext_notification: EXT_NOTIFICATION_NAME,
 };
 
 /// Notification name for session updates.
@@ -627,6 +654,7 @@ pub enum AgentRequest {
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
     #[cfg(feature = "unstable")]
     KillTerminalRequest(KillTerminalRequest),
+    ExtMethodRequest(ExtMethodRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -652,6 +680,7 @@ pub enum ClientResponse {
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
     #[cfg(feature = "unstable")]
     KillTerminalResponse,
+    ExtMethodResponse(ExtMethodResponse),
 }
 
 /// All possible notifications that an agent can send to a client.
@@ -663,6 +692,8 @@ pub enum ClientResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
+#[allow(clippy::large_enum_variant)]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
+    ExtNotification(ExtNotification),
 }

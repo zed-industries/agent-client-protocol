@@ -103,6 +103,30 @@ impl acp::Client for ExampleClient {
         }
         Ok(())
     }
+
+    async fn ext_method(
+        &self,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
+    ) -> anyhow::Result<serde_json::Value, acp::Error> {
+        eprintln!(
+            "Received extension method call: method={}, params={:?}",
+            method, params
+        );
+        Ok(serde_json::json!({"client": "response"}))
+    }
+
+    async fn ext_notification(
+        &self,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
+    ) -> anyhow::Result<(), acp::Error> {
+        eprintln!(
+            "Received extension notification: method={}, params={:?}",
+            method, params
+        );
+        Ok(())
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]

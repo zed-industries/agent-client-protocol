@@ -107,6 +107,32 @@ impl acp::Agent for ExampleAgent {
         log::info!("Received cancel request {args:?}");
         Ok(())
     }
+
+    async fn ext_method(
+        &self,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value, acp::Error> {
+        log::info!(
+            "Received extension method call: method={}, params={:?}",
+            method,
+            params
+        );
+        Ok(serde_json::json!({"example": "response"}))
+    }
+
+    async fn ext_notification(
+        &self,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
+    ) -> Result<(), acp::Error> {
+        log::info!(
+            "Received extension notification: method={}, params={:?}",
+            method,
+            params
+        );
+        Ok(())
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]

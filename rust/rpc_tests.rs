@@ -102,6 +102,22 @@ impl Client for TestClient {
     ) -> Result<WaitForTerminalExitResponse, Error> {
         unimplemented!()
     }
+
+    async fn ext_method(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: serde_json::Value,
+    ) -> Result<serde_json::Value, Error> {
+        Ok(serde_json::json!({"test": "response"}))
+    }
+
+    async fn ext_notification(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: serde_json::Value,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -181,6 +197,22 @@ impl Agent for TestAgent {
             .lock()
             .unwrap()
             .push(args.session_id);
+        Ok(())
+    }
+
+    async fn ext_method(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: serde_json::Value,
+    ) -> Result<serde_json::Value, Error> {
+        Ok(serde_json::json!({"test": "agent_response"}))
+    }
+
+    async fn ext_notification(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: serde_json::Value,
+    ) -> Result<(), Error> {
         Ok(())
     }
 }

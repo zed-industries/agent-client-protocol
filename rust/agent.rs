@@ -9,6 +9,9 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::ext::{
+    EXT_METHOD_NAME, EXT_NOTIFICATION_NAME, ExtMethodRequest, ExtMethodResponse, ExtNotification,
+};
 use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
 /// Defines the interface that all ACP-compliant agents must implement.
@@ -114,6 +117,24 @@ pub trait Agent {
     ///
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
+
+    /// Extension method
+    ///
+    /// Allows the Client to send an arbitrary request that is not part of the ACP spec.
+    fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> impl Future<Output = Result<serde_json::Value, Error>>;
+
+    /// Extension notification
+    ///
+    /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+    fn ext_notification(
+        &self,
+        method: Arc<str>,
+        params: serde_json::Value,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
@@ -581,6 +602,10 @@ pub struct AgentMethodNames {
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
     pub session_cancel: &'static str,
+    /// Extension method for custom functionality.
+    pub ext_method: &'static str,
+    /// Extension notification for custom functionality.
+    pub ext_notification: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -593,6 +618,8 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_set_mode: SESSION_SET_MODE_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
+    ext_method: EXT_METHOD_NAME,
+    ext_notification: EXT_NOTIFICATION_NAME,
 };
 
 /// Method name for the initialize request.
@@ -628,6 +655,7 @@ pub enum ClientRequest {
     #[cfg(feature = "unstable")]
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
+    ExtMethodRequest(ExtMethodRequest),
 }
 
 /// All possible responses that an agent can send to a client.
@@ -647,6 +675,7 @@ pub enum AgentResponse {
     #[cfg(feature = "unstable")]
     SetSessionModeResponse(SetSessionModeResponse),
     PromptResponse(PromptResponse),
+    ExtMethodResponse(ExtMethodResponse),
 }
 
 /// All possible notifications that a client can send to an agent.
@@ -660,6 +689,7 @@ pub enum AgentResponse {
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
+    ExtNotification(ExtNotification),
 }
 
 /// Notification to cancel ongoing operations for a session.

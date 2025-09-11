@@ -1,5 +1,7 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
+  ext_method: "_method",
+  ext_notification: "_notification",
   initialize: "initialize",
   session_cancel: "session/cancel",
   session_load: "session/load",
@@ -9,6 +11,8 @@ export const AGENT_METHODS = {
 };
 
 export const CLIENT_METHODS = {
+  ext_method: "_method",
+  ext_notification: "_notification",
   fs_read_text_file: "fs/read_text_file",
   fs_write_text_file: "fs/write_text_file",
   session_request_permission: "session/request_permission",
@@ -48,7 +52,8 @@ export type ClientRequest =
   | TerminalOutputRequest
   | ReleaseTerminalRequest
   | WaitForTerminalExitRequest
-  | KillTerminalRequest;
+  | KillTerminalRequest
+  | ExtMethodRequest;
 /**
  * Content produced by a tool call.
  *
@@ -238,7 +243,8 @@ export type ClientResponse =
   | TerminalOutputResponse
   | ReleaseTerminalResponse
   | WaitForTerminalExitResponse
-  | KillTerminalResponse;
+  | KillTerminalResponse
+  | ExtMethodResponse;
 export type WriteTextFileResponse = null;
 export type ReleaseTerminalResponse = null;
 export type KillTerminalResponse = null;
@@ -251,7 +257,7 @@ export type KillTerminalResponse = null;
  * Notifications do not expect a response.
  */
 /** @internal */
-export type ClientNotification = CancelNotification;
+export type ClientNotification = CancelNotification | ExtNotification;
 /**
  * All possible requests that a client can send to an agent.
  *
@@ -267,7 +273,8 @@ export type AgentRequest =
   | NewSessionRequest
   | LoadSessionRequest
   | SetSessionModeRequest
-  | PromptRequest;
+  | PromptRequest
+  | ExtMethodRequest1;
 /**
  * Configuration for connecting to an MCP (Model Context Protocol) server.
  *
@@ -409,7 +416,8 @@ export type AgentResponse =
   | NewSessionResponse
   | LoadSessionResponse
   | SetSessionModeResponse
-  | PromptResponse;
+  | PromptResponse
+  | ExtMethodResponse1;
 export type AuthenticateResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
@@ -420,7 +428,7 @@ export type AuthenticateResponse = null;
  * Notifications do not expect a response.
  */
 /** @internal */
-export type AgentNotification = SessionNotification;
+export type AgentNotification = SessionNotification | ExtNotification1;
 export type AvailableCommandInput = UnstructuredCommandInput;
 
 /**
@@ -711,6 +719,24 @@ export interface KillTerminalRequest {
   terminalId: string;
 }
 /**
+ * Request parameters for extension method calls.
+ */
+export interface ExtMethodRequest {
+  /**
+   * The identifier for the extension method.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  method: string;
+  /**
+   * The parameters for the extension method, can be any JSON value.
+   */
+  params: {
+    [k: string]: unknown;
+  };
+}
+/**
  * Response containing the contents of a text file.
  */
 export interface ReadTextFileResponse {
@@ -788,6 +814,12 @@ export interface WaitForTerminalExitResponse {
   signal?: string | null;
 }
 /**
+ * Response from extension method calls.
+ */
+export interface ExtMethodResponse {
+  [k: string]: unknown;
+}
+/**
  * Notification to cancel ongoing operations for a session.
  *
  * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
@@ -817,6 +849,24 @@ export interface CancelNotification {
    * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
    */
   sessionId: string;
+}
+/**
+ * Extension notification parameters
+ */
+export interface ExtNotification {
+  /**
+   * The identifier for the extension method.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  method: string;
+  /**
+   * The parameters for the extension notification, can be any JSON value.
+   */
+  params: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Request parameters for the initialize method.
@@ -1063,6 +1113,24 @@ export interface PromptRequest {
   sessionId: string;
 }
 /**
+ * Request parameters for extension method calls.
+ */
+export interface ExtMethodRequest1 {
+  /**
+   * The identifier for the extension method.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  method: string;
+  /**
+   * The parameters for the extension method, can be any JSON value.
+   */
+  params: {
+    [k: string]: unknown;
+  };
+}
+/**
  * Response from the initialize method.
  *
  * Contains the negotiated protocol version and agent capabilities.
@@ -1288,6 +1356,12 @@ export interface PromptResponse {
     | "cancelled";
 }
 /**
+ * Response from extension method calls.
+ */
+export interface ExtMethodResponse1 {
+  [k: string]: unknown;
+}
+/**
  * Notification containing a session update from the agent.
  *
  * Used to stream real-time progress and results during prompt processing.
@@ -1508,6 +1582,24 @@ export interface UnstructuredCommandInput {
    */
   hint: string;
 }
+/**
+ * Extension notification parameters
+ */
+export interface ExtNotification1 {
+  /**
+   * The identifier for the extension method.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  method: string;
+  /**
+   * The parameters for the extension notification, can be any JSON value.
+   */
+  params: {
+    [k: string]: unknown;
+  };
+}
 
 /** @internal */
 export const writeTextFileRequestSchema = z.object({
@@ -1524,6 +1616,12 @@ export const readTextFileRequestSchema = z.object({
   line: z.number().optional().nullable(),
   path: z.string(),
   sessionId: z.string(),
+});
+
+/** @internal */
+export const extMethodRequestSchema = z.object({
+  method: z.string(),
+  params: z.record(z.unknown()),
 });
 
 /** @internal */
@@ -1613,15 +1711,30 @@ export const waitForTerminalExitResponseSchema = z.object({
 export const killTerminalResponseSchema = z.null();
 
 /** @internal */
+export const extMethodResponseSchema = z.record(z.unknown());
+
+/** @internal */
 export const cancelNotificationSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
 });
 
 /** @internal */
+export const extNotificationSchema = z.object({
+  method: z.string(),
+  params: z.record(z.unknown()),
+});
+
+/** @internal */
 export const authenticateRequestSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
   methodId: z.string(),
+});
+
+/** @internal */
+export const extMethodRequest1Schema = z.object({
+  method: z.string(),
+  params: z.record(z.unknown()),
 });
 
 /** @internal */
@@ -1664,6 +1777,15 @@ export const promptResponseSchema = z.object({
     z.literal("refusal"),
     z.literal("cancelled"),
   ]),
+});
+
+/** @internal */
+export const extMethodResponse1Schema = z.record(z.unknown());
+
+/** @internal */
+export const extNotification1Schema = z.object({
+  method: z.string(),
+  params: z.record(z.unknown()),
 });
 
 /** @internal */
@@ -1926,7 +2048,10 @@ export const planEntrySchema = z.object({
 export const availableCommandInputSchema = unstructuredCommandInputSchema;
 
 /** @internal */
-export const clientNotificationSchema = cancelNotificationSchema;
+export const clientNotificationSchema = z.union([
+  cancelNotificationSchema,
+  extNotificationSchema,
+]);
 
 /** @internal */
 export const createTerminalRequestSchema = z.object({
@@ -2028,6 +2153,7 @@ export const clientResponseSchema = z.union([
   releaseTerminalResponseSchema,
   waitForTerminalExitResponseSchema,
   killTerminalResponseSchema,
+  extMethodResponseSchema,
 ]);
 
 /** @internal */
@@ -2140,6 +2266,7 @@ export const clientRequestSchema = z.union([
   releaseTerminalRequestSchema,
   waitForTerminalExitRequestSchema,
   killTerminalRequestSchema,
+  extMethodRequestSchema,
 ]);
 
 /** @internal */
@@ -2150,6 +2277,7 @@ export const agentRequestSchema = z.union([
   loadSessionRequestSchema,
   setSessionModeRequestSchema,
   promptRequestSchema,
+  extMethodRequest1Schema,
 ]);
 
 /** @internal */
@@ -2160,10 +2288,14 @@ export const agentResponseSchema = z.union([
   loadSessionResponseSchema,
   setSessionModeResponseSchema,
   promptResponseSchema,
+  extMethodResponse1Schema,
 ]);
 
 /** @internal */
-export const agentNotificationSchema = sessionNotificationSchema;
+export const agentNotificationSchema = z.union([
+  sessionNotificationSchema,
+  extNotification1Schema,
+]);
 
 /** @internal */
 export const agentClientProtocolSchema = z.union([

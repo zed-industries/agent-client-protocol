@@ -36,6 +36,10 @@
         {
           "$ref": "#/$defs/SessionNotification",
           "title": "SessionNotification"
+        },
+        {
+          "$ref": "#/$defs/ExtNotification",
+          "title": "ExtNotification"
         }
       ],
       "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response.",
@@ -74,6 +78,10 @@
         {
           "$ref": "#/$defs/KillTerminalRequest",
           "title": "KillTerminalRequest"
+        },
+        {
+          "$ref": "#/$defs/ExtMethodRequest",
+          "title": "ExtMethodRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -104,6 +112,10 @@
         {
           "$ref": "#/$defs/PromptResponse",
           "title": "PromptResponse"
+        },
+        {
+          "$ref": "#/$defs/ExtMethodResponse",
+          "title": "ExtMethodResponse"
         }
       ],
       "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants.",
@@ -306,6 +318,10 @@
         {
           "$ref": "#/$defs/CancelNotification",
           "title": "CancelNotification"
+        },
+        {
+          "$ref": "#/$defs/ExtNotification",
+          "title": "ExtNotification"
         }
       ],
       "description": "All possible notifications that a client can send to an agent.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Agent`] trait instead.\n\nNotifications do not expect a response.",
@@ -336,6 +352,10 @@
         {
           "$ref": "#/$defs/PromptRequest",
           "title": "PromptRequest"
+        },
+        {
+          "$ref": "#/$defs/ExtMethodRequest",
+          "title": "ExtMethodRequest"
         }
       ],
       "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent.",
@@ -374,6 +394,10 @@
         {
           "title": "KillTerminalResponse",
           "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ExtMethodResponse",
+          "title": "ExtMethodResponse"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -646,6 +670,40 @@
       },
       "required": ["name", "value"],
       "type": "object"
+    },
+    "ExtMethodRequest": {
+      "description": "Request parameters for extension method calls.",
+      "properties": {
+        "method": {
+          "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",
+          "type": "string"
+        },
+        "params": {
+          "description": "The parameters for the extension method, can be any JSON value."
+        }
+      },
+      "required": ["method", "params"],
+      "type": "object",
+      "x-method": "_method"
+    },
+    "ExtMethodResponse": {
+      "description": "Response from extension method calls.",
+      "x-method": "_method"
+    },
+    "ExtNotification": {
+      "description": "Extension notification parameters",
+      "properties": {
+        "method": {
+          "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",
+          "type": "string"
+        },
+        "params": {
+          "description": "The parameters for the extension notification, can be any JSON value."
+        }
+      },
+      "required": ["method", "params"],
+      "type": "object",
+      "x-method": "_notification"
     },
     "FileSystemCapability": {
       "description": "File system capabilities that a client may support.\n\nSee protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)",
