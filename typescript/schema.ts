@@ -720,6 +720,11 @@ export interface KillTerminalRequest {
 }
 /**
  * Request parameters for extension method calls.
+ *
+ * Used with the `_method` extension point to add custom request-response functionality
+ * to the protocol while maintaining compatibility.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtMethodRequest {
   /**
@@ -815,6 +820,10 @@ export interface WaitForTerminalExitResponse {
 }
 /**
  * Response from extension method calls.
+ *
+ * Contains the result of a custom extension method request.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtMethodResponse {
   [k: string]: unknown;
@@ -851,7 +860,12 @@ export interface CancelNotification {
   sessionId: string;
 }
 /**
- * Extension notification parameters
+ * Extension notification parameters.
+ *
+ * Used with the `_notification` extension point to add custom one-way messages
+ * to the protocol while maintaining compatibility.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtNotification {
   /**
@@ -1114,6 +1128,11 @@ export interface PromptRequest {
 }
 /**
  * Request parameters for extension method calls.
+ *
+ * Used with the `_method` extension point to add custom request-response functionality
+ * to the protocol while maintaining compatibility.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtMethodRequest1 {
   /**
@@ -1357,6 +1376,10 @@ export interface PromptResponse {
 }
 /**
  * Response from extension method calls.
+ *
+ * Contains the result of a custom extension method request.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtMethodResponse1 {
   [k: string]: unknown;
@@ -1583,7 +1606,12 @@ export interface UnstructuredCommandInput {
   hint: string;
 }
 /**
- * Extension notification parameters
+ * Extension notification parameters.
+ *
+ * Used with the `_notification` extension point to add custom one-way messages
+ * to the protocol while maintaining compatibility.
+ *
+ * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
  */
 export interface ExtNotification1 {
   /**

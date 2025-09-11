@@ -672,7 +672,7 @@
       "type": "object"
     },
     "ExtMethodRequest": {
-      "description": "Request parameters for extension method calls.",
+      "description": "Request parameters for extension method calls.\n\nUsed with the `_method` extension point to add custom request-response functionality\nto the protocol while maintaining compatibility.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
       "properties": {
         "method": {
           "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",
@@ -687,11 +687,11 @@
       "x-method": "_method"
     },
     "ExtMethodResponse": {
-      "description": "Response from extension method calls.",
+      "description": "Response from extension method calls.\n\nContains the result of a custom extension method request.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
       "x-method": "_method"
     },
     "ExtNotification": {
-      "description": "Extension notification parameters",
+      "description": "Extension notification parameters.\n\nUsed with the `_notification` extension point to add custom one-way messages\nto the protocol while maintaining compatibility.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
       "properties": {
         "method": {
           "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",

@@ -118,18 +118,24 @@ pub trait Agent {
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
 
-    /// Extension method
+    /// Handles extension method requests from the client.
     ///
-    /// Allows the Client to send an arbitrary request that is not part of the ACP spec.
+    /// Extension methods provide a way to add custom functionality while maintaining
+    /// protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     fn ext_method(
         &self,
         method: Arc<str>,
         params: serde_json::Value,
     ) -> impl Future<Output = Result<serde_json::Value, Error>>;
 
-    /// Extension notification
+    /// Handles extension notifications from the client.
     ///
-    /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+    /// Extension notifications provide a way to send one-way messages for custom functionality
+    /// while maintaining protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     fn ext_notification(
         &self,
         method: Arc<str>,

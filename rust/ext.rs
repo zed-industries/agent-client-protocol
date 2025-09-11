@@ -10,6 +10,11 @@ pub const EXT_METHOD_NAME: &str = "_method";
 pub const EXT_NOTIFICATION_NAME: &str = "_notification";
 
 /// Request parameters for extension method calls.
+///
+/// Used with the `_method` extension point to add custom request-response functionality
+/// to the protocol while maintaining compatibility.
+///
+/// See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-method" = "_method"))]
 #[serde(rename_all = "camelCase")]
@@ -24,12 +29,21 @@ pub struct ExtMethodRequest {
 }
 
 /// Response from extension method calls.
+///
+/// Contains the result of a custom extension method request.
+///
+/// See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-method" = "_method"))]
 #[serde(transparent)]
 pub struct ExtMethodResponse(pub serde_json::Value);
 
-/// Extension notification parameters
+/// Extension notification parameters.
+///
+/// Used with the `_notification` extension point to add custom one-way messages
+/// to the protocol while maintaining compatibility.
+///
+/// See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[schemars(extend("x-method" = "_notification"))]
 #[serde(rename_all = "camelCase")]
