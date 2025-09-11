@@ -1742,7 +1742,7 @@
           "type": "object"
         },
         {
-          "description": "Embed a terminal created with `terminal/create`\n\nThe terminal must be added to the tool call before calling `terminal/release`.",
+          "description": "Embed a terminal created with `terminal/create` by its id.\n\nThe terminal must be added before calling `terminal/release`.\n\nSee protocol docs: [Terminal](https://agentclientprotocol.com/protocol/terminal)",
           "properties": {
             "terminalId": {
               "type": "string"

@@ -64,9 +64,11 @@ The `terminal/create` method starts a command in a new terminal:
 <ParamField path="env" type="EnvVariable[]">
   Optional environment variables for the command.
 
-  Each variable has:
-  - `name`: The environment variable name
-  - `value`: The environment variable value
+Each variable has:
+
+- `name`: The environment variable name
+- `value`: The environment variable value
+
 </ParamField>
 
 <ParamField path="cwd" type="string">
@@ -74,10 +76,11 @@ The `terminal/create` method starts a command in a new terminal:
 </ParamField>
 
 <ParamField path="outputByteLimit" type="number">
-  Optional maximum number of output bytes to retain. Once exceeded, earlier output is truncated to stay within this limit.
+  Optional maximum number of output bytes to retain. Once exceeded, earlier
+  output is truncated to stay within this limit.
 </ParamField>
 
- The Client returns a Terminal ID immediately without waiting for completion:
+The Client returns a Terminal ID immediately without waiting for completion:
 
 ```json
 {
@@ -94,10 +97,9 @@ This allows the command to run in the background while the Agent performs other 
 After creating the terminal, the Agent can use the `terminal/wait_for_exit` method to wait for the command to complete.
 
 <Note>
-The Agent **MUST** release the terminal using `terminal/release` when it's no longer needed.
+  The Agent **MUST** release the terminal using `terminal/release` when it's no
+  longer needed.
 </Note>
-
-
 
 ## Embedding in Tool Calls
 
@@ -171,8 +173,10 @@ The Client responds with the current output and exit status (if the command has 
 
 <ResponseField name="exitStatus" type="TerminalExitStatus">
   Present only if the command has exited. Contains:
-  - `exitCode`: The process exit code (may be null)
-  - `signal`: The signal that terminated the process (may be null)
+
+- `exitCode`: The process exit code (may be null)
+- `signal`: The signal that terminated the process (may be null)
+
 </ResponseField>
 
 ## Waiting for Exit
@@ -229,6 +233,7 @@ The `terminal/kill` method terminates a command without releasing the terminal:
 ```
 
 After killing a command, the terminal remains valid and can be used with:
+
 - `terminal/output` to get the final output
 - `terminal/wait_for_exit` to get the exit status
 

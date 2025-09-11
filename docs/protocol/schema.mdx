@@ -2124,9 +2124,11 @@ File modification shown as a diff.
 </ResponseField>
 
 <ResponseField name="terminal">
-Embed a terminal created with `terminal/create`
+Embed a terminal created with `terminal/create` by its id.
 
-The terminal must be added to the tool call before calling `terminal/release`.
+The terminal must be added before calling `terminal/release`.
+
+See protocol docs: [Terminal](https://agentclientprotocol.com/protocol/terminal)
 
 <Expandable title="Properties">
 
