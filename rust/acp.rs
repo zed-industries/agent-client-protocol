@@ -315,6 +315,9 @@ impl Side for ClientSide {
             TERMINAL_WAIT_FOR_EXIT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::WaitForTerminalExitRequest)
                 .map_err(Into::into),
+            EXT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(AgentRequest::ExtMethodRequest)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -328,6 +331,9 @@ impl Side for ClientSide {
         match method {
             SESSION_UPDATE_NOTIFICATION => serde_json::from_str(params.get())
                 .map(AgentNotification::SessionNotification)
+                .map_err(Into::into),
+            EXT_NOTIFICATION_NAME => serde_json::from_str(params.get())
+                .map(AgentNotification::ExtNotification)
                 .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
@@ -623,6 +629,9 @@ impl Side for AgentSide {
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::PromptRequest)
                 .map_err(Into::into),
+            EXT_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::ExtMethodRequest)
+                .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }
     }
@@ -636,6 +645,9 @@ impl Side for AgentSide {
         match method {
             SESSION_CANCEL_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientNotification::CancelNotification)
+                .map_err(Into::into),
+            EXT_NOTIFICATION_NAME => serde_json::from_str(params.get())
+                .map(ClientNotification::ExtNotification)
                 .map_err(Into::into),
             _ => Err(Error::method_not_found()),
         }

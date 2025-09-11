@@ -9,15 +9,17 @@ struct TestClient {
     file_contents: Arc<Mutex<std::collections::HashMap<std::path::PathBuf, String>>>,
     written_files: Arc<Mutex<Vec<(std::path::PathBuf, String)>>>,
     session_notifications: Arc<Mutex<Vec<SessionNotification>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, serde_json::Value)>>>,
 }
 
 impl TestClient {
     fn new() -> Self {
         Self {
-            permission_responses: Arc::new(Mutex::new(vec![])),
+            permission_responses: Arc::new(Mutex::new(Vec::new())),
             file_contents: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            written_files: Arc::new(Mutex::new(vec![])),
-            session_notifications: Arc::new(Mutex::new(vec![])),
+            written_files: Arc::new(Mutex::new(Vec::new())),
+            session_notifications: Arc::new(Mutex::new(Vec::new())),
+            extension_notifications: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -105,17 +107,27 @@ impl Client for TestClient {
 
     async fn ext_method(
         &self,
-        _method: std::sync::Arc<str>,
-        _params: serde_json::Value,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
     ) -> Result<serde_json::Value, Error> {
-        Ok(serde_json::json!({"test": "response"}))
+        match method.as_ref() {
+            "example.com/ping" => Ok(serde_json::json!({
+                "response": "pong",
+                "params": params
+            })),
+            _ => Err(Error::method_not_found()),
+        }
     }
 
     async fn ext_notification(
         &self,
-        _method: std::sync::Arc<str>,
-        _params: serde_json::Value,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
     ) -> Result<(), Error> {
+        self.extension_notifications
+            .lock()
+            .unwrap()
+            .push((method.to_string(), params));
         Ok(())
     }
 }
@@ -125,6 +137,7 @@ struct TestAgent {
     sessions: Arc<Mutex<std::collections::HashSet<SessionId>>>,
     prompts_received: Arc<Mutex<Vec<PromptReceived>>>,
     cancellations_received: Arc<Mutex<Vec<SessionId>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, serde_json::Value)>>>,
 }
 
 type PromptReceived = (SessionId, Vec<ContentBlock>);
@@ -133,8 +146,9 @@ impl TestAgent {
     fn new() -> Self {
         Self {
             sessions: Arc::new(Mutex::new(std::collections::HashSet::new())),
-            prompts_received: Arc::new(Mutex::new(vec![])),
-            cancellations_received: Arc::new(Mutex::new(vec![])),
+            prompts_received: Arc::new(Mutex::new(Vec::new())),
+            cancellations_received: Arc::new(Mutex::new(Vec::new())),
+            extension_notifications: Arc::new(Mutex::new(Vec::new())),
         }
     }
 }
@@ -202,17 +216,26 @@ impl Agent for TestAgent {
 
     async fn ext_method(
         &self,
-        _method: std::sync::Arc<str>,
-        _params: serde_json::Value,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
     ) -> Result<serde_json::Value, Error> {
-        Ok(serde_json::json!({"test": "agent_response"}))
+        match method.as_ref() {
+            "example.com/echo" => Ok(serde_json::json!({
+                "echo": params
+            })),
+            _ => Err(Error::method_not_found()),
+        }
     }
 
     async fn ext_notification(
         &self,
-        _method: std::sync::Arc<str>,
-        _params: serde_json::Value,
+        method: std::sync::Arc<str>,
+        params: serde_json::Value,
     ) -> Result<(), Error> {
+        self.extension_notifications
+            .lock()
+            .unwrap()
+            .push((method.to_string(), params));
         Ok(())
     }
 }
@@ -761,4 +784,92 @@ async fn test_notification_wire_format() {
             }
         })
     );
+}
+
+#[tokio::test]
+async fn test_extension_methods_and_notifications() {
+    let local_set = tokio::task::LocalSet::new();
+    local_set
+        .run_until(async {
+            let client = TestClient::new();
+            let agent = TestAgent::new();
+
+            // Store references to the client and agent to check notifications later
+            let client_ref = client.clone();
+            let agent_ref = agent.clone();
+
+            let (client_conn, agent_conn) = create_connection_pair(client, agent).await;
+
+            // Test agent calling client extension method
+            let client_response = agent_conn
+                .ext_method(
+                    "example.com/ping".into(),
+                    serde_json::json!({"data": "test"}),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(
+                client_response,
+                serde_json::json!({
+                    "response": "pong",
+                    "params": {"data": "test"}
+                })
+            );
+
+            // Test client calling agent extension method
+            let agent_response = client_conn
+                .ext_method(
+                    "example.com/echo".into(),
+                    serde_json::json!({"message": "hello"}),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(
+                agent_response,
+                serde_json::json!({
+                    "echo": {"message": "hello"}
+                })
+            );
+
+            // Test extension notifications
+            agent_conn
+                .ext_notification(
+                    "example.com/client/notify".into(),
+                    serde_json::json!({"info": "client notification"}),
+                )
+                .await
+                .unwrap();
+
+            client_conn
+                .ext_notification(
+                    "example.com/agent/notify".into(),
+                    serde_json::json!({"info": "agent notification"}),
+                )
+                .await
+                .unwrap();
+
+            // Yield to allow notifications to be processed
+            tokio::task::yield_now().await;
+
+            // Verify client received the notification
+            let client_notifications = client_ref.extension_notifications.lock().unwrap();
+            assert_eq!(client_notifications.len(), 1);
+            assert_eq!(client_notifications[0].0, "example.com/client/notify");
+            assert_eq!(
+                client_notifications[0].1,
+                serde_json::json!({"info": "client notification"})
+            );
+
+            // Verify agent received the notification
+            let agent_notifications = agent_ref.extension_notifications.lock().unwrap();
+            assert_eq!(agent_notifications.len(), 1);
+            assert_eq!(agent_notifications[0].0, "example.com/agent/notify");
+            assert_eq!(
+                agent_notifications[0].1,
+                serde_json::json!({"info": "agent notification"})
+            );
+        })
+        .await;
 }
