@@ -283,6 +283,8 @@ pub enum ToolCallContent {
     /// Embed a terminal created with `terminal/create` by its id.
     ///
     /// The terminal must be added before calling `terminal/release`.
+    ///
+    /// See protocol docs: [Terminal](https://agentclientprotocol.com/protocol/terminal)
     #[serde(rename_all = "camelCase")]
     Terminal { terminal_id: crate::TerminalId },
 }
