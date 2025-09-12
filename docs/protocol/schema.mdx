@@ -44,6 +44,18 @@ Specifies which authentication method to use.
   advertised in the initialize response.
 </ResponseField>
 
+#### <span class="font-mono">AuthenticateResponse</span>
+
+Response to authenticate method
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+
 ### <span class="font-mono">initialize</span>
 
 Establishes the connection with a client and negotiates protocol capabilities.
@@ -208,6 +220,24 @@ See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/s
   required
 >
   The ID of the session to load.
+</ResponseField>
+
+#### <span class="font-mono">LoadSessionResponse</span>
+
+Response from loading an existing session.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
+<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
+  **UNSTABLE**
+
+This field is not part of the spec, and may be removed or changed at any point.
+
 </ResponseField>
 
 <a id="session-new"></a>
@@ -406,6 +436,19 @@ Only available if the client supports the `fs.readTextFile` capability.
   The session ID for this request.
 </ResponseField>
 
+#### <span class="font-mono">ReadTextFileResponse</span>
+
+Response containing the contents of a text file.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+<ResponseField name="content" type={"string"} required></ResponseField>
+
 <a id="fs-write_text_file"></a>
 ### <span class="font-mono">fs/write_text_file</span>
 
@@ -441,6 +484,18 @@ Only available if the client supports the `fs.writeTextFile` capability.
   required
 >
   The session ID for this request.
+</ResponseField>
+
+#### <span class="font-mono">WriteTextFileResponse</span>
+
+Response to fs/write_text_file
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
 </ResponseField>
 
 <a id="session-request_permission"></a>
@@ -676,6 +731,18 @@ Request to kill a terminal command without releasing the terminal.
   The ID of the terminal to kill.
 </ResponseField>
 
+#### <span class="font-mono">KillTerminalCommandResponse</span>
+
+Response to terminal/kill command method
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+
 <a id="terminal-output"></a>
 ### <span class="font-mono">terminal/output</span>
 
@@ -777,6 +844,18 @@ Request to release a terminal and free its resources.
   The ID of the terminal to release.
 </ResponseField>
 
+#### <span class="font-mono">ReleaseTerminalResponse</span>
+
+Response to terminal/release method
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+
 <a id="terminal-wait_for_exit"></a>
 ### <span class="font-mono">terminal/wait_for_exit</span>
 
@@ -861,6 +940,45 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
     - Default: `{"audio":false,"embeddedContext":false,"image":false}`
 
 </ResponseField>
+
+## <span class="font-mono">AgentNotification</span>
+
+All possible notifications that an agent can send to a client.
+
+This enum is used internally for routing RPC notifications. You typically won't need
+to use this directly - use the notification methods on the `Client` trait instead.
+
+Notifications do not expect a response.
+
+**Type:** Union
+
+<ResponseField name="SessionNotification">
+{""}
+
+<Expandable title="Properties">
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The ID of the session this update pertains to.
+</ResponseField>
+<ResponseField
+  name="update"
+  type={<a href="#sessionupdate">SessionUpdate</a>}
+  required
+>
+  The actual update content.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="Variant">{""}</ResponseField>
 
 ## <span class="font-mono">Annotations</span>
 
@@ -1346,24 +1464,6 @@ An image provided to or from an LLM.
 <ResponseField name="mimeType" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string | null"}></ResponseField>
 
-## <span class="font-mono">LoadSessionResponse</span>
-
-Response from loading an existing session.
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="_meta" type={"object"} >
-  Extension point for implementations
-</ResponseField>
-<ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
-  **UNSTABLE**
-
-This field is not part of the spec, and may be removed or changed at any point.
-
-</ResponseField>
-
 ## <span class="font-mono">McpCapabilities</span>
 
 MCP capabilities supported by the agent
@@ -1722,19 +1822,6 @@ Non-breaking changes should be introduced via capabilities.
 | ---------- | ------- |
 | Minimum    | `0`     |
 | Maximum    | `65535` |
-
-## <span class="font-mono">ReadTextFileResponse</span>
-
-Response containing the contents of a text file.
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="_meta" type={"object"}>
-  Extension point for implementations
-</ResponseField>
-<ResponseField name="content" type={"string"} required></ResponseField>
 
 ## <span class="font-mono">RequestPermissionOutcome</span>
 
@@ -2142,7 +2229,11 @@ The current mode of the session has changed
 
 This type is not part of the spec, and may be removed or changed at any point.
 
-**Type:** `object`
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="meta" type={"object"}></ResponseField>
 
 ## <span class="font-mono">StopReason</span>
 

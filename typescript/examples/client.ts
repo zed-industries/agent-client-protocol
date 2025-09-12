@@ -77,7 +77,7 @@ class ExampleClient implements acp.Client {
       JSON.stringify(params, null, 2),
     );
 
-    return null;
+    return {};
   }
 
   async readTextFile(

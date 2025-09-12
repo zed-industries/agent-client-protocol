@@ -223,9 +223,6 @@ export type ClientResponse =
   | WaitForTerminalExitResponse
   | KillTerminalResponse
   | ExtMethodResponse;
-export type WriteTextFileResponse = null;
-export type ReleaseTerminalResponse = null;
-export type KillTerminalResponse = null;
 /**
  * All possible notifications that a client can send to an agent.
  *
@@ -414,7 +411,6 @@ export type AgentResponse =
   | SetSessionModeResponse
   | PromptResponse
   | ExtMethodResponse1;
-export type AuthenticateResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
  *
@@ -782,6 +778,17 @@ export interface ExtMethodRequest {
   [k: string]: unknown;
 }
 /**
+ * Response to fs/write_text_file
+ */
+export interface WriteTextFileResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+}
+/**
  * Response containing the contents of a text file.
  */
 export interface ReadTextFileResponse {
@@ -876,6 +883,17 @@ export interface TerminalExitStatus {
   signal?: string | null;
 }
 /**
+ * Response to terminal/release method
+ */
+export interface ReleaseTerminalResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+}
+/**
  * Response containing the exit status of a terminal command.
  */
 export interface WaitForTerminalExitResponse {
@@ -893,6 +911,17 @@ export interface WaitForTerminalExitResponse {
    * The signal that terminated the process (may be null if exited normally).
    */
   signal?: string | null;
+}
+/**
+ * Response to terminal/kill command method
+ */
+export interface KillTerminalResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
 }
 export interface ExtMethodResponse {
   [k: string]: unknown;
@@ -1261,6 +1290,17 @@ export interface AuthMethod {
   name: string;
 }
 /**
+ * Response to authenticate method
+ */
+export interface AuthenticateResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+}
+/**
  * Response from creating a new session.
  *
  * See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
@@ -1338,7 +1378,9 @@ export interface LoadSessionResponse {
  *
  * This type is not part of the spec, and may be removed or changed at any point.
  */
-export interface SetSessionModeResponse {}
+export interface SetSessionModeResponse {
+  meta?: unknown;
+}
 /**
  * Response from processing a user prompt.
  *
@@ -1679,7 +1721,9 @@ export const toolCallStatusSchema = z.union([
 ]);
 
 /** @internal */
-export const writeTextFileResponseSchema = z.null();
+export const writeTextFileResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
+});
 
 /** @internal */
 export const readTextFileResponseSchema = z.object({
@@ -1708,7 +1752,9 @@ export const createTerminalResponseSchema = z.object({
 });
 
 /** @internal */
-export const releaseTerminalResponseSchema = z.null();
+export const releaseTerminalResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
+});
 
 /** @internal */
 export const waitForTerminalExitResponseSchema = z.object({
@@ -1718,7 +1764,9 @@ export const waitForTerminalExitResponseSchema = z.object({
 });
 
 /** @internal */
-export const killTerminalResponseSchema = z.null();
+export const killTerminalResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
+});
 
 /** @internal */
 export const extMethodResponseSchema = z.record(z.unknown());
@@ -1769,10 +1817,14 @@ export const embeddedResourceResourceSchema = z.union([
 ]);
 
 /** @internal */
-export const authenticateResponseSchema = z.null();
+export const authenticateResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
+});
 
 /** @internal */
-export const setSessionModeResponseSchema = z.object({});
+export const setSessionModeResponseSchema = z.object({
+  meta: z.unknown().optional(),
+});
 
 /** @internal */
 export const promptResponseSchema = z.object({

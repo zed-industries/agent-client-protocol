@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use agent_client_protocol::{self as acp, Agent};
+use agent_client_protocol::{self as acp, Agent, KillTerminalCommandResponse};
 use anyhow::bail;
 use serde_json::value::RawValue;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
@@ -32,7 +32,7 @@ impl acp::Client for ExampleClient {
     async fn write_text_file(
         &self,
         _args: acp::WriteTextFileRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<acp::WriteTextFileResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
@@ -60,7 +60,7 @@ impl acp::Client for ExampleClient {
     async fn release_terminal(
         &self,
         _args: acp::ReleaseTerminalRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<acp::ReleaseTerminalResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
@@ -74,7 +74,7 @@ impl acp::Client for ExampleClient {
     async fn kill_terminal_command(
         &self,
         _args: acp::KillTerminalCommandRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<KillTerminalCommandResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 

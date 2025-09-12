@@ -41,8 +41,7 @@
           "title": "ExtNotification"
         }
       ],
-      "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response.",
-      "x-docs-ignore": true
+      "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response."
     },
     "AgentRequest": {
       "anyOf": [
@@ -92,8 +91,8 @@
           "title": "InitializeResponse"
         },
         {
-          "title": "AuthenticateResponse",
-          "type": "null"
+          "$ref": "#/$defs/AuthenticateResponse",
+          "title": "AuthenticateResponse"
         },
         {
           "$ref": "#/$defs/NewSessionResponse",
@@ -204,6 +203,17 @@
         }
       },
       "required": ["methodId"],
+      "type": "object",
+      "x-method": "authenticate",
+      "x-side": "agent"
+    },
+    "AuthenticateResponse": {
+      "description": "Response to authenticate method",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        }
+      },
       "type": "object",
       "x-method": "authenticate",
       "x-side": "agent"
@@ -359,8 +369,8 @@
     "ClientResponse": {
       "anyOf": [
         {
-          "title": "WriteTextFileResponse",
-          "type": "null"
+          "$ref": "#/$defs/WriteTextFileResponse",
+          "title": "WriteTextFileResponse"
         },
         {
           "$ref": "#/$defs/ReadTextFileResponse",
@@ -379,16 +389,16 @@
           "title": "TerminalOutputResponse"
         },
         {
-          "title": "ReleaseTerminalResponse",
-          "type": "null"
+          "$ref": "#/$defs/ReleaseTerminalResponse",
+          "title": "ReleaseTerminalResponse"
         },
         {
           "$ref": "#/$defs/WaitForTerminalExitResponse",
           "title": "WaitForTerminalExitResponse"
         },
         {
-          "title": "KillTerminalResponse",
-          "type": "null"
+          "$ref": "#/$defs/KillTerminalCommandResponse",
+          "title": "KillTerminalResponse"
         },
         {
           "title": "ExtMethodResponse"
@@ -829,6 +839,17 @@
       "x-method": "terminal/kill",
       "x-side": "client"
     },
+    "KillTerminalCommandResponse": {
+      "description": "Response to terminal/kill command method",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        }
+      },
+      "type": "object",
+      "x-method": "terminal/kill",
+      "x-side": "client"
+    },
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the Agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
       "properties": {
@@ -874,7 +895,9 @@
           "description": "**UNSTABLE**\n\nThis field is not part of the spec, and may be removed or changed at any point."
         }
       },
-      "type": "object"
+      "type": "object",
+      "x-method": "session/load",
+      "x-side": "agent"
     },
     "McpCapabilities": {
       "description": "MCP capabilities supported by the agent",
@@ -1275,7 +1298,9 @@
         }
       },
       "required": ["content"],
-      "type": "object"
+      "type": "object",
+      "x-method": "fs/read_text_file",
+      "x-side": "client"
     },
     "ReleaseTerminalRequest": {
       "description": "Request to release a terminal and free its resources.",
@@ -1293,6 +1318,17 @@
         }
       },
       "required": ["sessionId", "terminalId"],
+      "type": "object",
+      "x-method": "terminal/release",
+      "x-side": "client"
+    },
+    "ReleaseTerminalResponse": {
+      "description": "Response to terminal/release method",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        }
+      },
       "type": "object",
       "x-method": "terminal/release",
       "x-side": "client"
@@ -1715,6 +1751,9 @@
     },
     "SetSessionModeResponse": {
       "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "properties": {
+        "meta": true
+      },
       "type": "object"
     },
     "StopReason": {
@@ -2190,6 +2229,17 @@
         }
       },
       "required": ["sessionId", "path", "content"],
+      "type": "object",
+      "x-method": "fs/write_text_file",
+      "x-side": "client"
+    },
+    "WriteTextFileResponse": {
+      "description": "Response to fs/write_text_file",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        }
+      },
       "type": "object",
       "x-method": "fs/write_text_file",
       "x-side": "client"

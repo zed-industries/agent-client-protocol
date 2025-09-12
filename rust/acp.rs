@@ -176,13 +176,17 @@ impl Agent for ClientSideConnection {
             .await
     }
 
-    async fn authenticate(&self, arguments: AuthenticateRequest) -> Result<(), Error> {
+    async fn authenticate(
+        &self,
+        arguments: AuthenticateRequest,
+    ) -> Result<AuthenticateResponse, Error> {
         self.conn
-            .request(
+            .request::<Option<_>>(
                 AUTHENTICATE_METHOD_NAME,
                 Some(ClientRequest::AuthenticateRequest(arguments)),
             )
             .await
+            .map(|value| value.unwrap_or_default())
     }
 
     async fn new_session(&self, arguments: NewSessionRequest) -> Result<NewSessionResponse, Error> {
@@ -199,11 +203,12 @@ impl Agent for ClientSideConnection {
         arguments: LoadSessionRequest,
     ) -> Result<LoadSessionResponse, Error> {
         self.conn
-            .request(
+            .request::<Option<_>>(
                 SESSION_LOAD_METHOD_NAME,
                 Some(ClientRequest::LoadSessionRequest(arguments)),
             )
             .await
+            .map(|value| value.unwrap_or_default())
     }
 
     #[cfg(feature = "unstable")]
@@ -349,8 +354,8 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 Ok(ClientResponse::RequestPermissionResponse(response))
             }
             AgentRequest::WriteTextFileRequest(args) => {
-                self.write_text_file(args).await?;
-                Ok(ClientResponse::WriteTextFileResponse)
+                let response = self.write_text_file(args).await?;
+                Ok(ClientResponse::WriteTextFileResponse(response))
             }
             AgentRequest::ReadTextFileRequest(args) => {
                 let response = self.read_text_file(args).await?;
@@ -365,16 +370,16 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 Ok(ClientResponse::TerminalOutputResponse(response))
             }
             AgentRequest::ReleaseTerminalRequest(args) => {
-                self.release_terminal(args).await?;
-                Ok(ClientResponse::ReleaseTerminalResponse)
+                let response = self.release_terminal(args).await?;
+                Ok(ClientResponse::ReleaseTerminalResponse(response))
             }
             AgentRequest::WaitForTerminalExitRequest(args) => {
                 let response = self.wait_for_terminal_exit(args).await?;
                 Ok(ClientResponse::WaitForTerminalExitResponse(response))
             }
             AgentRequest::KillTerminalCommandRequest(args) => {
-                self.kill_terminal_command(args).await?;
-                Ok(ClientResponse::KillTerminalResponse)
+                let response = self.kill_terminal_command(args).await?;
+                Ok(ClientResponse::KillTerminalResponse(response))
             }
             AgentRequest::ExtMethodRequest(args) => {
                 let response = self.ext_method(args.method, args.params).await?;
@@ -466,13 +471,17 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
+    async fn write_text_file(
+        &self,
+        arguments: WriteTextFileRequest,
+    ) -> Result<WriteTextFileResponse, Error> {
         self.conn
-            .request(
+            .request::<Option<_>>(
                 FS_WRITE_TEXT_FILE_METHOD_NAME,
                 Some(AgentRequest::WriteTextFileRequest(arguments)),
             )
             .await
+            .map(|value| value.unwrap_or_default())
     }
 
     async fn read_text_file(
@@ -511,13 +520,17 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    async fn release_terminal(&self, arguments: ReleaseTerminalRequest) -> Result<(), Error> {
+    async fn release_terminal(
+        &self,
+        arguments: ReleaseTerminalRequest,
+    ) -> Result<ReleaseTerminalResponse, Error> {
         self.conn
-            .request(
+            .request::<Option<_>>(
                 TERMINAL_RELEASE_METHOD_NAME,
                 Some(AgentRequest::ReleaseTerminalRequest(arguments)),
             )
             .await
+            .map(|value| value.unwrap_or_default())
     }
 
     async fn wait_for_terminal_exit(
@@ -535,13 +548,14 @@ impl Client for AgentSideConnection {
     async fn kill_terminal_command(
         &self,
         arguments: KillTerminalCommandRequest,
-    ) -> Result<(), Error> {
+    ) -> Result<KillTerminalCommandResponse, Error> {
         self.conn
-            .request(
+            .request::<Option<_>>(
                 TERMINAL_KILL_METHOD_NAME,
                 Some(AgentRequest::KillTerminalCommandRequest(arguments)),
             )
             .await
+            .map(|value| value.unwrap_or_default())
     }
 
     async fn session_notification(&self, notification: SessionNotification) -> Result<(), Error> {
@@ -657,8 +671,8 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::InitializeResponse(response))
             }
             ClientRequest::AuthenticateRequest(args) => {
-                self.authenticate(args).await?;
-                Ok(AgentResponse::AuthenticateResponse)
+                let response = self.authenticate(args).await?;
+                Ok(AgentResponse::AuthenticateResponse(response))
             }
             ClientRequest::NewSessionRequest(args) => {
                 let response = self.new_session(args).await?;

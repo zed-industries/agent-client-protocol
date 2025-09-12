@@ -62,16 +62,18 @@ export class AgentSideConnection {
           }
           const validatedParams =
             schema.setSessionModeRequestSchema.parse(params);
-          return agent.setSessionMode(
+          const result = await agent.setSessionMode(
             validatedParams as schema.SetSessionModeRequest,
           );
+          return result ?? {};
         }
         case schema.AGENT_METHODS.authenticate: {
           const validatedParams =
             schema.authenticateRequestSchema.parse(params);
-          return agent.authenticate(
+          const result = await agent.authenticate(
             validatedParams as schema.AuthenticateRequest,
           );
+          return result ?? {};
         }
         case schema.AGENT_METHODS.session_prompt: {
           const validatedParams = schema.promptRequestSchema.parse(params);
@@ -191,9 +193,11 @@ export class AgentSideConnection {
   async writeTextFile(
     params: schema.WriteTextFileRequest,
   ): Promise<schema.WriteTextFileResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.fs_write_text_file,
-      params,
+    return (
+      (await this.#connection.sendRequest(
+        schema.CLIENT_METHODS.fs_write_text_file,
+        params,
+      )) ?? {}
     );
   }
 
@@ -314,13 +318,12 @@ export class TerminalHandle {
    *
    * Useful for implementing timeouts or cancellation.
    */
-  async kill(): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_kill,
-      {
+  async kill(): Promise<schema.KillTerminalResponse> {
+    return (
+      (await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_kill, {
         sessionId: this.#sessionId,
         terminalId: this.id,
-      },
+      })) ?? {}
     );
   }
 
@@ -336,11 +339,16 @@ export class TerminalHandle {
    *
    * **Important:** Always call this method when done with the terminal.
    */
-  async release(): Promise<void> {
-    await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_release, {
-      sessionId: this.#sessionId,
-      terminalId: this.id,
-    });
+  async release(): Promise<schema.ReleaseTerminalResponse | void> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.CLIENT_METHODS.terminal_release,
+        {
+          sessionId: this.#sessionId,
+          terminalId: this.id,
+        },
+      )) ?? {}
+    );
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -423,9 +431,10 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.terminal_release: {
           const validatedParams =
             schema.releaseTerminalRequestSchema.parse(params);
-          return client.releaseTerminal?.(
+          const result = await client.releaseTerminal?.(
             validatedParams as schema.ReleaseTerminalRequest,
           );
+          return result ?? {};
         }
         case schema.CLIENT_METHODS.terminal_wait_for_exit: {
           const validatedParams =
@@ -437,9 +446,10 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.terminal_kill: {
           const validatedParams =
             schema.killTerminalCommandRequestSchema.parse(params);
-          return client.killTerminal?.(
+          const result = await client.killTerminal?.(
             validatedParams as schema.KillTerminalCommandRequest,
           );
+          return result ?? {};
         }
         default:
           // Handle extension methods (any method starting with '_')
@@ -552,9 +562,11 @@ export class ClientSideConnection implements Agent {
   async loadSession(
     params: schema.LoadSessionRequest,
   ): Promise<schema.LoadSessionResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_load,
-      params,
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.session_load,
+        params,
+      )) ?? {}
     );
   }
 
@@ -568,10 +580,12 @@ export class ClientSideConnection implements Agent {
    */
   async setSessionMode(
     params: schema.SetSessionModeRequest,
-  ): Promise<void | schema.SetSessionModeResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_set_mode,
-      params,
+  ): Promise<schema.SetSessionModeResponse> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.session_set_mode,
+        params,
+      )) ?? {}
     );
   }
 
@@ -586,10 +600,14 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
-  async authenticate(params: schema.AuthenticateRequest): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.authenticate,
-      params,
+  async authenticate(
+    params: schema.AuthenticateRequest,
+  ): Promise<schema.AuthenticateResponse> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.authenticate,
+        params,
+      )) ?? {}
     );
   }
 
@@ -1109,7 +1127,9 @@ export interface Client {
    *
    * @see {@link https://agentclientprotocol.com/protocol/terminals#releasing-terminals | Releasing Terminals}
    */
-  releaseTerminal?(params: schema.ReleaseTerminalRequest): Promise<void>;
+  releaseTerminal?(
+    params: schema.ReleaseTerminalRequest,
+  ): Promise<schema.ReleaseTerminalResponse | void>;
 
   /**
    * Waits for a terminal command to exit and returns its exit status.
@@ -1136,7 +1156,9 @@ export interface Client {
    *
    * @see {@link https://agentclientprotocol.com/protocol/terminals#killing-commands | Killing Commands}
    */
-  killTerminal?(params: schema.KillTerminalCommandRequest): Promise<void>;
+  killTerminal?(
+    params: schema.KillTerminalCommandRequest,
+  ): Promise<schema.KillTerminalResponse | void>;
 
   /**
    * Extension method
@@ -1223,7 +1245,7 @@ export interface Agent {
    */
   setSessionMode?(
     params: schema.SetSessionModeRequest,
-  ): Promise<void | schema.SetSessionModeResponse>;
+  ): Promise<schema.SetSessionModeResponse | void>;
   /**
    * Authenticates the client using the specified authentication method.
    *
@@ -1235,7 +1257,9 @@ export interface Agent {
    *
    * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
-  authenticate(params: schema.AuthenticateRequest): Promise<void>;
+  authenticate(
+    params: schema.AuthenticateRequest,
+  ): Promise<schema.AuthenticateResponse | void>;
   /**
    * Processes a user prompt within a session.
    *

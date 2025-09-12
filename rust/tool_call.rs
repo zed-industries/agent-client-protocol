@@ -128,9 +128,6 @@ pub struct ToolCallUpdateFields {
     /// Update the raw output.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub raw_output: Option<serde_json::Value>,
-    /// Extension point for implementations
-    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
-    pub meta: Option<serde_json::Value>,
 }
 
 /// If a given tool call doesn't exist yet, allows for attempting to construct
@@ -150,7 +147,6 @@ impl TryFrom<ToolCallUpdate> for ToolCall {
                     locations,
                     raw_input,
                     raw_output,
-                    meta: _,
                 },
             meta: _,
         } = update;
@@ -195,7 +191,6 @@ impl From<ToolCall> for ToolCallUpdate {
                 locations: Some(locations),
                 raw_input,
                 raw_output,
-                meta: None,
             },
             meta: None,
         }
