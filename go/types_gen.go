@@ -18,11 +18,11 @@ type AgentCapabilities struct {
 	// MCP capabilities supported by the agent.
 	//
 	// Defaults to {"http":false,"sse":false} if unset.
-	McpCapabilities McpCapabilities `json:"mcpCapabilities"`
+	McpCapabilities McpCapabilities `json:"mcpCapabilities,omitempty"`
 	// Prompt capabilities supported by the agent.
 	//
 	// Defaults to {"audio":false,"embeddedContext":false,"image":false} if unset.
-	PromptCapabilities PromptCapabilities `json:"promptCapabilities"`
+	PromptCapabilities PromptCapabilities `json:"promptCapabilities,omitempty"`
 }
 
 func (v AgentCapabilities) MarshalJSON() ([]byte, error) {
@@ -515,7 +515,7 @@ type ClientCapabilities struct {
 	// File system capabilities supported by the client. Determines which file operations the agent can request.
 	//
 	// Defaults to {"readTextFile":false,"writeTextFile":false} if unset.
-	Fs FileSystemCapability `json:"fs"`
+	Fs FileSystemCapability `json:"fs,omitempty"`
 	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.
 	//
 	// Defaults to false if unset.
@@ -1414,7 +1414,7 @@ type InitializeRequest struct {
 	// Capabilities supported by the client.
 	//
 	// Defaults to {"fs":{"readTextFile":false,"writeTextFile":false},"terminal":false} if unset.
-	ClientCapabilities ClientCapabilities `json:"clientCapabilities"`
+	ClientCapabilities ClientCapabilities `json:"clientCapabilities,omitempty"`
 	// The latest protocol version supported by the client.
 	ProtocolVersion ProtocolVersion `json:"protocolVersion"`
 }
@@ -1455,7 +1455,7 @@ type InitializeResponse struct {
 	// Capabilities supported by the agent.
 	//
 	// Defaults to {"loadSession":false,"mcpCapabilities":{"http":false,"sse":false},"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}} if unset.
-	AgentCapabilities AgentCapabilities `json:"agentCapabilities"`
+	AgentCapabilities AgentCapabilities `json:"agentCapabilities,omitempty"`
 	// Authentication methods supported by the agent.
 	//
 	// Defaults to [] if unset.
@@ -1615,7 +1615,7 @@ type McpServerSse struct {
 }
 
 // Stdio transport configuration  All Agents MUST support this transport.
-type stdio struct {
+type Stdio struct {
 	// Command-line arguments to pass to the MCP server.
 	Args []string `json:"args"`
 	// Path to the MCP server executable.
@@ -1629,7 +1629,7 @@ type stdio struct {
 type McpServer struct {
 	Http  *McpServerHttp `json:"-"`
 	Sse   *McpServerSse  `json:"-"`
-	stdio *stdio         `json:"-"`
+	Stdio *Stdio         `json:"-"`
 }
 
 func (u *McpServer) UnmarshalJSON(b []byte) error {
@@ -1706,7 +1706,7 @@ func (u *McpServer) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
-		var v stdio
+		var v Stdio
 		var match bool = true
 		if _, ok := m["name"]; !ok {
 			match = false
@@ -1724,7 +1724,7 @@ func (u *McpServer) UnmarshalJSON(b []byte) error {
 			if json.Unmarshal(b, &v) != nil {
 				return errors.New("invalid variant payload")
 			}
-			u.stdio = &v
+			u.Stdio = &v
 			return nil
 		}
 	}
@@ -1743,9 +1743,9 @@ func (u *McpServer) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
-		var v stdio
+		var v Stdio
 		if json.Unmarshal(b, &v) == nil {
-			u.stdio = &v
+			u.Stdio = &v
 			return nil
 		}
 	}
@@ -1776,9 +1776,9 @@ func (u McpServer) MarshalJSON() ([]byte, error) {
 		m["type"] = "sse"
 		return json.Marshal(m)
 	}
-	if u.stdio != nil {
+	if u.Stdio != nil {
 		var m map[string]any
-		_b, _e := json.Marshal(*u.stdio)
+		_b, _e := json.Marshal(*u.Stdio)
 		if _e != nil {
 			return []byte{}, _e
 		}
@@ -2714,8 +2714,7 @@ func (v *SetSessionModeRequest) Validate() error {
 }
 
 // **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
-// SetSessionModeResponse is a union or complex schema; represented generically.
-type SetSessionModeResponse any
+type SetSessionModeResponse struct{}
 
 func (v *SetSessionModeResponse) Validate() error {
 	return nil

@@ -127,9 +127,10 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 					defaults = append(defaults, *dp)
 				}
 				if _, ok := req[pk]; !ok {
-					// Default: omit if empty for optional fields, unless schema specifies
-					// a default array/object (always present on wire).
-					if dp == nil || (dp.kind != KindArray && dp.kind != KindObject) {
+					// Default: omit if empty for optional fields.
+					// Keep always-present behavior only for defaults where the zero value is nil (slice/map).
+					// For typed object defaults (non-nilable), still allow omission on the wire.
+					if dp == nil || (dp.kind != KindArray && dp.kind != KindObject) || (dp != nil && !dp.nilable) {
 						tag = pk + ",omitempty"
 					}
 				}
@@ -197,6 +198,11 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 			}
 		case ir.PrimaryType(def) == "string" || ir.PrimaryType(def) == "integer" || ir.PrimaryType(def) == "number" || ir.PrimaryType(def) == "boolean":
 			f.Type().Id(name).Add(primitiveJenType(ir.PrimaryType(def)))
+			f.Line()
+		case ir.PrimaryType(def) == "object" && len(def.Properties) == 0:
+			// Empty object shape: emit a concrete empty struct so methods can be defined
+			// and the wire encoding is consistently {} rather than null.
+			f.Type().Id(name).Struct()
 			f.Line()
 		default:
 			f.Comment(fmt.Sprintf("%s is a union or complex schema; represented generically.", name))
@@ -569,7 +575,9 @@ func emitUnion(f *File, name string, defs []*load.Definition, exactlyOne bool) {
 				}
 			}
 		}
-		fieldName := tname
+		// Ensure Title-derived names are exported (e.g., "stdio" -> "Stdio").
+		tname = util.ToExportedField(tname)
+		fieldName := util.ToExportedField(tname)
 		dv := ""
 		if discKey != "" {
 			if pd := v.Properties[discKey]; pd != nil && pd.Const != nil {

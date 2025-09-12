@@ -49,7 +49,7 @@ func (c clientFuncs) SessionUpdate(ctx context.Context, n SessionNotification) e
 type agentFuncs struct {
 	InitializeFunc   func(context.Context, InitializeRequest) (InitializeResponse, error)
 	NewSessionFunc   func(context.Context, NewSessionRequest) (NewSessionResponse, error)
-	LoadSessionFunc  func(context.Context, LoadSessionRequest) error
+	LoadSessionFunc  func(context.Context, LoadSessionRequest) (LoadSessionResponse, error)
 	AuthenticateFunc func(context.Context, AuthenticateRequest) error
 	PromptFunc       func(context.Context, PromptRequest) (PromptResponse, error)
 	CancelFunc       func(context.Context, CancelNotification) error
@@ -74,11 +74,11 @@ func (a agentFuncs) NewSession(ctx context.Context, p NewSessionRequest) (NewSes
 	return NewSessionResponse{}, nil
 }
 
-func (a agentFuncs) LoadSession(ctx context.Context, p LoadSessionRequest) error {
+func (a agentFuncs) LoadSession(ctx context.Context, p LoadSessionRequest) (LoadSessionResponse, error) {
 	if a.LoadSessionFunc != nil {
 		return a.LoadSessionFunc(ctx, p)
 	}
-	return nil
+	return LoadSessionResponse{}, nil
 }
 
 func (a agentFuncs) Authenticate(ctx context.Context, p AuthenticateRequest) error {
@@ -127,8 +127,8 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{}, &RequestError{Code: -32603, Message: "Failed to create session"}
 		},
-		LoadSessionFunc: func(context.Context, LoadSessionRequest) error {
-			return &RequestError{Code: -32603, Message: "Failed to load session"}
+		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
+			return LoadSessionResponse{}, &RequestError{Code: -32603, Message: "Failed to load session"}
 		},
 		AuthenticateFunc: func(context.Context, AuthenticateRequest) error {
 			return &RequestError{Code: -32603, Message: "Authentication failed"}
@@ -181,7 +181,9 @@ func TestConnectionHandlesConcurrentRequests(t *testing.T) {
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{SessionId: "test-session"}, nil
 		},
-		LoadSessionFunc:  func(context.Context, LoadSessionRequest) error { return nil },
+		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
+			return LoadSessionResponse{}, nil
+		},
 		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
@@ -254,9 +256,9 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 			push("newSession called: " + p.Cwd)
 			return NewSessionResponse{SessionId: "test-session"}, nil
 		},
-		LoadSessionFunc: func(_ context.Context, p LoadSessionRequest) error {
+		LoadSessionFunc: func(_ context.Context, p LoadSessionRequest) (LoadSessionResponse, error) {
 			push("loadSession called: " + string(p.SessionId))
-			return nil
+			return LoadSessionResponse{}, nil
 		},
 		AuthenticateFunc: func(_ context.Context, p AuthenticateRequest) error {
 			push("authenticate called: " + string(p.MethodId))
@@ -354,7 +356,9 @@ func TestConnectionHandlesNotifications(t *testing.T) {
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{SessionId: "test-session"}, nil
 		},
-		LoadSessionFunc:  func(context.Context, LoadSessionRequest) error { return nil },
+		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
+			return LoadSessionResponse{}, nil
+		},
 		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
@@ -425,7 +429,9 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{SessionId: "test-session"}, nil
 		},
-		LoadSessionFunc:  func(context.Context, LoadSessionRequest) error { return nil },
+		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
+			return LoadSessionResponse{}, nil
+		},
 		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
@@ -472,7 +478,9 @@ func TestPromptCancellationSendsCancelAndAllowsNewSession(t *testing.T) {
 		NewSessionFunc: func(context.Context, NewSessionRequest) (NewSessionResponse, error) {
 			return NewSessionResponse{SessionId: "s-1"}, nil
 		},
-		LoadSessionFunc:  func(context.Context, LoadSessionRequest) error { return nil },
+		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
+			return LoadSessionResponse{}, nil
+		},
 		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
 		PromptFunc: func(ctx context.Context, p PromptRequest) (PromptResponse, error) {
 			<-ctx.Done()

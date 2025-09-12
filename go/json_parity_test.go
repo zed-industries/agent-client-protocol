@@ -235,7 +235,18 @@ func TestJSONGolden_MethodPayloads(t *testing.T) {
 		return InitializeResponse{ProtocolVersion: 1, AgentCapabilities: AgentCapabilities{LoadSession: true, PromptCapabilities: PromptCapabilities{Image: true, Audio: true, EmbeddedContext: true}}}
 	}))
 	t.Run("new_session_request", runGolden(func() NewSessionRequest {
-		return NewSessionRequest{Cwd: "/home/user/project", McpServers: []McpServer{{Name: "filesystem", Command: "/path/to/mcp-server", Args: []string{"--stdio"}, Env: []EnvVariable{}}}}
+		return NewSessionRequest{
+			Cwd: "/home/user/project", McpServers: []McpServer{
+				{
+					Stdio: &Stdio{
+						Name:    "filesystem",
+						Command: "/path/to/mcp-server",
+						Args:    []string{"--stdio"},
+						Env:     []EnvVariable{},
+					},
+				},
+			},
+		}
 	}))
 	t.Run("new_session_response", runGolden(func() NewSessionResponse { return NewSessionResponse{SessionId: "sess_abc123def456"} }))
 	t.Run("prompt_request", runGolden(func() PromptRequest {

@@ -56,7 +56,9 @@ func (a *exampleAgent) NewSession(ctx context.Context, params acp.NewSessionRequ
 
 func (a *exampleAgent) Authenticate(ctx context.Context, _ acp.AuthenticateRequest) error { return nil }
 
-func (a *exampleAgent) LoadSession(ctx context.Context, _ acp.LoadSessionRequest) error { return nil }
+func (a *exampleAgent) LoadSession(ctx context.Context, _ acp.LoadSessionRequest) (acp.LoadSessionResponse, error) {
+	return acp.LoadSessionResponse{}, nil
+}
 
 func (a *exampleAgent) Cancel(ctx context.Context, params acp.CancelNotification) error {
 	a.mu.Lock()
