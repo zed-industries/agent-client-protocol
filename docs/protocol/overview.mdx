@@ -126,6 +126,41 @@ Clients provide the interface between users and agents. They are typically code 
   `fs.writeTextFile` capability).
 </ResponseField>
 
+<ResponseField
+  name="terminal/create"
+  post={[<a href="./schema#terminal%2Fcreate">Schema</a>]}
+>
+  [Create a new terminal](./terminals) (requires `terminal` capability).
+</ResponseField>
+
+<ResponseField
+  name="terminal/output"
+  post={[<a href="./schema#terminal%2Foutput">Schema</a>]}
+>
+  Get terminal output and exit status (requires `terminal` capability).
+</ResponseField>
+
+<ResponseField
+  name="terminal/release"
+  post={[<a href="./schema#terminal%2Frelease">Schema</a>]}
+>
+  Release a terminal (requires `terminal` capability).
+</ResponseField>
+
+<ResponseField
+  name="terminal/wait_for_exit"
+  post={[<a href="./schema#terminal%2Fwait_for_exit">Schema</a>]}
+>
+  Wait for terminal command to exit (requires `terminal` capability).
+</ResponseField>
+
+<ResponseField
+  name="terminal/kill"
+  post={[<a href="./schema#terminal%2Fkill">Schema</a>]}
+>
+  Kill terminal command without releasing (requires `terminal` capability).
+</ResponseField>
+
 ### Notifications
 
 <ResponseField
