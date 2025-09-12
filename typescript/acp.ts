@@ -36,7 +36,7 @@ export class AgentSideConnection {
   ) {
     const agent = toAgent(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -79,36 +79,49 @@ export class AgentSideConnection {
           const validatedParams = schema.promptRequestSchema.parse(params);
           return agent.prompt(validatedParams as schema.PromptRequest);
         }
-        case schema.AGENT_METHODS.session_cancel: {
-          const validatedParams = schema.cancelNotificationSchema.parse(params);
-          return agent.cancel(validatedParams as schema.CancelNotification);
-        }
-        case schema.AGENT_METHODS.ext_method: {
-          const validatedParams = schema.extMethodRequest1Schema.parse(params);
-          if (!agent.extMethod) {
-            throw RequestError.methodNotFound(validatedParams.method);
-          }
-          return agent.extMethod(
-            validatedParams.method,
-            validatedParams.params,
-          );
-        }
-        case schema.AGENT_METHODS.ext_notification: {
-          const validatedParams = schema.extNotification1Schema.parse(params);
-          if (!agent.extNotification) {
-            return;
-          }
-          return agent.extNotification(
-            validatedParams.method,
-            validatedParams.params,
-          );
-        }
         default:
+          if (method.startsWith("_")) {
+            if (!agent.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return agent.extMethod(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
+        case schema.AGENT_METHODS.session_cancel: {
+          const validatedParams = schema.cancelNotificationSchema.parse(params);
+          return agent.cancel(validatedParams as schema.CancelNotification);
+        }
+        default:
+          if (method.startsWith("_")) {
+            if (!agent.extNotification) {
+              return;
+            }
+            return agent.extNotification(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      input,
+      output,
+    );
   }
 
   /**
@@ -215,10 +228,7 @@ export class AgentSideConnection {
     method: string,
     params: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.ext_method,
-      { method, params },
-    );
+    return await this.#connection.sendRequest(`_${method}`, params);
   }
 
   /**
@@ -230,10 +240,7 @@ export class AgentSideConnection {
     method: string,
     params: Record<string, unknown>,
   ): Promise<void> {
-    return await this.#connection.sendNotification(
-      schema.CLIENT_METHODS.ext_notification,
-      { method, params },
-    );
+    return await this.#connection.sendNotification(`_${method}`, params);
   }
 }
 
@@ -324,7 +331,7 @@ export class ClientSideConnection implements Agent {
   ) {
     const client = toClient(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -348,13 +355,6 @@ export class ClientSideConnection implements Agent {
             schema.requestPermissionRequestSchema.parse(params);
           return client.requestPermission(
             validatedParams as schema.RequestPermissionRequest,
-          );
-        }
-        case schema.CLIENT_METHODS.session_update: {
-          const validatedParams =
-            schema.sessionNotificationSchema.parse(params);
-          return client.sessionUpdate(
-            validatedParams as schema.SessionNotification,
           );
         }
         case schema.CLIENT_METHODS.terminal_create: {
@@ -392,32 +392,56 @@ export class ClientSideConnection implements Agent {
             validatedParams as schema.KillTerminalRequest,
           );
         }
-        case schema.CLIENT_METHODS.ext_method: {
-          const validatedParams = schema.extMethodRequestSchema.parse(params);
-          if (!client.extMethod) {
-            throw RequestError.methodNotFound(validatedParams.method);
-          }
-          return client.extMethod(
-            validatedParams.method,
-            validatedParams.params,
-          );
-        }
-        case schema.CLIENT_METHODS.ext_notification: {
-          const validatedParams = schema.extNotificationSchema.parse(params);
-          if (!client.extNotification) {
-            return;
-          }
-          return client.extNotification(
-            validatedParams.method,
-            validatedParams.params,
-          );
-        }
         default:
+          // Handle extension methods (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return client.extMethod(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
+        case schema.CLIENT_METHODS.session_update: {
+          const validatedParams =
+            schema.sessionNotificationSchema.parse(params);
+          return client.sessionUpdate(
+            validatedParams as schema.SessionNotification,
+          );
+        }
+        default:
+          // Handle extension notifications (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extNotification) {
+              return;
+            }
+            return client.extNotification(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      input,
+      output,
+    );
   }
 
   /**
@@ -569,10 +593,7 @@ export class ClientSideConnection implements Agent {
     method: string,
     params: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    return await this.#connection.sendRequest(schema.AGENT_METHODS.ext_method, {
-      method,
-      params,
-    });
+    return await this.#connection.sendRequest(`_${method}`, params);
   }
 
   /**
@@ -584,10 +605,7 @@ export class ClientSideConnection implements Agent {
     method: string,
     params: Record<string, unknown>,
   ): Promise<void> {
-    return await this.#connection.sendNotification(
-      schema.AGENT_METHODS.ext_notification,
-      { method, params },
-    );
+    return await this.#connection.sendNotification(`_${method}`, params);
   }
 }
 
@@ -630,22 +648,26 @@ type PendingResponse = {
   reject: (error: ErrorResponse) => void;
 };
 
-type MethodHandler = (method: string, params: unknown) => Promise<unknown>;
+type RequestHandler = (method: string, params: unknown) => Promise<unknown>;
+type NotificationHandler = (method: string, params: unknown) => Promise<void>;
 
 class Connection {
   #pendingResponses: Map<string | number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
-  #handler: MethodHandler;
+  #requestHandler: RequestHandler;
+  #notificationHandler: NotificationHandler;
   #peerInput: WritableStream<Uint8Array>;
   #writeQueue: Promise<void> = Promise.resolve();
   #textEncoder: TextEncoder;
 
   constructor(
-    handler: MethodHandler,
+    requestHandler: RequestHandler,
+    notificationHandler: NotificationHandler,
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
-    this.#handler = handler;
+    this.#requestHandler = requestHandler;
+    this.#notificationHandler = notificationHandler;
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
     this.#receive(peerOutput);
@@ -693,7 +715,7 @@ class Connection {
   async #processMessage(message: AnyMessage) {
     if ("method" in message && "id" in message) {
       // It's a request
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallRequestHandler(
         message.method,
         message.params,
       );
@@ -708,7 +730,7 @@ class Connection {
       });
     } else if ("method" in message) {
       // It's a notification
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallNotificationHandler(
         message.method,
         message.params,
       );
@@ -723,13 +745,52 @@ class Connection {
     }
   }
 
-  async #tryCallHandler(
+  async #tryCallRequestHandler(
     method: string,
     params: unknown,
   ): Promise<Result<unknown>> {
     try {
-      const result = await this.#handler(method, params);
+      const result = await this.#requestHandler(method, params);
       return { result: result ?? null };
+    } catch (error: unknown) {
+      if (error instanceof RequestError) {
+        return error.toResult();
+      }
+
+      if (error instanceof z.ZodError) {
+        return RequestError.invalidParams(error.format()).toResult();
+      }
+
+      let details;
+
+      if (error instanceof Error) {
+        details = error.message;
+      } else if (
+        typeof error === "object" &&
+        error != null &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        details = error.message;
+      }
+
+      try {
+        return RequestError.internalError(
+          details ? JSON.parse(details) : {},
+        ).toResult();
+      } catch (_err) {
+        return RequestError.internalError({ details }).toResult();
+      }
+    }
+  }
+
+  async #tryCallNotificationHandler(
+    method: string,
+    params: unknown,
+  ): Promise<Result<unknown>> {
+    try {
+      await this.#notificationHandler(method, params);
+      return { result: null };
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();

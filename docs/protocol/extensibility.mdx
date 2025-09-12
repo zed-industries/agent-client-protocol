@@ -1,6 +1,6 @@
 ---
 title: "Extensibility"
-description: "Adding extra information and functionality"
+description: "Adding custom data and capabilities"
 ---
 
 The Agent Client Protocol provides built-in extension mechanisms that allow implementations to add custom functionality while maintaining compatibility with the core protocol. These mechanisms ensure that Agents and Clients can innovate without breaking interoperability.
@@ -29,36 +29,33 @@ All types in the protocol include a `_meta` field that implementations can use t
 }
 ```
 
-All possible fiels names at the root of an object are reserved by the protocol and may be used in future versions.
+Implementations **MUST NOT** add any custom fields at the root of a type that's part of the specification. All possible names are reserved for future protocol versions.
 
 ## Extension Methods
 
-The protocol reserves two special method names for custom extensions:
+The protocol reserves any method name starting with an underscore (`_`) for custom extensions. This allows implementations to add new functionality without the risk of conflicting with future protocol versions.
 
-- `_method` - For request-response extensions
-- `_notification` - For one-way notification extensions
+Extension methods follow standard [JSON-RPC 2.0](https://www.jsonrpc.org/specification) semantics:
 
-These allow implementations to add entirely new functionality without conflicting with future protocol versions.
+- **[Requests](https://www.jsonrpc.org/specification#request_object)** - Include an `id` field and expect a response
+- **[Notifications](https://www.jsonrpc.org/specification#notification)** - Omit the `id` field and are one-way (fire-and-forget)
 
-### Custom Methods
+### Custom Requests
 
-To add a custom method, use the `_method` endpoint with your extension identifier:
+In addition to the requests specified by the protocol, implementations **MAY** expose and call custom JSON-RPC requests as long as their name starts with an underscore (`_`).
 
 ```json
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "method": "_method",
+  "method": "_zed.dev/workspace/buffers",
   "params": {
-    "method": "zed.dev/workspace/buffers",
-    "params": {
-      "language": "rust"
-    }
+    "language": "rust"
   }
 }
 ```
 
-The response follows the same pattern:
+Upon receiveing a custom request, implementations **MUST** respond accordingly with the provided `id`:
 
 ```json
 {
@@ -66,41 +63,47 @@ The response follows the same pattern:
   "id": 1,
   "result": {
     "buffers": [
-      { "id": 0, "path": "/home/user/project/src/main.rs" }
+      { "id": 0, "path": "/home/user/project/src/main.rs" },
       { "id": 1, "path": "/home/user/project/src/editor.rs" }
     ]
   }
 }
 ```
 
-Implementations **MUST** respond to custom method requests even if they don't recognize the identifier. To avoid such cases, extensions **SHOULD** advertise their [custom capabilities](#advertising-custom-capabilities) so that callers can check their availability first and adapt their interface accordingly.
-
-### Custom Notifications
-
-For one-way communications, use the `_notification` endpoint:
+If the receiveing end doesn't recognize the custom method name, it should respond with the standard "Method not found" error:
 
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "_notification",
-  "params": {
-    "method": "zed.dev/file_opened",
-    "params": {
-      "path": "/home/user/project/src/editor.rs"
-    }
+  "id": 1,
+  "error": {
+    "code": -32601,
+    "message": "Method not found"
   }
 }
 ```
 
-Unlike with [Custom Methods](#custom-methods), implementations **SHOULD** ignore unrecognized notifications.
+To avoid such cases, extensions **SHOULD** advertise their [custom capabilities](#advertising-custom-capabilities) so that callers can check their availability first and adapt their interface accordingly.
 
-## Namespacing
+### Custom Notifications
 
-Implementations **SHOULD** make a best effort to avoid conflicting with other extensions by prefixing their method and field names with a unique name such as a domain or repository identifier.
+Custom notifications are regular JSON-RPC notifications that start with an underscore (`_`). Like all notifications, they omit the `id` field:
 
-### Advertising Custom Capabilities
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "_zed.dev/file_opened",
+  "params": {
+    "path": "/home/user/project/src/editor.rs"
+  }
+}
+```
 
-Implementations **MAY** use the `_meta` field in capability objects to advertise support for custom extensions:
+Unlike with custom requests, implementations **SHOULD** ignore unrecognized notifications.
+
+## Advertising Custom Capabilities
+
+Implementations **SHOULD** use the `_meta` field in capability objects to advertise support for extensions and their methods:
 
 ```json
 {
@@ -121,4 +124,4 @@ Implementations **MAY** use the `_meta` field in capability objects to advertise
 }
 ```
 
-This allows implementations to negotiate custom features during initialization without breaking compatibility with standard clients.
+This allows implementations to negotiate custom features during initialization without breaking compatibility with standard Clients and Agents.

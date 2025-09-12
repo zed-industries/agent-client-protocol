@@ -1,7 +1,5 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
-  ext_method: "_method",
-  ext_notification: "_notification",
   initialize: "initialize",
   session_cancel: "session/cancel",
   session_load: "session/load",
@@ -11,8 +9,6 @@ export const AGENT_METHODS = {
 };
 
 export const CLIENT_METHODS = {
-  ext_method: "_method",
-  ext_notification: "_notification",
   fs_read_text_file: "fs/read_text_file",
   fs_write_text_file: "fs/write_text_file",
   session_request_permission: "session/request_permission",
@@ -718,28 +714,8 @@ export interface KillTerminalRequest {
   sessionId: SessionId;
   terminalId: string;
 }
-/**
- * Request parameters for extension method calls.
- *
- * Used with the `_method` extension point to add custom request-response functionality
- * to the protocol while maintaining compatibility.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtMethodRequest {
-  /**
-   * The identifier for the extension method.
-   *
-   * To help avoid conflicts, it's a good practice to prefix extension
-   * methods with a unique identifier such as domain name.
-   */
-  method: string;
-  /**
-   * The parameters for the extension method, can be any JSON value.
-   */
-  params: {
-    [k: string]: unknown;
-  };
+  [k: string]: unknown;
 }
 /**
  * Response containing the contents of a text file.
@@ -818,13 +794,6 @@ export interface WaitForTerminalExitResponse {
   exitCode?: number | null;
   signal?: string | null;
 }
-/**
- * Response from extension method calls.
- *
- * Contains the result of a custom extension method request.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtMethodResponse {
   [k: string]: unknown;
 }
@@ -859,28 +828,8 @@ export interface CancelNotification {
    */
   sessionId: string;
 }
-/**
- * Extension notification parameters.
- *
- * Used with the `_notification` extension point to add custom one-way messages
- * to the protocol while maintaining compatibility.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtNotification {
-  /**
-   * The identifier for the extension method.
-   *
-   * To help avoid conflicts, it's a good practice to prefix extension
-   * methods with a unique identifier such as domain name.
-   */
-  method: string;
-  /**
-   * The parameters for the extension notification, can be any JSON value.
-   */
-  params: {
-    [k: string]: unknown;
-  };
+  [k: string]: unknown;
 }
 /**
  * Request parameters for the initialize method.
@@ -1126,28 +1075,8 @@ export interface PromptRequest {
    */
   sessionId: string;
 }
-/**
- * Request parameters for extension method calls.
- *
- * Used with the `_method` extension point to add custom request-response functionality
- * to the protocol while maintaining compatibility.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtMethodRequest1 {
-  /**
-   * The identifier for the extension method.
-   *
-   * To help avoid conflicts, it's a good practice to prefix extension
-   * methods with a unique identifier such as domain name.
-   */
-  method: string;
-  /**
-   * The parameters for the extension method, can be any JSON value.
-   */
-  params: {
-    [k: string]: unknown;
-  };
+  [k: string]: unknown;
 }
 /**
  * Response from the initialize method.
@@ -1374,13 +1303,6 @@ export interface PromptResponse {
     | "refusal"
     | "cancelled";
 }
-/**
- * Response from extension method calls.
- *
- * Contains the result of a custom extension method request.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtMethodResponse1 {
   [k: string]: unknown;
 }
@@ -1605,28 +1527,8 @@ export interface UnstructuredCommandInput {
    */
   hint: string;
 }
-/**
- * Extension notification parameters.
- *
- * Used with the `_notification` extension point to add custom one-way messages
- * to the protocol while maintaining compatibility.
- *
- * See protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)
- */
 export interface ExtNotification1 {
-  /**
-   * The identifier for the extension method.
-   *
-   * To help avoid conflicts, it's a good practice to prefix extension
-   * methods with a unique identifier such as domain name.
-   */
-  method: string;
-  /**
-   * The parameters for the extension notification, can be any JSON value.
-   */
-  params: {
-    [k: string]: unknown;
-  };
+  [k: string]: unknown;
 }
 
 /** @internal */
@@ -1647,10 +1549,7 @@ export const readTextFileRequestSchema = z.object({
 });
 
 /** @internal */
-export const extMethodRequestSchema = z.object({
-  method: z.string(),
-  params: z.record(z.unknown()),
-});
+export const extMethodRequestSchema = z.record(z.unknown());
 
 /** @internal */
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
@@ -1748,10 +1647,7 @@ export const cancelNotificationSchema = z.object({
 });
 
 /** @internal */
-export const extNotificationSchema = z.object({
-  method: z.string(),
-  params: z.record(z.unknown()),
-});
+export const extNotificationSchema = z.record(z.unknown());
 
 /** @internal */
 export const authenticateRequestSchema = z.object({
@@ -1760,10 +1656,7 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
-export const extMethodRequest1Schema = z.object({
-  method: z.string(),
-  params: z.record(z.unknown()),
-});
+export const extMethodRequest1Schema = z.record(z.unknown());
 
 /** @internal */
 export const httpHeaderSchema = z.object({
@@ -1811,10 +1704,7 @@ export const promptResponseSchema = z.object({
 export const extMethodResponse1Schema = z.record(z.unknown());
 
 /** @internal */
-export const extNotification1Schema = z.object({
-  method: z.string(),
-  params: z.record(z.unknown()),
-});
+export const extNotification1Schema = z.record(z.unknown());
 
 /** @internal */
 export const unstructuredCommandInputSchema = z.object({

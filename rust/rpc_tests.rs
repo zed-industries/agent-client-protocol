@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde_json::json;
 use std::sync::{Arc, Mutex};
 
 use crate::*;
@@ -9,7 +10,7 @@ struct TestClient {
     file_contents: Arc<Mutex<std::collections::HashMap<std::path::PathBuf, String>>>,
     written_files: Arc<Mutex<Vec<(std::path::PathBuf, String)>>>,
     session_notifications: Arc<Mutex<Vec<SessionNotification>>>,
-    extension_notifications: Arc<Mutex<Vec<(String, serde_json::Value)>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, Arc<RawValue>)>>>,
 }
 
 impl TestClient {
@@ -30,6 +31,13 @@ impl TestClient {
     fn add_file_content(&self, path: std::path::PathBuf, content: String) {
         self.file_contents.lock().unwrap().insert(path, content);
     }
+}
+
+macro_rules! raw_json {
+    ($($json:tt)+) => {{
+        let response = serde_json::json!($($json)+);
+        serde_json::value::to_raw_value(&response).unwrap().into()
+    }};
 }
 
 impl Client for TestClient {
@@ -108,10 +116,10 @@ impl Client for TestClient {
     async fn ext_method(
         &self,
         method: std::sync::Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, Error> {
-        match method.as_ref() {
-            "example.com/ping" => Ok(serde_json::json!({
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        match dbg!(method.as_ref()) {
+            "example.com/ping" => Ok(raw_json!({
                 "response": "pong",
                 "params": params
             })),
@@ -122,7 +130,7 @@ impl Client for TestClient {
     async fn ext_notification(
         &self,
         method: std::sync::Arc<str>,
-        params: serde_json::Value,
+        params: Arc<RawValue>,
     ) -> Result<(), Error> {
         self.extension_notifications
             .lock()
@@ -137,7 +145,7 @@ struct TestAgent {
     sessions: Arc<Mutex<std::collections::HashSet<SessionId>>>,
     prompts_received: Arc<Mutex<Vec<PromptReceived>>>,
     cancellations_received: Arc<Mutex<Vec<SessionId>>>,
-    extension_notifications: Arc<Mutex<Vec<(String, serde_json::Value)>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, Arc<RawValue>)>>>,
 }
 
 type PromptReceived = (SessionId, Vec<ContentBlock>);
@@ -216,13 +224,17 @@ impl Agent for TestAgent {
 
     async fn ext_method(
         &self,
-        method: std::sync::Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, Error> {
-        match method.as_ref() {
-            "example.com/echo" => Ok(serde_json::json!({
-                "echo": params
-            })),
+        method: Arc<str>,
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        dbg!();
+        match dbg!(method.as_ref()) {
+            "example.com/echo" => {
+                let response = serde_json::json!({
+                    "echo": params
+                });
+                Ok(serde_json::value::to_raw_value(&response)?.into())
+            }
             _ => Err(Error::method_not_found()),
         }
     }
@@ -230,7 +242,7 @@ impl Agent for TestAgent {
     async fn ext_notification(
         &self,
         method: std::sync::Arc<str>,
-        params: serde_json::Value,
+        params: Arc<RawValue>,
     ) -> Result<(), Error> {
         self.extension_notifications
             .lock()
@@ -728,7 +740,7 @@ async fn test_notification_wire_format() {
     // Test client -> agent notification wire format
     let outgoing_msg =
         JsonRpcMessage::wrap(OutgoingMessage::<ClientSide, AgentSide>::Notification {
-            method: "cancel",
+            method: "cancel".into(),
             params: Some(ClientNotification::CancelNotification(CancelNotification {
                 session_id: SessionId("test-123".into()),
                 meta: None,
@@ -750,7 +762,7 @@ async fn test_notification_wire_format() {
     // Test agent -> client notification wire format
     let outgoing_msg =
         JsonRpcMessage::wrap(OutgoingMessage::<AgentSide, ClientSide>::Notification {
-            method: "sessionUpdate",
+            method: "sessionUpdate".into(),
             params: Some(AgentNotification::SessionNotification(
                 SessionNotification {
                     session_id: SessionId("test-456".into()),
@@ -802,15 +814,12 @@ async fn test_extension_methods_and_notifications() {
 
             // Test agent calling client extension method
             let client_response = agent_conn
-                .ext_method(
-                    "example.com/ping".into(),
-                    serde_json::json!({"data": "test"}),
-                )
+                .ext_method("example.com/ping".into(), raw_json!({"data": "test"}))
                 .await
                 .unwrap();
 
             assert_eq!(
-                client_response,
+                serde_json::to_value(client_response).unwrap(),
                 serde_json::json!({
                     "response": "pong",
                     "params": {"data": "test"}
@@ -819,15 +828,12 @@ async fn test_extension_methods_and_notifications() {
 
             // Test client calling agent extension method
             let agent_response = client_conn
-                .ext_method(
-                    "example.com/echo".into(),
-                    serde_json::json!({"message": "hello"}),
-                )
+                .ext_method("example.com/echo".into(), raw_json!({"message": "hello"}))
                 .await
                 .unwrap();
 
             assert_eq!(
-                agent_response,
+                serde_json::to_value(agent_response).unwrap(),
                 serde_json::json!({
                     "echo": {"message": "hello"}
                 })
@@ -837,7 +843,7 @@ async fn test_extension_methods_and_notifications() {
             agent_conn
                 .ext_notification(
                     "example.com/client/notify".into(),
-                    serde_json::json!({"info": "client notification"}),
+                    raw_json!({"info": "client notification"}),
                 )
                 .await
                 .unwrap();
@@ -845,7 +851,7 @@ async fn test_extension_methods_and_notifications() {
             client_conn
                 .ext_notification(
                     "example.com/agent/notify".into(),
-                    serde_json::json!({"info": "agent notification"}),
+                    raw_json!({"info": "agent notification"}),
                 )
                 .await
                 .unwrap();
@@ -858,7 +864,7 @@ async fn test_extension_methods_and_notifications() {
             assert_eq!(client_notifications.len(), 1);
             assert_eq!(client_notifications[0].0, "example.com/client/notify");
             assert_eq!(
-                client_notifications[0].1,
+                serde_json::to_value(&client_notifications[0].1).unwrap(),
                 serde_json::json!({"info": "client notification"})
             );
 
@@ -867,7 +873,7 @@ async fn test_extension_methods_and_notifications() {
             assert_eq!(agent_notifications.len(), 1);
             assert_eq!(agent_notifications[0].0, "example.com/agent/notify");
             assert_eq!(
-                agent_notifications[0].1,
+                serde_json::to_value(&agent_notifications[0].1).unwrap(),
                 serde_json::json!({"info": "agent notification"})
             );
         })

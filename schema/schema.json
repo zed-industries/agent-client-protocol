@@ -38,7 +38,6 @@
           "title": "SessionNotification"
         },
         {
-          "$ref": "#/$defs/ExtNotification",
           "title": "ExtNotification"
         }
       ],
@@ -80,7 +79,6 @@
           "title": "KillTerminalRequest"
         },
         {
-          "$ref": "#/$defs/ExtMethodRequest",
           "title": "ExtMethodRequest"
         }
       ],
@@ -114,7 +112,6 @@
           "title": "PromptResponse"
         },
         {
-          "$ref": "#/$defs/ExtMethodResponse",
           "title": "ExtMethodResponse"
         }
       ],
@@ -320,7 +317,6 @@
           "title": "CancelNotification"
         },
         {
-          "$ref": "#/$defs/ExtNotification",
           "title": "ExtNotification"
         }
       ],
@@ -354,7 +350,6 @@
           "title": "PromptRequest"
         },
         {
-          "$ref": "#/$defs/ExtMethodRequest",
           "title": "ExtMethodRequest"
         }
       ],
@@ -396,7 +391,6 @@
           "type": "null"
         },
         {
-          "$ref": "#/$defs/ExtMethodResponse",
           "title": "ExtMethodResponse"
         }
       ],
@@ -670,40 +664,6 @@
       },
       "required": ["name", "value"],
       "type": "object"
-    },
-    "ExtMethodRequest": {
-      "description": "Request parameters for extension method calls.\n\nUsed with the `_method` extension point to add custom request-response functionality\nto the protocol while maintaining compatibility.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
-      "properties": {
-        "method": {
-          "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",
-          "type": "string"
-        },
-        "params": {
-          "description": "The parameters for the extension method, can be any JSON value."
-        }
-      },
-      "required": ["method", "params"],
-      "type": "object",
-      "x-method": "_method"
-    },
-    "ExtMethodResponse": {
-      "description": "Response from extension method calls.\n\nContains the result of a custom extension method request.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
-      "x-method": "_method"
-    },
-    "ExtNotification": {
-      "description": "Extension notification parameters.\n\nUsed with the `_notification` extension point to add custom one-way messages\nto the protocol while maintaining compatibility.\n\nSee protocol docs: [Extension Methods](https://agentclientprotocol.com/protocol/extensibility#extension-methods)",
-      "properties": {
-        "method": {
-          "description": "The identifier for the extension method.\n\nTo help avoid conflicts, it's a good practice to prefix extension\nmethods with a unique identifier such as domain name.",
-          "type": "string"
-        },
-        "params": {
-          "description": "The parameters for the extension notification, can be any JSON value."
-        }
-      },
-      "required": ["method", "params"],
-      "type": "object",
-      "x-method": "_notification"
     },
     "FileSystemCapability": {
       "description": "File system capabilities that a client may support.\n\nSee protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)",

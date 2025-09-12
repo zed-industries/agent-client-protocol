@@ -12,8 +12,11 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
+use std::sync::Arc;
+
 use agent_client_protocol::{self as acp, Agent};
 use anyhow::bail;
+use serde_json::value::RawValue;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
@@ -106,26 +109,18 @@ impl acp::Client for ExampleClient {
 
     async fn ext_method(
         &self,
-        method: std::sync::Arc<str>,
-        params: serde_json::Value,
-    ) -> anyhow::Result<serde_json::Value, acp::Error> {
-        eprintln!(
-            "Received extension method call: method={}, params={:?}",
-            method, params
-        );
-        Ok(serde_json::json!({"client": "response"}))
+        _method: std::sync::Arc<str>,
+        _params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, acp::Error> {
+        Err(acp::Error::method_not_found())
     }
 
     async fn ext_notification(
         &self,
-        method: std::sync::Arc<str>,
-        params: serde_json::Value,
-    ) -> anyhow::Result<(), acp::Error> {
-        eprintln!(
-            "Received extension notification: method={}, params={:?}",
-            method, params
-        );
-        Ok(())
+        _method: std::sync::Arc<str>,
+        _params: Arc<RawValue>,
+    ) -> Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
     }
 }
 

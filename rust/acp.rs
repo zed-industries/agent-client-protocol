@@ -238,29 +238,23 @@ impl Agent for ClientSideConnection {
     async fn ext_method(
         &self,
         method: Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, Error> {
-        let response: ExtMethodResponse = self
-            .conn
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        self.conn
             .request(
-                EXT_METHOD_NAME,
-                Some(ClientRequest::ExtMethodRequest(ExtMethodRequest {
+                format!("_{method}"),
+                Some(ClientRequest::ExtMethodRequest(ExtMethod {
                     method,
                     params,
                 })),
             )
-            .await?;
-        Ok(response.0)
+            .await
     }
 
-    async fn ext_notification(
-        &self,
-        method: Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<(), Error> {
+    async fn ext_notification(&self, method: Arc<str>, params: Arc<RawValue>) -> Result<(), Error> {
         self.conn.notify(
-            EXT_NOTIFICATION_NAME,
-            Some(ClientNotification::ExtNotification(ExtNotification {
+            format!("_{method}"),
+            Some(ClientNotification::ExtNotification(ExtMethod {
                 method,
                 params,
             })),
@@ -315,10 +309,16 @@ impl Side for ClientSide {
             TERMINAL_WAIT_FOR_EXIT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::WaitForTerminalExitRequest)
                 .map_err(Into::into),
-            EXT_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::ExtMethodRequest)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(AgentRequest::ExtMethodRequest(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 
@@ -332,10 +332,16 @@ impl Side for ClientSide {
             SESSION_UPDATE_NOTIFICATION => serde_json::from_str(params.get())
                 .map(AgentNotification::SessionNotification)
                 .map_err(Into::into),
-            EXT_NOTIFICATION_NAME => serde_json::from_str(params.get())
-                .map(AgentNotification::ExtNotification)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(AgentNotification::ExtNotification(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 }
@@ -382,9 +388,7 @@ impl<T: Client> MessageHandler<ClientSide> for T {
             }
             AgentRequest::ExtMethodRequest(args) => {
                 let response = self.ext_method(args.method, args.params).await?;
-                Ok(ClientResponse::ExtMethodResponse(ExtMethodResponse(
-                    response,
-                )))
+                Ok(ClientResponse::ExtMethodResponse(response))
             }
         }
     }
@@ -562,29 +566,20 @@ impl Client for AgentSideConnection {
     async fn ext_method(
         &self,
         method: Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, Error> {
-        let response: ExtMethodResponse = self
-            .conn
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        self.conn
             .request(
-                EXT_METHOD_NAME,
-                Some(AgentRequest::ExtMethodRequest(ExtMethodRequest {
-                    method,
-                    params,
-                })),
+                format!("_{method}"),
+                Some(AgentRequest::ExtMethodRequest(ExtMethod { method, params })),
             )
-            .await?;
-        Ok(response.0)
+            .await
     }
 
-    async fn ext_notification(
-        &self,
-        method: Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<(), Error> {
+    async fn ext_notification(&self, method: Arc<str>, params: Arc<RawValue>) -> Result<(), Error> {
         self.conn.notify(
-            EXT_NOTIFICATION_NAME,
-            Some(AgentNotification::ExtNotification(ExtNotification {
+            format!("_{method}"),
+            Some(AgentNotification::ExtNotification(ExtMethod {
                 method,
                 params,
             })),
@@ -629,10 +624,16 @@ impl Side for AgentSide {
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::PromptRequest)
                 .map_err(Into::into),
-            EXT_METHOD_NAME => serde_json::from_str(params.get())
-                .map(ClientRequest::ExtMethodRequest)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(ClientRequest::ExtMethodRequest(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 
@@ -646,10 +647,16 @@ impl Side for AgentSide {
             SESSION_CANCEL_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientNotification::CancelNotification)
                 .map_err(Into::into),
-            EXT_NOTIFICATION_NAME => serde_json::from_str(params.get())
-                .map(ClientNotification::ExtNotification)
-                .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(ClientNotification::ExtNotification(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 }
@@ -684,9 +691,7 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
             }
             ClientRequest::ExtMethodRequest(args) => {
                 let response = self.ext_method(args.method, args.params).await?;
-                Ok(AgentResponse::ExtMethodResponse(ExtMethodResponse(
-                    response,
-                )))
+                Ok(AgentResponse::ExtMethodResponse(response))
             }
         }
     }

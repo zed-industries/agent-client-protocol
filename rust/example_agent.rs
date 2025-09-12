@@ -12,9 +12,10 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
-use std::cell::Cell;
+use std::{cell::Cell, sync::Arc};
 
 use agent_client_protocol::{self as acp, Client, SessionNotification};
+use serde_json::{json, value::RawValue};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 
@@ -111,20 +112,20 @@ impl acp::Agent for ExampleAgent {
     async fn ext_method(
         &self,
         method: std::sync::Arc<str>,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, acp::Error> {
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, acp::Error> {
         log::info!(
             "Received extension method call: method={}, params={:?}",
             method,
             params
         );
-        Ok(serde_json::json!({"example": "response"}))
+        Ok(serde_json::value::to_raw_value(&json!({"example": "response"}))?.into())
     }
 
     async fn ext_notification(
         &self,
         method: std::sync::Arc<str>,
-        params: serde_json::Value,
+        params: Arc<RawValue>,
     ) -> Result<(), acp::Error> {
         log::info!(
             "Received extension notification: method={}, params={:?}",

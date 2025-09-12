@@ -739,7 +739,7 @@ describe("Connection", () => {
       expect.fail("Should have thrown method not found error");
     } catch (error: any) {
       expect(error.code).toBe(-32601); // Method not found
-      expect(error.data.method).toBe("example.com/ping"); // Should show inner method name
+      expect(error.data.method).toBe("_example.com/ping"); // Should show full method name with underscore
     }
 
     try {
@@ -747,7 +747,7 @@ describe("Connection", () => {
       expect.fail("Should have thrown method not found error");
     } catch (error: any) {
       expect(error.code).toBe(-32601); // Method not found
-      expect(error.data.method).toBe("example.com/echo"); // Should show inner method name
+      expect(error.data.method).toBe("_example.com/echo"); // Should show full method name with underscore
     }
 
     // Notifications should be ignored when not implemented (no error thrown)
