@@ -2,7 +2,6 @@
 
 import { AgentSideConnection, Agent, PROTOCOL_VERSION } from "../acp.js";
 import * as schema from "../schema.js";
-import { WritableStream, ReadableStream } from "node:stream/web";
 import { Readable, Writable } from "node:stream";
 
 interface AgentSession {
