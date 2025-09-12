@@ -189,7 +189,7 @@ All methods follow standard JSON-RPC 2.0 [error handling](https://www.jsonrpc.or
 The protocol provides built-in mechanisms for adding custom functionality while maintaining compatibility:
 
 - Add custom data using `_meta` fields
-- Create custom methods with `_method` and `_notification`
+- Create custom methods by prefixing their name with underscore (`_`)
 - Advertise custom capabilities during initialization
 
 Learn about [protocol extensibility](./extensibility) to understand how to use these mechanisms.
