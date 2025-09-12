@@ -941,45 +941,6 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 
 </ResponseField>
 
-## <span class="font-mono">AgentNotification</span>
-
-All possible notifications that an agent can send to a client.
-
-This enum is used internally for routing RPC notifications. You typically won't need
-to use this directly - use the notification methods on the `Client` trait instead.
-
-Notifications do not expect a response.
-
-**Type:** Union
-
-<ResponseField name="SessionNotification">
-{""}
-
-<Expandable title="Properties">
-
-<ResponseField name="_meta" type={"object"}>
-  Extension point for implementations
-</ResponseField>
-<ResponseField
-  name="sessionId"
-  type={<a href="#sessionid">SessionId</a>}
-  required
->
-  The ID of the session this update pertains to.
-</ResponseField>
-<ResponseField
-  name="update"
-  type={<a href="#sessionupdate">SessionUpdate</a>}
-  required
->
-  The actual update content.
-</ResponseField>
-
-</Expandable>
-</ResponseField>
-
-<ResponseField name="Variant">{""}</ResponseField>
-
 ## <span class="font-mono">Annotations</span>
 
 Optional annotations for the client. The client can use annotations to inform how objects are used or displayed

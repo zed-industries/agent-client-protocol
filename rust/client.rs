@@ -746,6 +746,7 @@ pub enum ClientResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
     ExtNotification(ExtMethod),
