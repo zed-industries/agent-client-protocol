@@ -93,7 +93,7 @@ pub trait Client {
         args: CreateTerminalRequest,
     ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
 
-    /// Gets the terminal ouput and exit status
+    /// Gets the terminal output and exit status
     ///
     /// Returns the current content in the terminal without waiting for the command to exit.
     /// If the command has already exited, the exit status is included.
