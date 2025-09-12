@@ -85,6 +85,29 @@ func (clientExample) ReadTextFile(ctx context.Context, p ReadTextFileRequest) (R
 	return ReadTextFileResponse{Content: content}, nil
 }
 
+// Terminal interface implementations (minimal stubs for examples)
+func (clientExample) CreateTerminal(ctx context.Context, p CreateTerminalRequest) (CreateTerminalResponse, error) {
+	// Return a dummy terminal id
+	return CreateTerminalResponse{TerminalId: "t-1"}, nil
+}
+
+func (clientExample) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) error {
+	return nil
+}
+
+func (clientExample) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) error {
+	return nil
+}
+
+func (clientExample) TerminalOutput(ctx context.Context, p TerminalOutputRequest) (TerminalOutputResponse, error) {
+	// Provide non-empty output to satisfy validation
+	return TerminalOutputResponse{Output: "ok", Truncated: false}, nil
+}
+
+func (clientExample) WaitForTerminalExit(ctx context.Context, p WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	return WaitForTerminalExitResponse{}, nil
+}
+
 // Example_client launches the Go agent example, negotiates protocol,
 // opens a session, and sends a simple prompt.
 func Example_client() {

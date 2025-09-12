@@ -21,10 +21,7 @@ type replClient struct {
 	autoApprove bool
 }
 
-var (
-	_ acp.Client         = (*replClient)(nil)
-	_ acp.ClientTerminal = (*replClient)(nil)
-)
+var _ acp.Client = (*replClient)(nil)
 
 func (c *replClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	if c.autoApprove {
@@ -155,6 +152,12 @@ func (c *replClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseTerm
 func (c *replClient) WaitForTerminalExit(ctx context.Context, params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
 	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
 	return acp.WaitForTerminalExitResponse{}, nil
+}
+
+// KillTerminalCommand implements acp.Client.
+func (c *replClient) KillTerminalCommand(ctx context.Context, params acp.KillTerminalCommandRequest) error {
+	fmt.Printf("[Client] KillTerminalCommand: %v\n", params)
+	return nil
 }
 
 func main() {

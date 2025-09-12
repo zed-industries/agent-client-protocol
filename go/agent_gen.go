@@ -129,6 +129,9 @@ func (c *AgentSideConnection) CreateTerminal(ctx context.Context, params CreateT
 	resp, err := SendRequest[CreateTerminalResponse](c.conn, ctx, ClientMethodTerminalCreate, params)
 	return resp, err
 }
+func (c *AgentSideConnection) KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) error {
+	return c.conn.SendRequestNoResult(ctx, ClientMethodTerminalKill, params)
+}
 func (c *AgentSideConnection) TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error) {
 	resp, err := SendRequest[TerminalOutputResponse](c.conn, ctx, ClientMethodTerminalOutput, params)
 	return resp, err

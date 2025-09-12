@@ -67,15 +67,23 @@ func (c *ClientSideConnection) handle(ctx context.Context, method string, params
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientTerminal)
-		if !ok {
-			return nil, NewMethodNotFound(method)
-		}
-		resp, err := t.CreateTerminal(ctx, p)
+		resp, err := c.client.CreateTerminal(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
 		return resp, nil
+	case ClientMethodTerminalKill:
+		var p KillTerminalCommandRequest
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := p.Validate(); err != nil {
+			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
+		}
+		if err := c.client.KillTerminalCommand(ctx, p); err != nil {
+			return nil, toReqErr(err)
+		}
+		return nil, nil
 	case ClientMethodTerminalOutput:
 		var p TerminalOutputRequest
 		if err := json.Unmarshal(params, &p); err != nil {
@@ -84,11 +92,7 @@ func (c *ClientSideConnection) handle(ctx context.Context, method string, params
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientTerminal)
-		if !ok {
-			return nil, NewMethodNotFound(method)
-		}
-		resp, err := t.TerminalOutput(ctx, p)
+		resp, err := c.client.TerminalOutput(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}
@@ -101,11 +105,7 @@ func (c *ClientSideConnection) handle(ctx context.Context, method string, params
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientTerminal)
-		if !ok {
-			return nil, NewMethodNotFound(method)
-		}
-		if err := t.ReleaseTerminal(ctx, p); err != nil {
+		if err := c.client.ReleaseTerminal(ctx, p); err != nil {
 			return nil, toReqErr(err)
 		}
 		return nil, nil
@@ -117,11 +117,7 @@ func (c *ClientSideConnection) handle(ctx context.Context, method string, params
 		if err := p.Validate(); err != nil {
 			return nil, NewInvalidParams(map[string]any{"error": err.Error()})
 		}
-		t, ok := c.client.(ClientTerminal)
-		if !ok {
-			return nil, NewMethodNotFound(method)
-		}
-		resp, err := t.WaitForTerminalExit(ctx, p)
+		resp, err := c.client.WaitForTerminalExit(ctx, p)
 		if err != nil {
 			return nil, toReqErr(err)
 		}

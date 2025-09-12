@@ -154,6 +154,12 @@ func (c *replClient) WaitForTerminalExit(ctx context.Context, params acp.WaitFor
 	return acp.WaitForTerminalExitResponse{}, nil
 }
 
+// KillTerminalCommand implements acp.Client.
+func (c *replClient) KillTerminalCommand(ctx context.Context, params acp.KillTerminalCommandRequest) error {
+	fmt.Printf("[Client] KillTerminalCommand: %v\n", params)
+	return nil
+}
+
 func main() {
 	yolo := flag.Bool("yolo", false, "Auto-approve permission prompts")
 	flag.Parse()

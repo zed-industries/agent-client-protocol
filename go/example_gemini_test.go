@@ -32,6 +32,23 @@ func (geminiClient) ReadTextFile(ctx context.Context, _ ReadTextFileRequest) (Re
 }
 func (geminiClient) WriteTextFile(ctx context.Context, _ WriteTextFileRequest) error { return nil }
 
+// Terminal interface implementations (minimal stubs for examples)
+func (geminiClient) CreateTerminal(ctx context.Context, p CreateTerminalRequest) (CreateTerminalResponse, error) {
+	return CreateTerminalResponse{TerminalId: "t-1"}, nil
+}
+
+func (geminiClient) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) error {
+	return nil
+}
+func (geminiClient) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) error { return nil }
+func (geminiClient) TerminalOutput(ctx context.Context, p TerminalOutputRequest) (TerminalOutputResponse, error) {
+	return TerminalOutputResponse{Output: "ok", Truncated: false}, nil
+}
+
+func (geminiClient) WaitForTerminalExit(ctx context.Context, p WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	return WaitForTerminalExitResponse{}, nil
+}
+
 // Example_gemini connects to a Gemini CLI speaking ACP over stdio,
 // then initializes, opens a session, and sends a prompt.
 func Example_gemini() {

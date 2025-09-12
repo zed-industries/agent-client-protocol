@@ -16,10 +16,7 @@ import (
 
 type exampleClient struct{}
 
-var (
-	_ acp.Client         = (*exampleClient)(nil)
-	_ acp.ClientTerminal = (*exampleClient)(nil)
-)
+var _ acp.Client = (*exampleClient)(nil)
 
 func (e *exampleClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	title := ""
@@ -151,6 +148,12 @@ func (e *exampleClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseT
 func (e *exampleClient) WaitForTerminalExit(ctx context.Context, params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
 	fmt.Printf("[Client] WaitForTerminalExit: %v\n", params)
 	return acp.WaitForTerminalExitResponse{}, nil
+}
+
+// KillTerminalCommand implements acp.Client.
+func (c *exampleClient) KillTerminalCommand(ctx context.Context, params acp.KillTerminalCommandRequest) error {
+	fmt.Printf("[Client] KillTerminalCommand: %v\n", params)
+	return nil
 }
 
 func main() {

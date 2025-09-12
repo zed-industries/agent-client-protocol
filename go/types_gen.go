@@ -107,7 +107,7 @@ type AgentRequest struct {
 	TerminalOutputRequest      *TerminalOutputRequest      `json:"-"`
 	ReleaseTerminalRequest     *ReleaseTerminalRequest     `json:"-"`
 	WaitForTerminalExitRequest *WaitForTerminalExitRequest `json:"-"`
-	KillTerminalRequest        *KillTerminalRequest        `json:"-"`
+	KillTerminalCommandRequest *KillTerminalCommandRequest `json:"-"`
 }
 
 func (u *AgentRequest) UnmarshalJSON(b []byte) error {
@@ -165,9 +165,9 @@ func (u *AgentRequest) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
-		var v KillTerminalRequest
+		var v KillTerminalCommandRequest
 		if json.Unmarshal(b, &v) == nil {
-			u.KillTerminalRequest = &v
+			u.KillTerminalCommandRequest = &v
 			return nil
 		}
 	}
@@ -251,9 +251,9 @@ func (u AgentRequest) MarshalJSON() ([]byte, error) {
 		}
 		return json.Marshal(m)
 	}
-	if u.KillTerminalRequest != nil {
+	if u.KillTerminalCommandRequest != nil {
 		var m map[string]any
-		_b, _e := json.Marshal(*u.KillTerminalRequest)
+		_b, _e := json.Marshal(*u.KillTerminalCommandRequest)
 		if _e != nil {
 			return []byte{}, _e
 		}
@@ -516,7 +516,7 @@ type ClientCapabilities struct {
 	//
 	// Defaults to {"readTextFile":false,"writeTextFile":false} if unset.
 	Fs FileSystemCapability `json:"fs,omitempty"`
-	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.
+	// Whether the Client support all 'terminal/*' methods.
 	//
 	// Defaults to false if unset.
 	Terminal bool `json:"terminal,omitempty"`
@@ -1238,13 +1238,20 @@ func (u *ContentBlock) Validate() error {
 	return nil
 }
 
+// Request to create a new terminal and execute a command.
 type CreateTerminalRequest struct {
-	Args            []string      `json:"args,omitempty"`
-	Command         string        `json:"command"`
-	Cwd             *string       `json:"cwd,omitempty"`
-	Env             []EnvVariable `json:"env,omitempty"`
-	OutputByteLimit *int          `json:"outputByteLimit,omitempty"`
-	SessionId       SessionId     `json:"sessionId"`
+	// Array of command arguments.
+	Args []string `json:"args,omitempty"`
+	// The command to execute.
+	Command string `json:"command"`
+	// Working directory for the command (absolute path).
+	Cwd *string `json:"cwd,omitempty"`
+	// Environment variables for the command.
+	Env []EnvVariable `json:"env,omitempty"`
+	// Maximum number of output bytes to retain.  When the limit is exceeded, the Client truncates from the beginning of the output to stay within the limit.  The Client MUST ensure truncation happens at a character boundary to maintain valid string output, even if this means the retained output is slightly less than the specified limit.
+	OutputByteLimit *int `json:"outputByteLimit,omitempty"`
+	// The session ID for this request.
+	SessionId SessionId `json:"sessionId"`
 }
 
 func (v *CreateTerminalRequest) Validate() error {
@@ -1254,7 +1261,9 @@ func (v *CreateTerminalRequest) Validate() error {
 	return nil
 }
 
+// Response containing the ID of the created terminal.
 type CreateTerminalResponse struct {
+	// The unique identifier for the created terminal.
 	TerminalId string `json:"terminalId"`
 }
 
@@ -1504,12 +1513,15 @@ func (v *InitializeResponse) Validate() error {
 	return nil
 }
 
-type KillTerminalRequest struct {
-	SessionId  SessionId `json:"sessionId"`
-	TerminalId string    `json:"terminalId"`
+// Request to kill a terminal command without releasing the terminal.
+type KillTerminalCommandRequest struct {
+	// The session ID for this request.
+	SessionId SessionId `json:"sessionId"`
+	// The ID of the terminal to kill.
+	TerminalId string `json:"terminalId"`
 }
 
-func (v *KillTerminalRequest) Validate() error {
+func (v *KillTerminalCommandRequest) Validate() error {
 	if v.TerminalId == "" {
 		return fmt.Errorf("terminalId is required")
 	}
@@ -1962,9 +1974,9 @@ type ProtocolVersion int
 
 // Request to read content from a text file.  Only available if the client supports the 'fs.readTextFile' capability.
 type ReadTextFileRequest struct {
-	// Optional maximum number of lines to read.
+	// Maximum number of lines to read.
 	Limit *int `json:"limit,omitempty"`
-	// Optional line number to start reading from (1-based).
+	// Line number to start reading from (1-based).
 	Line *int `json:"line,omitempty"`
 	// Absolute path to the file to read.
 	Path string `json:"path"`
@@ -1991,9 +2003,12 @@ func (v *ReadTextFileResponse) Validate() error {
 	return nil
 }
 
+// Request to release a terminal and free its resources.
 type ReleaseTerminalRequest struct {
-	SessionId  SessionId `json:"sessionId"`
-	TerminalId string    `json:"terminalId"`
+	// The session ID for this request.
+	SessionId SessionId `json:"sessionId"`
+	// The ID of the terminal to release.
+	TerminalId string `json:"terminalId"`
 }
 
 func (v *ReleaseTerminalRequest) Validate() error {
@@ -2731,14 +2746,20 @@ const (
 	StopReasonCancelled       StopReason = "cancelled"
 )
 
+// Exit status of a terminal command.
 type TerminalExitStatus struct {
-	ExitCode *int    `json:"exitCode,omitempty"`
-	Signal   *string `json:"signal,omitempty"`
+	// The process exit code (may be null if terminated by signal).
+	ExitCode *int `json:"exitCode,omitempty"`
+	// The signal that terminated the process (may be null if exited normally).
+	Signal *string `json:"signal,omitempty"`
 }
 
+// Request to get the current output and status of a terminal.
 type TerminalOutputRequest struct {
-	SessionId  SessionId `json:"sessionId"`
-	TerminalId string    `json:"terminalId"`
+	// The session ID for this request.
+	SessionId SessionId `json:"sessionId"`
+	// The ID of the terminal to get output from.
+	TerminalId string `json:"terminalId"`
 }
 
 func (v *TerminalOutputRequest) Validate() error {
@@ -2748,10 +2769,14 @@ func (v *TerminalOutputRequest) Validate() error {
 	return nil
 }
 
+// Response containing the terminal output and exit status.
 type TerminalOutputResponse struct {
+	// Exit status if the command has completed.
 	ExitStatus *TerminalExitStatus `json:"exitStatus,omitempty"`
-	Output     string              `json:"output"`
-	Truncated  bool                `json:"truncated"`
+	// The terminal output captured so far.
+	Output string `json:"output"`
+	// Whether the output was truncated due to byte limits.
+	Truncated bool `json:"truncated"`
 }
 
 func (v *TerminalOutputResponse) Validate() error {
@@ -2813,6 +2838,7 @@ type ToolCallContentDiff struct {
 	Type string `json:"type"`
 }
 
+// Embed a terminal created with 'terminal/create' by its id.  The terminal must be added before calling 'terminal/release'.  See protocol docs: [Terminal](https://agentclientprotocol.com/protocol/terminal)
 type ToolCallContentTerminal struct {
 	TerminalId string `json:"terminalId"`
 	Type       string `json:"type"`
@@ -3056,9 +3082,12 @@ const (
 	ToolKindOther      ToolKind = "other"
 )
 
+// Request to wait for a terminal command to exit.
 type WaitForTerminalExitRequest struct {
-	SessionId  SessionId `json:"sessionId"`
-	TerminalId string    `json:"terminalId"`
+	// The session ID for this request.
+	SessionId SessionId `json:"sessionId"`
+	// The ID of the terminal to wait for.
+	TerminalId string `json:"terminalId"`
 }
 
 func (v *WaitForTerminalExitRequest) Validate() error {
@@ -3068,9 +3097,12 @@ func (v *WaitForTerminalExitRequest) Validate() error {
 	return nil
 }
 
+// Response containing the exit status of a terminal command.
 type WaitForTerminalExitResponse struct {
-	ExitCode *int    `json:"exitCode,omitempty"`
-	Signal   *string `json:"signal,omitempty"`
+	// The process exit code (may be null if terminated by signal).
+	ExitCode *int `json:"exitCode,omitempty"`
+	// The signal that terminated the process (may be null if exited normally).
+	Signal *string `json:"signal,omitempty"`
 }
 
 func (v *WaitForTerminalExitResponse) Validate() error {
@@ -3114,11 +3146,8 @@ type Client interface {
 	WriteTextFile(ctx context.Context, params WriteTextFileRequest) error
 	RequestPermission(ctx context.Context, params RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdate(ctx context.Context, params SessionNotification) error
-}
-
-// ClientTerminal defines terminal-related experimental methods (x-docs-ignore). Implement and advertise 'terminal: true' to enable 'terminal/*'.
-type ClientTerminal interface {
 	CreateTerminal(ctx context.Context, params CreateTerminalRequest) (CreateTerminalResponse, error)
+	KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) error
 	TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error)
 	ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error
 	WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)

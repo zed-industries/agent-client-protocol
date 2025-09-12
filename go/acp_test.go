@@ -14,6 +14,12 @@ type clientFuncs struct {
 	ReadTextFileFunc      func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error)
 	RequestPermissionFunc func(context.Context, RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdateFunc     func(context.Context, SessionNotification) error
+	// Terminal-related handlers
+	CreateTerminalFunc      func(context.Context, CreateTerminalRequest) (CreateTerminalResponse, error)
+	KillTerminalCommandFunc func(context.Context, KillTerminalCommandRequest) error
+	ReleaseTerminalFunc     func(context.Context, ReleaseTerminalRequest) error
+	TerminalOutputFunc      func(context.Context, TerminalOutputRequest) (TerminalOutputResponse, error)
+	WaitForTerminalExitFunc func(context.Context, WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }
 
 var _ Client = (*clientFuncs)(nil)
@@ -44,6 +50,46 @@ func (c clientFuncs) SessionUpdate(ctx context.Context, n SessionNotification) e
 		return c.SessionUpdateFunc(ctx, n)
 	}
 	return nil
+}
+
+// CreateTerminal implements Client.
+func (c *clientFuncs) CreateTerminal(ctx context.Context, params CreateTerminalRequest) (CreateTerminalResponse, error) {
+	if c.CreateTerminalFunc != nil {
+		return c.CreateTerminalFunc(ctx, params)
+	}
+	return CreateTerminalResponse{TerminalId: "test-terminal"}, nil
+}
+
+// KillTerminalCommand implements Client.
+func (c *clientFuncs) KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) error {
+	if c.KillTerminalCommandFunc != nil {
+		return c.KillTerminalCommandFunc(ctx, params)
+	}
+	return nil
+}
+
+// ReleaseTerminal implements Client.
+func (c *clientFuncs) ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error {
+	if c.ReleaseTerminalFunc != nil {
+		return c.ReleaseTerminalFunc(ctx, params)
+	}
+	return nil
+}
+
+// TerminalOutput implements Client.
+func (c *clientFuncs) TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error) {
+	if c.TerminalOutputFunc != nil {
+		return c.TerminalOutputFunc(ctx, params)
+	}
+	return TerminalOutputResponse{Output: "ok", Truncated: false}, nil
+}
+
+// WaitForTerminalExit implements Client.
+func (c *clientFuncs) WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error) {
+	if c.WaitForTerminalExitFunc != nil {
+		return c.WaitForTerminalExitFunc(ctx, params)
+	}
+	return WaitForTerminalExitResponse{}, nil
 }
 
 type agentFuncs struct {
@@ -108,7 +154,7 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 	c2aR, c2aW := io.Pipe()
 	a2cR, a2cW := io.Pipe()
 
-	c := NewClientSideConnection(clientFuncs{
+	c := NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error {
 			return &RequestError{Code: -32603, Message: "Write failed"}
 		},
@@ -158,7 +204,7 @@ func TestConnectionHandlesConcurrentRequests(t *testing.T) {
 	var mu sync.Mutex
 	requestCount := 0
 
-	_ = NewClientSideConnection(clientFuncs{
+	_ = NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error {
 			mu.Lock()
 			requestCount++
@@ -229,7 +275,7 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 	var log []string
 	push := func(s string) { mu.Lock(); defer mu.Unlock(); log = append(log, s) }
 
-	cs := NewClientSideConnection(clientFuncs{
+	cs := NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(_ context.Context, req WriteTextFileRequest) error {
 			push("writeTextFile called: " + req.Path)
 			return nil
@@ -329,7 +375,7 @@ func TestConnectionHandlesNotifications(t *testing.T) {
 	var logs []string
 	push := func(s string) { mu.Lock(); logs = append(logs, s); mu.Unlock() }
 
-	clientSide := NewClientSideConnection(clientFuncs{
+	clientSide := NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: "test"}, nil
@@ -400,7 +446,7 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 	c2aR, c2aW := io.Pipe()
 	a2cR, a2cW := io.Pipe()
 
-	agentConn := NewClientSideConnection(clientFuncs{
+	agentConn := NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: "test"}, nil
@@ -501,7 +547,7 @@ func TestPromptCancellationSendsCancelAndAllowsNewSession(t *testing.T) {
 	}, a2cW, c2aR)
 
 	// Client side
-	cs := NewClientSideConnection(clientFuncs{
+	cs := NewClientSideConnection(&clientFuncs{
 		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: ""}, nil
