@@ -48,7 +48,7 @@ export type ClientRequest =
   | TerminalOutputRequest
   | ReleaseTerminalRequest
   | WaitForTerminalExitRequest
-  | KillTerminalRequest;
+  | KillTerminalCommandRequest;
 /**
  * Content produced by a tool call.
  *
@@ -168,24 +168,6 @@ export type ToolKind =
  */
 export type ToolCallStatus = "pending" | "in_progress" | "completed" | "failed";
 /**
- * A unique identifier for a conversation session between a client and agent.
- *
- * Sessions maintain their own context, conversation history, and state,
- * allowing multiple independent interactions with the same agent.
- *
- * # Example
- *
- * ```
- * use agent_client_protocol::SessionId;
- * use std::sync::Arc;
- *
- * let session_id = SessionId(Arc::from("sess_abc123def456"));
- * ```
- *
- * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
- */
-export type SessionId = string;
-/**
  * All possible responses that a client can send to an agent.
  *
  * This enum is used internally for routing RPC responses. You typically won't need
@@ -278,6 +260,24 @@ export type McpServer =
  * This type is not part of the spec, and may be removed or changed at any point.
  */
 export type SessionModeId = string;
+/**
+ * A unique identifier for a conversation session between a client and agent.
+ *
+ * Sessions maintain their own context, conversation history, and state,
+ * allowing multiple independent interactions with the same agent.
+ *
+ * # Example
+ *
+ * ```
+ * use agent_client_protocol::SessionId;
+ * use std::sync::Arc;
+ *
+ * let session_id = SessionId(Arc::from("sess_abc123def456"));
+ * ```
+ *
+ * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+ */
+export type SessionId = string;
 /**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
@@ -383,11 +383,11 @@ export interface WriteTextFileRequest {
  */
 export interface ReadTextFileRequest {
   /**
-   * Optional maximum number of lines to read.
+   * Maximum number of lines to read.
    */
   limit?: number | null;
   /**
-   * Optional line number to start reading from (1-based).
+   * Line number to start reading from (1-based).
    */
   line?: number | null;
   /**
@@ -517,13 +517,41 @@ export interface ToolCallLocation {
    */
   path: string;
 }
+/**
+ * Request to create a new terminal and execute a command.
+ */
 export interface CreateTerminalRequest {
+  /**
+   * Array of command arguments.
+   */
   args?: string[];
+  /**
+   * The command to execute.
+   */
   command: string;
+  /**
+   * Working directory for the command (absolute path).
+   */
   cwd?: string | null;
+  /**
+   * Environment variables for the command.
+   */
   env?: EnvVariable[];
+  /**
+   * Maximum number of output bytes to retain.
+   *
+   * When the limit is exceeded, the Client truncates from the beginning of the output
+   * to stay within the limit.
+   *
+   * The Client MUST ensure truncation happens at a character boundary to maintain valid
+   * string output, even if this means the retained output is slightly less than the
+   * specified limit.
+   */
   outputByteLimit?: number | null;
-  sessionId: SessionId;
+  /**
+   * The session ID for this request.
+   */
+  sessionId: string;
 }
 /**
  * An environment variable to set when launching an MCP server.
@@ -538,20 +566,56 @@ export interface EnvVariable {
    */
   value: string;
 }
+/**
+ * Request to get the current output and status of a terminal.
+ */
 export interface TerminalOutputRequest {
-  sessionId: SessionId;
+  /**
+   * The session ID for this request.
+   */
+  sessionId: string;
+  /**
+   * The ID of the terminal to get output from.
+   */
   terminalId: string;
 }
+/**
+ * Request to release a terminal and free its resources.
+ */
 export interface ReleaseTerminalRequest {
-  sessionId: SessionId;
+  /**
+   * The session ID for this request.
+   */
+  sessionId: string;
+  /**
+   * The ID of the terminal to release.
+   */
   terminalId: string;
 }
+/**
+ * Request to wait for a terminal command to exit.
+ */
 export interface WaitForTerminalExitRequest {
-  sessionId: SessionId;
+  /**
+   * The session ID for this request.
+   */
+  sessionId: string;
+  /**
+   * The ID of the terminal to wait for.
+   */
   terminalId: string;
 }
-export interface KillTerminalRequest {
-  sessionId: SessionId;
+/**
+ * Request to kill a terminal command without releasing the terminal.
+ */
+export interface KillTerminalCommandRequest {
+  /**
+   * The session ID for this request.
+   */
+  sessionId: string;
+  /**
+   * The ID of the terminal to kill.
+   */
   terminalId: string;
 }
 /**
@@ -579,20 +643,56 @@ export interface RequestPermissionResponse {
         outcome: "selected";
       };
 }
+/**
+ * Response containing the ID of the created terminal.
+ */
 export interface CreateTerminalResponse {
+  /**
+   * The unique identifier for the created terminal.
+   */
   terminalId: string;
 }
+/**
+ * Response containing the terminal output and exit status.
+ */
 export interface TerminalOutputResponse {
+  /**
+   * Exit status if the command has completed.
+   */
   exitStatus?: TerminalExitStatus | null;
+  /**
+   * The terminal output captured so far.
+   */
   output: string;
+  /**
+   * Whether the output was truncated due to byte limits.
+   */
   truncated: boolean;
 }
+/**
+ * Exit status of a terminal command.
+ */
 export interface TerminalExitStatus {
+  /**
+   * The process exit code (may be null if terminated by signal).
+   */
   exitCode?: number | null;
+  /**
+   * The signal that terminated the process (may be null if exited normally).
+   */
   signal?: string | null;
 }
+/**
+ * Response containing the exit status of a terminal command.
+ */
 export interface WaitForTerminalExitResponse {
+  /**
+   * The process exit code (may be null if terminated by signal).
+   */
   exitCode?: number | null;
+  /**
+   * The signal that terminated the process (may be null if exited normally).
+   */
   signal?: string | null;
 }
 /**
@@ -602,21 +702,7 @@ export interface WaitForTerminalExitResponse {
  */
 export interface CancelNotification {
   /**
-   * A unique identifier for a conversation session between a client and agent.
-   *
-   * Sessions maintain their own context, conversation history, and state,
-   * allowing multiple independent interactions with the same agent.
-   *
-   * # Example
-   *
-   * ```
-   * use agent_client_protocol::SessionId;
-   * use std::sync::Arc;
-   *
-   * let session_id = SessionId(Arc::from("sess_abc123def456"));
-   * ```
-   *
-   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   * The ID of the session to cancel operations for.
    */
   sessionId: string;
 }
@@ -640,9 +726,7 @@ export interface InitializeRequest {
 export interface ClientCapabilities {
   fs?: FileSystemCapability;
   /**
-   * **UNSTABLE**
-   *
-   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   * Whether the Client support all `terminal/*` methods.
    */
   terminal?: boolean;
 }
@@ -740,21 +824,7 @@ export interface LoadSessionRequest {
    */
   mcpServers: McpServer[];
   /**
-   * A unique identifier for a conversation session between a client and agent.
-   *
-   * Sessions maintain their own context, conversation history, and state,
-   * allowing multiple independent interactions with the same agent.
-   *
-   * # Example
-   *
-   * ```
-   * use agent_client_protocol::SessionId;
-   * use std::sync::Arc;
-   *
-   * let session_id = SessionId(Arc::from("sess_abc123def456"));
-   * ```
-   *
-   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   * The ID of the session to load.
    */
   sessionId: string;
 }
@@ -905,21 +975,9 @@ export interface NewSessionResponse {
    */
   modes?: SessionModeState | null;
   /**
-   * A unique identifier for a conversation session between a client and agent.
+   * Unique identifier for the created session.
    *
-   * Sessions maintain their own context, conversation history, and state,
-   * allowing multiple independent interactions with the same agent.
-   *
-   * # Example
-   *
-   * ```
-   * use agent_client_protocol::SessionId;
-   * use std::sync::Arc;
-   *
-   * let session_id = SessionId(Arc::from("sess_abc123def456"));
-   * ```
-   *
-   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   * Used in all subsequent requests for this conversation.
    */
   sessionId: string;
 }
@@ -1177,6 +1235,30 @@ export const readTextFileRequestSchema = z.object({
 });
 
 /** @internal */
+export const terminalOutputRequestSchema = z.object({
+  sessionId: z.string(),
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const releaseTerminalRequestSchema = z.object({
+  sessionId: z.string(),
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const waitForTerminalExitRequestSchema = z.object({
+  sessionId: z.string(),
+  terminalId: z.string(),
+});
+
+/** @internal */
+export const killTerminalCommandRequestSchema = z.object({
+  sessionId: z.string(),
+  terminalId: z.string(),
+});
+
+/** @internal */
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
 
 /** @internal */
@@ -1214,9 +1296,6 @@ export const toolCallStatusSchema = z.union([
   z.literal("completed"),
   z.literal("failed"),
 ]);
-
-/** @internal */
-export const sessionIdSchema = z.string();
 
 /** @internal */
 export const writeTextFileResponseSchema = z.null();
@@ -1274,6 +1353,9 @@ export const httpHeaderSchema = z.object({
 
 /** @internal */
 export const sessionModeIdSchema = z.string();
+
+/** @internal */
+export const sessionIdSchema = z.string();
 
 /** @internal */
 export const annotationsSchema = z.object({
@@ -1384,30 +1466,6 @@ export const toolCallLocationSchema = z.object({
 export const envVariableSchema = z.object({
   name: z.string(),
   value: z.string(),
-});
-
-/** @internal */
-export const terminalOutputRequestSchema = z.object({
-  sessionId: sessionIdSchema,
-  terminalId: z.string(),
-});
-
-/** @internal */
-export const releaseTerminalRequestSchema = z.object({
-  sessionId: sessionIdSchema,
-  terminalId: z.string(),
-});
-
-/** @internal */
-export const waitForTerminalExitRequestSchema = z.object({
-  sessionId: sessionIdSchema,
-  terminalId: z.string(),
-});
-
-/** @internal */
-export const killTerminalRequestSchema = z.object({
-  sessionId: sessionIdSchema,
-  terminalId: z.string(),
 });
 
 /** @internal */
@@ -1547,7 +1605,7 @@ export const createTerminalRequestSchema = z.object({
   cwd: z.string().optional().nullable(),
   env: z.array(envVariableSchema).optional(),
   outputByteLimit: z.number().optional().nullable(),
-  sessionId: sessionIdSchema,
+  sessionId: z.string(),
 });
 
 /** @internal */
@@ -1733,7 +1791,7 @@ export const clientRequestSchema = z.union([
   terminalOutputRequestSchema,
   releaseTerminalRequestSchema,
   waitForTerminalExitRequestSchema,
-  killTerminalRequestSchema,
+  killTerminalCommandRequestSchema,
 ]);
 
 /** @internal */

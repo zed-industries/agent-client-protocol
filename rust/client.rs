@@ -72,54 +72,77 @@ pub trait Client {
         args: SessionNotification,
     ) -> impl Future<Output = Result<(), Error>>;
 
-    // Experimental terminal support
-
-    /// **UNSTABLE**
+    /// Executes a command in a new terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[doc(hidden)]
-    #[cfg(feature = "unstable")]
+    /// Only available if the `terminal` Client capability is set to `true`.
+    ///
+    /// Returns a `TerminalId` that can be used with other terminal methods
+    /// to get the current output, wait for exit, and kill the command.
+    ///
+    /// The `TerminalId` can also be used to embed the terminal in a tool call
+    /// by using the `ToolCallContent::Terminal` variant.
+    ///
+    /// The Agent is responsible for releasing the terminal by using the `terminal/release`
+    /// method.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn create_terminal(
         &self,
         args: CreateTerminalRequest,
     ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Gets the terminal ouput and exit status
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[doc(hidden)]
-    #[cfg(feature = "unstable")]
+    /// Returns the current content in the terminal without waiting for the command to exit.
+    /// If the command has already exited, the exit status is included.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn terminal_output(
         &self,
         args: TerminalOutputRequest,
     ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Releases a terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[doc(hidden)]
-    #[cfg(feature = "unstable")]
+    /// The command is killed if it hasn't exited yet. Use `terminal/wait_for_exit`
+    /// to wait for the command to exit before releasing the terminal.
+    ///
+    /// After release, the `TerminalId` can no longer be used with other `terminal/*` methods,
+    /// but tool calls that already contain it, continue to display its output.
+    ///
+    /// The `terminal/kill` method can be used to terminate the command without releasing
+    /// the terminal, allowing the Agent to call `terminal/output` and other methods.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
     ) -> impl Future<Output = Result<(), Error>>;
 
-    /// **UNSTABLE**
+    /// Waits for the terminal command to exit and return its exit status
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[doc(hidden)]
-    #[cfg(feature = "unstable")]
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
     ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Kills the terminal command without releasing the terminal
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[doc(hidden)]
-    #[cfg(feature = "unstable")]
-    fn kill_terminal(&self, args: KillTerminalRequest) -> impl Future<Output = Result<(), Error>>;
+    /// While `terminal/release` will also kill the command, this method will keep
+    /// the `TerminalId` valid so it can be used with other methods.
+    ///
+    /// This method can be helpful when implementing command timeouts which terminate
+    /// the command as soon as elapsed, and then get the final output so it can be sent
+    /// to the model.
+    ///
+    /// Note: `terminal/release` when `TerminalId` is no longer needed.
+    ///
+    /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
+    fn kill_terminal_command(
+        &self,
+        args: KillTerminalCommandRequest,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Session updates
@@ -317,10 +340,10 @@ pub struct ReadTextFileRequest {
     pub session_id: SessionId,
     /// Absolute path to the file to read.
     pub path: PathBuf,
-    /// Optional line number to start reading from (1-based).
+    /// Line number to start reading from (1-based).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
-    /// Optional maximum number of lines to read.
+    /// Maximum number of lines to read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
 }
@@ -336,7 +359,6 @@ pub struct ReadTextFileResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(transparent)]
-#[cfg(feature = "unstable")]
 pub struct TerminalId(pub Arc<str>);
 
 #[cfg(feature = "unstable")]
@@ -346,92 +368,119 @@ impl std::fmt::Display for TerminalId {
     }
 }
 
+/// Request to create a new terminal and execute a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The command to execute.
     pub command: String,
+    /// Array of command arguments.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
+    /// Environment variables for the command.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub env: Vec<crate::EnvVariable>,
+    /// Working directory for the command (absolute path).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<PathBuf>,
+    /// Maximum number of output bytes to retain.
+    ///
+    /// When the limit is exceeded, the Client truncates from the beginning of the output
+    /// to stay within the limit.
+    ///
+    /// The Client MUST ensure truncation happens at a character boundary to maintain valid
+    /// string output, even if this means the retained output is slightly less than the
+    /// specified limit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_byte_limit: Option<u64>,
 }
 
+/// Response containing the ID of the created terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_CREATE_METHOD_NAME))]
 pub struct CreateTerminalResponse {
+    /// The unique identifier for the created terminal.
     pub terminal_id: TerminalId,
 }
 
+/// Request to get the current output and status of a terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to get output from.
     pub terminal_id: TerminalId,
 }
 
+/// Response containing the terminal output and exit status.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_OUTPUT_METHOD_NAME))]
 pub struct TerminalOutputResponse {
+    /// The terminal output captured so far.
     pub output: String,
+    /// Whether the output was truncated due to byte limits.
     pub truncated: bool,
+    /// Exit status if the command has completed.
     pub exit_status: Option<TerminalExitStatus>,
 }
 
+/// Request to release a terminal and free its resources.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_RELEASE_METHOD_NAME))]
 pub struct ReleaseTerminalRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to release.
     pub terminal_id: TerminalId,
 }
 
+/// Request to kill a terminal command without releasing the terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
-pub struct KillTerminalRequest {
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_KILL_METHOD_NAME))]
+pub struct KillTerminalCommandRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to kill.
     pub terminal_id: TerminalId,
 }
 
+/// Request to wait for a terminal command to exit.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitRequest {
+    /// The session ID for this request.
     pub session_id: SessionId,
+    /// The ID of the terminal to wait for.
     pub terminal_id: TerminalId,
 }
 
+/// Response containing the exit status of a terminal command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_WAIT_FOR_EXIT_METHOD_NAME))]
 pub struct WaitForTerminalExitResponse {
+    /// The exit status of the terminal command.
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
 }
 
+/// Exit status of a terminal command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
 pub struct TerminalExitStatus {
+    /// The process exit code (may be null if terminated by signal).
     pub exit_code: Option<u32>,
+    /// The signal that terminated the process (may be null if exited normally).
     pub signal: Option<String>,
 }
 
@@ -451,11 +500,8 @@ pub struct ClientCapabilities {
     #[serde(default)]
     pub fs: FileSystemCapability,
 
-    /// **UNSTABLE**
-    ///
-    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    /// Whether the Client support all `terminal/*` methods.
     #[serde(default)]
-    #[doc(hidden)]
     pub terminal: bool,
 }
 
@@ -489,19 +535,14 @@ pub struct ClientMethodNames {
     /// Method for reading text files.
     pub fs_read_text_file: &'static str,
     /// Method for creating new terminals.
-    #[cfg(feature = "unstable")]
     pub terminal_create: &'static str,
     /// Method for getting terminals output.
-    #[cfg(feature = "unstable")]
     pub terminal_output: &'static str,
     /// Method for releasing a terminal.
-    #[cfg(feature = "unstable")]
     pub terminal_release: &'static str,
     /// Method for waiting for a terminal to finish.
-    #[cfg(feature = "unstable")]
     pub terminal_wait_for_exit: &'static str,
     /// Method for killing a terminal.
-    #[cfg(feature = "unstable")]
     pub terminal_kill: &'static str,
 }
 
@@ -511,15 +552,10 @@ pub const CLIENT_METHOD_NAMES: ClientMethodNames = ClientMethodNames {
     session_request_permission: SESSION_REQUEST_PERMISSION_METHOD_NAME,
     fs_write_text_file: FS_WRITE_TEXT_FILE_METHOD_NAME,
     fs_read_text_file: FS_READ_TEXT_FILE_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     terminal_create: TERMINAL_CREATE_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     terminal_output: TERMINAL_OUTPUT_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     terminal_release: TERMINAL_RELEASE_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     terminal_wait_for_exit: TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     terminal_kill: TERMINAL_KILL_METHOD_NAME,
 };
 
@@ -532,19 +568,14 @@ pub(crate) const FS_WRITE_TEXT_FILE_METHOD_NAME: &str = "fs/write_text_file";
 /// Method name for reading text files.
 pub(crate) const FS_READ_TEXT_FILE_METHOD_NAME: &str = "fs/read_text_file";
 /// Method name for creating a new terminal.
-#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_CREATE_METHOD_NAME: &str = "terminal/create";
 /// Method for getting terminals output.
-#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_OUTPUT_METHOD_NAME: &str = "terminal/output";
 /// Method for releasing a terminal.
-#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_RELEASE_METHOD_NAME: &str = "terminal/release";
 /// Method for waiting for a terminal to finish.
-#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_WAIT_FOR_EXIT_METHOD_NAME: &str = "terminal/wait_for_exit";
 /// Method for killing a terminal.
-#[cfg(feature = "unstable")]
 pub(crate) const TERMINAL_KILL_METHOD_NAME: &str = "terminal/kill";
 
 /// All possible requests that an agent can send to a client.
@@ -560,16 +591,11 @@ pub enum AgentRequest {
     WriteTextFileRequest(WriteTextFileRequest),
     ReadTextFileRequest(ReadTextFileRequest),
     RequestPermissionRequest(RequestPermissionRequest),
-    #[cfg(feature = "unstable")]
     CreateTerminalRequest(CreateTerminalRequest),
-    #[cfg(feature = "unstable")]
     TerminalOutputRequest(TerminalOutputRequest),
-    #[cfg(feature = "unstable")]
     ReleaseTerminalRequest(ReleaseTerminalRequest),
-    #[cfg(feature = "unstable")]
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
-    #[cfg(feature = "unstable")]
-    KillTerminalRequest(KillTerminalRequest),
+    KillTerminalCommandRequest(KillTerminalCommandRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -585,15 +611,10 @@ pub enum ClientResponse {
     WriteTextFileResponse,
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
-    #[cfg(feature = "unstable")]
     CreateTerminalResponse(CreateTerminalResponse),
-    #[cfg(feature = "unstable")]
     TerminalOutputResponse(TerminalOutputResponse),
-    #[cfg(feature = "unstable")]
     ReleaseTerminalResponse,
-    #[cfg(feature = "unstable")]
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
-    #[cfg(feature = "unstable")]
     KillTerminalResponse,
 }
 

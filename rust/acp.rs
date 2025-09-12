@@ -261,23 +261,18 @@ impl Side for ClientSide {
             FS_READ_TEXT_FILE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReadTextFileRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             TERMINAL_CREATE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::CreateTerminalRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             TERMINAL_OUTPUT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::TerminalOutputRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             TERMINAL_KILL_METHOD_NAME => serde_json::from_str(params.get())
-                .map(AgentRequest::KillTerminalRequest)
+                .map(AgentRequest::KillTerminalCommandRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             TERMINAL_RELEASE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::ReleaseTerminalRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             TERMINAL_WAIT_FOR_EXIT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::WaitForTerminalExitRequest)
                 .map_err(Into::into),
@@ -315,29 +310,24 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 let response = self.read_text_file(args).await?;
                 Ok(ClientResponse::ReadTextFileResponse(response))
             }
-            #[cfg(feature = "unstable")]
             AgentRequest::CreateTerminalRequest(args) => {
                 let response = self.create_terminal(args).await?;
                 Ok(ClientResponse::CreateTerminalResponse(response))
             }
-            #[cfg(feature = "unstable")]
             AgentRequest::TerminalOutputRequest(args) => {
                 let response = self.terminal_output(args).await?;
                 Ok(ClientResponse::TerminalOutputResponse(response))
             }
-            #[cfg(feature = "unstable")]
             AgentRequest::ReleaseTerminalRequest(args) => {
                 self.release_terminal(args).await?;
                 Ok(ClientResponse::ReleaseTerminalResponse)
             }
-            #[cfg(feature = "unstable")]
             AgentRequest::WaitForTerminalExitRequest(args) => {
                 let response = self.wait_for_terminal_exit(args).await?;
                 Ok(ClientResponse::WaitForTerminalExitResponse(response))
             }
-            #[cfg(feature = "unstable")]
-            AgentRequest::KillTerminalRequest(args) => {
-                self.kill_terminal(args).await?;
+            AgentRequest::KillTerminalCommandRequest(args) => {
+                self.kill_terminal_command(args).await?;
                 Ok(ClientResponse::KillTerminalResponse)
             }
         }
@@ -444,7 +434,6 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    #[cfg(feature = "unstable")]
     async fn create_terminal(
         &self,
         arguments: CreateTerminalRequest,
@@ -457,7 +446,6 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    #[cfg(feature = "unstable")]
     async fn terminal_output(
         &self,
         arguments: TerminalOutputRequest,
@@ -470,7 +458,6 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    #[cfg(feature = "unstable")]
     async fn release_terminal(&self, arguments: ReleaseTerminalRequest) -> Result<(), Error> {
         self.conn
             .request(
@@ -480,7 +467,6 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    #[cfg(feature = "unstable")]
     async fn wait_for_terminal_exit(
         &self,
         arguments: WaitForTerminalExitRequest,
@@ -493,12 +479,14 @@ impl Client for AgentSideConnection {
             .await
     }
 
-    #[cfg(feature = "unstable")]
-    async fn kill_terminal(&self, arguments: KillTerminalRequest) -> Result<(), Error> {
+    async fn kill_terminal_command(
+        &self,
+        arguments: KillTerminalCommandRequest,
+    ) -> Result<(), Error> {
         self.conn
             .request(
                 TERMINAL_KILL_METHOD_NAME,
-                Some(AgentRequest::KillTerminalRequest(arguments)),
+                Some(AgentRequest::KillTerminalCommandRequest(arguments)),
             )
             .await
     }

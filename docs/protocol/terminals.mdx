@@ -1,0 +1,281 @@
+---
+title: "Terminals"
+description: "Executing and managing terminal commands"
+---
+
+The terminal methods allow Agents to execute shell commands within the Client's environment. These methods enable Agents to run build processes, execute scripts, and interact with command-line tools while providing real-time output streaming and process control.
+
+## Checking Support
+
+Before attempting to use terminal methods, Agents **MUST** verify that the Client supports this capability by checking the [Client Capabilities](./initialization#client-capabilities) field in the `initialize` response:
+
+```json highlight={7}
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocolVersion": 1,
+    "clientCapabilities": {
+      "terminal": true
+    }
+  }
+}
+```
+
+If `terminal` is `false` or not present, the Agent **MUST NOT** attempt to call any terminal methods.
+
+## Executing Commands
+
+The `terminal/create` method starts a command in a new terminal:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "terminal/create",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "command": "npm",
+    "args": ["test", "--coverage"],
+    "env": [
+      {
+        "name": "NODE_ENV",
+        "value": "test"
+      }
+    ],
+    "cwd": "/home/user/project",
+    "outputByteLimit": 1048576
+  }
+}
+```
+
+<ParamField path="sessionId" type="SessionId" required>
+  The [Session ID](./session-setup#session-id) for this request
+</ParamField>
+
+<ParamField path="command" type="string" required>
+  The command to execute
+</ParamField>
+
+<ParamField path="args" type="string[]">
+  Array of command arguments
+</ParamField>
+
+<ParamField path="env" type="EnvVariable[]">
+  Environment variables for the command.
+
+Each variable has:
+
+- `name`: The environment variable name
+- `value`: The environment variable value
+
+</ParamField>
+
+<ParamField path="cwd" type="string">
+  Working directory for the command (absolute path)
+</ParamField>
+
+<ParamField path="outputByteLimit" type="number">
+  Maximum number of output bytes to retain. Once exceeded, earlier output is
+  truncated to stay within this limit.
+
+When the limit is exceeded, the Client truncates from the beginning of the output
+to stay within the limit.
+
+The Client **MUST** ensure truncation happens at a character boundary to maintain valid
+string output, even if this means the retained output is slightly less than the
+specified limit.
+
+</ParamField>
+
+The Client returns a Terminal ID immediately without waiting for completion:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "terminalId": "term_xyz789"
+  }
+}
+```
+
+This allows the command to run in the background while the Agent performs other operations.
+
+After creating the terminal, the Agent can use the `terminal/wait_for_exit` method to wait for the command to complete.
+
+<Note>
+  The Agent **MUST** release the terminal using `terminal/release` when it's no
+  longer needed.
+</Note>
+
+## Embedding in Tool Calls
+
+Terminals can be embedded directly in [tool calls](./tool-calls) to provide real-time output to users:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "update": {
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_002",
+      "title": "Running tests",
+      "kind": "execute",
+      "status": "in_progress",
+      "content": [
+        {
+          "type": "terminal",
+          "terminalId": "term_xyz789"
+        }
+      ]
+    }
+  }
+}
+```
+
+When a terminal is embedded in a tool call, the Client displays live output as it's generated and continues to display it even after the terminal is released.
+
+## Getting Output
+
+The `terminal/output` method retrieves the current terminal output without waiting for the command to complete:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "terminal/output",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "terminalId": "term_xyz789"
+  }
+}
+```
+
+The Client responds with the current output and exit status (if the command has finished):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "result": {
+    "output": "Running tests...\n✓ All tests passed (42 total)\n",
+    "truncated": false,
+    "exitStatus": {
+      "exitCode": 0,
+      "signal": null
+    }
+  }
+}
+```
+
+<ResponseField name="output" type="string" required>
+  The terminal output captured so far
+</ResponseField>
+
+<ResponseField name="truncated" type="boolean" required>
+  Whether the output was truncated due to byte limits
+</ResponseField>
+
+<ResponseField name="exitStatus" type="TerminalExitStatus">
+  Present only if the command has exited. Contains:
+
+- `exitCode`: The process exit code (may be null)
+- `signal`: The signal that terminated the process (may be null)
+
+</ResponseField>
+
+## Waiting for Exit
+
+The `terminal/wait_for_exit` method returns once the command completes:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "terminal/wait_for_exit",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "terminalId": "term_xyz789"
+  }
+}
+```
+
+The Client responds once the command exits:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+    "exitCode": 0,
+    "signal": null
+  }
+}
+```
+
+<ResponseField name="exitCode" type="number">
+  The process exit code (may be null if terminated by signal)
+</ResponseField>
+
+<ResponseField name="signal" type="string">
+  The signal that terminated the process (may be null if exited normally)
+</ResponseField>
+
+## Killing Commands
+
+The `terminal/kill` method terminates a command without releasing the terminal:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "terminal/kill",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "terminalId": "term_xyz789"
+  }
+}
+```
+
+After killing a command, the terminal remains valid and can be used with:
+
+- `terminal/output` to get the final output
+- `terminal/wait_for_exit` to get the exit status
+
+The Agent **MUST** still call `terminal/release` when it's done using it.
+
+### Building a Timeout
+
+Agents can implement command timeouts by combining terminal methods:
+
+1. Create a terminal with `terminal/create`
+2. Start a timer for the desired timeout duration
+3. Concurrently wait for either the timer to expire or `terminal/wait_for_exit` to return
+4. If the timer expires first:
+   - Call `terminal/kill` to terminate the command
+   - Call `terminal/output` to retrieve any final output
+   - Include the output in the response to the model
+5. Call `terminal/release` when done
+
+## Releasing Terminals
+
+The `terminal/release` kills the command if still running and releases all resources:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "terminal/release",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "terminalId": "term_xyz789"
+  }
+}
+```
+
+After release the terminal ID becomes invalid for all other `terminal/*` methods.
+
+If the terminal was added to a tool call, the client **SHOULD** continue to display its output after release.
