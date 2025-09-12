@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { TransformStream } from "node:stream/web";
 import {
   Agent,
   ClientSideConnection,

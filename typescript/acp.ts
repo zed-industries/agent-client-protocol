@@ -2,8 +2,6 @@ import { z } from "zod";
 import * as schema from "./schema.js";
 export * from "./schema.js";
 
-import { WritableStream, ReadableStream } from "node:stream/web";
-
 /**
  * An agent-side connection to a client.
  *
@@ -605,39 +603,51 @@ class Connection {
   async #receive(output: ReadableStream<Uint8Array>) {
     let content = "";
     const decoder = new TextDecoder();
-    for await (const chunk of output) {
-      content += decoder.decode(chunk, { stream: true });
-      const lines = content.split("\n");
-      content = lines.pop() || "";
+    const reader = output.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (!value) {
+          continue;
+        }
+        content += decoder.decode(value, { stream: true });
+        const lines = content.split("\n");
+        content = lines.pop() || "";
 
-      for (const line of lines) {
-        const trimmedLine = line.trim();
+        for (const line of lines) {
+          const trimmedLine = line.trim();
 
-        if (trimmedLine) {
-          let id;
-          try {
-            const message = JSON.parse(trimmedLine);
-            id = message.id;
-            this.#processMessage(message);
-          } catch (err) {
-            console.error(
-              "Unexpected error during message processing:",
-              trimmedLine,
-              err,
-            );
-            if (id) {
-              this.#sendMessage({
-                jsonrpc: "2.0",
-                id,
-                error: {
-                  code: -32700,
-                  message: "Parse error",
-                },
-              });
+          if (trimmedLine) {
+            let id;
+            try {
+              const message = JSON.parse(trimmedLine);
+              id = message.id;
+              this.#processMessage(message);
+            } catch (err) {
+              console.error(
+                "Unexpected error during message processing:",
+                trimmedLine,
+                err,
+              );
+              if (id) {
+                this.#sendMessage({
+                  jsonrpc: "2.0",
+                  id,
+                  error: {
+                    code: -32700,
+                    message: "Parse error",
+                  },
+                });
+              }
             }
           }
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   }
 
