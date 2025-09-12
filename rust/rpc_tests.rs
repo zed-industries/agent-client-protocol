@@ -84,7 +84,6 @@ impl Client for TestClient {
         Ok(())
     }
 
-    #[cfg(feature = "unstable")]
     async fn create_terminal(
         &self,
         _args: CreateTerminalRequest,
@@ -92,7 +91,6 @@ impl Client for TestClient {
         unimplemented!()
     }
 
-    #[cfg(feature = "unstable")]
     async fn terminal_output(
         &self,
         _args: TerminalOutputRequest,
@@ -100,12 +98,14 @@ impl Client for TestClient {
         unimplemented!()
     }
 
-    #[cfg(feature = "unstable")]
+    async fn kill_terminal_command(&self, _args: KillTerminalCommandRequest) -> Result<(), Error> {
+        unimplemented!()
+    }
+
     async fn release_terminal(&self, _args: ReleaseTerminalRequest) -> Result<(), Error> {
         unimplemented!()
     }
 
-    #[cfg(feature = "unstable")]
     async fn wait_for_terminal_exit(
         &self,
         _args: WaitForTerminalExitRequest,

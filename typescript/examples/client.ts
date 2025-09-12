@@ -3,7 +3,6 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { WritableStream, ReadableStream } from "node:stream/web";
 import { Writable, Readable } from "node:stream";
 import readline from "node:readline/promises";
 

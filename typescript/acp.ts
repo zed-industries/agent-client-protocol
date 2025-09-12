@@ -2,8 +2,6 @@ import { z } from "zod";
 import * as schema from "./schema.js";
 export * from "./schema.js";
 
-import { WritableStream, ReadableStream } from "node:stream/web";
-
 /**
  * An agent-side connection to a client.
  *
@@ -200,9 +198,16 @@ export class AgentSideConnection {
   }
 
   /**
-   *  @internal **UNSTABLE**
+   * Executes a command in a new terminal.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * Returns a `TerminalHandle` that can be used to get output, wait for exit,
+   * kill the command, or release the terminal.
+   *
+   * The terminal can also be embedded in tool calls by using its ID in
+   * `ToolCallContent` with type "terminal".
+   *
+   * @param params - The terminal creation parameters
+   * @returns A handle to control and monitor the terminal
    */
   async createTerminal(
     params: schema.CreateTerminalRequest,
@@ -244,6 +249,22 @@ export class AgentSideConnection {
   }
 }
 
+/**
+ * Handle for controlling and monitoring a terminal created via `createTerminal`.
+ *
+ * Provides methods to:
+ * - Get current output without waiting
+ * - Wait for command completion
+ * - Kill the running command
+ * - Release terminal resources
+ *
+ * **Important:** Always call `release()` when done with the terminal to free resources.
+
+ * The terminal supports async disposal via `Symbol.asyncDispose` for automatic cleanup.
+
+ * You can use `await using` to ensure the terminal is automatically released when it
+ * goes out of scope.
+ */
 export class TerminalHandle {
   #sessionId: string;
   #connection: Connection;
@@ -257,6 +278,9 @@ export class TerminalHandle {
     this.#connection = conn;
   }
 
+  /**
+   * Gets the current terminal output without waiting for the command to exit.
+   */
   async currentOutput(): Promise<schema.TerminalOutputResponse> {
     return await this.#connection.sendRequest(
       schema.CLIENT_METHODS.terminal_output,
@@ -267,6 +291,9 @@ export class TerminalHandle {
     );
   }
 
+  /**
+   * Waits for the terminal command to complete and returns its exit status.
+   */
   async waitForExit(): Promise<schema.WaitForTerminalExitResponse> {
     return await this.#connection.sendRequest(
       schema.CLIENT_METHODS.terminal_wait_for_exit,
@@ -277,6 +304,16 @@ export class TerminalHandle {
     );
   }
 
+  /**
+   * Kills the terminal command without releasing the terminal.
+   *
+   * The terminal remains valid after killing, allowing you to:
+   * - Get the final output with `currentOutput()`
+   * - Check the exit status
+   * - Release the terminal when done
+   *
+   * Useful for implementing timeouts or cancellation.
+   */
   async kill(): Promise<void> {
     return await this.#connection.sendRequest(
       schema.CLIENT_METHODS.terminal_kill,
@@ -287,6 +324,18 @@ export class TerminalHandle {
     );
   }
 
+  /**
+   * Releases the terminal and frees all associated resources.
+   *
+   * If the command is still running, it will be killed.
+   * After release, the terminal ID becomes invalid and cannot be used
+   * with other terminal methods.
+   *
+   * Tool calls that already reference this terminal will continue to
+   * display its output.
+   *
+   * **Important:** Always call this method when done with the terminal.
+   */
   async release(): Promise<void> {
     await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_release, {
       sessionId: this.#sessionId,
@@ -387,9 +436,9 @@ export class ClientSideConnection implements Agent {
         }
         case schema.CLIENT_METHODS.terminal_kill: {
           const validatedParams =
-            schema.killTerminalRequestSchema.parse(params);
+            schema.killTerminalCommandRequestSchema.parse(params);
           return client.killTerminal?.(
-            validatedParams as schema.KillTerminalRequest,
+            validatedParams as schema.KillTerminalCommandRequest,
           );
         }
         default:
@@ -676,39 +725,51 @@ class Connection {
   async #receive(output: ReadableStream<Uint8Array>) {
     let content = "";
     const decoder = new TextDecoder();
-    for await (const chunk of output) {
-      content += decoder.decode(chunk, { stream: true });
-      const lines = content.split("\n");
-      content = lines.pop() || "";
+    const reader = output.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (!value) {
+          continue;
+        }
+        content += decoder.decode(value, { stream: true });
+        const lines = content.split("\n");
+        content = lines.pop() || "";
 
-      for (const line of lines) {
-        const trimmedLine = line.trim();
+        for (const line of lines) {
+          const trimmedLine = line.trim();
 
-        if (trimmedLine) {
-          let id;
-          try {
-            const message = JSON.parse(trimmedLine);
-            id = message.id;
-            this.#processMessage(message);
-          } catch (err) {
-            console.error(
-              "Unexpected error during message processing:",
-              trimmedLine,
-              err,
-            );
-            if (id) {
-              this.#sendMessage({
-                jsonrpc: "2.0",
-                id,
-                error: {
-                  code: -32700,
-                  message: "Parse error",
-                },
-              });
+          if (trimmedLine) {
+            let id;
+            try {
+              const message = JSON.parse(trimmedLine);
+              id = message.id;
+              this.#processMessage(message);
+            } catch (err) {
+              console.error(
+                "Unexpected error during message processing:",
+                trimmedLine,
+                err,
+              );
+              if (id) {
+                this.#sendMessage({
+                  jsonrpc: "2.0",
+                  id,
+                  error: {
+                    code: -32700,
+                    message: "Parse error",
+                  },
+                });
+              }
             }
           }
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   }
 
@@ -1012,45 +1073,70 @@ export interface Client {
   ): Promise<schema.ReadTextFileResponse>;
 
   /**
-   *  @internal **UNSTABLE**
+   * Creates a new terminal to execute a command.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * Only available if the `terminal` capability is set to `true`.
+   *
+   * The Agent must call `releaseTerminal` when done with the terminal
+   * to free resources.
+
+   * @see {@link https://agentclientprotocol.com/protocol/terminals | Terminal Documentation}
    */
   createTerminal?(
     params: schema.CreateTerminalRequest,
   ): Promise<schema.CreateTerminalResponse>;
 
   /**
-   *  @internal **UNSTABLE**
+   * Gets the current output and exit status of a terminal.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * Returns immediately without waiting for the command to complete.
+   * If the command has already exited, the exit status is included.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/terminals#getting-output | Getting Terminal Output}
    */
   terminalOutput?(
     params: schema.TerminalOutputRequest,
   ): Promise<schema.TerminalOutputResponse>;
 
   /**
-   *  @internal **UNSTABLE**
+   * Releases a terminal and frees all associated resources.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * The command is killed if it hasn't exited yet. After release,
+   * the terminal ID becomes invalid for all other terminal methods.
+   *
+   * Tool calls that already contain the terminal ID continue to
+   * display its output.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/terminals#releasing-terminals | Releasing Terminals}
    */
   releaseTerminal?(params: schema.ReleaseTerminalRequest): Promise<void>;
 
   /**
-   *  @internal **UNSTABLE**
+   * Waits for a terminal command to exit and returns its exit status.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * This method returns once the command completes, providing the
+   * exit code and/or signal that terminated the process.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/terminals#waiting-for-exit | Waiting for Exit}
    */
   waitForTerminalExit?(
     params: schema.WaitForTerminalExitRequest,
   ): Promise<schema.WaitForTerminalExitResponse>;
 
   /**
-   *  @internal **UNSTABLE**
+   * Kills a terminal command without releasing the terminal.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * While `releaseTerminal` also kills the command, this method keeps
+   * the terminal ID valid so it can be used with other methods.
+   *
+   * Useful for implementing command timeouts that terminate the command
+   * and then retrieve the final output.
+   *
+   * Note: Call `releaseTerminal` when the terminal is no longer needed.
+   *
+   * @see {@link https://agentclientprotocol.com/protocol/terminals#killing-commands | Killing Commands}
    */
-  killTerminal?(params: schema.KillTerminalRequest): Promise<void>;
+  killTerminal?(params: schema.KillTerminalCommandRequest): Promise<void>;
 
   /**
    * Extension method

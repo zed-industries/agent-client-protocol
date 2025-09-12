@@ -43,7 +43,6 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    #[cfg(feature = "unstable")]
     async fn create_terminal(
         &self,
         _args: acp::CreateTerminalRequest,
@@ -51,7 +50,6 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    #[cfg(feature = "unstable")]
     async fn terminal_output(
         &self,
         _args: acp::TerminalOutputRequest,
@@ -59,7 +57,6 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    #[cfg(feature = "unstable")]
     async fn release_terminal(
         &self,
         _args: acp::ReleaseTerminalRequest,
@@ -67,7 +64,6 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    #[cfg(feature = "unstable")]
     async fn wait_for_terminal_exit(
         &self,
         _args: acp::WaitForTerminalExitRequest,
@@ -75,10 +71,9 @@ impl acp::Client for ExampleClient {
         Err(acp::Error::method_not_found())
     }
 
-    #[cfg(feature = "unstable")]
-    async fn kill_terminal(
+    async fn kill_terminal_command(
         &self,
-        _args: acp::KillTerminalRequest,
+        _args: acp::KillTerminalCommandRequest,
     ) -> anyhow::Result<(), acp::Error> {
         Err(acp::Error::method_not_found())
     }
