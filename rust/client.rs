@@ -45,7 +45,7 @@ pub trait Client {
     fn write_text_file(
         &self,
         args: WriteTextFileRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> impl Future<Output = Result<WriteTextFileResponse, Error>>;
 
     /// Reads content from a text file in the client's file system.
     ///
@@ -119,7 +119,7 @@ pub trait Client {
     fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> impl Future<Output = Result<ReleaseTerminalResponse, Error>>;
 
     /// Waits for the terminal command to exit and return its exit status
     ///
@@ -144,7 +144,7 @@ pub trait Client {
     fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> impl Future<Output = Result<KillTerminalCommandResponse, Error>>;
 
     /// Handles extension method requests from the agent.
     ///
@@ -181,7 +181,7 @@ pub trait Client {
 ///
 /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/update"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_UPDATE_NOTIFICATION))]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     /// The ID of the session this update pertains to.
@@ -264,7 +264,7 @@ pub enum AvailableCommandInput {
 ///
 /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_REQUEST_PERMISSION_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     /// The session ID for this request.
@@ -322,7 +322,7 @@ pub enum PermissionOptionKind {
 
 /// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_REQUEST_PERMISSION_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
@@ -359,7 +359,7 @@ pub enum RequestPermissionOutcome {
 ///
 /// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "fs/write_text_file"))]
+#[schemars(extend("x-side" = "client", "x-method" = FS_WRITE_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
@@ -373,13 +373,24 @@ pub struct WriteTextFileRequest {
     pub meta: Option<serde_json::Value>,
 }
 
+/// Response to fs/write_text_file
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = FS_WRITE_TEXT_FILE_METHOD_NAME))]
+#[serde(default)]
+pub struct WriteTextFileResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
 // Read text file
 
 /// Request to read content from a text file.
 ///
 /// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
+#[schemars(extend("x-side" = "client", "x-method" = FS_READ_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
@@ -399,6 +410,7 @@ pub struct ReadTextFileRequest {
 
 /// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = FS_READ_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
@@ -509,6 +521,16 @@ pub struct ReleaseTerminalRequest {
     pub meta: Option<serde_json::Value>,
 }
 
+/// Response to terminal/release method
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_RELEASE_METHOD_NAME))]
+pub struct ReleaseTerminalResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
 /// Request to kill a terminal command without releasing the terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -518,6 +540,16 @@ pub struct KillTerminalCommandRequest {
     pub session_id: SessionId,
     /// The ID of the terminal to kill.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// Response to terminal/kill command method
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_KILL_METHOD_NAME))]
+pub struct KillTerminalCommandResponse {
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,
@@ -694,14 +726,14 @@ pub enum AgentRequest {
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientResponse {
-    WriteTextFileResponse,
+    WriteTextFileResponse(#[serde(default)] WriteTextFileResponse),
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
     CreateTerminalResponse(CreateTerminalResponse),
     TerminalOutputResponse(TerminalOutputResponse),
-    ReleaseTerminalResponse,
+    ReleaseTerminalResponse(#[serde(default)] ReleaseTerminalResponse),
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
-    KillTerminalResponse,
+    KillTerminalResponse(#[serde(default)] KillTerminalCommandResponse),
     ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
@@ -713,8 +745,8 @@ pub enum ClientResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
-#[schemars(extend("x-docs-ignore" = true))]
 #[allow(clippy::large_enum_variant)]
+#[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
     ExtNotification(ExtMethod),

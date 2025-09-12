@@ -14,7 +14,7 @@
 
 use std::{cell::Cell, sync::Arc};
 
-use agent_client_protocol::{self as acp, Client, SessionNotification};
+use agent_client_protocol::{self as acp, AuthenticateResponse, Client, SessionNotification};
 use serde_json::{json, value::RawValue};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
@@ -49,9 +49,12 @@ impl acp::Agent for ExampleAgent {
         })
     }
 
-    async fn authenticate(&self, arguments: acp::AuthenticateRequest) -> Result<(), acp::Error> {
+    async fn authenticate(
+        &self,
+        arguments: acp::AuthenticateRequest,
+    ) -> Result<AuthenticateResponse, acp::Error> {
         log::info!("Received authenticate request {arguments:?}");
-        Ok(())
+        Ok(Default::default())
     }
 
     async fn new_session(

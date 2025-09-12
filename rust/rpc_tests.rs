@@ -56,12 +56,15 @@ impl Client for TestClient {
         })
     }
 
-    async fn write_text_file(&self, arguments: WriteTextFileRequest) -> Result<(), Error> {
+    async fn write_text_file(
+        &self,
+        arguments: WriteTextFileRequest,
+    ) -> Result<WriteTextFileResponse, Error> {
         self.written_files
             .lock()
             .unwrap()
             .push((arguments.path, arguments.content));
-        Ok(())
+        Ok(Default::default())
     }
 
     async fn read_text_file(
@@ -98,11 +101,17 @@ impl Client for TestClient {
         unimplemented!()
     }
 
-    async fn kill_terminal_command(&self, _args: KillTerminalCommandRequest) -> Result<(), Error> {
+    async fn kill_terminal_command(
+        &self,
+        _args: KillTerminalCommandRequest,
+    ) -> Result<KillTerminalCommandResponse, Error> {
         unimplemented!()
     }
 
-    async fn release_terminal(&self, _args: ReleaseTerminalRequest) -> Result<(), Error> {
+    async fn release_terminal(
+        &self,
+        _args: ReleaseTerminalRequest,
+    ) -> Result<ReleaseTerminalResponse, Error> {
         unimplemented!()
     }
 
@@ -171,8 +180,11 @@ impl Agent for TestAgent {
         })
     }
 
-    async fn authenticate(&self, _arguments: AuthenticateRequest) -> Result<(), Error> {
-        Ok(())
+    async fn authenticate(
+        &self,
+        _arguments: AuthenticateRequest,
+    ) -> Result<AuthenticateResponse, Error> {
+        Ok(Default::default())
     }
 
     async fn new_session(

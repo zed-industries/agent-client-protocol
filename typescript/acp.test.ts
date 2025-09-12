@@ -122,7 +122,7 @@ describe("Connection", () => {
         const currentCount = requestCount;
         await new Promise((resolve) => setTimeout(resolve, 40));
         console.log(`Write request ${currentCount} completed`);
-        return null;
+        return {};
       }
       async readTextFile(
         params: ReadTextFileRequest,
@@ -208,9 +208,9 @@ describe("Connection", () => {
 
     // Verify all requests completed successfully
     expect(results).toHaveLength(3);
-    expect(results[0]).toBeNull();
-    expect(results[1]).toBeNull();
-    expect(results[2]).toBeNull();
+    expect(results[0]).toEqual({});
+    expect(results[1]).toEqual({});
+    expect(results[2]).toEqual({});
     expect(requestCount).toBe(3);
   });
 
@@ -223,7 +223,7 @@ describe("Connection", () => {
         params: WriteTextFileRequest,
       ): Promise<WriteTextFileResponse> {
         messageLog.push(`writeTextFile called: ${params.path}`);
-        return null;
+        return {};
       }
       async readTextFile(
         params: ReadTextFileRequest,
@@ -357,7 +357,7 @@ describe("Connection", () => {
       async writeTextFile(
         _: WriteTextFileRequest,
       ): Promise<WriteTextFileResponse> {
-        return null;
+        return {};
       }
       async readTextFile(
         _: ReadTextFileRequest,
@@ -462,7 +462,7 @@ describe("Connection", () => {
       async writeTextFile(
         _: WriteTextFileRequest,
       ): Promise<WriteTextFileResponse> {
-        return null;
+        return {};
       }
       async readTextFile(
         _: ReadTextFileRequest,
@@ -553,7 +553,7 @@ describe("Connection", () => {
       async writeTextFile(
         _: WriteTextFileRequest,
       ): Promise<WriteTextFileResponse> {
-        return null;
+        return {};
       }
       async readTextFile(
         _: ReadTextFileRequest,
@@ -683,7 +683,7 @@ describe("Connection", () => {
       async writeTextFile(
         _: WriteTextFileRequest,
       ): Promise<WriteTextFileResponse> {
-        return null;
+        return {};
       }
       async readTextFile(
         _: ReadTextFileRequest,
@@ -765,5 +765,174 @@ describe("Connection", () => {
     await agentConnection.extNotification("example.com/notify", {
       info: "test",
     });
+  });
+
+  it("handles methods returning response objects with _meta or void", async () => {
+    // Create client that returns both response objects and void
+    class TestClient implements Client {
+      async writeTextFile(
+        params: WriteTextFileRequest,
+      ): Promise<WriteTextFileResponse> {
+        // Return response object with _meta
+        return {
+          _meta: {
+            timestamp: new Date().toISOString(),
+            version: "1.0.0",
+          },
+        };
+      }
+      async readTextFile(
+        params: ReadTextFileRequest,
+      ): Promise<ReadTextFileResponse> {
+        return {
+          content: "test content",
+          _meta: {
+            encoding: "utf-8",
+          },
+        };
+      }
+      async requestPermission(
+        params: RequestPermissionRequest,
+      ): Promise<RequestPermissionResponse> {
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: "allow",
+          },
+          _meta: {
+            userId: "test-user",
+          },
+        };
+      }
+      async sessionUpdate(params: SessionNotification): Promise<void> {
+        // Returns void
+      }
+    }
+
+    // Create agent that returns both response objects and void
+    class TestAgent implements Agent {
+      async initialize(params: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: params.protocolVersion,
+          agentCapabilities: { loadSession: true },
+          _meta: {
+            agentVersion: "2.0.0",
+          },
+        };
+      }
+      async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
+        return {
+          sessionId: "test-session",
+          _meta: {
+            sessionType: "ephemeral",
+          },
+        };
+      }
+      async loadSession(
+        params: LoadSessionRequest,
+      ): Promise<LoadSessionResponse> {
+        // Test returning minimal response
+        return {};
+      }
+      async authenticate(
+        params: AuthenticateRequest,
+      ): Promise<AuthenticateResponse | void> {
+        if (params.methodId === "none") {
+          // Test returning void
+          return;
+        }
+        // Test returning response with _meta
+        return {
+          _meta: {
+            authenticated: true,
+            method: params.methodId,
+          },
+        };
+      }
+      async prompt(params: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
+      }
+      async cancel(params: CancelNotification): Promise<void> {
+        // Returns void
+      }
+    }
+
+    const agentConnection = new ClientSideConnection(
+      () => new TestClient(),
+      clientToAgent.writable,
+      agentToClient.readable,
+    );
+
+    const clientConnection = new AgentSideConnection(
+      () => new TestAgent(),
+      agentToClient.writable,
+      clientToAgent.readable,
+    );
+
+    // Test writeTextFile returns response with _meta
+    const writeResponse = await clientConnection.writeTextFile({
+      path: "/test.txt",
+      content: "test",
+      sessionId: "test-session",
+    });
+    expect(writeResponse).toEqual({
+      _meta: {
+        timestamp: expect.any(String),
+        version: "1.0.0",
+      },
+    });
+
+    // Test readTextFile returns response with content and _meta
+    const readResponse = await clientConnection.readTextFile({
+      path: "/test.txt",
+      sessionId: "test-session",
+    });
+    expect(readResponse.content).toBe("test content");
+    expect(readResponse._meta).toEqual({
+      encoding: "utf-8",
+    });
+
+    // Test initialize with _meta
+    const initResponse = await agentConnection.initialize({
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {},
+    });
+    expect(initResponse._meta).toEqual({
+      agentVersion: "2.0.0",
+    });
+
+    // Test authenticate returning void
+    const authResponseVoid = await agentConnection.authenticate({
+      methodId: "none",
+    });
+    expect(authResponseVoid).toEqual({});
+
+    // Test authenticate returning response with _meta
+    const authResponse = await agentConnection.authenticate({
+      methodId: "oauth",
+    });
+    expect(authResponse).toEqual({
+      _meta: {
+        authenticated: true,
+        method: "oauth",
+      },
+    });
+
+    // Test newSession with _meta
+    const sessionResponse = await agentConnection.newSession({
+      cwd: "/test",
+      mcpServers: [],
+    });
+    expect(sessionResponse._meta).toEqual({
+      sessionType: "ephemeral",
+    });
+
+    // Test loadSession returning minimal response
+    const loadResponse = await agentConnection.loadSession({
+      sessionId: "test-session",
+      mcpServers: [],
+      cwd: "/test",
+    });
+    expect(loadResponse).toEqual({});
   });
 });

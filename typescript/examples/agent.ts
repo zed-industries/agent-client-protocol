@@ -42,8 +42,11 @@ class ExampleAgent implements Agent {
     };
   }
 
-  async authenticate(params: schema.AuthenticateRequest): Promise<void> {
-    // No auth needed
+  async authenticate(
+    params: schema.AuthenticateRequest,
+  ): Promise<schema.AuthenticateResponse | void> {
+    // No auth needed - return empty response
+    return {};
   }
 
   async setSessionMode(
