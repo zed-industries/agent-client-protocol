@@ -8,7 +8,9 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 
+use crate::ext::ExtMethod;
 use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
 
 /// Defines the interface that all ACP-compliant agents must implement.
@@ -114,6 +116,30 @@ pub trait Agent {
     ///
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
+
+    /// Handles extension method requests from the client.
+    ///
+    /// Extension methods provide a way to add custom functionality while maintaining
+    /// protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: Arc<RawValue>,
+    ) -> impl Future<Output = Result<Arc<RawValue>, Error>>;
+
+    /// Handles extension notifications from the client.
+    ///
+    /// Extension notifications provide a way to send one-way messages for custom functionality
+    /// while maintaining protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    fn ext_notification(
+        &self,
+        method: Arc<str>,
+        params: Arc<RawValue>,
+    ) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
@@ -132,6 +158,9 @@ pub struct InitializeRequest {
     /// Capabilities supported by the client.
     #[serde(default)]
     pub client_capabilities: ClientCapabilities,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from the initialize method.
@@ -154,6 +183,9 @@ pub struct InitializeResponse {
     /// Authentication methods supported by the agent.
     #[serde(default)]
     pub auth_methods: Vec<AuthMethod>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Authentication
@@ -168,6 +200,9 @@ pub struct AuthenticateRequest {
     /// The ID of the authentication method to use.
     /// Must be one of the methods advertised in the initialize response.
     pub method_id: AuthMethodId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Unique identifier for an authentication method.
@@ -185,6 +220,9 @@ pub struct AuthMethod {
     pub name: String,
     /// Optional description providing more details about this authentication method.
     pub description: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // New session
@@ -200,6 +238,9 @@ pub struct NewSessionRequest {
     pub cwd: PathBuf,
     /// List of MCP (Model Context Protocol) servers the agent should connect to.
     pub mcp_servers: Vec<McpServer>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from creating a new session.
@@ -218,6 +259,9 @@ pub struct NewSessionResponse {
     /// This field is not part of the spec, and may be removed or changed at any point.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Load session
@@ -237,6 +281,9 @@ pub struct LoadSessionRequest {
     pub cwd: PathBuf,
     /// The ID of the session to load.
     pub session_id: SessionId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from loading an existing session.
@@ -248,6 +295,9 @@ pub struct LoadSessionResponse {
     /// This field is not part of the spec, and may be removed or changed at any point.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Session modes
@@ -260,6 +310,9 @@ pub struct LoadSessionResponse {
 pub struct SessionModeState {
     pub current_mode_id: SessionModeId,
     pub available_modes: Vec<SessionMode>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// **UNSTABLE**
@@ -272,6 +325,9 @@ pub struct SessionMode {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// **UNSTABLE**
@@ -296,6 +352,9 @@ impl std::fmt::Display for SessionModeId {
 pub struct SetSessionModeRequest {
     pub session_id: SessionId,
     pub mode_id: SessionModeId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// **UNSTABLE**
@@ -364,6 +423,9 @@ pub struct EnvVariable {
     pub name: String,
     /// The value to set for the environment variable.
     pub value: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// An HTTP header to set when making requests to the MCP server.
@@ -374,6 +436,9 @@ pub struct HttpHeader {
     pub name: String,
     /// The value to set for the HTTP header.
     pub value: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Prompt
@@ -403,6 +468,9 @@ pub struct PromptRequest {
     /// as it avoids extra round-trips and allows the message to include
     /// pieces of context from sources the agent may not have access to.
     pub prompt: Vec<ContentBlock>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from processing a user prompt.
@@ -414,6 +482,9 @@ pub struct PromptRequest {
 pub struct PromptResponse {
     /// Indicates why the agent stopped processing the turn.
     pub stop_reason: StopReason,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Reasons why an agent stops processing a prompt turn.
@@ -462,6 +533,9 @@ pub struct AgentCapabilities {
     /// MCP capabilities supported by the agent.
     #[serde(default)]
     pub mcp_capabilities: McpCapabilities,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -476,7 +550,7 @@ pub struct AgentCapabilities {
 /// the agent can process.
 ///
 /// See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
     /// Agent supports [`ContentBlock::Image`].
@@ -491,10 +565,13 @@ pub struct PromptCapabilities {
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// MCP capabilities supported by the agent
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpCapabilities {
     /// Agent supports [`McpServer::Http`].
@@ -503,6 +580,9 @@ pub struct McpCapabilities {
     /// Agent supports [`McpServer::Sse`].
     #[serde(default)]
     pub sse: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Method schema
@@ -574,6 +654,7 @@ pub enum ClientRequest {
     #[cfg(feature = "unstable")]
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
+    ExtMethodRequest(ExtMethod),
 }
 
 /// All possible responses that an agent can send to a client.
@@ -593,6 +674,7 @@ pub enum AgentResponse {
     #[cfg(feature = "unstable")]
     SetSessionModeResponse(SetSessionModeResponse),
     PromptResponse(PromptResponse),
+    ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
 /// All possible notifications that a client can send to an agent.
@@ -606,6 +688,7 @@ pub enum AgentResponse {
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
+    ExtNotification(ExtMethod),
 }
 
 /// Notification to cancel ongoing operations for a session.
@@ -617,6 +700,9 @@ pub enum ClientNotification {
 pub struct CancelNotification {
     /// The ID of the session to cancel operations for.
     pub session_id: SessionId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -633,6 +719,7 @@ mod test_serialization {
             env: vec![EnvVariable {
                 name: "API_KEY".to_string(),
                 value: "secret123".to_string(),
+                meta: None,
             }],
         };
 
@@ -680,10 +767,12 @@ mod test_serialization {
                 HttpHeader {
                     name: "Authorization".to_string(),
                     value: "Bearer token123".to_string(),
+                    meta: None,
                 },
                 HttpHeader {
                     name: "Content-Type".to_string(),
                     value: "application/json".to_string(),
+                    meta: None,
                 },
             ],
         };
@@ -731,6 +820,7 @@ mod test_serialization {
             headers: vec![HttpHeader {
                 name: "X-API-Key".to_string(),
                 value: "apikey456".to_string(),
+                meta: None,
             }],
         };
 

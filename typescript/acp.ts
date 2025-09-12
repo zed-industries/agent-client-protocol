@@ -34,7 +34,7 @@ export class AgentSideConnection {
   ) {
     const agent = toAgent(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -77,16 +77,49 @@ export class AgentSideConnection {
           const validatedParams = schema.promptRequestSchema.parse(params);
           return agent.prompt(validatedParams as schema.PromptRequest);
         }
+        default:
+          if (method.startsWith("_")) {
+            if (!agent.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return agent.extMethod(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
         case schema.AGENT_METHODS.session_cancel: {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
           return agent.cancel(validatedParams as schema.CancelNotification);
         }
         default:
+          if (method.startsWith("_")) {
+            if (!agent.extNotification) {
+              return;
+            }
+            return agent.extNotification(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      input,
+      output,
+    );
   }
 
   /**
@@ -189,6 +222,30 @@ export class AgentSideConnection {
       params.sessionId,
       this.#connection,
     );
+  }
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(`_${method}`, params);
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(`_${method}`, params);
   }
 }
 
@@ -323,7 +380,7 @@ export class ClientSideConnection implements Agent {
   ) {
     const client = toClient(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -347,13 +404,6 @@ export class ClientSideConnection implements Agent {
             schema.requestPermissionRequestSchema.parse(params);
           return client.requestPermission(
             validatedParams as schema.RequestPermissionRequest,
-          );
-        }
-        case schema.CLIENT_METHODS.session_update: {
-          const validatedParams =
-            schema.sessionNotificationSchema.parse(params);
-          return client.sessionUpdate(
-            validatedParams as schema.SessionNotification,
           );
         }
         case schema.CLIENT_METHODS.terminal_create: {
@@ -392,11 +442,55 @@ export class ClientSideConnection implements Agent {
           );
         }
         default:
+          // Handle extension methods (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return client.extMethod(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
+        case schema.CLIENT_METHODS.session_update: {
+          const validatedParams =
+            schema.sessionNotificationSchema.parse(params);
+          return client.sessionUpdate(
+            validatedParams as schema.SessionNotification,
+          );
+        }
+        default:
+          // Handle extension notifications (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extNotification) {
+              return;
+            }
+            return client.extNotification(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      input,
+      output,
+    );
   }
 
   /**
@@ -538,6 +632,30 @@ export class ClientSideConnection implements Agent {
       params,
     );
   }
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(`_${method}`, params);
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(`_${method}`, params);
+  }
 }
 
 type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
@@ -579,22 +697,26 @@ type PendingResponse = {
   reject: (error: ErrorResponse) => void;
 };
 
-type MethodHandler = (method: string, params: unknown) => Promise<unknown>;
+type RequestHandler = (method: string, params: unknown) => Promise<unknown>;
+type NotificationHandler = (method: string, params: unknown) => Promise<void>;
 
 class Connection {
   #pendingResponses: Map<string | number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
-  #handler: MethodHandler;
+  #requestHandler: RequestHandler;
+  #notificationHandler: NotificationHandler;
   #peerInput: WritableStream<Uint8Array>;
   #writeQueue: Promise<void> = Promise.resolve();
   #textEncoder: TextEncoder;
 
   constructor(
-    handler: MethodHandler,
+    requestHandler: RequestHandler,
+    notificationHandler: NotificationHandler,
     peerInput: WritableStream<Uint8Array>,
     peerOutput: ReadableStream<Uint8Array>,
   ) {
-    this.#handler = handler;
+    this.#requestHandler = requestHandler;
+    this.#notificationHandler = notificationHandler;
     this.#peerInput = peerInput;
     this.#textEncoder = new TextEncoder();
     this.#receive(peerOutput);
@@ -654,7 +776,7 @@ class Connection {
   async #processMessage(message: AnyMessage) {
     if ("method" in message && "id" in message) {
       // It's a request
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallRequestHandler(
         message.method,
         message.params,
       );
@@ -669,7 +791,7 @@ class Connection {
       });
     } else if ("method" in message) {
       // It's a notification
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallNotificationHandler(
         message.method,
         message.params,
       );
@@ -684,13 +806,52 @@ class Connection {
     }
   }
 
-  async #tryCallHandler(
+  async #tryCallRequestHandler(
     method: string,
     params: unknown,
   ): Promise<Result<unknown>> {
     try {
-      const result = await this.#handler(method, params);
+      const result = await this.#requestHandler(method, params);
       return { result: result ?? null };
+    } catch (error: unknown) {
+      if (error instanceof RequestError) {
+        return error.toResult();
+      }
+
+      if (error instanceof z.ZodError) {
+        return RequestError.invalidParams(error.format()).toResult();
+      }
+
+      let details;
+
+      if (error instanceof Error) {
+        details = error.message;
+      } else if (
+        typeof error === "object" &&
+        error != null &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        details = error.message;
+      }
+
+      try {
+        return RequestError.internalError(
+          details ? JSON.parse(details) : {},
+        ).toResult();
+      } catch (_err) {
+        return RequestError.internalError({ details }).toResult();
+      }
+    }
+  }
+
+  async #tryCallNotificationHandler(
+    method: string,
+    params: unknown,
+  ): Promise<Result<unknown>> {
+    try {
+      await this.#notificationHandler(method, params);
+      return { result: null };
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();
@@ -976,6 +1137,29 @@ export interface Client {
    * @see {@link https://agentclientprotocol.com/protocol/terminals#killing-commands | Killing Commands}
    */
   killTerminal?(params: schema.KillTerminalCommandRequest): Promise<void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }
 
 /**
@@ -1080,4 +1264,27 @@ export interface Agent {
    * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   cancel(params: schema.CancelNotification): Promise<void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }

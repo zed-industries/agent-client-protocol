@@ -12,9 +12,10 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
-use std::cell::Cell;
+use std::{cell::Cell, sync::Arc};
 
 use agent_client_protocol::{self as acp, Client, SessionNotification};
+use serde_json::{json, value::RawValue};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 
@@ -44,6 +45,7 @@ impl acp::Agent for ExampleAgent {
             protocol_version: acp::V1,
             agent_capabilities: acp::AgentCapabilities::default(),
             auth_methods: Vec::new(),
+            meta: None,
         })
     }
 
@@ -62,6 +64,7 @@ impl acp::Agent for ExampleAgent {
         Ok(acp::NewSessionResponse {
             session_id: acp::SessionId(session_id.to_string().into()),
             modes: None,
+            meta: None,
         })
     }
 
@@ -70,7 +73,10 @@ impl acp::Agent for ExampleAgent {
         arguments: acp::LoadSessionRequest,
     ) -> Result<acp::LoadSessionResponse, acp::Error> {
         log::info!("Received load session request {arguments:?}");
-        Ok(acp::LoadSessionResponse { modes: None })
+        Ok(acp::LoadSessionResponse {
+            modes: None,
+            meta: None,
+        })
     }
 
     async fn prompt(
@@ -85,6 +91,7 @@ impl acp::Agent for ExampleAgent {
                     SessionNotification {
                         session_id: arguments.session_id.clone(),
                         update: acp::SessionUpdate::AgentMessageChunk { content },
+                        meta: None,
                     },
                     tx,
                 ))
@@ -93,11 +100,38 @@ impl acp::Agent for ExampleAgent {
         }
         Ok(acp::PromptResponse {
             stop_reason: acp::StopReason::EndTurn,
+            meta: None,
         })
     }
 
     async fn cancel(&self, args: acp::CancelNotification) -> Result<(), acp::Error> {
         log::info!("Received cancel request {args:?}");
+        Ok(())
+    }
+
+    async fn ext_method(
+        &self,
+        method: std::sync::Arc<str>,
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, acp::Error> {
+        log::info!(
+            "Received extension method call: method={}, params={:?}",
+            method,
+            params
+        );
+        Ok(serde_json::value::to_raw_value(&json!({"example": "response"}))?.into())
+    }
+
+    async fn ext_notification(
+        &self,
+        method: std::sync::Arc<str>,
+        params: Arc<RawValue>,
+    ) -> Result<(), acp::Error> {
+        log::info!(
+            "Received extension notification: method={}, params={:?}",
+            method,
+            params
+        );
         Ok(())
     }
 }

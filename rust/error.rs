@@ -33,6 +33,9 @@ pub struct Error {
     /// This may include debugging information or context-specific details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 impl Error {
@@ -45,6 +48,7 @@ impl Error {
             code,
             message,
             data: None,
+            meta: None,
         }
     }
 
@@ -105,6 +109,9 @@ pub struct ErrorCode {
     pub code: i32,
     /// The standard error message for this code.
     pub message: &'static str,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 impl ErrorCode {
@@ -113,24 +120,28 @@ impl ErrorCode {
     pub const PARSE_ERROR: ErrorCode = ErrorCode {
         code: -32700,
         message: "Parse error",
+        meta: None,
     };
 
     /// The JSON sent is not a valid Request object.
     pub const INVALID_REQUEST: ErrorCode = ErrorCode {
         code: -32600,
         message: "Invalid Request",
+        meta: None,
     };
 
     /// The method does not exist or is not available.
     pub const METHOD_NOT_FOUND: ErrorCode = ErrorCode {
         code: -32601,
         message: "Method not found",
+        meta: None,
     };
 
     /// Invalid method parameter(s).
     pub const INVALID_PARAMS: ErrorCode = ErrorCode {
         code: -32602,
         message: "Invalid params",
+        meta: None,
     };
 
     /// Internal JSON-RPC error.
@@ -138,6 +149,7 @@ impl ErrorCode {
     pub const INTERNAL_ERROR: ErrorCode = ErrorCode {
         code: -32603,
         message: "Internal error",
+        meta: None,
     };
 
     /// Authentication is required before this operation can be performed.
@@ -145,6 +157,7 @@ impl ErrorCode {
     pub const AUTH_REQUIRED: ErrorCode = ErrorCode {
         code: -32000,
         message: "Authentication required",
+        meta: None,
     };
 }
 

@@ -149,8 +149,19 @@ All methods follow standard JSON-RPC 2.0 [error handling](https://www.jsonrpc.or
 - Errors include an `error` object with `code` and `message`
 - Notifications never receive responses (success or error)
 
+## Extensibility
+
+The protocol provides built-in mechanisms for adding custom functionality while maintaining compatibility:
+
+- Add custom data using `_meta` fields
+- Create custom methods with `_method` and `_notification`
+- Advertise custom capabilities during initialization
+
+Learn about [protocol extensibility](./extensibility) to understand how to use these mechanisms.
+
 ## Next Steps
 
 - Learn about [Initialization](./initialization) to understand version and capability negotiation
 - Understand [Session Setup](./session-setup) for creating and loading sessions
 - Review the [Prompt Turn](./prompt-turn) lifecycle
+- Explore [Extensibility](./extensibility) to add custom features

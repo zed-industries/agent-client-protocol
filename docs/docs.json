@@ -58,6 +58,7 @@
           "protocol/file-system",
           "protocol/terminals",
           "protocol/agent-plan",
+          "protocol/extensibility",
           "protocol/schema"
         ]
       },

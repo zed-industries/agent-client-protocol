@@ -12,8 +12,11 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
+use std::sync::Arc;
+
 use agent_client_protocol::{self as acp, Agent};
 use anyhow::bail;
+use serde_json::value::RawValue;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
@@ -98,6 +101,22 @@ impl acp::Client for ExampleClient {
         }
         Ok(())
     }
+
+    async fn ext_method(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn ext_notification(
+        &self,
+        _method: std::sync::Arc<str>,
+        _params: Arc<RawValue>,
+    ) -> Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -141,12 +160,14 @@ async fn main() -> anyhow::Result<()> {
             conn.initialize(acp::InitializeRequest {
                 protocol_version: acp::V1,
                 client_capabilities: acp::ClientCapabilities::default(),
+                meta: None,
             })
             .await?;
             let response = conn
                 .new_session(acp::NewSessionRequest {
                     mcp_servers: Vec::new(),
                     cwd: std::env::current_dir()?,
+                    meta: None,
                 })
                 .await?;
 
@@ -157,6 +178,7 @@ async fn main() -> anyhow::Result<()> {
                     .prompt(acp::PromptRequest {
                         session_id: response.session_id.clone(),
                         prompt: vec![line.into()],
+                        meta: None,
                     })
                     .await;
                 if let Err(e) = result {

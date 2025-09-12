@@ -54,6 +54,7 @@ mod agent;
 mod client;
 mod content;
 mod error;
+mod ext;
 mod plan;
 mod rpc;
 #[cfg(test)]
@@ -66,6 +67,7 @@ pub use agent::*;
 pub use client::*;
 pub use content::*;
 pub use error::*;
+pub use ext::*;
 pub use plan::*;
 pub use stream_broadcast::{
     StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver,
@@ -232,6 +234,32 @@ impl Agent for ClientSideConnection {
             Some(ClientNotification::CancelNotification(notification)),
         )
     }
+
+    async fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        self.conn
+            .request(
+                format!("_{method}"),
+                Some(ClientRequest::ExtMethodRequest(ExtMethod {
+                    method,
+                    params,
+                })),
+            )
+            .await
+    }
+
+    async fn ext_notification(&self, method: Arc<str>, params: Arc<RawValue>) -> Result<(), Error> {
+        self.conn.notify(
+            format!("_{method}"),
+            Some(ClientNotification::ExtNotification(ExtMethod {
+                method,
+                params,
+            })),
+        )
+    }
 }
 
 /// Marker type representing the client side of an ACP connection.
@@ -276,7 +304,16 @@ impl Side for ClientSide {
             TERMINAL_WAIT_FOR_EXIT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(AgentRequest::WaitForTerminalExitRequest)
                 .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(AgentRequest::ExtMethodRequest(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 
@@ -290,7 +327,16 @@ impl Side for ClientSide {
             SESSION_UPDATE_NOTIFICATION => serde_json::from_str(params.get())
                 .map(AgentNotification::SessionNotification)
                 .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(AgentNotification::ExtNotification(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 }
@@ -330,6 +376,10 @@ impl<T: Client> MessageHandler<ClientSide> for T {
                 self.kill_terminal_command(args).await?;
                 Ok(ClientResponse::KillTerminalResponse)
             }
+            AgentRequest::ExtMethodRequest(args) => {
+                let response = self.ext_method(args.method, args.params).await?;
+                Ok(ClientResponse::ExtMethodResponse(response))
+            }
         }
     }
 
@@ -337,6 +387,9 @@ impl<T: Client> MessageHandler<ClientSide> for T {
         match notification {
             AgentNotification::SessionNotification(notification) => {
                 self.session_notification(notification).await?;
+            }
+            AgentNotification::ExtNotification(args) => {
+                self.ext_notification(args.method, args.params).await?;
             }
         }
         Ok(())
@@ -497,6 +550,29 @@ impl Client for AgentSideConnection {
             Some(AgentNotification::SessionNotification(notification)),
         )
     }
+
+    async fn ext_method(
+        &self,
+        method: Arc<str>,
+        params: Arc<RawValue>,
+    ) -> Result<Arc<RawValue>, Error> {
+        self.conn
+            .request(
+                format!("_{method}"),
+                Some(AgentRequest::ExtMethodRequest(ExtMethod { method, params })),
+            )
+            .await
+    }
+
+    async fn ext_notification(&self, method: Arc<str>, params: Arc<RawValue>) -> Result<(), Error> {
+        self.conn.notify(
+            format!("_{method}"),
+            Some(AgentNotification::ExtNotification(ExtMethod {
+                method,
+                params,
+            })),
+        )
+    }
 }
 
 /// Marker type representing the agent side of an ACP connection.
@@ -536,7 +612,16 @@ impl Side for AgentSide {
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::PromptRequest)
                 .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(ClientRequest::ExtMethodRequest(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 
@@ -550,7 +635,16 @@ impl Side for AgentSide {
             SESSION_CANCEL_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientNotification::CancelNotification)
                 .map_err(Into::into),
-            _ => Err(Error::method_not_found()),
+            _ => {
+                if let Some(custom_method) = method.strip_prefix('_') {
+                    Ok(ClientNotification::ExtNotification(ExtMethod {
+                        method: custom_method.into(),
+                        params: RawValue::from_string(params.get().to_string())?.into(),
+                    }))
+                } else {
+                    Err(Error::method_not_found())
+                }
+            }
         }
     }
 }
@@ -583,6 +677,10 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 let response = self.set_session_mode(args).await?;
                 Ok(AgentResponse::SetSessionModeResponse(response))
             }
+            ClientRequest::ExtMethodRequest(args) => {
+                let response = self.ext_method(args.method, args.params).await?;
+                Ok(AgentResponse::ExtMethodResponse(response))
+            }
         }
     }
 
@@ -590,6 +688,9 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
         match notification {
             ClientNotification::CancelNotification(notification) => {
                 self.cancel(notification).await?;
+            }
+            ClientNotification::ExtNotification(args) => {
+                self.ext_notification(args.method, args.params).await?;
             }
         }
         Ok(())

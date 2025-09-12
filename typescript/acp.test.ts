@@ -544,4 +544,226 @@ describe("Connection", () => {
     expect(response.authMethods).toHaveLength(1);
     expect(response.authMethods?.[0].id).toBe("oauth");
   });
+
+  it("handles extension methods and notifications", async () => {
+    const extensionLog: string[] = [];
+
+    // Create client with extension method support
+    class TestClient implements Client {
+      async writeTextFile(
+        _: WriteTextFileRequest,
+      ): Promise<WriteTextFileResponse> {
+        return null;
+      }
+      async readTextFile(
+        _: ReadTextFileRequest,
+      ): Promise<ReadTextFileResponse> {
+        return { content: "test" };
+      }
+      async requestPermission(
+        _: RequestPermissionRequest,
+      ): Promise<RequestPermissionResponse> {
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: "allow",
+          },
+        };
+      }
+      async sessionUpdate(_: SessionNotification): Promise<void> {
+        // no-op
+      }
+      async extMethod(
+        method: string,
+        params: Record<string, unknown>,
+      ): Promise<Record<string, unknown>> {
+        if (method === "example.com/ping") {
+          return { response: "pong", params };
+        }
+        throw new Error(`Unknown method: ${method}`);
+      }
+      async extNotification(
+        method: string,
+        params: Record<string, unknown>,
+      ): Promise<void> {
+        extensionLog.push(`client extNotification: ${method}`);
+      }
+    }
+
+    // Create agent with extension method support
+    class TestAgent implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: PROTOCOL_VERSION,
+          agentCapabilities: { loadSession: false },
+        };
+      }
+      async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
+        return { sessionId: "test-session" };
+      }
+      async authenticate(_: AuthenticateRequest): Promise<void> {
+        // no-op
+      }
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
+      }
+      async cancel(_: CancelNotification): Promise<void> {
+        // no-op
+      }
+      async extMethod(
+        method: string,
+        params: Record<string, unknown>,
+      ): Promise<Record<string, unknown>> {
+        if (method === "example.com/echo") {
+          return { echo: params };
+        }
+        throw new Error(`Unknown method: ${method}`);
+      }
+      async extNotification(
+        method: string,
+        params: Record<string, unknown>,
+      ): Promise<void> {
+        extensionLog.push(`agent extNotification: ${method}`);
+      }
+    }
+
+    const agentConnection = new ClientSideConnection(
+      () => new TestClient(),
+      clientToAgent.writable,
+      agentToClient.readable,
+    );
+
+    const clientConnection = new AgentSideConnection(
+      () => new TestAgent(),
+      agentToClient.writable,
+      clientToAgent.readable,
+    );
+
+    // Test agent calling client extension method
+    const clientResponse = await clientConnection.extMethod(
+      "example.com/ping",
+      {
+        data: "test",
+      },
+    );
+    expect(clientResponse).toEqual({
+      response: "pong",
+      params: { data: "test" },
+    });
+
+    // Test client calling agent extension method
+    const agentResponse = await agentConnection.extMethod("example.com/echo", {
+      message: "hello",
+    });
+    expect(agentResponse).toEqual({ echo: { message: "hello" } });
+
+    // Test extension notifications
+    await clientConnection.extNotification("example.com/client/notify", {
+      info: "client notification",
+    });
+    await agentConnection.extNotification("example.com/agent/notify", {
+      info: "agent notification",
+    });
+
+    // Wait a bit for async handlers
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Verify notifications were logged
+    expect(extensionLog).toContain(
+      "client extNotification: example.com/client/notify",
+    );
+    expect(extensionLog).toContain(
+      "agent extNotification: example.com/agent/notify",
+    );
+  });
+
+  it("handles optional extension methods correctly", async () => {
+    // Create client WITHOUT extension methods
+    class TestClientWithoutExtensions implements Client {
+      async writeTextFile(
+        _: WriteTextFileRequest,
+      ): Promise<WriteTextFileResponse> {
+        return null;
+      }
+      async readTextFile(
+        _: ReadTextFileRequest,
+      ): Promise<ReadTextFileResponse> {
+        return { content: "test" };
+      }
+      async requestPermission(
+        _: RequestPermissionRequest,
+      ): Promise<RequestPermissionResponse> {
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: "allow",
+          },
+        };
+      }
+      async sessionUpdate(_: SessionNotification): Promise<void> {
+        // no-op
+      }
+      // Note: No extMethod or extNotification implemented
+    }
+
+    // Create agent WITHOUT extension methods
+    class TestAgentWithoutExtensions implements Agent {
+      async initialize(_: InitializeRequest): Promise<InitializeResponse> {
+        return {
+          protocolVersion: PROTOCOL_VERSION,
+          agentCapabilities: { loadSession: false },
+        };
+      }
+      async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
+        return { sessionId: "test-session" };
+      }
+      async authenticate(_: AuthenticateRequest): Promise<void> {
+        // no-op
+      }
+      async prompt(_: PromptRequest): Promise<PromptResponse> {
+        return { stopReason: "end_turn" };
+      }
+      async cancel(_: CancelNotification): Promise<void> {
+        // no-op
+      }
+      // Note: No extMethod or extNotification implemented
+    }
+
+    const agentConnection = new ClientSideConnection(
+      () => new TestClientWithoutExtensions(),
+      clientToAgent.writable,
+      agentToClient.readable,
+    );
+
+    const clientConnection = new AgentSideConnection(
+      () => new TestAgentWithoutExtensions(),
+      agentToClient.writable,
+      clientToAgent.readable,
+    );
+
+    // Test that calling extension methods on connections without them throws method not found
+    try {
+      await clientConnection.extMethod("example.com/ping", { data: "test" });
+      expect.fail("Should have thrown method not found error");
+    } catch (error: any) {
+      expect(error.code).toBe(-32601); // Method not found
+      expect(error.data.method).toBe("_example.com/ping"); // Should show full method name with underscore
+    }
+
+    try {
+      await agentConnection.extMethod("example.com/echo", { message: "hello" });
+      expect.fail("Should have thrown method not found error");
+    } catch (error: any) {
+      expect(error.code).toBe(-32601); // Method not found
+      expect(error.data.method).toBe("_example.com/echo"); // Should show full method name with underscore
+    }
+
+    // Notifications should be ignored when not implemented (no error thrown)
+    await clientConnection.extNotification("example.com/notify", {
+      info: "test",
+    });
+    await agentConnection.extNotification("example.com/notify", {
+      info: "test",
+    });
+  });
 });

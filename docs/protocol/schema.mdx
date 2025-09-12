@@ -32,6 +32,9 @@ Specifies which authentication method to use.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="methodId"
   type={<a href="#authmethodid">AuthMethodId</a>}
@@ -67,6 +70,9 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="clientCapabilities" type={<a href="#clientcapabilities">ClientCapabilities</a>} >
   Capabilities supported by the client.
 
@@ -89,6 +95,9 @@ See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/ini
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="agentCapabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
@@ -135,6 +144,9 @@ See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/promp
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -170,6 +182,9 @@ See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/s
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="cwd" type={"string"} required>
   The working directory for this session.
 </ResponseField>
@@ -222,6 +237,9 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="cwd" type={"string"} required>
   The working directory for this session. Must be an absolute path.
 </ResponseField>
@@ -250,6 +268,9 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
   **UNSTABLE**
 
@@ -291,6 +312,9 @@ See protocol docs: [User Message](https://agentclientprotocol.com/protocol/promp
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="prompt" type={<><span><a href="#contentblock">ContentBlock</a></span><span>[]</span></>} required>
   The blocks of content that compose the user's message.
 
@@ -321,6 +345,9 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="stopReason"
   type={<a href="#stopreason">StopReason</a>}
@@ -357,6 +384,9 @@ Only available if the client supports the `fs.readTextFile` capability.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="limit" type={"integer | null"} >
   Maximum number of lines to read.
 
@@ -396,6 +426,9 @@ Only available if the client supports the `fs.writeTextFile` capability.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="content" type={"string"} required>
   The text content to write to the file.
 </ResponseField>
@@ -436,6 +469,9 @@ See protocol docs: [Requesting Permission](https://agentclientprotocol.com/proto
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="options"
   type={
@@ -473,6 +509,9 @@ Response to a permission request.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="outcome"
   type={<a href="#requestpermissionoutcome">RequestPermissionOutcome</a>}
@@ -508,6 +547,9 @@ See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protoc
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -549,6 +591,9 @@ Request to create a new terminal and execute a command.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
   Array of command arguments.
 </ResponseField>
@@ -586,6 +631,9 @@ Response containing the ID of the created terminal.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="terminalId" type={"string"} required>
   The unique identifier for the created terminal.
 </ResponseField>
@@ -614,6 +662,9 @@ Request to kill a terminal command without releasing the terminal.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -643,6 +694,9 @@ Request to get the current output and status of a terminal.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -662,6 +716,9 @@ Response containing the terminal output and exit status.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="exitStatus"
   type={
@@ -706,6 +763,9 @@ Request to release a terminal and free its resources.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -732,6 +792,9 @@ Request to wait for a terminal command to exit.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="sessionId"
   type={<a href="#sessionid">SessionId</a>}
@@ -751,6 +814,9 @@ Response containing the exit status of a terminal command.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="exitCode" type={"integer | null"} >
   The process exit code (may be null if terminated by signal).
 
@@ -774,6 +840,9 @@ See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="loadSession" type={"boolean"} >
   Whether the agent supports `session/load`.
 
@@ -801,6 +870,9 @@ Optional annotations for the client. The client can use annotations to inform ho
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="audience" type={"array | null"}></ResponseField>
 <ResponseField name="lastModified" type={"string | null"}></ResponseField>
 <ResponseField name="priority" type={"number | null"}></ResponseField>
@@ -813,6 +885,9 @@ Audio provided to or from an LLM.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -835,6 +910,9 @@ Describes an available authentication method.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="description" type={"string | null"}>
   Optional description providing more details about this authentication method.
 </ResponseField>
@@ -863,6 +941,9 @@ Information about a command.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="description" type={"string"} required>
   Human-readable description of what the command does.
 </ResponseField>
@@ -907,6 +988,9 @@ Binary resource contents.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="blob" type={"string"} required></ResponseField>
 <ResponseField name="mimeType" type={"string | null"}></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
@@ -924,6 +1008,9 @@ See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protoco
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="fs" type={<a href="#filesystemcapability">FileSystemCapability</a>} >
   File system capabilities supported by the client.
 Determines which file operations the agent can request.
@@ -965,6 +1052,9 @@ All agents MUST support text content blocks in prompts.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -989,6 +1079,9 @@ Requires the `image` prompt capability when included in prompts.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1015,6 +1108,9 @@ Requires the `audio` prompt capability when included in prompts.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1040,6 +1136,9 @@ All agents MUST support resource links in prompts.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1071,6 +1170,9 @@ Requires the `embeddedContext` prompt capability when included in prompts.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1100,6 +1202,9 @@ The contents of a resource, embedded into a prompt or tool call result.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1128,6 +1233,9 @@ Resource content that can be embedded in a message.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="mimeType" type={"string | null"}></ResponseField>
 <ResponseField name="text" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
@@ -1140,6 +1248,9 @@ Resource content that can be embedded in a message.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="blob" type={"string"} required></ResponseField>
 <ResponseField name="mimeType" type={"string | null"}></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
@@ -1155,6 +1266,9 @@ An environment variable to set when launching an MCP server.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="name" type={"string"} required>
   The name of the environment variable.
 </ResponseField>
@@ -1172,6 +1286,9 @@ See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initial
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="readTextFile" type={"boolean"} >
   Whether the Client supports `fs/read_text_file` requests.
 
@@ -1193,6 +1310,9 @@ An HTTP header to set when making requests to the MCP server.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="name" type={"string"} required>
   The name of the HTTP header.
 </ResponseField>
@@ -1208,6 +1328,9 @@ An image provided to or from an LLM.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1231,6 +1354,9 @@ Response from loading an existing session.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
   **UNSTABLE**
 
@@ -1246,6 +1372,9 @@ MCP capabilities supported by the agent
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="http" type={"boolean"} >
   Agent supports `McpServer::Http`.
 
@@ -1385,6 +1514,9 @@ An option presented to the user when requesting permission.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="kind"
   type={<a href="#permissionoptionkind">PermissionOptionKind</a>}
@@ -1447,6 +1579,9 @@ See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-p
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="entries" type={<><span><a href="#planentry">PlanEntry</a></span><span>[]</span></>} required>
   The list of tasks to be accomplished.
 
@@ -1467,6 +1602,9 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="content" type={"string"} required>
   Human-readable description of what this task aims to accomplish.
 </ResponseField>
@@ -1546,6 +1684,9 @@ See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protoco
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="audio" type={"boolean"} >
   Agent supports `ContentBlock::Audio`.
 
@@ -1590,6 +1731,9 @@ Response containing the contents of a text file.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="content" type={"string"} required></ResponseField>
 
 ## <span class="font-mono">RequestPermissionOutcome</span>
@@ -1639,6 +1783,9 @@ A resource that the server is capable of reading, included in a prompt or tool c
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -1698,6 +1845,9 @@ This type is not part of the spec, and may be removed or changed at any point.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="description" type={"string | null"}></ResponseField>
 <ResponseField
   name="id"
@@ -1724,6 +1874,9 @@ This type is not part of the spec, and may be removed or changed at any point.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="availableModes"
   type={
@@ -1802,6 +1955,9 @@ Notification that a new tool call has been initiated.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="content"
   type={
@@ -1865,6 +2021,9 @@ Update on the status or results of a tool call.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="content" type={"array | null"}>
   Replace the content collection.
 </ResponseField>
@@ -1924,6 +2083,9 @@ See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-p
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="entries" type={<><span><a href="#planentry">PlanEntry</a></span><span>[]</span></>} required>
   The list of tasks to be accomplished.
 
@@ -2025,6 +2187,9 @@ Exit status of a terminal command.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="exitCode" type={"integer | null"} >
   The process exit code (may be null if terminated by signal).
 
@@ -2043,6 +2208,9 @@ Text provided to or from an LLM.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="annotations"
   type={
@@ -2064,6 +2232,9 @@ Text-based resource contents.
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="mimeType" type={"string | null"}></ResponseField>
 <ResponseField name="text" type={"string"} required></ResponseField>
 <ResponseField name="uri" type={"string"} required></ResponseField>
@@ -2081,6 +2252,9 @@ See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-ca
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField
   name="content"
   type={
@@ -2168,6 +2342,9 @@ File modification shown as a diff.
 
 <Expandable title="Properties">
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="newText" type={"string"} required>
   The new content after modification.
 </ResponseField>
@@ -2216,6 +2393,9 @@ See protocol docs: [Following the Agent](https://agentclientprotocol.com/protoco
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"} >
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="line" type={"integer | null"} >
   Optional line number within the file.
 
@@ -2264,6 +2444,9 @@ See protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-call
 
 **Properties:**
 
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
 <ResponseField name="content" type={"array | null"}>
   Replace the content collection.
 </ResponseField>

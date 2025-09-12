@@ -48,7 +48,8 @@ export type ClientRequest =
   | TerminalOutputRequest
   | ReleaseTerminalRequest
   | WaitForTerminalExitRequest
-  | KillTerminalCommandRequest;
+  | KillTerminalCommandRequest
+  | ExtMethodRequest;
 /**
  * Content produced by a tool call.
  *
@@ -77,11 +78,23 @@ export type ToolCallContent =
        */
       content:
         | {
+            /**
+             * Extension point for implementations
+             */
+            _meta?: {
+              [k: string]: unknown;
+            };
             annotations?: Annotations | null;
             text: string;
             type: "text";
           }
         | {
+            /**
+             * Extension point for implementations
+             */
+            _meta?: {
+              [k: string]: unknown;
+            };
             annotations?: Annotations | null;
             data: string;
             mimeType: string;
@@ -89,12 +102,24 @@ export type ToolCallContent =
             uri?: string | null;
           }
         | {
+            /**
+             * Extension point for implementations
+             */
+            _meta?: {
+              [k: string]: unknown;
+            };
             annotations?: Annotations | null;
             data: string;
             mimeType: string;
             type: "audio";
           }
         | {
+            /**
+             * Extension point for implementations
+             */
+            _meta?: {
+              [k: string]: unknown;
+            };
             annotations?: Annotations | null;
             description?: string | null;
             mimeType?: string | null;
@@ -105,6 +130,12 @@ export type ToolCallContent =
             uri: string;
           }
         | {
+            /**
+             * Extension point for implementations
+             */
+            _meta?: {
+              [k: string]: unknown;
+            };
             annotations?: Annotations | null;
             resource: EmbeddedResourceResource;
             type: "resource";
@@ -112,6 +143,12 @@ export type ToolCallContent =
       type: "content";
     }
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       /**
        * The new content after modification.
        */
@@ -184,7 +221,8 @@ export type ClientResponse =
   | TerminalOutputResponse
   | ReleaseTerminalResponse
   | WaitForTerminalExitResponse
-  | KillTerminalResponse;
+  | KillTerminalResponse
+  | ExtMethodResponse;
 export type WriteTextFileResponse = null;
 export type ReleaseTerminalResponse = null;
 export type KillTerminalResponse = null;
@@ -197,7 +235,7 @@ export type KillTerminalResponse = null;
  * Notifications do not expect a response.
  */
 /** @internal */
-export type ClientNotification = CancelNotification;
+export type ClientNotification = CancelNotification | ExtNotification;
 /**
  * All possible requests that a client can send to an agent.
  *
@@ -213,7 +251,8 @@ export type AgentRequest =
   | NewSessionRequest
   | LoadSessionRequest
   | SetSessionModeRequest
-  | PromptRequest;
+  | PromptRequest
+  | ExtMethodRequest1;
 /**
  * Configuration for connecting to an MCP (Model Context Protocol) server.
  *
@@ -296,11 +335,23 @@ export type SessionId = string;
  */
 export type ContentBlock =
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       annotations?: Annotations | null;
       text: string;
       type: "text";
     }
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       annotations?: Annotations | null;
       data: string;
       mimeType: string;
@@ -308,12 +359,24 @@ export type ContentBlock =
       uri?: string | null;
     }
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       annotations?: Annotations | null;
       data: string;
       mimeType: string;
       type: "audio";
     }
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       annotations?: Annotations | null;
       description?: string | null;
       mimeType?: string | null;
@@ -324,6 +387,12 @@ export type ContentBlock =
       uri: string;
     }
   | {
+      /**
+       * Extension point for implementations
+       */
+      _meta?: {
+        [k: string]: unknown;
+      };
       annotations?: Annotations | null;
       resource: EmbeddedResourceResource;
       type: "resource";
@@ -343,7 +412,8 @@ export type AgentResponse =
   | NewSessionResponse
   | LoadSessionResponse
   | SetSessionModeResponse
-  | PromptResponse;
+  | PromptResponse
+  | ExtMethodResponse1;
 export type AuthenticateResponse = null;
 /**
  * All possible notifications that an agent can send to a client.
@@ -354,7 +424,7 @@ export type AuthenticateResponse = null;
  * Notifications do not expect a response.
  */
 /** @internal */
-export type AgentNotification = SessionNotification;
+export type AgentNotification = SessionNotification | ExtNotification1;
 export type AvailableCommandInput = UnstructuredCommandInput;
 
 /**
@@ -363,6 +433,12 @@ export type AvailableCommandInput = UnstructuredCommandInput;
  * Only available if the client supports the `fs.writeTextFile` capability.
  */
 export interface WriteTextFileRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The text content to write to the file.
    */
@@ -382,6 +458,12 @@ export interface WriteTextFileRequest {
  * Only available if the client supports the `fs.readTextFile` capability.
  */
 export interface ReadTextFileRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Maximum number of lines to read.
    */
@@ -408,6 +490,12 @@ export interface ReadTextFileRequest {
  */
 export interface RequestPermissionRequest {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Available permission options for the user to choose from.
    */
   options: PermissionOption[];
@@ -421,6 +509,12 @@ export interface RequestPermissionRequest {
  * An option presented to the user when requesting permission.
  */
 export interface PermissionOption {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Hint about the nature of this permission option.
    */
@@ -438,6 +532,12 @@ export interface PermissionOption {
  * Details about the tool call requiring permission.
  */
 export interface ToolCallUpdate {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Replace the content collection.
    */
@@ -479,6 +579,12 @@ export interface ToolCallUpdate {
  * Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
  */
 export interface Annotations {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   audience?: Role[] | null;
   lastModified?: string | null;
   priority?: number | null;
@@ -487,6 +593,12 @@ export interface Annotations {
  * Text-based resource contents.
  */
 export interface TextResourceContents {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   mimeType?: string | null;
   text: string;
   uri: string;
@@ -495,6 +607,12 @@ export interface TextResourceContents {
  * Binary resource contents.
  */
 export interface BlobResourceContents {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   blob: string;
   mimeType?: string | null;
   uri: string;
@@ -509,6 +627,12 @@ export interface BlobResourceContents {
  */
 export interface ToolCallLocation {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Optional line number within the file.
    */
   line?: number | null;
@@ -521,6 +645,12 @@ export interface ToolCallLocation {
  * Request to create a new terminal and execute a command.
  */
 export interface CreateTerminalRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Array of command arguments.
    */
@@ -558,6 +688,12 @@ export interface CreateTerminalRequest {
  */
 export interface EnvVariable {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The name of the environment variable.
    */
   name: string;
@@ -570,6 +706,12 @@ export interface EnvVariable {
  * Request to get the current output and status of a terminal.
  */
 export interface TerminalOutputRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The session ID for this request.
    */
@@ -584,6 +726,12 @@ export interface TerminalOutputRequest {
  */
 export interface ReleaseTerminalRequest {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The session ID for this request.
    */
   sessionId: string;
@@ -596,6 +744,12 @@ export interface ReleaseTerminalRequest {
  * Request to wait for a terminal command to exit.
  */
 export interface WaitForTerminalExitRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The session ID for this request.
    */
@@ -610,6 +764,12 @@ export interface WaitForTerminalExitRequest {
  */
 export interface KillTerminalCommandRequest {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The session ID for this request.
    */
   sessionId: string;
@@ -618,16 +778,31 @@ export interface KillTerminalCommandRequest {
    */
   terminalId: string;
 }
+export interface ExtMethodRequest {
+  [k: string]: unknown;
+}
 /**
  * Response containing the contents of a text file.
  */
 export interface ReadTextFileResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   content: string;
 }
 /**
  * Response to a permission request.
  */
 export interface RequestPermissionResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The user's decision on the permission request.
    */
@@ -648,6 +823,12 @@ export interface RequestPermissionResponse {
  */
 export interface CreateTerminalResponse {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The unique identifier for the created terminal.
    */
   terminalId: string;
@@ -656,6 +837,12 @@ export interface CreateTerminalResponse {
  * Response containing the terminal output and exit status.
  */
 export interface TerminalOutputResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Exit status if the command has completed.
    */
@@ -674,6 +861,12 @@ export interface TerminalOutputResponse {
  */
 export interface TerminalExitStatus {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The process exit code (may be null if terminated by signal).
    */
   exitCode?: number | null;
@@ -687,6 +880,12 @@ export interface TerminalExitStatus {
  */
 export interface WaitForTerminalExitResponse {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The process exit code (may be null if terminated by signal).
    */
   exitCode?: number | null;
@@ -695,6 +894,9 @@ export interface WaitForTerminalExitResponse {
    */
   signal?: string | null;
 }
+export interface ExtMethodResponse {
+  [k: string]: unknown;
+}
 /**
  * Notification to cancel ongoing operations for a session.
  *
@@ -702,9 +904,18 @@ export interface WaitForTerminalExitResponse {
  */
 export interface CancelNotification {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The ID of the session to cancel operations for.
    */
   sessionId: string;
+}
+export interface ExtNotification {
+  [k: string]: unknown;
 }
 /**
  * Request parameters for the initialize method.
@@ -714,6 +925,12 @@ export interface CancelNotification {
  * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
  */
 export interface InitializeRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   clientCapabilities?: ClientCapabilities;
   /**
    * The latest protocol version supported by the client.
@@ -724,6 +941,12 @@ export interface InitializeRequest {
  * Capabilities supported by the client.
  */
 export interface ClientCapabilities {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   fs?: FileSystemCapability;
   /**
    * Whether the Client support all `terminal/*` methods.
@@ -735,6 +958,12 @@ export interface ClientCapabilities {
  * Determines which file operations the agent can request.
  */
 export interface FileSystemCapability {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Whether the Client supports `fs/read_text_file` requests.
    */
@@ -751,6 +980,12 @@ export interface FileSystemCapability {
  */
 export interface AuthenticateRequest {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The ID of the authentication method to use.
    * Must be one of the methods advertised in the initialize response.
    */
@@ -762,6 +997,12 @@ export interface AuthenticateRequest {
  * See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
  */
 export interface NewSessionRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The working directory for this session. Must be an absolute path.
    */
@@ -775,6 +1016,12 @@ export interface NewSessionRequest {
  * An HTTP header to set when making requests to the MCP server.
  */
 export interface HttpHeader {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The name of the HTTP header.
    */
@@ -816,6 +1063,12 @@ export interface Stdio {
  */
 export interface LoadSessionRequest {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * The working directory for this session.
    */
   cwd: string;
@@ -834,6 +1087,12 @@ export interface LoadSessionRequest {
  * This type is not part of the spec, and may be removed or changed at any point.
  */
 export interface SetSessionModeRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   modeId: SessionModeId;
   sessionId: SessionId;
 }
@@ -845,6 +1104,12 @@ export interface SetSessionModeRequest {
  * See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
  */
 export interface PromptRequest {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The blocks of content that compose the user's message.
    *
@@ -880,6 +1145,9 @@ export interface PromptRequest {
    */
   sessionId: string;
 }
+export interface ExtMethodRequest1 {
+  [k: string]: unknown;
+}
 /**
  * Response from the initialize method.
  *
@@ -888,6 +1156,12 @@ export interface PromptRequest {
  * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
  */
 export interface InitializeResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   agentCapabilities?: AgentCapabilities;
   /**
    * Authentication methods supported by the agent.
@@ -906,6 +1180,12 @@ export interface InitializeResponse {
  */
 export interface AgentCapabilities {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Whether the agent supports `session/load`.
    */
   loadSession?: boolean;
@@ -916,6 +1196,12 @@ export interface AgentCapabilities {
  * MCP capabilities supported by the agent.
  */
 export interface McpCapabilities {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Agent supports [`McpServer::Http`].
    */
@@ -929,6 +1215,12 @@ export interface McpCapabilities {
  * Prompt capabilities supported by the agent.
  */
 export interface PromptCapabilities {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Agent supports [`ContentBlock::Audio`].
    */
@@ -950,6 +1242,12 @@ export interface PromptCapabilities {
  */
 export interface AuthMethod {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Optional description providing more details about this authentication method.
    */
   description?: string | null;
@@ -969,6 +1267,12 @@ export interface AuthMethod {
  */
 export interface NewSessionResponse {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * **UNSTABLE**
    *
    * This field is not part of the spec, and may be removed or changed at any point.
@@ -987,6 +1291,12 @@ export interface NewSessionResponse {
  * This type is not part of the spec, and may be removed or changed at any point.
  */
 export interface SessionModeState {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   availableModes: SessionMode[];
   currentModeId: SessionModeId;
 }
@@ -996,6 +1306,12 @@ export interface SessionModeState {
  * This type is not part of the spec, and may be removed or changed at any point.
  */
 export interface SessionMode {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   description?: string | null;
   id: SessionModeId;
   name: string;
@@ -1004,6 +1320,12 @@ export interface SessionMode {
  * Response from loading an existing session.
  */
 export interface LoadSessionResponse {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * **UNSTABLE**
    *
@@ -1024,6 +1346,12 @@ export interface SetSessionModeResponse {}
  */
 export interface PromptResponse {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Indicates why the agent stopped processing the turn.
    */
   stopReason:
@@ -1033,6 +1361,9 @@ export interface PromptResponse {
     | "refusal"
     | "cancelled";
 }
+export interface ExtMethodResponse1 {
+  [k: string]: unknown;
+}
 /**
  * Notification containing a session update from the agent.
  *
@@ -1041,6 +1372,12 @@ export interface PromptResponse {
  * See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
  */
 export interface SessionNotification {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * The ID of the session this update pertains to.
    */
@@ -1062,6 +1399,12 @@ export interface SessionNotification {
         sessionUpdate: "agent_thought_chunk";
       }
     | {
+        /**
+         * Extension point for implementations
+         */
+        _meta?: {
+          [k: string]: unknown;
+        };
         /**
          * Content produced by the tool call.
          */
@@ -1114,6 +1457,12 @@ export interface SessionNotification {
       }
     | {
         /**
+         * Extension point for implementations
+         */
+        _meta?: {
+          [k: string]: unknown;
+        };
+        /**
          * Replace the content collection.
          */
         content?: ToolCallContent[] | null;
@@ -1153,6 +1502,12 @@ export interface SessionNotification {
       }
     | {
         /**
+         * Extension point for implementations
+         */
+        _meta?: {
+          [k: string]: unknown;
+        };
+        /**
          * The list of tasks to be accomplished.
          *
          * When updating a plan, the agent must send a complete list of all entries
@@ -1179,6 +1534,12 @@ export interface SessionNotification {
  */
 export interface PlanEntry {
   /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
+  /**
    * Human-readable description of what this task aims to accomplish.
    */
   content: string;
@@ -1196,6 +1557,12 @@ export interface PlanEntry {
  * Information about a command.
  */
 export interface AvailableCommand {
+  /**
+   * Extension point for implementations
+   */
+  _meta?: {
+    [k: string]: unknown;
+  };
   /**
    * Human-readable description of what the command does.
    */
@@ -1218,9 +1585,13 @@ export interface UnstructuredCommandInput {
    */
   hint: string;
 }
+export interface ExtNotification1 {
+  [k: string]: unknown;
+}
 
 /** @internal */
 export const writeTextFileRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   content: z.string(),
   path: z.string(),
   sessionId: z.string(),
@@ -1228,6 +1599,7 @@ export const writeTextFileRequestSchema = z.object({
 
 /** @internal */
 export const readTextFileRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   limit: z.number().optional().nullable(),
   line: z.number().optional().nullable(),
   path: z.string(),
@@ -1236,33 +1608,41 @@ export const readTextFileRequestSchema = z.object({
 
 /** @internal */
 export const terminalOutputRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
   terminalId: z.string(),
 });
 
 /** @internal */
 export const releaseTerminalRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
   terminalId: z.string(),
 });
 
 /** @internal */
 export const waitForTerminalExitRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
   terminalId: z.string(),
 });
 
 /** @internal */
 export const killTerminalCommandRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
   terminalId: z.string(),
 });
+
+/** @internal */
+export const extMethodRequestSchema = z.record(z.unknown());
 
 /** @internal */
 export const roleSchema = z.union([z.literal("assistant"), z.literal("user")]);
 
 /** @internal */
 export const textResourceContentsSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   mimeType: z.string().optional().nullable(),
   text: z.string(),
   uri: z.string(),
@@ -1270,6 +1650,7 @@ export const textResourceContentsSchema = z.object({
 
 /** @internal */
 export const blobResourceContentsSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   blob: z.string(),
   mimeType: z.string().optional().nullable(),
   uri: z.string(),
@@ -1302,11 +1683,13 @@ export const writeTextFileResponseSchema = z.null();
 
 /** @internal */
 export const readTextFileResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   content: z.string(),
 });
 
 /** @internal */
 export const requestPermissionResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   outcome: z.union([
     z.object({
       outcome: z.literal("cancelled"),
@@ -1320,6 +1703,7 @@ export const requestPermissionResponseSchema = z.object({
 
 /** @internal */
 export const createTerminalResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   terminalId: z.string(),
 });
 
@@ -1328,6 +1712,7 @@ export const releaseTerminalResponseSchema = z.null();
 
 /** @internal */
 export const waitForTerminalExitResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   exitCode: z.number().optional().nullable(),
   signal: z.string().optional().nullable(),
 });
@@ -1336,17 +1721,29 @@ export const waitForTerminalExitResponseSchema = z.object({
 export const killTerminalResponseSchema = z.null();
 
 /** @internal */
+export const extMethodResponseSchema = z.record(z.unknown());
+
+/** @internal */
 export const cancelNotificationSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
 });
 
 /** @internal */
+export const extNotificationSchema = z.record(z.unknown());
+
+/** @internal */
 export const authenticateRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   methodId: z.string(),
 });
 
 /** @internal */
+export const extMethodRequest1Schema = z.record(z.unknown());
+
+/** @internal */
 export const httpHeaderSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   name: z.string(),
   value: z.string(),
 });
@@ -1359,6 +1756,7 @@ export const sessionIdSchema = z.string();
 
 /** @internal */
 export const annotationsSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   audience: z.array(roleSchema).optional().nullable(),
   lastModified: z.string().optional().nullable(),
   priority: z.number().optional().nullable(),
@@ -1378,6 +1776,7 @@ export const setSessionModeResponseSchema = z.object({});
 
 /** @internal */
 export const promptResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   stopReason: z.union([
     z.literal("end_turn"),
     z.literal("max_tokens"),
@@ -1388,12 +1787,19 @@ export const promptResponseSchema = z.object({
 });
 
 /** @internal */
+export const extMethodResponse1Schema = z.record(z.unknown());
+
+/** @internal */
+export const extNotification1Schema = z.record(z.unknown());
+
+/** @internal */
 export const unstructuredCommandInputSchema = z.object({
   hint: z.string(),
 });
 
 /** @internal */
 export const permissionOptionSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   kind: z.union([
     z.literal("allow_once"),
     z.literal("allow_always"),
@@ -1409,11 +1815,13 @@ export const toolCallContentSchema = z.union([
   z.object({
     content: z.union([
       z.object({
+        _meta: z.record(z.unknown()).optional(),
         annotations: annotationsSchema.optional().nullable(),
         text: z.string(),
         type: z.literal("text"),
       }),
       z.object({
+        _meta: z.record(z.unknown()).optional(),
         annotations: annotationsSchema.optional().nullable(),
         data: z.string(),
         mimeType: z.string(),
@@ -1421,12 +1829,14 @@ export const toolCallContentSchema = z.union([
         uri: z.string().optional().nullable(),
       }),
       z.object({
+        _meta: z.record(z.unknown()).optional(),
         annotations: annotationsSchema.optional().nullable(),
         data: z.string(),
         mimeType: z.string(),
         type: z.literal("audio"),
       }),
       z.object({
+        _meta: z.record(z.unknown()).optional(),
         annotations: annotationsSchema.optional().nullable(),
         description: z.string().optional().nullable(),
         mimeType: z.string().optional().nullable(),
@@ -1437,6 +1847,7 @@ export const toolCallContentSchema = z.union([
         uri: z.string(),
       }),
       z.object({
+        _meta: z.record(z.unknown()).optional(),
         annotations: annotationsSchema.optional().nullable(),
         resource: embeddedResourceResourceSchema,
         type: z.literal("resource"),
@@ -1445,6 +1856,7 @@ export const toolCallContentSchema = z.union([
     type: z.literal("content"),
   }),
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     newText: z.string(),
     oldText: z.string().optional().nullable(),
     path: z.string(),
@@ -1458,24 +1870,28 @@ export const toolCallContentSchema = z.union([
 
 /** @internal */
 export const toolCallLocationSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   line: z.number().optional().nullable(),
   path: z.string(),
 });
 
 /** @internal */
 export const envVariableSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   name: z.string(),
   value: z.string(),
 });
 
 /** @internal */
 export const terminalExitStatusSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   exitCode: z.number().optional().nullable(),
   signal: z.string().optional().nullable(),
 });
 
 /** @internal */
 export const fileSystemCapabilitySchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   readTextFile: z.boolean().optional(),
   writeTextFile: z.boolean().optional(),
 });
@@ -1507,6 +1923,7 @@ export const mcpServerSchema = z.union([
 
 /** @internal */
 export const setSessionModeRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   modeId: sessionModeIdSchema,
   sessionId: sessionIdSchema,
 });
@@ -1514,11 +1931,13 @@ export const setSessionModeRequestSchema = z.object({
 /** @internal */
 export const contentBlockSchema = z.union([
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     annotations: annotationsSchema.optional().nullable(),
     text: z.string(),
     type: z.literal("text"),
   }),
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     annotations: annotationsSchema.optional().nullable(),
     data: z.string(),
     mimeType: z.string(),
@@ -1526,12 +1945,14 @@ export const contentBlockSchema = z.union([
     uri: z.string().optional().nullable(),
   }),
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     annotations: annotationsSchema.optional().nullable(),
     data: z.string(),
     mimeType: z.string(),
     type: z.literal("audio"),
   }),
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     annotations: annotationsSchema.optional().nullable(),
     description: z.string().optional().nullable(),
     mimeType: z.string().optional().nullable(),
@@ -1542,6 +1963,7 @@ export const contentBlockSchema = z.union([
     uri: z.string(),
   }),
   z.object({
+    _meta: z.record(z.unknown()).optional(),
     annotations: annotationsSchema.optional().nullable(),
     resource: embeddedResourceResourceSchema,
     type: z.literal("resource"),
@@ -1550,6 +1972,7 @@ export const contentBlockSchema = z.union([
 
 /** @internal */
 export const authMethodSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   description: z.string().optional().nullable(),
   id: z.string(),
   name: z.string(),
@@ -1557,12 +1980,14 @@ export const authMethodSchema = z.object({
 
 /** @internal */
 export const mcpCapabilitiesSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   http: z.boolean().optional(),
   sse: z.boolean().optional(),
 });
 
 /** @internal */
 export const promptCapabilitiesSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   audio: z.boolean().optional(),
   embeddedContext: z.boolean().optional(),
   image: z.boolean().optional(),
@@ -1570,6 +1995,7 @@ export const promptCapabilitiesSchema = z.object({
 
 /** @internal */
 export const sessionModeSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   description: z.string().optional().nullable(),
   id: sessionModeIdSchema,
   name: z.string(),
@@ -1577,12 +2003,14 @@ export const sessionModeSchema = z.object({
 
 /** @internal */
 export const sessionModeStateSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   availableModes: z.array(sessionModeSchema),
   currentModeId: sessionModeIdSchema,
 });
 
 /** @internal */
 export const planEntrySchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   content: z.string(),
   priority: z.union([z.literal("high"), z.literal("medium"), z.literal("low")]),
   status: z.union([
@@ -1596,10 +2024,14 @@ export const planEntrySchema = z.object({
 export const availableCommandInputSchema = unstructuredCommandInputSchema;
 
 /** @internal */
-export const clientNotificationSchema = cancelNotificationSchema;
+export const clientNotificationSchema = z.union([
+  cancelNotificationSchema,
+  extNotificationSchema,
+]);
 
 /** @internal */
 export const createTerminalRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   args: z.array(z.string()).optional(),
   command: z.string(),
   cwd: z.string().optional().nullable(),
@@ -1610,6 +2042,7 @@ export const createTerminalRequestSchema = z.object({
 
 /** @internal */
 export const terminalOutputResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   exitStatus: terminalExitStatusSchema.optional().nullable(),
   output: z.string(),
   truncated: z.boolean(),
@@ -1617,12 +2050,14 @@ export const terminalOutputResponseSchema = z.object({
 
 /** @internal */
 export const newSessionRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   cwd: z.string(),
   mcpServers: z.array(mcpServerSchema),
 });
 
 /** @internal */
 export const loadSessionRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   cwd: z.string(),
   mcpServers: z.array(mcpServerSchema),
   sessionId: z.string(),
@@ -1630,23 +2065,27 @@ export const loadSessionRequestSchema = z.object({
 
 /** @internal */
 export const promptRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   prompt: z.array(contentBlockSchema),
   sessionId: z.string(),
 });
 
 /** @internal */
 export const newSessionResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   modes: sessionModeStateSchema.optional().nullable(),
   sessionId: z.string(),
 });
 
 /** @internal */
 export const loadSessionResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   modes: sessionModeStateSchema.optional().nullable(),
 });
 
 /** @internal */
 export const toolCallUpdateSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   content: z.array(toolCallContentSchema).optional().nullable(),
   kind: toolKindSchema.optional().nullable(),
   locations: z.array(toolCallLocationSchema).optional().nullable(),
@@ -1659,12 +2098,14 @@ export const toolCallUpdateSchema = z.object({
 
 /** @internal */
 export const clientCapabilitiesSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   fs: fileSystemCapabilitySchema.optional(),
   terminal: z.boolean().optional(),
 });
 
 /** @internal */
 export const agentCapabilitiesSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   loadSession: z.boolean().optional(),
   mcpCapabilities: mcpCapabilitiesSchema.optional(),
   promptCapabilities: promptCapabilitiesSchema.optional(),
@@ -1672,6 +2113,7 @@ export const agentCapabilitiesSchema = z.object({
 
 /** @internal */
 export const availableCommandSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   description: z.string(),
   input: availableCommandInputSchema.optional().nullable(),
   name: z.string(),
@@ -1687,10 +2129,12 @@ export const clientResponseSchema = z.union([
   releaseTerminalResponseSchema,
   waitForTerminalExitResponseSchema,
   killTerminalResponseSchema,
+  extMethodResponseSchema,
 ]);
 
 /** @internal */
 export const requestPermissionRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   options: z.array(permissionOptionSchema),
   sessionId: z.string(),
   toolCall: toolCallUpdateSchema,
@@ -1698,12 +2142,14 @@ export const requestPermissionRequestSchema = z.object({
 
 /** @internal */
 export const initializeRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   clientCapabilities: clientCapabilitiesSchema.optional(),
   protocolVersion: z.number(),
 });
 
 /** @internal */
 export const initializeResponseSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   agentCapabilities: agentCapabilitiesSchema.optional(),
   authMethods: z.array(authMethodSchema).optional(),
   protocolVersion: z.number(),
@@ -1711,6 +2157,7 @@ export const initializeResponseSchema = z.object({
 
 /** @internal */
 export const sessionNotificationSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
   sessionId: z.string(),
   update: z.union([
     z.object({
@@ -1726,6 +2173,7 @@ export const sessionNotificationSchema = z.object({
       sessionUpdate: z.literal("agent_thought_chunk"),
     }),
     z.object({
+      _meta: z.record(z.unknown()).optional(),
       content: z.array(toolCallContentSchema).optional(),
       kind: z
         .union([
@@ -1757,6 +2205,7 @@ export const sessionNotificationSchema = z.object({
       toolCallId: z.string(),
     }),
     z.object({
+      _meta: z.record(z.unknown()).optional(),
       content: z.array(toolCallContentSchema).optional().nullable(),
       kind: toolKindSchema.optional().nullable(),
       locations: z.array(toolCallLocationSchema).optional().nullable(),
@@ -1768,6 +2217,7 @@ export const sessionNotificationSchema = z.object({
       toolCallId: z.string(),
     }),
     z.object({
+      _meta: z.record(z.unknown()).optional(),
       entries: z.array(planEntrySchema),
       sessionUpdate: z.literal("plan"),
     }),
@@ -1792,6 +2242,7 @@ export const clientRequestSchema = z.union([
   releaseTerminalRequestSchema,
   waitForTerminalExitRequestSchema,
   killTerminalCommandRequestSchema,
+  extMethodRequestSchema,
 ]);
 
 /** @internal */
@@ -1802,6 +2253,7 @@ export const agentRequestSchema = z.union([
   loadSessionRequestSchema,
   setSessionModeRequestSchema,
   promptRequestSchema,
+  extMethodRequest1Schema,
 ]);
 
 /** @internal */
@@ -1812,10 +2264,14 @@ export const agentResponseSchema = z.union([
   loadSessionResponseSchema,
   setSessionModeResponseSchema,
   promptResponseSchema,
+  extMethodResponse1Schema,
 ]);
 
 /** @internal */
-export const agentNotificationSchema = sessionNotificationSchema;
+export const agentNotificationSchema = z.union([
+  sessionNotificationSchema,
+  extNotification1Schema,
+]);
 
 /** @internal */
 export const agentClientProtocolSchema = z.union([

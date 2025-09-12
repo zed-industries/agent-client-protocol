@@ -59,6 +59,9 @@ pub struct TextContent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
     pub text: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 impl<T: Into<String>> From<T> for ContentBlock {
@@ -66,6 +69,7 @@ impl<T: Into<String>> From<T> for ContentBlock {
         Self::Text(TextContent {
             annotations: None,
             text: value.into(),
+            meta: None,
         })
     }
 }
@@ -80,6 +84,9 @@ pub struct ImageContent {
     pub mime_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Audio provided to or from an LLM.
@@ -90,6 +97,9 @@ pub struct AudioContent {
     pub data: String,
     #[serde(rename = "mimeType")]
     pub mime_type: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// The contents of a resource, embedded into a prompt or tool call result.
@@ -98,6 +108,9 @@ pub struct EmbeddedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Annotations>,
     pub resource: EmbeddedResourceResource,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Resource content that can be embedded in a message.
@@ -115,6 +128,9 @@ pub struct TextResourceContents {
     pub mime_type: Option<String>,
     pub text: String,
     pub uri: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Binary resource contents.
@@ -124,6 +140,9 @@ pub struct BlobResourceContents {
     #[serde(rename = "mimeType", default, skip_serializing_if = "Option::is_none")]
     pub mime_type: Option<String>,
     pub uri: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// A resource that the server is capable of reading, included in a prompt or tool call result.
@@ -141,6 +160,9 @@ pub struct ResourceLink {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     pub uri: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
@@ -156,6 +178,9 @@ pub struct Annotations {
     pub last_modified: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<f64>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// The sender or recipient of messages and data in a conversation.

@@ -125,7 +125,7 @@ impl StreamSender {
             message: match message {
                 OutgoingMessage::Request { id, method, params } => StreamMessageContent::Request {
                     id: *id,
-                    method: (*method).into(),
+                    method: method.clone(),
                     params: serde_json::to_value(params).ok(),
                 },
                 OutgoingMessage::Response { id, result } => StreamMessageContent::Response {
@@ -137,7 +137,7 @@ impl StreamSender {
                 },
                 OutgoingMessage::Notification { method, params } => {
                     StreamMessageContent::Notification {
-                        method: (*method).into(),
+                        method: method.clone(),
                         params: serde_json::to_value(params).ok(),
                     }
                 }
@@ -256,7 +256,7 @@ impl<Local: Side, Remote: Side> From<OutgoingMessage<Local, Remote>> for StreamM
             message: match message {
                 OutgoingMessage::Request { id, method, params } => StreamMessageContent::Request {
                     id,
-                    method: method.into(),
+                    method,
                     params: serde_json::to_value(params).ok(),
                 },
                 OutgoingMessage::Response { id, result } => StreamMessageContent::Response {
@@ -268,7 +268,7 @@ impl<Local: Side, Remote: Side> From<OutgoingMessage<Local, Remote>> for StreamM
                 },
                 OutgoingMessage::Notification { method, params } => {
                     StreamMessageContent::Notification {
-                        method: method.into(),
+                        method,
                         params: serde_json::to_value(params).ok(),
                     }
                 }

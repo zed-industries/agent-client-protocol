@@ -3,6 +3,9 @@
     "AgentCapabilities": {
       "description": "Capabilities supported by the agent.\n\nAdvertised during initialization to inform the client about\navailable features and content types.\n\nSee protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "loadSession": {
           "default": false,
           "description": "Whether the agent supports `session/load`.",
@@ -33,6 +36,9 @@
         {
           "$ref": "#/$defs/SessionNotification",
           "title": "SessionNotification"
+        },
+        {
+          "title": "ExtNotification"
         }
       ],
       "description": "All possible notifications that an agent can send to a client.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Client`] trait instead.\n\nNotifications do not expect a response.",
@@ -71,6 +77,9 @@
         {
           "$ref": "#/$defs/KillTerminalCommandRequest",
           "title": "KillTerminalCommandRequest"
+        },
+        {
+          "title": "ExtMethodRequest"
         }
       ],
       "description": "All possible requests that an agent can send to a client.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Client`] trait.\n\nThis enum encompasses all method calls from agent to client.",
@@ -101,6 +110,9 @@
         {
           "$ref": "#/$defs/PromptResponse",
           "title": "PromptResponse"
+        },
+        {
+          "title": "ExtMethodResponse"
         }
       ],
       "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants.",
@@ -109,6 +121,9 @@
     "Annotations": {
       "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "audience": {
           "items": {
             "$ref": "#/$defs/Role"
@@ -128,6 +143,9 @@
     "AudioContent": {
       "description": "Audio provided to or from an LLM.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "annotations": {
           "anyOf": [
             {
@@ -151,6 +169,9 @@
     "AuthMethod": {
       "description": "Describes an available authentication method.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "description": {
           "description": "Optional description providing more details about this authentication method.",
           "type": ["string", "null"]
@@ -174,6 +195,9 @@
     "AuthenticateRequest": {
       "description": "Request parameters for the authenticate method.\n\nSpecifies which authentication method to use.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "methodId": {
           "$ref": "#/$defs/AuthMethodId",
           "description": "The ID of the authentication method to use.\nMust be one of the methods advertised in the initialize response."
@@ -187,6 +211,9 @@
     "AvailableCommand": {
       "description": "Information about a command.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "description": {
           "description": "Human-readable description of what the command does.",
           "type": "string"
@@ -229,6 +256,9 @@
     "BlobResourceContents": {
       "description": "Binary resource contents.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "blob": {
           "type": "string"
         },
@@ -245,6 +275,9 @@
     "CancelNotification": {
       "description": "Notification to cancel ongoing operations for a session.\n\nSee protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The ID of the session to cancel operations for."
@@ -258,6 +291,9 @@
     "ClientCapabilities": {
       "description": "Capabilities supported by the client.\n\nAdvertised during initialization to inform the agent about\navailable features and methods.\n\nSee protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "fs": {
           "$ref": "#/$defs/FileSystemCapability",
           "default": {
@@ -279,6 +315,9 @@
         {
           "$ref": "#/$defs/CancelNotification",
           "title": "CancelNotification"
+        },
+        {
+          "title": "ExtNotification"
         }
       ],
       "description": "All possible notifications that a client can send to an agent.\n\nThis enum is used internally for routing RPC notifications. You typically won't need\nto use this directly - use the notification methods on the [`Agent`] trait instead.\n\nNotifications do not expect a response.",
@@ -309,6 +348,9 @@
         {
           "$ref": "#/$defs/PromptRequest",
           "title": "PromptRequest"
+        },
+        {
+          "title": "ExtMethodRequest"
         }
       ],
       "description": "All possible requests that a client can send to an agent.\n\nThis enum is used internally for routing RPC requests. You typically won't need\nto use this directly - instead, use the methods on the [`Agent`] trait.\n\nThis enum encompasses all method calls from client to agent.",
@@ -347,6 +389,9 @@
         {
           "title": "KillTerminalResponse",
           "type": "null"
+        },
+        {
+          "title": "ExtMethodResponse"
         }
       ],
       "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
@@ -358,6 +403,9 @@
         {
           "description": "Plain text content\n\nAll agents MUST support text content blocks in prompts.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "annotations": {
               "anyOf": [
                 {
@@ -382,6 +430,9 @@
         {
           "description": "Images for visual context or analysis.\n\nRequires the `image` prompt capability when included in prompts.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "annotations": {
               "anyOf": [
                 {
@@ -412,6 +463,9 @@
         {
           "description": "Audio data for transcription or analysis.\n\nRequires the `audio` prompt capability when included in prompts.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "annotations": {
               "anyOf": [
                 {
@@ -439,6 +493,9 @@
         {
           "description": "References to resources that the agent can access.\n\nAll agents MUST support resource links in prompts.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "annotations": {
               "anyOf": [
                 {
@@ -479,6 +536,9 @@
         {
           "description": "Complete resource contents embedded directly in the message.\n\nPreferred for including context as it avoids extra round-trips.\n\nRequires the `embeddedContext` prompt capability when included in prompts.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "annotations": {
               "anyOf": [
                 {
@@ -505,6 +565,9 @@
     "CreateTerminalRequest": {
       "description": "Request to create a new terminal and execute a command.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "args": {
           "description": "Array of command arguments.",
           "items": {
@@ -546,6 +609,9 @@
     "CreateTerminalResponse": {
       "description": "Response containing the ID of the created terminal.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "terminalId": {
           "description": "The unique identifier for the created terminal.",
           "type": "string"
@@ -559,6 +625,9 @@
     "EmbeddedResource": {
       "description": "The contents of a resource, embedded into a prompt or tool call result.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "annotations": {
           "anyOf": [
             {
@@ -592,6 +661,9 @@
     "EnvVariable": {
       "description": "An environment variable to set when launching an MCP server.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "name": {
           "description": "The name of the environment variable.",
           "type": "string"
@@ -607,6 +679,9 @@
     "FileSystemCapability": {
       "description": "File system capabilities that a client may support.\n\nSee protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "readTextFile": {
           "default": false,
           "description": "Whether the Client supports `fs/read_text_file` requests.",
@@ -623,6 +698,9 @@
     "HttpHeader": {
       "description": "An HTTP header to set when making requests to the MCP server.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "name": {
           "description": "The name of the HTTP header.",
           "type": "string"
@@ -638,6 +716,9 @@
     "ImageContent": {
       "description": "An image provided to or from an LLM.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "annotations": {
           "anyOf": [
             {
@@ -664,6 +745,9 @@
     "InitializeRequest": {
       "description": "Request parameters for the initialize method.\n\nSent by the client to establish connection and negotiate capabilities.\n\nSee protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "clientCapabilities": {
           "$ref": "#/$defs/ClientCapabilities",
           "default": {
@@ -688,6 +772,9 @@
     "InitializeResponse": {
       "description": "Response from the initialize method.\n\nContains the negotiated protocol version and agent capabilities.\n\nSee protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "agentCapabilities": {
           "$ref": "#/$defs/AgentCapabilities",
           "default": {
@@ -725,6 +812,9 @@
     "KillTerminalCommandRequest": {
       "description": "Request to kill a terminal command without releasing the terminal.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The session ID for this request."
@@ -742,6 +832,9 @@
     "LoadSessionRequest": {
       "description": "Request parameters for loading an existing session.\n\nOnly available if the Agent supports the `loadSession` capability.\n\nSee protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "cwd": {
           "description": "The working directory for this session.",
           "type": "string"
@@ -766,6 +859,9 @@
     "LoadSessionResponse": {
       "description": "Response from loading an existing session.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "modes": {
           "anyOf": [
             {
@@ -783,6 +879,9 @@
     "McpCapabilities": {
       "description": "MCP capabilities supported by the agent",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "http": {
           "default": false,
           "description": "Agent supports [`McpServer::Http`].",
@@ -886,6 +985,9 @@
     "NewSessionRequest": {
       "description": "Request parameters for creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "cwd": {
           "description": "The working directory for this session. Must be an absolute path.",
           "type": "string"
@@ -906,6 +1008,9 @@
     "NewSessionResponse": {
       "description": "Response from creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "modes": {
           "anyOf": [
             {
@@ -930,6 +1035,9 @@
     "PermissionOption": {
       "description": "An option presented to the user when requesting permission.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "kind": {
           "$ref": "#/$defs/PermissionOptionKind",
           "description": "Hint about the nature of this permission option."
@@ -978,6 +1086,9 @@
     "Plan": {
       "description": "An execution plan for accomplishing complex tasks.\n\nPlans consist of multiple entries representing individual tasks or goals.\nAgents report plans to clients to provide visibility into their execution strategy.\nPlans can evolve during execution as the agent discovers new requirements or completes tasks.\n\nSee protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "entries": {
           "description": "The list of tasks to be accomplished.\n\nWhen updating a plan, the agent must send a complete list of all entries\nwith their current status. The client replaces the entire plan with each update.",
           "items": {
@@ -992,6 +1103,9 @@
     "PlanEntry": {
       "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.\nSee protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "content": {
           "description": "Human-readable description of what this task aims to accomplish.",
           "type": "string"
@@ -1051,6 +1165,9 @@
     "PromptCapabilities": {
       "description": "Prompt capabilities supported by the agent in `session/prompt` requests.\n\nBaseline agent functionality requires support for [`ContentBlock::Text`]\nand [`ContentBlock::ResourceLink`] in prompt requests.\n\nOther variants must be explicitly opted in to.\nCapabilities for different types of content in prompt requests.\n\nIndicates which content types beyond the baseline (text and resource links)\nthe agent can process.\n\nSee protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "audio": {
           "default": false,
           "description": "Agent supports [`ContentBlock::Audio`].",
@@ -1072,6 +1189,9 @@
     "PromptRequest": {
       "description": "Request parameters for sending a user prompt to the agent.\n\nContains the user's message and any additional context.\n\nSee protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "prompt": {
           "description": "The blocks of content that compose the user's message.\n\nAs a baseline, the Agent MUST support [`ContentBlock::Text`] and [`ContentBlock::ResourceLink`],\nwhile other variants are optionally enabled via [`PromptCapabilities`].\n\nThe Client MUST adapt its interface according to [`PromptCapabilities`].\n\nThe client MAY include referenced pieces of context as either\n[`ContentBlock::Resource`] or [`ContentBlock::ResourceLink`].\n\nWhen available, [`ContentBlock::Resource`] is preferred\nas it avoids extra round-trips and allows the message to include\npieces of context from sources the agent may not have access to.",
           "items": {
@@ -1092,6 +1212,9 @@
     "PromptResponse": {
       "description": "Response from processing a user prompt.\n\nSee protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "stopReason": {
           "$ref": "#/$defs/StopReason",
           "description": "Indicates why the agent stopped processing the turn."
@@ -1112,6 +1235,9 @@
     "ReadTextFileRequest": {
       "description": "Request to read content from a text file.\n\nOnly available if the client supports the `fs.readTextFile` capability.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "limit": {
           "description": "Maximum number of lines to read.",
           "format": "uint32",
@@ -1141,6 +1267,9 @@
     "ReadTextFileResponse": {
       "description": "Response containing the contents of a text file.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "content": {
           "type": "string"
         }
@@ -1151,6 +1280,9 @@
     "ReleaseTerminalRequest": {
       "description": "Request to release a terminal and free its resources.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The session ID for this request."
@@ -1199,6 +1331,9 @@
     "RequestPermissionRequest": {
       "description": "Request for user permission to execute a tool call.\n\nSent when the agent needs authorization before performing a sensitive operation.\n\nSee protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "options": {
           "description": "Available permission options for the user to choose from.",
           "items": {
@@ -1223,6 +1358,9 @@
     "RequestPermissionResponse": {
       "description": "Response to a permission request.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "outcome": {
           "$ref": "#/$defs/RequestPermissionOutcome",
           "description": "The user's decision on the permission request."
@@ -1236,6 +1374,9 @@
     "ResourceLink": {
       "description": "A resource that the server is capable of reading, included in a prompt or tool call result.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "annotations": {
           "anyOf": [
             {
@@ -1281,6 +1422,9 @@
     "SessionMode": {
       "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "description": {
           "type": ["string", "null"]
         },
@@ -1301,6 +1445,9 @@
     "SessionModeState": {
       "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "availableModes": {
           "items": {
             "$ref": "#/$defs/SessionMode"
@@ -1317,6 +1464,9 @@
     "SessionNotification": {
       "description": "Notification containing a session update from the agent.\n\nUsed to stream real-time progress and results during prompt processing.\n\nSee protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The ID of the session this update pertains to."
@@ -1379,6 +1529,9 @@
         {
           "description": "Notification that a new tool call has been initiated.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "content": {
               "description": "Content produced by the tool call.",
               "items": {
@@ -1426,6 +1579,9 @@
         {
           "description": "Update on the status or results of a tool call.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "content": {
               "description": "Replace the content collection.",
               "items": {
@@ -1487,6 +1643,9 @@
         {
           "description": "The agent's execution plan for complex tasks.\nSee protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "entries": {
               "description": "The list of tasks to be accomplished.\n\nWhen updating a plan, the agent must send a complete list of all entries\nwith their current status. The client replaces the entire plan with each update.",
               "items": {
@@ -1540,6 +1699,9 @@
     "SetSessionModeRequest": {
       "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "modeId": {
           "$ref": "#/$defs/SessionModeId"
         },
@@ -1588,6 +1750,9 @@
     "TerminalExitStatus": {
       "description": "Exit status of a terminal command.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "exitCode": {
           "description": "The process exit code (may be null if terminated by signal).",
           "format": "uint32",
@@ -1604,6 +1769,9 @@
     "TerminalOutputRequest": {
       "description": "Request to get the current output and status of a terminal.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The session ID for this request."
@@ -1621,6 +1789,9 @@
     "TerminalOutputResponse": {
       "description": "Response containing the terminal output and exit status.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "exitStatus": {
           "anyOf": [
             {
@@ -1649,6 +1820,9 @@
     "TextContent": {
       "description": "Text provided to or from an LLM.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "annotations": {
           "anyOf": [
             {
@@ -1669,6 +1843,9 @@
     "TextResourceContents": {
       "description": "Text-based resource contents.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "mimeType": {
           "type": ["string", "null"]
         },
@@ -1685,6 +1862,9 @@
     "ToolCall": {
       "description": "Represents a tool call that the language model has requested.\n\nTool calls are actions that the agent executes on behalf of the language model,\nsuch as reading files, executing code, or fetching data from external sources.\n\nSee protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-calls)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "content": {
           "description": "Content produced by the tool call.",
           "items": {
@@ -1746,6 +1926,9 @@
         {
           "description": "File modification shown as a diff.",
           "properties": {
+            "_meta": {
+              "description": "Extension point for implementations"
+            },
             "newText": {
               "description": "The new content after modification.",
               "type": "string"
@@ -1789,6 +1972,9 @@
     "ToolCallLocation": {
       "description": "A file location being accessed or modified by a tool.\n\nEnables clients to implement \"follow-along\" features that track\nwhich files the agent is working with in real-time.\n\nSee protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "line": {
           "description": "Optional line number within the file.",
           "format": "uint32",
@@ -1831,6 +2017,9 @@
     "ToolCallUpdate": {
       "description": "An update to an existing tool call.\n\nUsed to report progress and results as tools execute. All fields except\nthe tool call ID are optional - only changed fields need to be included.\n\nSee protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-calls#updating)",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "content": {
           "description": "Replace the content collection.",
           "items": {
@@ -1943,6 +2132,9 @@
     "WaitForTerminalExitRequest": {
       "description": "Request to wait for a terminal command to exit.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
           "description": "The session ID for this request."
@@ -1960,6 +2152,9 @@
     "WaitForTerminalExitResponse": {
       "description": "Response containing the exit status of a terminal command.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "exitCode": {
           "description": "The process exit code (may be null if terminated by signal).",
           "format": "uint32",
@@ -1978,6 +2173,9 @@
     "WriteTextFileRequest": {
       "description": "Request to write content to a text file.\n\nOnly available if the client supports the `fs.writeTextFile` capability.",
       "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
         "content": {
           "description": "The text content to write to the file.",
           "type": "string"

@@ -94,17 +94,20 @@ where
 
     pub fn notify(
         &self,
-        method: &'static str,
+        method: impl Into<Arc<str>>,
         params: Option<Remote::InNotification>,
     ) -> Result<(), Error> {
         self.outgoing_tx
-            .unbounded_send(OutgoingMessage::Notification { method, params })
+            .unbounded_send(OutgoingMessage::Notification {
+                method: method.into(),
+                params,
+            })
             .map_err(|_| Error::internal_error().with_data("failed to send notification"))
     }
 
     pub fn request<Out: DeserializeOwned + Send + 'static>(
         &self,
-        method: &'static str,
+        method: impl Into<Arc<str>>,
         params: Option<Remote::InRequest>,
     ) -> impl Future<Output = Result<Out, Error>> {
         let (tx, rx) = oneshot::channel();
@@ -125,7 +128,11 @@ where
 
         if self
             .outgoing_tx
-            .unbounded_send(OutgoingMessage::Request { id, method, params })
+            .unbounded_send(OutgoingMessage::Request {
+                id,
+                method: method.into(),
+                params,
+            })
             .is_err()
         {
             self.pending_responses.lock().remove(&id);
@@ -309,7 +316,7 @@ enum IncomingMessage<Local: Side> {
 pub enum OutgoingMessage<Local: Side, Remote: Side> {
     Request {
         id: i32,
-        method: &'static str,
+        method: Arc<str>,
         #[serde(skip_serializing_if = "Option::is_none")]
         params: Option<Remote::InRequest>,
     },
@@ -319,7 +326,7 @@ pub enum OutgoingMessage<Local: Side, Remote: Side> {
         result: ResponseResult<Local::OutResponse>,
     },
     Notification {
-        method: &'static str,
+        method: Arc<str>,
         #[serde(skip_serializing_if = "Option::is_none")]
         params: Option<Remote::InNotification>,
     },
