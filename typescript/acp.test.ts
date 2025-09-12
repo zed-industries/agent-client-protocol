@@ -66,7 +66,7 @@ describe("Connection", () => {
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         throw new Error("Failed to create session");
       }
-      async loadSession(_: LoadSessionRequest): Promise<void> {
+      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
         throw new Error("Failed to load session");
       }
       async authenticate(_: AuthenticateRequest): Promise<void> {
@@ -160,7 +160,9 @@ describe("Connection", () => {
           sessionId: "test-session",
         };
       }
-      async loadSession(_: LoadSessionRequest): Promise<void> {}
+      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
+        return {};
+      }
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
@@ -263,8 +265,11 @@ describe("Connection", () => {
           sessionId: "test-session",
         };
       }
-      async loadSession(params: LoadSessionRequest): Promise<void> {
+      async loadSession(
+        params: LoadSessionRequest,
+      ): Promise<LoadSessionResponse> {
         messageLog.push(`loadSession called: ${params.sessionId}`);
+        return {};
       }
       async authenticate(params: AuthenticateRequest): Promise<void> {
         messageLog.push(`authenticate called: ${params.methodId}`);
@@ -397,7 +402,9 @@ describe("Connection", () => {
           sessionId: "test-session",
         };
       }
-      async loadSession(_: LoadSessionRequest): Promise<void> {}
+      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
+        return {};
+      }
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
@@ -496,7 +503,9 @@ describe("Connection", () => {
       async newSession(_: NewSessionRequest): Promise<NewSessionResponse> {
         return { sessionId: "test-session" };
       }
-      async loadSession(_: LoadSessionRequest): Promise<void> {}
+      async loadSession(_: LoadSessionRequest): Promise<LoadSessionResponse> {
+        return {};
+      }
       async authenticate(_: AuthenticateRequest): Promise<void> {
         // no-op
       }
