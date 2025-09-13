@@ -98,7 +98,8 @@ impl acp::Client for ExampleClient {
             | acp::SessionUpdate::ToolCall(_)
             | acp::SessionUpdate::ToolCallUpdate(_)
             | acp::SessionUpdate::Plan(_)
-            | acp::SessionUpdate::CurrentModeUpdate { .. } => {}
+            | acp::SessionUpdate::CurrentModeUpdate { .. }
+            | acp::SessionUpdate::AvailableCommandsUpdate { .. } => {}
         }
         Ok(())
     }

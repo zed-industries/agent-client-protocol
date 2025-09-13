@@ -1,0 +1,109 @@
+---
+title: "Commands"
+description: "Advertise available slash commands to clients"
+---
+
+Agents can advertise a set of slash commands that users can invoke. These commands provide quick access to specific agent capabilities and workflows.
+
+## Advertising commands
+
+After creating a session, the Agent **MAY** send a list of available commands via the `available_commands_update` session notification:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "update": {
+      "sessionUpdate": "available_commands_update",
+      "availableCommands": [
+        {
+          "name": "web",
+          "description": "Search the web for information",
+          "input": {
+            "hint": "query to search for"
+          }
+        },
+        {
+          "name": "test",
+          "description": "Run tests for the current project"
+        },
+        {
+          "name": "plan",
+          "description": "Create a detailed implementation plan",
+          "input": {
+            "hint": "description of what to plan"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+<ResponseField name="availableCommands" type="AvailableCommand[]">
+  The list of commands available in this session
+</ResponseField>
+
+### AvailableCommand
+
+<ResponseField name="name" type="string" required>
+  The command name (e.g., "web", "test", "plan")
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Human-readable description of what the command does
+</ResponseField>
+
+<ResponseField name="input" type="AvailableCommandInput">
+  Optional input specification for the command
+</ResponseField>
+
+### AvailableCommandInput
+
+Currently supports unstructured text input:
+
+<ResponseField name="hint" type="string" required>
+  A brief description of the expected input
+</ResponseField>
+
+## Command lifecycle
+
+1. **Discovery**: The Agent sends available commands after session creation
+2. **Display**: The Client displays these commands in its UI (e.g., in a slash command menu)
+3. **Invocation**: When the user selects a command, the Client includes it in the prompt
+4. **Execution**: The Agent processes the command as part of the prompt
+
+Commands are not a separate protocol mechanism - they are simply a way for the Agent to advertise what slash commands it understands. The actual command invocation happens through the regular prompt mechanism.
+
+## Dynamic updates
+
+The Agent can update the list of available commands at any time during a session by sending another `available_commands_update` notification. This allows commands to be:
+
+- Added based on context (e.g., project type detection)
+- Removed when no longer relevant
+- Modified with updated descriptions or input hints
+
+Clients may also add their own local commands (e.g., authentication commands) to the list before displaying them to users.
+
+## Example usage
+
+When a user types `/web climate change` in the Client, it would send:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "session/prompt",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "prompt": {
+      "type": "text",
+      "text": "/web climate change"
+    }
+  }
+}
+```
+
+The Agent recognizes the command prefix and processes it accordingly, potentially using web search tools to gather information about climate change.

@@ -401,6 +401,9 @@ export type SessionModeId = string;
  */
 /** @internal */
 export type AgentNotification = SessionNotification | ExtNotification1;
+/**
+ * The input specification for a command.
+ */
 export type AvailableCommandInput = UnstructuredCommandInput;
 
 /**
