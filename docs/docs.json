@@ -59,7 +59,7 @@
           "protocol/terminals",
           "protocol/agent-plan",
           "protocol/session-modes",
-          "protocol/commands",
+          "protocol/slash-commands",
           "protocol/extensibility",
           "protocol/schema"
         ]

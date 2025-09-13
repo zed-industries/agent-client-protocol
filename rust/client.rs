@@ -247,7 +247,7 @@ pub enum AvailableCommandInput {
     /// All text that was typed after the command name is provided as input.
     #[schemars(rename = "UnstructuredCommandInput")]
     Unstructured {
-        /// A brief description of the expected input
+        /// A hint to display when the input hasn't been provided yet
         hint: String,
     },
 }

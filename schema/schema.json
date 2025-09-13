@@ -254,7 +254,7 @@
           "description": "All text that was typed after the command name is provided as input.",
           "properties": {
             "hint": {
-              "description": "A brief description of the expected input",
+              "description": "A hint to display when the input hasn't been provided yet",
               "type": "string"
             }
           },

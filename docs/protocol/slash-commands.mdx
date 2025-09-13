@@ -1,9 +1,9 @@
 ---
-title: "Commands"
+title: "Slash Commands"
 description: "Advertise available slash commands to clients"
 ---
 
-Agents can advertise a set of slash commands that users can invoke. These commands provide quick access to specific agent capabilities and workflows.
+Agents can advertise a set of slash commands that users can invoke. These commands provide quick access to specific agent capabilities and workflows. Commands are run as part of regular [prompt](./prompt-turn) requests where the Client includes the command text in the prompt.
 
 ## Advertising commands
 
@@ -65,31 +65,16 @@ After creating a session, the Agent **MAY** send a list of available commands vi
 Currently supports unstructured text input:
 
 <ResponseField name="hint" type="string" required>
-  A brief description of the expected input
+  A hint to display when the input hasn't been provided yet
 </ResponseField>
-
-## Command lifecycle
-
-1. **Discovery**: The Agent sends available commands after session creation
-2. **Display**: The Client displays these commands in its UI (e.g., in a slash command menu)
-3. **Invocation**: When the user selects a command, the Client includes it in the prompt
-4. **Execution**: The Agent processes the command as part of the prompt
-
-Commands are not a separate protocol mechanism - they are simply a way for the Agent to advertise what slash commands it understands. The actual command invocation happens through the regular prompt mechanism.
 
 ## Dynamic updates
 
-The Agent can update the list of available commands at any time during a session by sending another `available_commands_update` notification. This allows commands to be:
+The Agent can update the list of available commands at any time during a session by sending another `available_commands_update` notification. This allows commands to be added based on context, removed when no longer relevant, or modified with updated descriptions.
 
-- Added based on context (e.g., project type detection)
-- Removed when no longer relevant
-- Modified with updated descriptions or input hints
+## Running commands
 
-Clients may also add their own local commands (e.g., authentication commands) to the list before displaying them to users.
-
-## Example usage
-
-When a user types `/web climate change` in the Client, it would send:
+Commands are included as regular user messages in prompt requests:
 
 ```json
 {
@@ -98,12 +83,14 @@ When a user types `/web climate change` in the Client, it would send:
   "method": "session/prompt",
   "params": {
     "sessionId": "sess_abc123def456",
-    "prompt": {
-      "type": "text",
-      "text": "/web climate change"
-    }
+    "prompt": [
+      {
+        "type": "text",
+        "text": "/web agent client protocol"
+      }
+    ]
   }
 }
 ```
 
-The Agent recognizes the command prefix and processes it accordingly, potentially using web search tools to gather information about climate change.
+The Agent recognizes the command prefix and processes it accordingly. Commands may be accompanied by any other user message content types (images, audio, etc.) in the same prompt array.

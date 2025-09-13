@@ -84,6 +84,14 @@ Agents are programs that use generative AI to autonomously modify code. They typ
   `loadSession` capability).
 </ResponseField>
 
+<ResponseField
+  name="session/set_mode"
+  post={[<a href="./schema#session%2Fset-mode">Schema</a>]}
+>
+  [Switch between agent operating
+  modes](./session-modes#setting-the-current-mode).
+</ResponseField>
+
 ### Notifications
 
 <ResponseField
@@ -167,8 +175,12 @@ Clients provide the interface between users and agents. They are typically code 
   name="session/update"
   post={[<a href="./schema#session%2Fupdate">Schema</a>]}
 >
-  [Send progress updates](./prompt-turn#3-agent-reports-output) during prompt
-  processing (no response expected).
+  [Send session updates](./prompt-turn#3-agent-reports-output) to inform the
+  Client of changes (no response expected). This includes: - [Message
+  chunks](./content) (agent, user, thought) - [Tool calls and
+  updates](./tool-calls) - [Plans](./agent-plan) - [Available commands
+  updates](./slash-commands#advertising-commands) - [Mode
+  changes](./session-modes#from-the-agent)
 </ResponseField>
 
 ## Argument requirements
