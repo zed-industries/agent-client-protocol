@@ -211,7 +211,6 @@ impl Agent for ClientSideConnection {
             .map(|value| value.unwrap_or_default())
     }
 
-    #[cfg(feature = "unstable")]
     async fn set_session_mode(
         &self,
         arguments: SetSessionModeRequest,
@@ -619,7 +618,6 @@ impl Side for AgentSide {
             SESSION_LOAD_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::LoadSessionRequest)
                 .map_err(Into::into),
-            #[cfg(feature = "unstable")]
             SESSION_SET_MODE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::SetSessionModeRequest)
                 .map_err(Into::into),

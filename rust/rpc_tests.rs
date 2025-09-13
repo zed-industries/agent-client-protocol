@@ -207,7 +207,6 @@ impl Agent for TestAgent {
         })
     }
 
-    #[cfg(feature = "unstable")]
     async fn set_session_mode(
         &self,
         _arguments: SetSessionModeRequest,

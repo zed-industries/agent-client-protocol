@@ -79,10 +79,19 @@ pub trait Agent {
         arguments: LoadSessionRequest,
     ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
 
-    /// **UNSTABLE**
+    /// Sets the current mode for a session.
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[cfg(feature = "unstable")]
+    /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
+    /// that affect system prompts, tool availability, and permission behaviors.
+    ///
+    /// The mode must be one of the modes advertised in `availableModes` during session
+    /// creation or loading. Agents may also change modes autonomously and notify the
+    /// client via `current_mode_update` notifications.
+    ///
+    /// This method can be called at any time during a session, whether the Agent is
+    /// idle or actively generating a response.
+    ///
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     fn set_session_mode(
         &self,
         arguments: SetSessionModeRequest,
@@ -264,9 +273,9 @@ pub struct NewSessionResponse {
     ///
     /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
-    /// **UNSTABLE**
+    /// Initial mode state if supported by the Agent
     ///
-    /// This field is not part of the spec, and may be removed or changed at any point.
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
     /// Extension point for implementations
@@ -301,9 +310,9 @@ pub struct LoadSessionRequest {
 #[schemars(extend("x-side" = "agent", "x-method" = SESSION_LOAD_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionResponse {
-    /// **UNSTABLE**
+    /// Initial mode state if supported by the Agent
     ///
-    /// This field is not part of the spec, and may be removed or changed at any point.
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
     /// Extension point for implementations
@@ -313,22 +322,22 @@ pub struct LoadSessionResponse {
 
 // Session modes
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// The set of modes and the one currently active.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionModeState {
+    /// The current mode the Agent is in.
     pub current_mode_id: SessionModeId,
+    /// The set of modes that the Agent can operate in
     pub available_modes: Vec<SessionMode>,
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
+/// A mode the agent can operate in.
 ///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionMode {
@@ -341,11 +350,9 @@ pub struct SessionMode {
     pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// Unique identifier for a Session Mode.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[serde(rename_all = "camelCase")]
+#[serde(transparent)]
 pub struct SessionModeId(pub Arc<str>);
 
 impl std::fmt::Display for SessionModeId {
@@ -354,24 +361,23 @@ impl std::fmt::Display for SessionModeId {
     }
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// Request parameters for setting a session mode.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct SetSessionModeRequest {
+    /// The ID of the session to set the mode for.
     pub session_id: SessionId,
+    /// The ID of the mode to set.
     pub mode_id: SessionModeId,
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// Response to `session/set_mode` method.
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct SetSessionModeResponse {
     pub meta: Option<serde_json::Value>,
@@ -614,7 +620,6 @@ pub struct AgentMethodNames {
     /// Method for loading an existing session.
     pub session_load: &'static str,
     /// Method for setting the mode for a session.
-    #[cfg(feature = "unstable")]
     pub session_set_mode: &'static str,
     /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
@@ -628,7 +633,6 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     authenticate: AUTHENTICATE_METHOD_NAME,
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     session_set_mode: SESSION_SET_MODE_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
@@ -643,7 +647,6 @@ pub(crate) const SESSION_NEW_METHOD_NAME: &str = "session/new";
 /// Method name for loading an existing session.
 pub(crate) const SESSION_LOAD_METHOD_NAME: &str = "session/load";
 /// Method name for setting the mode for a session.
-#[cfg(feature = "unstable")]
 pub(crate) const SESSION_SET_MODE_METHOD_NAME: &str = "session/set_mode";
 /// Method name for sending a prompt.
 pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
@@ -664,7 +667,6 @@ pub enum ClientRequest {
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
     LoadSessionRequest(LoadSessionRequest),
-    #[cfg(feature = "unstable")]
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
     ExtMethodRequest(ExtMethod),
@@ -684,7 +686,6 @@ pub enum AgentResponse {
     AuthenticateResponse(#[serde(default)] AuthenticateResponse),
     NewSessionResponse(NewSessionResponse),
     LoadSessionResponse(#[serde(default)] LoadSessionResponse),
-    #[cfg(feature = "unstable")]
     SetSessionModeResponse(#[serde(default)] SetSessionModeResponse),
     PromptResponse(PromptResponse),
     ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),

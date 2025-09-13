@@ -10,7 +10,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-#[cfg(feature = "unstable")]
 use crate::SessionModeId;
 use crate::ext::ExtMethod;
 use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
@@ -222,9 +221,8 @@ pub enum SessionUpdate {
         available_commands: Vec<AvailableCommand>,
     },
     /// The current mode of the session has changed
-    #[cfg(feature = "unstable")]
     #[serde(rename_all = "camelCase")]
-    #[schemars(extend("x-docs-ignore" = true))]
+    // todo!
     CurrentModeUpdate { current_mode_id: SessionModeId },
 }
 
@@ -425,7 +423,6 @@ pub struct ReadTextFileResponse {
 #[serde(transparent)]
 pub struct TerminalId(pub Arc<str>);
 
-#[cfg(feature = "unstable")]
 impl std::fmt::Display for TerminalId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

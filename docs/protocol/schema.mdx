@@ -234,9 +234,9 @@ Response from loading an existing session.
   Extension point for implementations
 </ResponseField>
 <ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
-  **UNSTABLE**
+  Initial mode state if supported by the Agent
 
-This field is not part of the spec, and may be removed or changed at any point.
+See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 
 </ResponseField>
 
@@ -302,9 +302,9 @@ See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol
   Extension point for implementations
 </ResponseField>
 <ResponseField name="modes" type={<><span><a href="#sessionmodestate">SessionModeState</a></span><span> | null</span></>} >
-  **UNSTABLE**
+  Initial mode state if supported by the Agent
 
-This field is not part of the spec, and may be removed or changed at any point.
+See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
@@ -385,6 +385,49 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
 >
   Indicates why the agent stopped processing the turn.
 </ResponseField>
+
+<a id="session-set_mode"></a>
+### <span class="font-mono">session/set_mode</span>
+
+**UNSTABLE**
+
+This method is not part of the spec, and may be removed or changed at any point.
+
+#### <span class="font-mono">SetSessionModeRequest</span>
+
+Request parameters for setting a session mode.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object"}>
+  Extension point for implementations
+</ResponseField>
+<ResponseField
+  name="modeId"
+  type={<a href="#sessionmodeid">SessionModeId</a>}
+  required
+>
+  The ID of the mode to set.
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The ID of the session to set the mode for.
+</ResponseField>
+
+#### <span class="font-mono">SetSessionModeResponse</span>
+
+Response to `session/set_mode` method.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="meta" type={"object"}></ResponseField>
 
 ## Client
 
@@ -1885,9 +1928,9 @@ See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session
 
 ## <span class="font-mono">SessionMode</span>
 
-**UNSTABLE**
+A mode the agent can operate in.
 
-This type is not part of the spec, and may be removed or changed at any point.
+See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 
 **Type:** Object
 
@@ -1906,17 +1949,13 @@ This type is not part of the spec, and may be removed or changed at any point.
 
 ## <span class="font-mono">SessionModeId</span>
 
-**UNSTABLE**
-
-This type is not part of the spec, and may be removed or changed at any point.
+Unique identifier for a Session Mode.
 
 **Type:** `string`
 
 ## <span class="font-mono">SessionModeState</span>
 
-**UNSTABLE**
-
-This type is not part of the spec, and may be removed or changed at any point.
+The set of modes and the one currently active.
 
 **Type:** Object
 
@@ -1936,12 +1975,16 @@ This type is not part of the spec, and may be removed or changed at any point.
     </>
   }
   required
-></ResponseField>
+>
+  The set of modes that the Agent can operate in
+</ResponseField>
 <ResponseField
   name="currentModeId"
   type={<a href="#sessionmodeid">SessionModeId</a>}
   required
-></ResponseField>
+>
+  The current mode the Agent is in.
+</ResponseField>
 
 ## <span class="font-mono">SessionUpdate</span>
 
@@ -2183,18 +2226,6 @@ The current mode of the session has changed
 
 </Expandable>
 </ResponseField>
-
-## <span class="font-mono">SetSessionModeResponse</span>
-
-**UNSTABLE**
-
-This type is not part of the spec, and may be removed or changed at any point.
-
-**Type:** Object
-
-**Properties:**
-
-<ResponseField name="meta" type={"object"}></ResponseField>
 
 ## <span class="font-mono">StopReason</span>
 
@@ -2576,10 +2607,7 @@ See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-call
 <ResponseField name="fetch">Retrieving external data.</ResponseField>
 
 <ResponseField name="switch_mode">
-**UNSTABLE**
-
-This tool kind is not part of the spec and may be removed at any point.
-
+  Switching the current session mode.
 </ResponseField>
 
 <ResponseField name="other">Other tool types (default).</ResponseField>
