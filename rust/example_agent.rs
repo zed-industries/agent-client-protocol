@@ -112,6 +112,14 @@ impl acp::Agent for ExampleAgent {
         Ok(())
     }
 
+    async fn set_session_mode(
+        &self,
+        args: acp::SetSessionModeRequest,
+    ) -> Result<acp::SetSessionModeResponse, acp::Error> {
+        log::info!("Received set session mode request {args:?}");
+        Ok(Default::default())
+    }
+
     async fn ext_method(
         &self,
         method: std::sync::Arc<str>,

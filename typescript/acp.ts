@@ -571,12 +571,19 @@ export class ClientSideConnection implements Agent {
   }
 
   /**
-   * Sets the mode for an existing session.
+   * Sets the operational mode for a session.
    *
-   * This method allows changing the operational mode of an existing session.
-   * The available modes are advertised in the agent's capabilities during initialization.
+   * Allows switching between different agent modes (e.g., "ask", "architect", "code")
+   * that affect system prompts, tool availability, and permission behaviors.
    *
-   * See protocol docs: [Session Mode Management](https://agentclientprotocol.com/protocol/session-management#mode-setting)
+   * The mode must be one of the modes advertised in `availableModes` during session
+   * creation or loading. Agents may also change modes autonomously and notify the
+   * client via `current_mode_update` notifications.
+   *
+   * This method can be called at any time during a session, whether the Agent is
+   * idle or actively generating a turn.
+   *
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   async setSessionMode(
     params: schema.SetSessionModeRequest,
@@ -1239,9 +1246,19 @@ export interface Agent {
     params: schema.LoadSessionRequest,
   ): Promise<schema.LoadSessionResponse>;
   /**
-   * @internal **UNSTABLE**
+   * Sets the operational mode for a session.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * Allows switching between different agent modes (e.g., "ask", "architect", "code")
+   * that affect system prompts, tool availability, and permission behaviors.
+   *
+   * The mode must be one of the modes advertised in `availableModes` during session
+   * creation or loading. Agents may also change modes autonomously and notify the
+   * client via `current_mode_update` notifications.
+   *
+   * This method can be called at any time during a session, whether the Agent is
+   * idle or actively generating a turn.
+   *
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   setSessionMode?(
     params: schema.SetSessionModeRequest,

@@ -207,12 +207,11 @@ impl Agent for TestAgent {
         })
     }
 
-    #[cfg(feature = "unstable")]
     async fn set_session_mode(
         &self,
         _arguments: SetSessionModeRequest,
     ) -> Result<SetSessionModeResponse, Error> {
-        Ok(SetSessionModeResponse {})
+        Ok(SetSessionModeResponse { meta: None })
     }
 
     async fn prompt(&self, arguments: PromptRequest) -> Result<PromptResponse, Error> {

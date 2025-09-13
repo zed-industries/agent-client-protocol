@@ -97,7 +97,8 @@ impl acp::Client for ExampleClient {
             | acp::SessionUpdate::AgentThoughtChunk { .. }
             | acp::SessionUpdate::ToolCall(_)
             | acp::SessionUpdate::ToolCallUpdate(_)
-            | acp::SessionUpdate::Plan(_) => {}
+            | acp::SessionUpdate::Plan(_)
+            | acp::SessionUpdate::CurrentModeUpdate { .. } => {}
         }
         Ok(())
     }

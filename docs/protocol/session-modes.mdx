@@ -1,0 +1,167 @@
+---
+title: "Session Modes"
+description: "How agents can operate in different modes"
+---
+
+Agents can provide a set of modes they can operate in. Modes often affect the system prompts used, the availability of tools, and whether they request permission before running.
+
+## Initial state
+
+During [Session Setup](./session-setup) the Agent **MAY** return a list of modes it can operate in and the currently active mode:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "sessionId": "sess_abc123def456",
+    "modes": {
+      "currentModeId": "ask",
+      "availableModes": [
+        {
+          "id": "ask",
+          "name": "Ask",
+          "description": "Request permission before making any changes"
+        },
+        {
+          "id": "architect",
+          "name": "Architect",
+          "description": "Design and plan software systems without implementation"
+        },
+        {
+          "id": "code",
+          "name": "Code",
+          "description": "Write and modify code with full tool access"
+        }
+      ]
+    }
+  }
+}
+```
+
+<ResponseField name="modes" type="SessionModeState">
+  The current mode state for the session
+</ResponseField>
+
+### SessionModeState
+
+<ResponseField name="currentModeId" type="SessionModeId" required>
+  The ID of the mode that is currently active
+</ResponseField>
+
+<ResponseField name="availableModes" type="SessionMode[]" required>
+  The set of modes that the Agent can operate in
+</ResponseField>
+
+### SessionMode
+
+<ResponseField name="id" type="SessionModeId" required>
+  Unique identifier for this mode
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Human-readable name of the mode
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Optional description providing more details about what this mode does
+</ResponseField>
+
+## Setting the current mode
+
+The current mode can be changed at any point during a session, whether the Agent is idle or generating a response.
+
+### From the Client
+
+Typically, Clients display the available modes to the user and allow them to change the current one, which they can do by calling the [`session/set_mode`](./schema#session%2Fset-mode) method.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "session/set_mode",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "modeId": "code"
+  }
+}
+```
+
+<ParamField path="sessionId" type="SessionId" required>
+  The ID of the session to set the mode for
+</ParamField>
+
+<ParamField path="modeId" type="SessionModeId" required>
+  The ID of the mode to switch to. Must be one of the modes listed in
+  `availableModes`
+</ParamField>
+
+### From the Agent
+
+The Agent can also change its own mode and let the Client know by sending the `current_mode_update` session notification:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "update": {
+      "sessionUpdate": "current_mode_update",
+      "modeId": "code"
+    }
+  }
+}
+```
+
+#### Exiting plan modes
+
+A common case where an Agent might switch modes is from within a special "exit mode" tool that can be provided to the language model during plan/architect modes. The language model can call this tool when it determines it's ready to start implementing a solution.
+
+This "switch mode" tool will usually request permission before running, which it can do just like any other tool:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "session/request_permission",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "toolCall": {
+      "toolCallId": "call_switch_mode_001",
+      "title": "Ready for implementation",
+      "kind": "switch_mode",
+      "status": "pending",
+      "content": [
+        {
+          "type": "text",
+          "text": "## Implementation Plan..."
+        }
+      ]
+    },
+    "options": [
+      {
+        "optionId": "code",
+        "name": "Yes, and auto-accept all actions",
+        "kind": "allow_always"
+      },
+      {
+        "optionId": "ask",
+        "name": "Yes, and manually accept actions",
+        "kind": "allow_once"
+      },
+      {
+        "optionId": "reject",
+        "name": "No, stay in architect mode",
+        "kind": "reject_once"
+      }
+    ]
+  }
+}
+```
+
+When an option is chosen, the tool runs, setting the mode and sending the `current_mode_update` notification mentioned above.
+
+<Card icon="shield-check" horizontal href="./tool-calls#requesting-permission">
+  Learn more about permission requests
+</Card>

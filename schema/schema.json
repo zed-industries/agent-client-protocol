@@ -893,7 +893,7 @@
               "type": "null"
             }
           ],
-          "description": "**UNSTABLE**\n\nThis field is not part of the spec, and may be removed or changed at any point."
+          "description": "Initial mode state if supported by the Agent\n\nSee protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)"
         }
       },
       "type": "object",
@@ -1044,7 +1044,7 @@
               "type": "null"
             }
           ],
-          "description": "**UNSTABLE**\n\nThis field is not part of the spec, and may be removed or changed at any point."
+          "description": "Initial mode state if supported by the Agent\n\nSee protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)"
         },
         "sessionId": {
           "$ref": "#/$defs/SessionId",
@@ -1457,7 +1457,7 @@
       "type": "string"
     },
     "SessionMode": {
-      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "description": "A mode the agent can operate in.\n\nSee protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)",
       "properties": {
         "_meta": {
           "description": "Extension point for implementations"
@@ -1476,23 +1476,25 @@
       "type": "object"
     },
     "SessionModeId": {
-      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "description": "Unique identifier for a Session Mode.",
       "type": "string"
     },
     "SessionModeState": {
-      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "description": "The set of modes and the one currently active.",
       "properties": {
         "_meta": {
           "description": "Extension point for implementations"
         },
         "availableModes": {
+          "description": "The set of modes that the Agent can operate in",
           "items": {
             "$ref": "#/$defs/SessionMode"
           },
           "type": "array"
         },
         "currentModeId": {
-          "$ref": "#/$defs/SessionModeId"
+          "$ref": "#/$defs/SessionModeId",
+          "description": "The current mode the Agent is in."
         }
       },
       "required": ["currentModeId", "availableModes"],
@@ -1728,34 +1730,38 @@
             }
           },
           "required": ["sessionUpdate", "currentModeId"],
-          "type": "object",
-          "x-docs-ignore": true
+          "type": "object"
         }
       ]
     },
     "SetSessionModeRequest": {
-      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "description": "Request parameters for setting a session mode.",
       "properties": {
         "_meta": {
           "description": "Extension point for implementations"
         },
         "modeId": {
-          "$ref": "#/$defs/SessionModeId"
+          "$ref": "#/$defs/SessionModeId",
+          "description": "The ID of the mode to set."
         },
         "sessionId": {
-          "$ref": "#/$defs/SessionId"
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session to set the mode for."
         }
       },
       "required": ["sessionId", "modeId"],
       "type": "object",
-      "x-docs-ignore": true
+      "x-method": "session/set_mode",
+      "x-side": "agent"
     },
     "SetSessionModeResponse": {
-      "description": "**UNSTABLE**\n\nThis type is not part of the spec, and may be removed or changed at any point.",
+      "description": "Response to `session/set_mode` method.",
       "properties": {
         "meta": true
       },
-      "type": "object"
+      "type": "object",
+      "x-method": "session/set_mode",
+      "x-side": "agent"
     },
     "StopReason": {
       "description": "Reasons why an agent stops processing a prompt turn.\n\nSee protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)",
@@ -2159,7 +2165,7 @@
         },
         {
           "const": "switch_mode",
-          "description": "**UNSTABLE**\n\nThis tool kind is not part of the spec and may be removed at any point.",
+          "description": "Switching the current session mode.",
           "type": "string"
         },
         {

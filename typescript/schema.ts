@@ -291,30 +291,6 @@ export type McpServer =
     }
   | Stdio;
 /**
- * **UNSTABLE**
- *
- * This type is not part of the spec, and may be removed or changed at any point.
- */
-export type SessionModeId = string;
-/**
- * A unique identifier for a conversation session between a client and agent.
- *
- * Sessions maintain their own context, conversation history, and state,
- * allowing multiple independent interactions with the same agent.
- *
- * # Example
- *
- * ```
- * use agent_client_protocol::SessionId;
- * use std::sync::Arc;
- *
- * let session_id = SessionId(Arc::from("sess_abc123def456"));
- * ```
- *
- * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
- */
-export type SessionId = string;
-/**
  * Content blocks represent displayable information in the Agent Client Protocol.
  *
  * They provide a structured way to handle various types of user-facing content—whether
@@ -411,6 +387,10 @@ export type AgentResponse =
   | SetSessionModeResponse
   | PromptResponse
   | ExtMethodResponse1;
+/**
+ * Unique identifier for a Session Mode.
+ */
+export type SessionModeId = string;
 /**
  * All possible notifications that an agent can send to a client.
  *
@@ -1111,9 +1091,7 @@ export interface LoadSessionRequest {
   sessionId: string;
 }
 /**
- * **UNSTABLE**
- *
- * This type is not part of the spec, and may be removed or changed at any point.
+ * Request parameters for setting a session mode.
  */
 export interface SetSessionModeRequest {
   /**
@@ -1122,8 +1100,14 @@ export interface SetSessionModeRequest {
   _meta?: {
     [k: string]: unknown;
   };
-  modeId: SessionModeId;
-  sessionId: SessionId;
+  /**
+   * Unique identifier for a Session Mode.
+   */
+  modeId: string;
+  /**
+   * The ID of the session to set the mode for.
+   */
+  sessionId: string;
 }
 /**
  * Request parameters for sending a user prompt to the agent.
@@ -1156,21 +1140,7 @@ export interface PromptRequest {
    */
   prompt: ContentBlock[];
   /**
-   * A unique identifier for a conversation session between a client and agent.
-   *
-   * Sessions maintain their own context, conversation history, and state,
-   * allowing multiple independent interactions with the same agent.
-   *
-   * # Example
-   *
-   * ```
-   * use agent_client_protocol::SessionId;
-   * use std::sync::Arc;
-   *
-   * let session_id = SessionId(Arc::from("sess_abc123def456"));
-   * ```
-   *
-   * See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
+   * The ID of the session to send this user message to
    */
   sessionId: string;
 }
@@ -1313,9 +1283,9 @@ export interface NewSessionResponse {
     [k: string]: unknown;
   };
   /**
-   * **UNSTABLE**
+   * Initial mode state if supported by the Agent
    *
-   * This field is not part of the spec, and may be removed or changed at any point.
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   modes?: SessionModeState | null;
   /**
@@ -1326,9 +1296,7 @@ export interface NewSessionResponse {
   sessionId: string;
 }
 /**
- * **UNSTABLE**
- *
- * This type is not part of the spec, and may be removed or changed at any point.
+ * The set of modes and the one currently active.
  */
 export interface SessionModeState {
   /**
@@ -1337,13 +1305,19 @@ export interface SessionModeState {
   _meta?: {
     [k: string]: unknown;
   };
+  /**
+   * The set of modes that the Agent can operate in
+   */
   availableModes: SessionMode[];
-  currentModeId: SessionModeId;
+  /**
+   * Unique identifier for a Session Mode.
+   */
+  currentModeId: string;
 }
 /**
- * **UNSTABLE**
+ * A mode the agent can operate in.
  *
- * This type is not part of the spec, and may be removed or changed at any point.
+ * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
  */
 export interface SessionMode {
   /**
@@ -1367,16 +1341,14 @@ export interface LoadSessionResponse {
     [k: string]: unknown;
   };
   /**
-   * **UNSTABLE**
+   * Initial mode state if supported by the Agent
    *
-   * This field is not part of the spec, and may be removed or changed at any point.
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   modes?: SessionModeState | null;
 }
 /**
- * **UNSTABLE**
- *
- * This type is not part of the spec, and may be removed or changed at any point.
+ * Response to `session/set_mode` method.
  */
 export interface SetSessionModeResponse {
   meta?: unknown;
@@ -1787,6 +1759,13 @@ export const authenticateRequestSchema = z.object({
 });
 
 /** @internal */
+export const setSessionModeRequestSchema = z.object({
+  _meta: z.record(z.unknown()).optional(),
+  modeId: z.string(),
+  sessionId: z.string(),
+});
+
+/** @internal */
 export const extMethodRequest1Schema = z.record(z.unknown());
 
 /** @internal */
@@ -1795,12 +1774,6 @@ export const httpHeaderSchema = z.object({
   name: z.string(),
   value: z.string(),
 });
-
-/** @internal */
-export const sessionModeIdSchema = z.string();
-
-/** @internal */
-export const sessionIdSchema = z.string();
 
 /** @internal */
 export const annotationsSchema = z.object({
@@ -1840,6 +1813,9 @@ export const promptResponseSchema = z.object({
 
 /** @internal */
 export const extMethodResponse1Schema = z.record(z.unknown());
+
+/** @internal */
+export const sessionModeIdSchema = z.string();
 
 /** @internal */
 export const extNotification1Schema = z.record(z.unknown());
@@ -1974,13 +1950,6 @@ export const mcpServerSchema = z.union([
 ]);
 
 /** @internal */
-export const setSessionModeRequestSchema = z.object({
-  _meta: z.record(z.unknown()).optional(),
-  modeId: sessionModeIdSchema,
-  sessionId: sessionIdSchema,
-});
-
-/** @internal */
 export const contentBlockSchema = z.union([
   z.object({
     _meta: z.record(z.unknown()).optional(),
@@ -2057,7 +2026,7 @@ export const sessionModeSchema = z.object({
 export const sessionModeStateSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
   availableModes: z.array(sessionModeSchema),
-  currentModeId: sessionModeIdSchema,
+  currentModeId: z.string(),
 });
 
 /** @internal */

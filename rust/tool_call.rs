@@ -227,10 +227,7 @@ pub enum ToolKind {
     Think,
     /// Retrieving external data.
     Fetch,
-    /// **UNSTABLE**
-    ///
-    /// This tool kind is not part of the spec and may be removed at any point.
-    #[cfg(feature = "unstable")]
+    /// Switching the current session mode.
     SwitchMode,
     /// Other tool types (default).
     #[default]
