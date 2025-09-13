@@ -401,6 +401,9 @@ export type SessionModeId = string;
  */
 /** @internal */
 export type AgentNotification = SessionNotification | ExtNotification1;
+/**
+ * The input specification for a command.
+ */
 export type AvailableCommandInput = UnstructuredCommandInput;
 
 /**
@@ -1595,7 +1598,7 @@ export interface AvailableCommand {
  */
 export interface UnstructuredCommandInput {
   /**
-   * A brief description of the expected input
+   * A hint to display when the input hasn't been provided yet
    */
   hint: string;
 }

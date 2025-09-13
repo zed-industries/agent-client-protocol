@@ -254,7 +254,7 @@
           "description": "All text that was typed after the command name is provided as input.",
           "properties": {
             "hint": {
-              "description": "A brief description of the expected input",
+              "description": "A hint to display when the input hasn't been provided yet",
               "type": "string"
             }
           },
@@ -262,7 +262,8 @@
           "title": "UnstructuredCommandInput",
           "type": "object"
         }
-      ]
+      ],
+      "description": "The input specification for a command."
     },
     "BlobResourceContents": {
       "description": "Binary resource contents.",
@@ -1715,11 +1716,10 @@
             }
           },
           "required": ["sessionUpdate", "availableCommands"],
-          "type": "object",
-          "x-docs-ignore": true
+          "type": "object"
         },
         {
-          "description": "The current mode of the session has changed",
+          "description": "The current mode of the session has changed\n\nSee protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)",
           "properties": {
             "currentModeId": {
               "$ref": "#/$defs/SessionModeId"

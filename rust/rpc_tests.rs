@@ -727,6 +727,7 @@ async fn test_full_conversation_flow() {
                             found_tool_update = true;
                         }
                     }
+                    SessionUpdate::AvailableCommandsUpdate { .. } => {}
                     _ => {}
                 }
             }

@@ -214,22 +214,20 @@ pub enum SessionUpdate {
     /// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
     /// Available commands are ready or have changed
-    #[cfg(feature = "unstable")]
     #[serde(rename_all = "camelCase")]
-    #[schemars(extend("x-docs-ignore" = true))]
     AvailableCommandsUpdate {
         available_commands: Vec<AvailableCommand>,
     },
     /// The current mode of the session has changed
+    ///
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(rename_all = "camelCase")]
-    // todo!
     CurrentModeUpdate { current_mode_id: SessionModeId },
 }
 
 /// Information about a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
 pub struct AvailableCommand {
     /// Command name (e.g., "create_plan", "research_codebase").
     pub name: String,
@@ -242,14 +240,14 @@ pub struct AvailableCommand {
     pub meta: Option<serde_json::Value>,
 }
 
+/// The input specification for a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
 pub enum AvailableCommandInput {
     /// All text that was typed after the command name is provided as input.
     #[schemars(rename = "UnstructuredCommandInput")]
     Unstructured {
-        /// A brief description of the expected input
+        /// A hint to display when the input hasn't been provided yet
         hint: String,
     },
 }
