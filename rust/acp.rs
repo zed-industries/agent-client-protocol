@@ -684,7 +684,6 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 let response = self.prompt(args).await?;
                 Ok(AgentResponse::PromptResponse(response))
             }
-            #[cfg(feature = "unstable")]
             ClientRequest::SetSessionModeRequest(args) => {
                 let response = self.set_session_mode(args).await?;
                 Ok(AgentResponse::SetSessionModeResponse(response))

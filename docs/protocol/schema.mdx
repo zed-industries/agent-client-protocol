@@ -389,9 +389,19 @@ See protocol docs: [Check for Completion](https://agentclientprotocol.com/protoc
 <a id="session-set_mode"></a>
 ### <span class="font-mono">session/set_mode</span>
 
-**UNSTABLE**
+Sets the current mode for a session.
 
-This method is not part of the spec, and may be removed or changed at any point.
+Allows switching between different agent modes (e.g., "ask", "architect", "code")
+that affect system prompts, tool availability, and permission behaviors.
+
+The mode must be one of the modes advertised in `availableModes` during session
+creation or loading. Agents may also change modes autonomously and notify the
+client via `current_mode_update` notifications.
+
+This method can be called at any time during a session, whether the Agent is
+idle or actively generating a response.
+
+See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 
 #### <span class="font-mono">SetSessionModeRequest</span>
 
