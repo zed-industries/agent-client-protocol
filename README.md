@@ -23,7 +23,6 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
   - [via Zed's SDK adapter](https://github.com/zed-industries/claude-code-acp)
-  - [via Xuanwo's SDK adapter](https://github.com/Xuanwo/acp-claude-code)
 
 ## Libraries and Schema
 
