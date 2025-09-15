@@ -114,10 +114,7 @@ async function main() {
   // Create the client connection
   const client = new ExampleClient();
   const stream = acp.ndJsonStream(input, output);
-  const connection = new acp.ClientSideConnection(
-    (_agent) => client,
-    stream,
-  );
+  const connection = new acp.ClientSideConnection((_agent) => client, stream);
 
   try {
     // Initialize the connection

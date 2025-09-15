@@ -19,7 +19,6 @@ import type {
   NotificationHandler,
 } from "./jsonrpc.js";
 
-
 /**
  * An agent-side connection to a client.
  *
@@ -45,10 +44,7 @@ export class AgentSideConnection {
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
-  constructor(
-    toAgent: (conn: AgentSideConnection) => Agent,
-    stream: Stream,
-  ) {
+  constructor(toAgent: (conn: AgentSideConnection) => Agent, stream: Stream) {
     const agent = toAgent(this);
 
     const requestHandler = async (
@@ -397,10 +393,7 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
-  constructor(
-    toClient: (agent: Agent) => Client,
-    stream: Stream,
-  ) {
+  constructor(toClient: (agent: Agent) => Client, stream: Stream) {
     const client = toClient(this);
 
     const requestHandler = async (
@@ -740,7 +733,7 @@ class Connection {
             err,
           );
           // Only send error response if the message had an id (was a request)
-          if ('id' in message && message.id !== undefined) {
+          if ("id" in message && message.id !== undefined) {
             this.#sendMessage({
               jsonrpc: "2.0",
               id: message.id,

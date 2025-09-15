@@ -24,11 +24,11 @@ export type AnyNotification = {
 
 export type Result<T> =
   | {
-    result: T;
-  }
+      result: T;
+    }
   | {
-    error: ErrorResponse;
-  };
+      error: ErrorResponse;
+    };
 
 export type ErrorResponse = {
   code: number;
@@ -41,5 +41,11 @@ export type PendingResponse = {
   reject: (error: ErrorResponse) => void;
 };
 
-export type RequestHandler = (method: string, params: unknown) => Promise<unknown>;
-export type NotificationHandler = (method: string, params: unknown) => Promise<void>;
+export type RequestHandler = (
+  method: string,
+  params: unknown,
+) => Promise<unknown>;
+export type NotificationHandler = (
+  method: string,
+  params: unknown,
+) => Promise<void>;
