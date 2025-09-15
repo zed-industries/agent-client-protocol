@@ -30,6 +30,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
 - **JSON Schema**: [schema.json](./schema/schema.json)
+- [**use-acp**](https://github.com/marimo-team/use-acp): React hooks for connecting to Agent Client Protocol (ACP) servers.
 
 ## Contributing
 
