@@ -25,3 +25,6 @@ extend-exclude = [
 extend-ignore-re = [
 ]
 check-filename = true
+
+[default.extend-identifiers]
+ndJsonStream = "ndJsonStream"
