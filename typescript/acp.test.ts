@@ -23,6 +23,7 @@ import {
   CancelNotification,
   SessionNotification,
   PROTOCOL_VERSION,
+  ndJsonStream,
 } from "./acp.js";
 
 describe("Connection", () => {
@@ -82,14 +83,12 @@ describe("Connection", () => {
     // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Test error handling in client->agent direction
@@ -173,16 +172,15 @@ describe("Connection", () => {
       }
     }
 
-    new ClientSideConnection(
+    // Set up connections
+    const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Send multiple concurrent requests
@@ -285,14 +283,12 @@ describe("Connection", () => {
     // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Send requests in specific order
@@ -422,14 +418,12 @@ describe("Connection", () => {
     // Set up connections
     const agentConnection = new ClientSideConnection(
       testClient,
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       testAgent,
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Send notifications
@@ -516,16 +510,15 @@ describe("Connection", () => {
       }
     }
 
+    // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
-    new AgentSideConnection(
+    const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Test initialize request
@@ -627,16 +620,15 @@ describe("Connection", () => {
       }
     }
 
+    // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Test agent calling client extension method
@@ -729,16 +721,15 @@ describe("Connection", () => {
       // Note: No extMethod or extNotification implemented
     }
 
+    // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClientWithoutExtensions(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgentWithoutExtensions(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Test that calling extension methods on connections without them throws method not found
@@ -857,16 +848,15 @@ describe("Connection", () => {
       }
     }
 
+    // Set up connections
     const agentConnection = new ClientSideConnection(
       () => new TestClient(),
-      clientToAgent.writable,
-      agentToClient.readable,
+      ndJsonStream(clientToAgent.writable, agentToClient.readable),
     );
 
     const clientConnection = new AgentSideConnection(
       () => new TestAgent(),
-      agentToClient.writable,
-      clientToAgent.readable,
+      ndJsonStream(agentToClient.writable, clientToAgent.readable),
     );
 
     // Test writeTextFile returns response with _meta
