@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 
-import { AgentSideConnection, Agent, PROTOCOL_VERSION } from "../acp.js";
-import * as schema from "../schema.js";
+import * as acp from "../acp.js";
 import { Readable, Writable } from "node:stream";
 
 interface AgentSession {
   pendingPrompt: AbortController | null;
 }
 
-class ExampleAgent implements Agent {
-  private connection: AgentSideConnection;
+class ExampleAgent implements acp.Agent {
+  private connection: acp.AgentSideConnection;
   private sessions: Map<string, AgentSession>;
 
-  constructor(connection: AgentSideConnection) {
+  constructor(connection: acp.AgentSideConnection) {
     this.connection = connection;
     this.sessions = new Map();
   }
 
   async initialize(
-    params: schema.InitializeRequest,
-  ): Promise<schema.InitializeResponse> {
+    params: acp.InitializeRequest,
+  ): Promise<acp.InitializeResponse> {
     return {
-      protocolVersion: PROTOCOL_VERSION,
+      protocolVersion: acp.PROTOCOL_VERSION,
       agentCapabilities: {
         loadSession: false,
       },
@@ -29,8 +28,8 @@ class ExampleAgent implements Agent {
   }
 
   async newSession(
-    params: schema.NewSessionRequest,
-  ): Promise<schema.NewSessionResponse> {
+    params: acp.NewSessionRequest,
+  ): Promise<acp.NewSessionResponse> {
     const sessionId = Math.random().toString(36).substring(2);
 
     this.sessions.set(sessionId, {
@@ -43,20 +42,20 @@ class ExampleAgent implements Agent {
   }
 
   async authenticate(
-    params: schema.AuthenticateRequest,
-  ): Promise<schema.AuthenticateResponse | void> {
+    params: acp.AuthenticateRequest,
+  ): Promise<acp.AuthenticateResponse | void> {
     // No auth needed - return empty response
     return {};
   }
 
   async setSessionMode(
-    params: schema.SetSessionModeRequest,
-  ): Promise<schema.SetSessionModeResponse> {
+    params: acp.SetSessionModeRequest,
+  ): Promise<acp.SetSessionModeResponse> {
     // Session mode changes not implemented in this example
     return {};
   }
 
-  async prompt(params: schema.PromptRequest): Promise<schema.PromptResponse> {
+  async prompt(params: acp.PromptRequest): Promise<acp.PromptResponse> {
     const session = this.sessions.get(params.sessionId);
 
     if (!session) {
@@ -263,7 +262,7 @@ class ExampleAgent implements Agent {
     );
   }
 
-  async cancel(params: schema.CancelNotification): Promise<void> {
+  async cancel(params: acp.CancelNotification): Promise<void> {
     this.sessions.get(params.sessionId)?.pendingPrompt?.abort();
   }
 }
@@ -271,4 +270,5 @@ class ExampleAgent implements Agent {
 const input = Writable.toWeb(process.stdout) as WritableStream;
 const output = Readable.toWeb(process.stdin) as ReadableStream<Uint8Array>;
 
-new AgentSideConnection((conn) => new ExampleAgent(conn), input, output);
+const stream = acp.ndJsonStream(input, output);
+new acp.AgentSideConnection((conn) => new ExampleAgent(conn), stream);

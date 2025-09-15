@@ -1,6 +1,24 @@
 import { z } from "zod";
 import * as schema from "./schema.js";
 export * from "./schema.js";
+export * from "./stream.js";
+/**
+ * TypeScript implementation of the Agent Client Protocol (ACP).
+ */
+
+import type { Stream } from "./stream.js";
+import type {
+  AnyMessage,
+  AnyRequest,
+  AnyResponse,
+  AnyNotification,
+  Result,
+  ErrorResponse,
+  PendingResponse,
+  RequestHandler,
+  NotificationHandler,
+} from "./jsonrpc.js";
+
 
 /**
  * An agent-side connection to a client.
@@ -22,15 +40,14 @@ export class AgentSideConnection {
    * following the ACP specification.
    *
    * @param toAgent - A function that creates an Agent handler to process incoming client requests
-   * @param input - The stream for sending data to the client (typically stdout)
-   * @param output - The stream for receiving data from the client (typically stdin)
+   * @param stream - The bidirectional message stream for communication. Typically created using
+   *                 {@link ndJsonStream} for stdio-based connections.
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
     toAgent: (conn: AgentSideConnection) => Agent,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
+    stream: Stream,
   ) {
     const agent = toAgent(this);
 
@@ -119,8 +136,7 @@ export class AgentSideConnection {
     this.#connection = new Connection(
       requestHandler,
       notificationHandler,
-      input,
-      output,
+      stream,
     );
   }
 
@@ -376,15 +392,14 @@ export class ClientSideConnection implements Agent {
    * following the ACP specification.
    *
    * @param toClient - A function that creates a Client handler to process incoming agent requests
-   * @param input - The stream for sending data to the agent (typically stdout)
-   * @param output - The stream for receiving data from the agent (typically stdin)
+   * @param stream - The bidirectional message stream for communication. Typically created using
+   *                 {@link ndJsonStream} for stdio-based connections.
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
   constructor(
     toClient: (agent: Agent) => Client,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
+    stream: Stream,
   ) {
     const client = toClient(this);
 
@@ -498,8 +513,7 @@ export class ClientSideConnection implements Agent {
     this.#connection = new Connection(
       requestHandler,
       notificationHandler,
-      input,
-      output,
+      stream,
     );
   }
 
@@ -683,113 +697,58 @@ export class ClientSideConnection implements Agent {
   }
 }
 
-type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
-
-type AnyRequest = {
-  jsonrpc: "2.0";
-  id: string | number;
-  method: string;
-  params?: unknown;
-};
-
-type AnyResponse = {
-  jsonrpc: "2.0";
-  id: string | number;
-} & Result<unknown>;
-
-type AnyNotification = {
-  jsonrpc: "2.0";
-  method: string;
-  params?: unknown;
-};
-
-type Result<T> =
-  | {
-      result: T;
-    }
-  | {
-      error: ErrorResponse;
-    };
-
-type ErrorResponse = {
-  code: number;
-  message: string;
-  data?: unknown;
-};
-
-type PendingResponse = {
-  resolve: (response: unknown) => void;
-  reject: (error: ErrorResponse) => void;
-};
-
-type RequestHandler = (method: string, params: unknown) => Promise<unknown>;
-type NotificationHandler = (method: string, params: unknown) => Promise<void>;
+// Re-export AnyMessage for backwards compatibility
+export type { AnyMessage } from "./jsonrpc.js";
 
 class Connection {
   #pendingResponses: Map<string | number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
   #requestHandler: RequestHandler;
   #notificationHandler: NotificationHandler;
-  #peerInput: WritableStream<Uint8Array>;
+  #stream: Stream;
   #writeQueue: Promise<void> = Promise.resolve();
-  #textEncoder: TextEncoder;
 
   constructor(
     requestHandler: RequestHandler,
     notificationHandler: NotificationHandler,
-    peerInput: WritableStream<Uint8Array>,
-    peerOutput: ReadableStream<Uint8Array>,
+    stream: Stream,
   ) {
     this.#requestHandler = requestHandler;
     this.#notificationHandler = notificationHandler;
-    this.#peerInput = peerInput;
-    this.#textEncoder = new TextEncoder();
-    this.#receive(peerOutput);
+    this.#stream = stream;
+    this.#receive();
   }
 
-  async #receive(output: ReadableStream<Uint8Array>) {
-    let content = "";
-    const decoder = new TextDecoder();
-    const reader = output.getReader();
+  async #receive() {
+    const reader = this.#stream.readable.getReader();
     try {
       while (true) {
-        const { value, done } = await reader.read();
+        const { value: message, done } = await reader.read();
         if (done) {
           break;
         }
-        if (!value) {
+        if (!message) {
           continue;
         }
-        content += decoder.decode(value, { stream: true });
-        const lines = content.split("\n");
-        content = lines.pop() || "";
 
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-
-          if (trimmedLine) {
-            let id;
-            try {
-              const message = JSON.parse(trimmedLine);
-              id = message.id;
-              this.#processMessage(message);
-            } catch (err) {
-              console.error(
-                "Unexpected error during message processing:",
-                trimmedLine,
-                err,
-              );
-              if (id) {
-                this.#sendMessage({
-                  jsonrpc: "2.0",
-                  id,
-                  error: {
-                    code: -32700,
-                    message: "Parse error",
-                  },
-                });
-              }
-            }
+        try {
+          this.#processMessage(message);
+        } catch (err) {
+          console.error(
+            "Unexpected error during message processing:",
+            message,
+            err,
+          );
+          // Only send error response if the message had an id (was a request)
+          if ('id' in message && message.id !== undefined) {
+            this.#sendMessage({
+              jsonrpc: "2.0",
+              id: message.id,
+              error: {
+                code: -32700,
+                message: "Parse error",
+              },
+            });
           }
         }
       }
@@ -936,13 +895,12 @@ class Connection {
     await this.#sendMessage({ jsonrpc: "2.0", method, params });
   }
 
-  async #sendMessage(json: AnyMessage) {
-    const content = JSON.stringify(json) + "\n";
+  async #sendMessage(message: AnyMessage) {
     this.#writeQueue = this.#writeQueue
       .then(async () => {
-        const writer = this.#peerInput.getWriter();
+        const writer = this.#stream.writable.getWriter();
         try {
-          await writer.write(this.#textEncoder.encode(content));
+          await writer.write(message);
         } finally {
           writer.releaseLock();
         }
