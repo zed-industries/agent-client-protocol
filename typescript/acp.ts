@@ -2,16 +2,11 @@ import { z } from "zod";
 import * as schema from "./schema.js";
 export * from "./schema.js";
 export * from "./stream.js";
-/**
- * TypeScript implementation of the Agent Client Protocol (ACP).
- */
 
 import type { Stream } from "./stream.js";
 import type {
   AnyMessage,
-  AnyRequest,
   AnyResponse,
-  AnyNotification,
   Result,
   ErrorResponse,
   PendingResponse,
