@@ -16,6 +16,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
 - [Zed](https://zed.dev/docs/ai/external-agents)
 - [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
+- [marimo notebook](https://github.com/marimo-team/marimo)
 - [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
 
 ### Agents
