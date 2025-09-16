@@ -10,9 +10,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::SessionModeId;
-use crate::ext::ExtMethod;
-use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::ext::ExtRequest;
+use crate::{ContentBlock, Error, ExtNotification, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ExtResponse, SessionModeId};
 
 /// Defines the interface that ACP-compliant clients must implement.
 ///
@@ -152,11 +152,7 @@ pub trait Client {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_method(
-        &self,
-        method: Arc<str>,
-        params: Arc<RawValue>,
-    ) -> impl Future<Output = Result<Arc<RawValue>, Error>>;
+    fn ext_method(&self, args: ExtRequest) -> impl Future<Output = Result<ExtResponse, Error>>;
 
     /// Handles extension notifications from the agent.
     ///
@@ -165,11 +161,7 @@ pub trait Client {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_notification(
-        &self,
-        method: Arc<str>,
-        params: Arc<RawValue>,
-    ) -> impl Future<Output = Result<(), Error>>;
+    fn ext_notification(&self, args: ExtNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Session updates
@@ -708,7 +700,7 @@ pub enum AgentRequest {
     ReleaseTerminalRequest(ReleaseTerminalRequest),
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
     KillTerminalCommandRequest(KillTerminalCommandRequest),
-    ExtMethodRequest(ExtMethod),
+    ExtMethodRequest(ExtRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -744,5 +736,5 @@ pub enum ClientResponse {
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
-    ExtNotification(ExtMethod),
+    ExtNotification(ExtNotification),
 }
