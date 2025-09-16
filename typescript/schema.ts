@@ -6,7 +6,7 @@ export const AGENT_METHODS = {
   session_new: "session/new",
   session_prompt: "session/prompt",
   session_set_mode: "session/set_mode",
-};
+} as const;
 
 export const CLIENT_METHODS = {
   fs_read_text_file: "fs/read_text_file",
@@ -18,7 +18,7 @@ export const CLIENT_METHODS = {
   terminal_output: "terminal/output",
   terminal_release: "terminal/release",
   terminal_wait_for_exit: "terminal/wait_for_exit",
-};
+} as const;
 
 export const PROTOCOL_VERSION = 1;
 
