@@ -69,6 +69,7 @@ pub use content::*;
 pub use error::*;
 pub use ext::*;
 pub use plan::*;
+pub use serde_json::value::RawValue;
 pub use stream_broadcast::{
     StreamMessage, StreamMessageContent, StreamMessageDirection, StreamReceiver,
 };
@@ -79,7 +80,6 @@ use anyhow::Result;
 use futures::{AsyncRead, AsyncWrite, Future, future::LocalBoxFuture};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::value::RawValue;
 use std::{fmt, sync::Arc};
 
 use crate::rpc::{MessageHandler, RpcConnection, Side};
