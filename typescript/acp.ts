@@ -685,7 +685,6 @@ export class ClientSideConnection implements Agent {
   }
 }
 
-// Re-export AnyMessage for backwards compatibility
 export type { AnyMessage } from "./jsonrpc.js";
 
 class Connection {
