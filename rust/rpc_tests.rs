@@ -252,8 +252,8 @@ async fn create_connection_pair(
     client: TestClient,
     agent: TestAgent,
 ) -> (ClientSideConnection, AgentSideConnection) {
-    let (client_to_agent_tx, client_to_agent_rx) = async_pipe::pipe();
-    let (agent_to_client_tx, agent_to_client_rx) = async_pipe::pipe();
+    let (client_to_agent_rx, client_to_agent_tx) = piper::pipe(1024);
+    let (agent_to_client_rx, agent_to_client_tx) = piper::pipe(1024);
 
     let (agent_conn, agent_io_task) = ClientSideConnection::new(
         client.clone(),
