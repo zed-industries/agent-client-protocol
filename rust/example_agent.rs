@@ -38,6 +38,7 @@ impl ExampleAgent {
     }
 }
 
+#[async_trait::async_trait(?Send)]
 impl acp::Agent for ExampleAgent {
     async fn initialize(
         &self,

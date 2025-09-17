@@ -19,6 +19,7 @@ use crate::{ExtResponse, SessionModeId};
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
+#[async_trait::async_trait(?Send)]
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
@@ -30,10 +31,10 @@ pub trait Client {
     /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
     /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
-    fn request_permission(
+    async fn request_permission(
         &self,
         args: RequestPermissionRequest,
-    ) -> impl Future<Output = Result<RequestPermissionResponse, Error>>;
+    ) -> Result<RequestPermissionResponse, Error>;
 
     /// Writes content to a text file in the client's file system.
     ///
@@ -41,10 +42,10 @@ pub trait Client {
     /// Allows the agent to create or modify files within the client's environment.
     ///
     /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    fn write_text_file(
+    async fn write_text_file(
         &self,
         args: WriteTextFileRequest,
-    ) -> impl Future<Output = Result<WriteTextFileResponse, Error>>;
+    ) -> Result<WriteTextFileResponse, Error>;
 
     /// Reads content from a text file in the client's file system.
     ///
@@ -52,10 +53,10 @@ pub trait Client {
     /// Allows the agent to access file contents within the client's environment.
     ///
     /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    fn read_text_file(
+    async fn read_text_file(
         &self,
         args: ReadTextFileRequest,
-    ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
+    ) -> Result<ReadTextFileResponse, Error>;
 
     /// Handles session update notifications from the agent.
     ///
@@ -68,10 +69,7 @@ pub trait Client {
     /// updates before responding with the cancelled stop reason.
     ///
     /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
-    fn session_notification(
-        &self,
-        args: SessionNotification,
-    ) -> impl Future<Output = Result<(), Error>>;
+    async fn session_notification(&self, args: SessionNotification) -> Result<(), Error>;
 
     /// Executes a command in a new terminal
     ///
@@ -87,10 +85,10 @@ pub trait Client {
     /// method.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn create_terminal(
+    async fn create_terminal(
         &self,
         args: CreateTerminalRequest,
-    ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
+    ) -> Result<CreateTerminalResponse, Error>;
 
     /// Gets the terminal output and exit status
     ///
@@ -98,10 +96,10 @@ pub trait Client {
     /// If the command has already exited, the exit status is included.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn terminal_output(
+    async fn terminal_output(
         &self,
         args: TerminalOutputRequest,
-    ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
+    ) -> Result<TerminalOutputResponse, Error>;
 
     /// Releases a terminal
     ///
@@ -115,18 +113,18 @@ pub trait Client {
     /// the terminal, allowing the Agent to call `terminal/output` and other methods.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn release_terminal(
+    async fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
-    ) -> impl Future<Output = Result<ReleaseTerminalResponse, Error>>;
+    ) -> Result<ReleaseTerminalResponse, Error>;
 
     /// Waits for the terminal command to exit and return its exit status
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn wait_for_terminal_exit(
+    async fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
-    ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
+    ) -> Result<WaitForTerminalExitResponse, Error>;
 
     /// Kills the terminal command without releasing the terminal
     ///
@@ -140,10 +138,10 @@ pub trait Client {
     /// Note: `terminal/release` when `TerminalId` is no longer needed.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn kill_terminal_command(
+    async fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
-    ) -> impl Future<Output = Result<KillTerminalCommandResponse, Error>>;
+    ) -> Result<KillTerminalCommandResponse, Error>;
 
     /// Handles extension method requests from the agent.
     ///
@@ -152,7 +150,7 @@ pub trait Client {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_method(&self, args: ExtRequest) -> impl Future<Output = Result<ExtResponse, Error>>;
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
 
     /// Handles extension notifications from the agent.
     ///
@@ -161,7 +159,7 @@ pub trait Client {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_notification(&self, args: ExtNotification) -> impl Future<Output = Result<(), Error>>;
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
 }
 
 // Session updates

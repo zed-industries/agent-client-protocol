@@ -20,6 +20,7 @@ use crate::{
 ///
 /// Agents are programs that use generative AI to autonomously modify code. They handle
 /// requests from clients and execute tasks using language models and tools.
+#[async_trait::async_trait(?Send)]
 pub trait Agent {
     /// Establishes the connection with a client and negotiates protocol capabilities.
     ///
@@ -31,10 +32,7 @@ pub trait Agent {
     /// The agent should respond with its supported protocol version and capabilities.
     ///
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
-    fn initialize(
-        &self,
-        args: InitializeRequest,
-    ) -> impl Future<Output = Result<InitializeResponse, Error>>;
+    async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error>;
 
     /// Authenticates the client using the specified authentication method.
     ///
@@ -45,10 +43,7 @@ pub trait Agent {
     /// `new_session` without receiving an `auth_required` error.
     ///
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
-    fn authenticate(
-        &self,
-        args: AuthenticateRequest,
-    ) -> impl Future<Output = Result<AuthenticateResponse, Error>>;
+    async fn authenticate(&self, args: AuthenticateRequest) -> Result<AuthenticateResponse, Error>;
 
     /// Creates a new conversation session with the agent.
     ///
@@ -62,10 +57,7 @@ pub trait Agent {
     /// May return an `auth_required` error if the agent requires authentication.
     ///
     /// See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
-    fn new_session(
-        &self,
-        args: NewSessionRequest,
-    ) -> impl Future<Output = Result<NewSessionResponse, Error>>;
+    async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error>;
 
     /// Loads an existing session to resume a previous conversation.
     ///
@@ -77,10 +69,7 @@ pub trait Agent {
     /// - Stream the entire conversation history back to the client via notifications
     ///
     /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
-    fn load_session(
-        &self,
-        args: LoadSessionRequest,
-    ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
+    async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error>;
 
     /// Sets the current mode for a session.
     ///
@@ -95,10 +84,10 @@ pub trait Agent {
     /// idle or actively generating a response.
     ///
     /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
-    fn set_session_mode(
+    async fn set_session_mode(
         &self,
         args: SetSessionModeRequest,
-    ) -> impl Future<Output = Result<SetSessionModeResponse, Error>>;
+    ) -> Result<SetSessionModeResponse, Error>;
 
     /// Processes a user prompt within a session.
     ///
@@ -111,7 +100,7 @@ pub trait Agent {
     /// - Returns when the turn is complete with a stop reason
     ///
     /// See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
-    fn prompt(&self, args: PromptRequest) -> impl Future<Output = Result<PromptResponse, Error>>;
+    async fn prompt(&self, args: PromptRequest) -> Result<PromptResponse, Error>;
 
     /// Cancels ongoing operations for a session.
     ///
@@ -124,7 +113,7 @@ pub trait Agent {
     /// - Respond to the original `session/prompt` request with `StopReason::Cancelled`
     ///
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
-    fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
+    async fn cancel(&self, args: CancelNotification) -> Result<(), Error>;
 
     /// Handles extension method requests from the client.
     ///
@@ -132,7 +121,7 @@ pub trait Agent {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_method(&self, args: ExtRequest) -> impl Future<Output = Result<ExtResponse, Error>>;
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
 
     /// Handles extension notifications from the client.
     ///
@@ -140,7 +129,7 @@ pub trait Agent {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_notification(&self, args: ExtNotification) -> impl Future<Output = Result<(), Error>>;
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
 }
 
 // Initialize

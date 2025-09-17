@@ -40,6 +40,7 @@ macro_rules! raw_json {
     }};
 }
 
+#[async_trait::async_trait(?Send)]
 impl Client for TestClient {
     async fn request_permission(
         &self,
@@ -162,6 +163,7 @@ impl TestAgent {
     }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Agent for TestAgent {
     async fn initialize(&self, arguments: InitializeRequest) -> Result<InitializeResponse, Error> {
         Ok(InitializeResponse {
