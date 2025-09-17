@@ -166,6 +166,7 @@ impl ClientSideConnection {
     }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Agent for ClientSideConnection {
     async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error> {
         self.conn
@@ -441,6 +442,7 @@ impl AgentSideConnection {
     }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Client for AgentSideConnection {
     async fn request_permission(
         &self,

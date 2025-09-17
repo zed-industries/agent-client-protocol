@@ -20,6 +20,7 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
 
+#[async_trait::async_trait(?Send)]
 impl acp::Client for ExampleClient {
     async fn request_permission(
         &self,
