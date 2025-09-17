@@ -10,8 +10,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::ext::ExtMethod;
-use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
+use crate::ext::ExtRequest;
+use crate::{
+    ClientCapabilities, ContentBlock, Error, ExtNotification, ExtResponse, ProtocolVersion,
+    SessionId,
+};
 
 /// Defines the interface that all ACP-compliant agents must implement.
 ///
@@ -30,7 +33,7 @@ pub trait Agent {
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     fn initialize(
         &self,
-        arguments: InitializeRequest,
+        args: InitializeRequest,
     ) -> impl Future<Output = Result<InitializeResponse, Error>>;
 
     /// Authenticates the client using the specified authentication method.
@@ -44,7 +47,7 @@ pub trait Agent {
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     fn authenticate(
         &self,
-        arguments: AuthenticateRequest,
+        args: AuthenticateRequest,
     ) -> impl Future<Output = Result<AuthenticateResponse, Error>>;
 
     /// Creates a new conversation session with the agent.
@@ -61,7 +64,7 @@ pub trait Agent {
     /// See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
     fn new_session(
         &self,
-        arguments: NewSessionRequest,
+        args: NewSessionRequest,
     ) -> impl Future<Output = Result<NewSessionResponse, Error>>;
 
     /// Loads an existing session to resume a previous conversation.
@@ -76,7 +79,7 @@ pub trait Agent {
     /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
     fn load_session(
         &self,
-        arguments: LoadSessionRequest,
+        args: LoadSessionRequest,
     ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
 
     /// Sets the current mode for a session.
@@ -94,7 +97,7 @@ pub trait Agent {
     /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     fn set_session_mode(
         &self,
-        arguments: SetSessionModeRequest,
+        args: SetSessionModeRequest,
     ) -> impl Future<Output = Result<SetSessionModeResponse, Error>>;
 
     /// Processes a user prompt within a session.
@@ -108,10 +111,7 @@ pub trait Agent {
     /// - Returns when the turn is complete with a stop reason
     ///
     /// See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
-    fn prompt(
-        &self,
-        arguments: PromptRequest,
-    ) -> impl Future<Output = Result<PromptResponse, Error>>;
+    fn prompt(&self, args: PromptRequest) -> impl Future<Output = Result<PromptResponse, Error>>;
 
     /// Cancels ongoing operations for a session.
     ///
@@ -132,11 +132,7 @@ pub trait Agent {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_method(
-        &self,
-        method: Arc<str>,
-        params: Arc<RawValue>,
-    ) -> impl Future<Output = Result<Arc<RawValue>, Error>>;
+    fn ext_method(&self, args: ExtRequest) -> impl Future<Output = Result<ExtResponse, Error>>;
 
     /// Handles extension notifications from the client.
     ///
@@ -144,11 +140,7 @@ pub trait Agent {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    fn ext_notification(
-        &self,
-        method: Arc<str>,
-        params: Arc<RawValue>,
-    ) -> impl Future<Output = Result<(), Error>>;
+    fn ext_notification(&self, args: ExtNotification) -> impl Future<Output = Result<(), Error>>;
 }
 
 // Initialize
@@ -669,7 +661,7 @@ pub enum ClientRequest {
     LoadSessionRequest(LoadSessionRequest),
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
-    ExtMethodRequest(ExtMethod),
+    ExtMethodRequest(ExtRequest),
 }
 
 /// All possible responses that an agent can send to a client.
@@ -702,7 +694,7 @@ pub enum AgentResponse {
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
-    ExtNotification(ExtMethod),
+    ExtNotification(ExtNotification),
 }
 
 /// Notification to cancel ongoing operations for a session.

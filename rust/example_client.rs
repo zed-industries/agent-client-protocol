@@ -12,11 +12,10 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
-use std::sync::Arc;
-
-use agent_client_protocol::{self as acp, Agent, KillTerminalCommandResponse};
+use agent_client_protocol::{
+    self as acp, Agent, ExtNotification, ExtRequest, ExtResponse, KillTerminalCommandResponse,
+};
 use anyhow::bail;
-use serde_json::value::RawValue;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
@@ -104,19 +103,11 @@ impl acp::Client for ExampleClient {
         Ok(())
     }
 
-    async fn ext_method(
-        &self,
-        _method: std::sync::Arc<str>,
-        _params: Arc<RawValue>,
-    ) -> Result<Arc<RawValue>, acp::Error> {
+    async fn ext_method(&self, _args: ExtRequest) -> Result<ExtResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
-    async fn ext_notification(
-        &self,
-        _method: std::sync::Arc<str>,
-        _params: Arc<RawValue>,
-    ) -> Result<(), acp::Error> {
+    async fn ext_notification(&self, _args: ExtNotification) -> Result<(), acp::Error> {
         Err(acp::Error::method_not_found())
     }
 }

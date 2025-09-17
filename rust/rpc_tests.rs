@@ -10,7 +10,7 @@ struct TestClient {
     file_contents: Arc<Mutex<std::collections::HashMap<std::path::PathBuf, String>>>,
     written_files: Arc<Mutex<Vec<(std::path::PathBuf, String)>>>,
     session_notifications: Arc<Mutex<Vec<SessionNotification>>>,
-    extension_notifications: Arc<Mutex<Vec<(String, Arc<RawValue>)>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, ExtNotification)>>>,
 }
 
 impl TestClient {
@@ -122,29 +122,21 @@ impl Client for TestClient {
         unimplemented!()
     }
 
-    async fn ext_method(
-        &self,
-        method: std::sync::Arc<str>,
-        params: Arc<RawValue>,
-    ) -> Result<Arc<RawValue>, Error> {
-        match dbg!(method.as_ref()) {
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
+        match dbg!(args.method.as_ref()) {
             "example.com/ping" => Ok(raw_json!({
                 "response": "pong",
-                "params": params
+                "params": args.params
             })),
             _ => Err(Error::method_not_found()),
         }
     }
 
-    async fn ext_notification(
-        &self,
-        method: std::sync::Arc<str>,
-        params: Arc<RawValue>,
-    ) -> Result<(), Error> {
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
         self.extension_notifications
             .lock()
             .unwrap()
-            .push((method.to_string(), params));
+            .push((args.method.to_string(), args));
         Ok(())
     }
 }
@@ -154,7 +146,7 @@ struct TestAgent {
     sessions: Arc<Mutex<std::collections::HashSet<SessionId>>>,
     prompts_received: Arc<Mutex<Vec<PromptReceived>>>,
     cancellations_received: Arc<Mutex<Vec<SessionId>>>,
-    extension_notifications: Arc<Mutex<Vec<(String, Arc<RawValue>)>>>,
+    extension_notifications: Arc<Mutex<Vec<(String, ExtNotification)>>>,
 }
 
 type PromptReceived = (SessionId, Vec<ContentBlock>);
@@ -233,16 +225,12 @@ impl Agent for TestAgent {
         Ok(())
     }
 
-    async fn ext_method(
-        &self,
-        method: Arc<str>,
-        params: Arc<RawValue>,
-    ) -> Result<Arc<RawValue>, Error> {
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
         dbg!();
-        match dbg!(method.as_ref()) {
+        match dbg!(args.method.as_ref()) {
             "example.com/echo" => {
                 let response = serde_json::json!({
-                    "echo": params
+                    "echo": args.params
                 });
                 Ok(serde_json::value::to_raw_value(&response)?.into())
             }
@@ -250,15 +238,11 @@ impl Agent for TestAgent {
         }
     }
 
-    async fn ext_notification(
-        &self,
-        method: std::sync::Arc<str>,
-        params: Arc<RawValue>,
-    ) -> Result<(), Error> {
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
         self.extension_notifications
             .lock()
             .unwrap()
-            .push((method.to_string(), params));
+            .push((args.method.to_string(), args));
         Ok(())
     }
 }
@@ -826,7 +810,10 @@ async fn test_extension_methods_and_notifications() {
 
             // Test agent calling client extension method
             let client_response = agent_conn
-                .ext_method("example.com/ping".into(), raw_json!({"data": "test"}))
+                .ext_method(ExtRequest {
+                    method: "example.com/ping".into(),
+                    params: raw_json!({"data": "test"}),
+                })
                 .await
                 .unwrap();
 
@@ -840,7 +827,10 @@ async fn test_extension_methods_and_notifications() {
 
             // Test client calling agent extension method
             let agent_response = client_conn
-                .ext_method("example.com/echo".into(), raw_json!({"message": "hello"}))
+                .ext_method(ExtRequest {
+                    method: "example.com/echo".into(),
+                    params: raw_json!({"message": "hello"}),
+                })
                 .await
                 .unwrap();
 
@@ -853,18 +843,18 @@ async fn test_extension_methods_and_notifications() {
 
             // Test extension notifications
             agent_conn
-                .ext_notification(
-                    "example.com/client/notify".into(),
-                    raw_json!({"info": "client notification"}),
-                )
+                .ext_notification(ExtNotification {
+                    method: "example.com/client/notify".into(),
+                    params: raw_json!({"info": "client notification"}),
+                })
                 .await
                 .unwrap();
 
             client_conn
-                .ext_notification(
-                    "example.com/agent/notify".into(),
-                    raw_json!({"info": "agent notification"}),
-                )
+                .ext_notification(ExtNotification {
+                    method: "example.com/agent/notify".into(),
+                    params: raw_json!({"info": "agent notification"}),
+                })
                 .await
                 .unwrap();
 
