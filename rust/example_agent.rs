@@ -16,7 +16,7 @@ use std::cell::Cell;
 
 use agent_client_protocol::{
     self as acp, AuthenticateResponse, Client, ExtNotification, ExtRequest, ExtResponse,
-    SessionNotification,
+    SessionNotification, SetSessionModeResponse,
 };
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
@@ -58,7 +58,7 @@ impl acp::Agent for ExampleAgent {
         arguments: acp::AuthenticateRequest,
     ) -> Result<AuthenticateResponse, acp::Error> {
         log::info!("Received authenticate request {arguments:?}");
-        Ok(Default::default())
+        Ok(AuthenticateResponse::default())
     }
 
     async fn new_session(
@@ -121,7 +121,7 @@ impl acp::Agent for ExampleAgent {
         args: acp::SetSessionModeRequest,
     ) -> Result<acp::SetSessionModeResponse, acp::Error> {
         log::info!("Received set session mode request {args:?}");
-        Ok(Default::default())
+        Ok(SetSessionModeResponse::default())
     }
 
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, acp::Error> {

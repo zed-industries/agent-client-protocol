@@ -184,7 +184,7 @@ impl Agent for ClientSideConnection {
                 Some(ClientRequest::AuthenticateRequest(args)),
             )
             .await
-            .map(|value| value.unwrap_or_default())
+            .map(Option::unwrap_or_default)
     }
 
     async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error> {
@@ -203,7 +203,7 @@ impl Agent for ClientSideConnection {
                 Some(ClientRequest::LoadSessionRequest(args)),
             )
             .await
-            .map(|value| value.unwrap_or_default())
+            .map(Option::unwrap_or_default)
     }
 
     async fn set_session_mode(
@@ -466,7 +466,7 @@ impl Client for AgentSideConnection {
                 Some(AgentRequest::WriteTextFileRequest(args)),
             )
             .await
-            .map(|value| value.unwrap_or_default())
+            .map(Option::unwrap_or_default)
     }
 
     async fn read_text_file(
@@ -515,7 +515,7 @@ impl Client for AgentSideConnection {
                 Some(AgentRequest::ReleaseTerminalRequest(args)),
             )
             .await
-            .map(|value| value.unwrap_or_default())
+            .map(Option::unwrap_or_default)
     }
 
     async fn wait_for_terminal_exit(
@@ -540,7 +540,7 @@ impl Client for AgentSideConnection {
                 Some(AgentRequest::KillTerminalCommandRequest(args)),
             )
             .await
-            .map(|value| value.unwrap_or_default())
+            .map(Option::unwrap_or_default)
     }
 
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {

@@ -14,6 +14,7 @@ pub struct ProtocolVersion(u16);
 
 impl ProtocolVersion {
     #[cfg(test)]
+    #[must_use]
     pub const fn new(version: u16) -> Self {
         Self(version)
     }
@@ -31,7 +32,7 @@ impl<'de> Deserialize<'de> for ProtocolVersion {
 
         struct ProtocolVersionVisitor;
 
-        impl<'de> Visitor<'de> for ProtocolVersionVisitor {
+        impl Visitor<'_> for ProtocolVersionVisitor {
             type Value = ProtocolVersion;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -42,10 +43,9 @@ impl<'de> Deserialize<'de> for ProtocolVersion {
             where
                 E: de::Error,
             {
-                if value <= u16::MAX as u64 {
-                    Ok(ProtocolVersion(value as u16))
-                } else {
-                    Err(E::custom(format!("protocol version {value} is too large")))
+                match u16::try_from(value) {
+                    Ok(value) => Ok(ProtocolVersion(value)),
+                    Err(_) => Err(E::custom(format!("protocol version {value} is too large"))),
                 }
             }
 

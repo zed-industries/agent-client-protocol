@@ -274,7 +274,7 @@ where
                                         .ok();
                                 }
                                 .boxed_local(),
-                            )
+                            );
                         }
                         IncomingMessage::Notification { notification } => {
                             let handler = handler.clone();
@@ -287,13 +287,13 @@ where
                                     }
                                 }
                                 .boxed_local(),
-                            )
+                            );
                         }
                     }
                 }
             }
             .boxed_local()
-        })
+        });
     }
 }
 

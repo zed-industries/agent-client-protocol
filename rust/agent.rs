@@ -658,7 +658,7 @@ pub enum ClientRequest {
 /// This enum is used internally for routing RPC responses. You typically won't need
 /// to use this directly - the responses are handled automatically by the connection.
 ///
-/// These are responses to the corresponding ClientRequest variants.
+/// These are responses to the corresponding `ClientRequest` variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
