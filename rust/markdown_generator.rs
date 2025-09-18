@@ -41,7 +41,7 @@ impl MarkdownGenerator {
         for (name, def) in &self.definitions {
             if def
                 .get("x-docs-ignore")
-                .and_then(|v| v.as_bool())
+                .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false)
             {
                 continue;
@@ -103,18 +103,17 @@ impl MarkdownGenerator {
             writeln!(
                 &mut self.output,
                 "<a id=\"{}\"></a>",
-                Self::anchor_text(method).replace("/", "-")
+                Self::anchor_text(method).replace('/', "-")
             )
             .unwrap();
         }
         writeln!(
             &mut self.output,
-            "### <span class=\"font-mono\">{}</span>",
-            method,
+            "### <span class=\"font-mono\">{method}</span>",
         )
         .unwrap();
         writeln!(&mut self.output).unwrap();
-        writeln!(&mut self.output, "{}", docs).unwrap();
+        writeln!(&mut self.output, "{docs}").unwrap();
         writeln!(&mut self.output).unwrap();
 
         method_types.sort_by_key(|(name, _)| name.clone());
@@ -138,7 +137,7 @@ impl MarkdownGenerator {
         if let Some(desc) = Self::get_def_description(definition) {
             // Escape # at the beginning of lines to prevent them from being treated as headers
             let escaped_desc = Self::escape_description(&desc);
-            writeln!(&mut self.output, "{}", escaped_desc).unwrap();
+            writeln!(&mut self.output, "{escaped_desc}").unwrap();
             writeln!(&mut self.output).unwrap();
         }
         // Determine type kind and document accordingly
@@ -180,12 +179,12 @@ impl MarkdownGenerator {
         if let Some(ref_val) = variant.get("$ref").and_then(|v| v.as_str()) {
             let type_name = ref_val.strip_prefix("#/$defs/").unwrap_or(ref_val);
             variant_name = type_name.to_string();
-            write!(&mut self.output, "{}", type_name).unwrap();
+            write!(&mut self.output, "{type_name}").unwrap();
         } else if let Some(const_val) = variant.get("const") {
             if let Some(s) = const_val.as_str() {
-                write!(&mut self.output, "{}", s).unwrap();
+                write!(&mut self.output, "{s}").unwrap();
             } else {
-                write!(&mut self.output, "{}", const_val).unwrap();
+                write!(&mut self.output, "{const_val}").unwrap();
             }
         } else if variant.get("type").and_then(|v| v.as_str()) == Some("null") {
             write!(&mut self.output, "null").unwrap();
@@ -197,7 +196,7 @@ impl MarkdownGenerator {
                 .and_then(|(_, v)| v.get("const").and_then(|c| c.as_str()));
 
             if let Some(const_val) = discriminator {
-                write!(&mut self.output, "{}", const_val).unwrap();
+                write!(&mut self.output, "{const_val}").unwrap();
             } else {
                 write!(&mut self.output, "Object").unwrap();
             }
@@ -209,7 +208,7 @@ impl MarkdownGenerator {
 
         // Get description
         if let Some(desc) = Self::get_def_description(variant) {
-            writeln!(&mut self.output, "{}", desc).unwrap();
+            writeln!(&mut self.output, "{desc}").unwrap();
         } else {
             writeln!(&mut self.output, "{{\"\"}}").unwrap();
         }
@@ -254,9 +253,9 @@ impl MarkdownGenerator {
             for val in enum_vals {
                 write!(&mut self.output, "| ").unwrap();
                 if let Some(s) = val.as_str() {
-                    write!(&mut self.output, "`\"{}\"`", s).unwrap();
+                    write!(&mut self.output, "`\"{s}\"`").unwrap();
                 } else {
-                    write!(&mut self.output, "`{}`", val).unwrap();
+                    write!(&mut self.output, "`{val}`").unwrap();
                 }
                 writeln!(&mut self.output, " |").unwrap();
             }
@@ -317,13 +316,13 @@ impl MarkdownGenerator {
 
             // Add description if available
             if let Some(desc) = Self::get_def_description(prop_schema) {
-                writeln!(&mut self.output, "{}  {}", indent_str, desc).unwrap();
+                writeln!(&mut self.output, "{indent_str}  {desc}").unwrap();
             }
 
             // Add constraints if any
             self.document_field_constraints(prop_schema, indent + 2);
 
-            writeln!(&mut self.output, "{}</ResponseField>", indent_str).unwrap();
+            writeln!(&mut self.output, "{indent_str}</ResponseField>").unwrap();
         }
     }
 
@@ -338,19 +337,19 @@ impl MarkdownGenerator {
             ));
         }
         if let Some(v) = schema.get("minimum") {
-            constraints.push(("Minimum", format!("`{}`", v)));
+            constraints.push(("Minimum", format!("`{v}`")));
         }
         if let Some(v) = schema.get("maximum") {
-            constraints.push(("Maximum", format!("`{}`", v)));
+            constraints.push(("Maximum", format!("`{v}`")));
         }
         if let Some(v) = schema.get("minLength") {
-            constraints.push(("Min length", format!("`{}`", v)));
+            constraints.push(("Min length", format!("`{v}`")));
         }
         if let Some(v) = schema.get("maxLength") {
-            constraints.push(("Max length", format!("`{}`", v)));
+            constraints.push(("Max length", format!("`{v}`")));
         }
         if let Some(v) = schema.get("pattern") {
-            constraints.push(("Pattern", format!("`{}`", v)));
+            constraints.push(("Pattern", format!("`{v}`")));
         }
 
         if !constraints.is_empty() {
@@ -358,13 +357,13 @@ impl MarkdownGenerator {
             if constraints.len() == 1 {
                 // Single constraint as text
                 let (name, value) = &constraints[0];
-                writeln!(&mut self.output, "{}  - {}: {}", indent_str, name, value).unwrap();
+                writeln!(&mut self.output, "{indent_str}  - {name}: {value}").unwrap();
             } else {
                 // Multiple constraints as table
-                writeln!(&mut self.output, "{}  | Constraint | Value |", indent_str).unwrap();
-                writeln!(&mut self.output, "{}  | ---------- | ----- |", indent_str).unwrap();
+                writeln!(&mut self.output, "{indent_str}  | Constraint | Value |").unwrap();
+                writeln!(&mut self.output, "{indent_str}  | ---------- | ----- |").unwrap();
                 for (name, value) in constraints {
-                    writeln!(&mut self.output, "{}  | {} | {} |", indent_str, name, value).unwrap();
+                    writeln!(&mut self.output, "{indent_str}  | {name} | {value} |").unwrap();
                 }
             }
         }
@@ -372,12 +371,12 @@ impl MarkdownGenerator {
         // Document enum values if present
         if let Some(enum_vals) = schema.get("enum").and_then(|v| v.as_array()) {
             writeln!(&mut self.output).unwrap();
-            writeln!(&mut self.output, "{}  **Allowed values:**", indent_str).unwrap();
+            writeln!(&mut self.output, "{indent_str}  **Allowed values:**").unwrap();
             for val in enum_vals {
                 if let Some(s) = val.as_str() {
-                    writeln!(&mut self.output, "{}  - `\"{}\"`", indent_str, s).unwrap();
+                    writeln!(&mut self.output, "{indent_str}  - `\"{s}\"`").unwrap();
                 } else {
-                    writeln!(&mut self.output, "{}  - `{}`", indent_str, val).unwrap();
+                    writeln!(&mut self.output, "{indent_str}  - `{val}`").unwrap();
                 }
             }
         }
@@ -387,21 +386,21 @@ impl MarkdownGenerator {
         let formatted_type = match type_name {
             "integer" => {
                 if let Some(format) = definition.get("format").and_then(|v| v.as_str()) {
-                    format!("integer ({})", format)
+                    format!("integer ({format})")
                 } else {
                     "integer".to_string()
                 }
             }
             "number" => {
                 if let Some(format) = definition.get("format").and_then(|v| v.as_str()) {
-                    format!("number ({})", format)
+                    format!("number ({format})")
                 } else {
                     "number".to_string()
                 }
             }
             "string" => {
                 if let Some(format) = definition.get("format").and_then(|v| v.as_str()) {
-                    format!("string ({})", format)
+                    format!("string ({format})")
                 } else {
                     "string".to_string()
                 }
@@ -409,7 +408,7 @@ impl MarkdownGenerator {
             _ => type_name.to_string(),
         };
 
-        writeln!(&mut self.output, "**Type:** `{}`", formatted_type).unwrap();
+        writeln!(&mut self.output, "**Type:** `{formatted_type}`").unwrap();
 
         // Document constraints if any
         self.document_constraints(definition);
@@ -425,24 +424,24 @@ impl MarkdownGenerator {
             ));
         }
         if let Some(v) = schema.get("minimum") {
-            constraints.push(("Minimum", format!("`{}`", v)));
+            constraints.push(("Minimum", format!("`{v}`")));
         }
         if let Some(v) = schema.get("maximum") {
-            constraints.push(("Maximum", format!("`{}`", v)));
+            constraints.push(("Maximum", format!("`{v}`")));
         }
         if let Some(v) = schema.get("minLength") {
-            constraints.push(("Min length", format!("`{}`", v)));
+            constraints.push(("Min length", format!("`{v}`")));
         }
         if let Some(v) = schema.get("maxLength") {
-            constraints.push(("Max length", format!("`{}`", v)));
+            constraints.push(("Max length", format!("`{v}`")));
         }
         if let Some(v) = schema.get("pattern") {
-            constraints.push(("Pattern", format!("`{}`", v)));
+            constraints.push(("Pattern", format!("`{v}`")));
         }
         if let Some(v) = schema.get("format").and_then(|v| v.as_str())
             && !["int32", "int64", "uint16", "uint32", "uint64", "double"].contains(&v)
         {
-            constraints.push(("Format", format!("`{}`", v)));
+            constraints.push(("Format", format!("`{v}`")));
         }
 
         if !constraints.is_empty() {
@@ -450,13 +449,13 @@ impl MarkdownGenerator {
             if constraints.len() == 1 {
                 // Single constraint as text
                 let (name, value) = &constraints[0];
-                writeln!(&mut self.output, "**{}:** {}", name, value).unwrap();
+                writeln!(&mut self.output, "**{name}:** {value}").unwrap();
             } else {
                 // Multiple constraints as table
                 writeln!(&mut self.output, "| Constraint | Value |").unwrap();
                 writeln!(&mut self.output, "| ---------- | ----- |").unwrap();
                 for (name, value) in constraints {
-                    writeln!(&mut self.output, "| {} | {} |", name, value).unwrap();
+                    writeln!(&mut self.output, "| {name} | {value} |").unwrap();
                 }
             }
         }
@@ -469,9 +468,9 @@ impl MarkdownGenerator {
             for val in enum_vals {
                 write!(&mut self.output, "| ").unwrap();
                 if let Some(s) = val.as_str() {
-                    write!(&mut self.output, "`\"{}\"`", s).unwrap();
+                    write!(&mut self.output, "`\"{s}\"`").unwrap();
                 } else {
-                    write!(&mut self.output, "`{}`", val).unwrap();
+                    write!(&mut self.output, "`{val}`").unwrap();
                 }
                 writeln!(&mut self.output, " |").unwrap();
             }
@@ -496,7 +495,7 @@ impl MarkdownGenerator {
                     "array" => {
                         if let Some(items) = schema.get("items") {
                             let item_type = Self::get_type_string(items);
-                            format!("<><span>{}</span><span>[]</span></>", item_type)
+                            format!("<><span>{item_type}</span><span>[]</span></>")
                         } else {
                             "\"array\"".to_string()
                         }
@@ -518,7 +517,7 @@ impl MarkdownGenerator {
             if let Some(arr) = type_val.as_array() {
                 let types: Vec<String> = arr
                     .iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .filter_map(|v| v.as_str().map(ToString::to_string))
                     .collect();
                 if !types.is_empty() {
                     return format!("\"{}\"", types.join(" | "));
@@ -670,12 +669,11 @@ fn extract_side_docs() -> SideDocs {
         .output()
         .unwrap();
 
-    if !output.status.success() {
-        panic!(
-            "Failed to generate rustdoc JSON: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    assert!(
+        output.status.success(),
+        "Failed to generate rustdoc JSON: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     // Parse the JSON output
     let json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))

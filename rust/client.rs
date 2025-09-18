@@ -219,7 +219,7 @@ pub enum SessionUpdate {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AvailableCommand {
-    /// Command name (e.g., "create_plan", "research_codebase").
+    /// Command name (e.g., `create_plan`, `research_codebase`).
     pub name: String,
     /// Human-readable description of what the command does.
     pub description: String,
@@ -359,7 +359,7 @@ pub struct WriteTextFileRequest {
     pub meta: Option<serde_json::Value>,
 }
 
-/// Response to fs/write_text_file
+/// Response to `fs/write_text_file`
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-side" = "client", "x-method" = FS_WRITE_TEXT_FILE_METHOD_NAME))]
@@ -706,7 +706,7 @@ pub enum AgentRequest {
 /// This enum is used internally for routing RPC responses. You typically won't need
 /// to use this directly - the responses are handled automatically by the connection.
 ///
-/// These are responses to the corresponding AgentRequest variants.
+/// These are responses to the corresponding `AgentRequest` variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
