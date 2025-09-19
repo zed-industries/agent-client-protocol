@@ -190,6 +190,8 @@ impl Agent for TestAgent {
         Ok(NewSessionResponse {
             session_id,
             modes: None,
+            #[cfg(feature = "unstable")]
+            models: None,
             meta: None,
         })
     }
@@ -197,6 +199,8 @@ impl Agent for TestAgent {
     async fn load_session(&self, _: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
         Ok(LoadSessionResponse {
             modes: None,
+            #[cfg(feature = "unstable")]
+            models: None,
             meta: None,
         })
     }
@@ -225,6 +229,15 @@ impl Agent for TestAgent {
             .unwrap()
             .push(args.session_id);
         Ok(())
+    }
+
+    #[cfg(feature = "unstable")]
+    async fn set_session_model(
+        &self,
+        args: SetSessionModelRequest,
+    ) -> Result<SetSessionModelResponse, Error> {
+        log::info!("Received select model request {args:?}");
+        Ok(SetSessionModelResponse::default())
     }
 
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {

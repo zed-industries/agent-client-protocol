@@ -112,10 +112,14 @@
           "title": "PromptResponse"
         },
         {
+          "$ref": "#/$defs/SetSessionModelResponse",
+          "title": "ModelSelectResponse"
+        },
+        {
           "title": "ExtMethodResponse"
         }
       ],
-      "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding ClientRequest variants.",
+      "description": "All possible responses that an agent can send to a client.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding `ClientRequest` variants.",
       "x-docs-ignore": true
     },
     "Annotations": {
@@ -241,7 +245,7 @@
           "description": "Input for the command if required"
         },
         "name": {
-          "description": "Command name (e.g., \"create_plan\", \"research_codebase\").",
+          "description": "Command name (e.g., `create_plan`, `research_codebase`).",
           "type": "string"
         }
       },
@@ -362,6 +366,10 @@
           "title": "PromptRequest"
         },
         {
+          "$ref": "#/$defs/SetSessionModelRequest",
+          "title": "ModelSelectRequest"
+        },
+        {
           "title": "ExtMethodRequest"
         }
       ],
@@ -406,7 +414,7 @@
           "title": "ExtMethodResponse"
         }
       ],
-      "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding AgentRequest variants.",
+      "description": "All possible responses that a client can send to an agent.\n\nThis enum is used internally for routing RPC responses. You typically won't need\nto use this directly - the responses are handled automatically by the connection.\n\nThese are responses to the corresponding `AgentRequest` variants.",
       "x-docs-ignore": true
     },
     "ContentBlock": {
@@ -885,6 +893,17 @@
         "_meta": {
           "description": "Extension point for implementations"
         },
+        "models": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionModelState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nInitial model state if supported by the Agent"
+        },
         "modes": {
           "anyOf": [
             {
@@ -1007,6 +1026,28 @@
       ],
       "description": "Configuration for connecting to an MCP (Model Context Protocol) server.\n\nMCP servers provide tools and context that the agent can use when\nprocessing prompts.\n\nSee protocol docs: [MCP Servers](https://agentclientprotocol.com/protocol/session-setup#mcp-servers)"
     },
+    "ModelId": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nA unique identifier for a model.",
+      "type": "string"
+    },
+    "ModelInfo": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nInformation about a selectable model.",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
+        "modelId": {
+          "$ref": "#/$defs/ModelId",
+          "description": "Unique identifier for the model."
+        },
+        "name": {
+          "description": "Human-readable name of the model.",
+          "type": "string"
+        }
+      },
+      "required": ["modelId", "name"],
+      "type": "object"
+    },
     "NewSessionRequest": {
       "description": "Request parameters for creating a new session.\n\nSee protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)",
       "properties": {
@@ -1035,6 +1076,17 @@
       "properties": {
         "_meta": {
           "description": "Extension point for implementations"
+        },
+        "models": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionModelState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nInitial model state if supported by the Agent"
         },
         "modes": {
           "anyOf": [
@@ -1501,6 +1553,27 @@
       "required": ["currentModeId", "availableModes"],
       "type": "object"
     },
+    "SessionModelState": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nThe set of models and the one currently active.",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
+        "availableModels": {
+          "description": "The set of models that the Agent can use",
+          "items": {
+            "$ref": "#/$defs/ModelInfo"
+          },
+          "type": "array"
+        },
+        "currentModelId": {
+          "$ref": "#/$defs/ModelId",
+          "description": "The current model the Agent is in."
+        }
+      },
+      "required": ["currentModelId", "availableModels"],
+      "type": "object"
+    },
     "SessionNotification": {
       "description": "Notification containing a session update from the agent.\n\nUsed to stream real-time progress and results during prompt processing.\n\nSee protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)",
       "properties": {
@@ -1761,6 +1834,37 @@
       },
       "type": "object",
       "x-method": "session/set_mode",
+      "x-side": "agent"
+    },
+    "SetSessionModelRequest": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nRequest parameters for setting a session model.",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        },
+        "modelId": {
+          "$ref": "#/$defs/ModelId",
+          "description": "The ID of the model to set."
+        },
+        "sessionId": {
+          "$ref": "#/$defs/SessionId",
+          "description": "The ID of the session to set the model for."
+        }
+      },
+      "required": ["sessionId", "modelId"],
+      "type": "object",
+      "x-method": "session/set_model",
+      "x-side": "agent"
+    },
+    "SetSessionModelResponse": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nResponse to `session/set_model` method.",
+      "properties": {
+        "_meta": {
+          "description": "Extension point for implementations"
+        }
+      },
+      "type": "object",
+      "x-method": "session/set_model",
       "x-side": "agent"
     },
     "StopReason": {
@@ -2241,7 +2345,7 @@
       "x-side": "client"
     },
     "WriteTextFileResponse": {
-      "description": "Response to fs/write_text_file",
+      "description": "Response to `fs/write_text_file`",
       "properties": {
         "_meta": {
           "description": "Extension point for implementations"

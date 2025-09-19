@@ -115,6 +115,17 @@ pub trait Agent {
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error>;
 
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Select a model for a given session.
+    #[cfg(feature = "unstable")]
+    async fn set_session_model(
+        &self,
+        args: SetSessionModelRequest,
+    ) -> Result<SetSessionModelResponse, Error>;
+
     /// Handles extension method requests from the client.
     ///
     /// Extension methods provide a way to add custom functionality while maintaining
@@ -259,6 +270,14 @@ pub struct NewSessionResponse {
     /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Initial model state if supported by the Agent
+    #[cfg(feature = "unstable")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<SessionModelState>,
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,
@@ -296,6 +315,14 @@ pub struct LoadSessionResponse {
     /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Initial model state if supported by the Agent
+    #[cfg(feature = "unstable")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<SessionModelState>,
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,
@@ -513,6 +540,95 @@ pub enum StopReason {
     Cancelled,
 }
 
+// Model
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// The set of models and the one currently active.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionModelState {
+    /// The current model the Agent is in.
+    pub current_model_id: ModelId,
+    /// The set of models that the Agent can use
+    pub available_models: Vec<ModelInfo>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// A unique identifier for a model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct ModelId(pub Arc<str>);
+
+#[cfg(feature = "unstable")]
+impl std::fmt::Display for ModelId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Information about a selectable model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelInfo {
+    /// Unique identifier for the model.
+    pub model_id: ModelId,
+    /// Human-readable name of the model.
+    pub name: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Request parameters for setting a session model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODEL_METHOD_NAME))]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModelRequest {
+    /// The ID of the session to set the model for.
+    pub session_id: SessionId,
+    /// The ID of the model to set.
+    pub model_id: ModelId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Response to `session/set_model` method.
+#[cfg(feature = "unstable")]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODEL_METHOD_NAME))]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModelResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
 // Capabilities
 
 /// Capabilities supported by the agent.
@@ -606,6 +722,9 @@ pub struct AgentMethodNames {
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
     pub session_cancel: &'static str,
+    /// Method for selecting a model for a given session.
+    #[cfg(feature = "unstable")]
+    pub model_select: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -617,6 +736,8 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_set_mode: SESSION_SET_MODE_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
+    #[cfg(feature = "unstable")]
+    model_select: SESSION_SET_MODEL_METHOD_NAME,
 };
 
 /// Method name for the initialize request.
@@ -633,6 +754,9 @@ pub(crate) const SESSION_SET_MODE_METHOD_NAME: &str = "session/set_mode";
 pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
 pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
+/// Method name for selecting a model for a given session.
+#[cfg(feature = "unstable")]
+pub(crate) const SESSION_SET_MODEL_METHOD_NAME: &str = "session/set_model";
 
 /// All possible requests that a client can send to an agent.
 ///
@@ -650,6 +774,8 @@ pub enum ClientRequest {
     LoadSessionRequest(LoadSessionRequest),
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
+    #[cfg(feature = "unstable")]
+    ModelSelectRequest(SetSessionModelRequest),
     ExtMethodRequest(ExtRequest),
 }
 
@@ -669,6 +795,8 @@ pub enum AgentResponse {
     LoadSessionResponse(#[serde(default)] LoadSessionResponse),
     SetSessionModeResponse(#[serde(default)] SetSessionModeResponse),
     PromptResponse(PromptResponse),
+    #[cfg(feature = "unstable")]
+    ModelSelectResponse(SetSessionModelResponse),
     ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
