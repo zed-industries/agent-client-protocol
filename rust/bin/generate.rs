@@ -791,6 +791,7 @@ mod markdown_generator {
                 "session/set_mode" => self.agent_methods.get("set_session_mode").unwrap(),
                 "session/prompt" => self.agent_methods.get("prompt").unwrap(),
                 "session/cancel" => self.agent_methods.get("cancel").unwrap(),
+                "session/set_model" => self.agent_methods.get("set_session_model").unwrap(),
                 _ => panic!("Introduced a method? Add it here :)"),
             }
         }
@@ -821,6 +822,7 @@ mod markdown_generator {
                 "+nightly",
                 "rustdoc",
                 "--lib",
+                "--all-features",
                 "--",
                 "-Z",
                 "unstable-options",

@@ -595,7 +595,6 @@ pub struct ClientCapabilities {
     /// Determines which file operations the agent can request.
     #[serde(default)]
     pub fs: FileSystemCapability,
-
     /// Whether the Client support all `terminal/*` methods.
     #[serde(default)]
     pub terminal: bool,
