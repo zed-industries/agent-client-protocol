@@ -22,15 +22,15 @@ doctest = false
 
 [[bin]]
 name = "generate"
-path = "rust/generate.rs"
+path = "rust/bin/generate.rs"
 
 [[example]]
 name = "agent"
-path = "rust/example_agent.rs"
+path = "rust/examples/agent.rs"
 
 [[example]]
 name = "client"
-path = "rust/example_client.rs"
+path = "rust/examples/client.rs"
 
 [dependencies]
 anyhow = "1"
