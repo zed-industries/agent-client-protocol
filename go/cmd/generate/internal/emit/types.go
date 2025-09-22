@@ -256,7 +256,7 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		f.Type().Id("AgentLoader").Interface(agentLoaderMethods...)
 	}
 	if len(agentExperimentalMethods) > 0 {
-		f.Comment("AgentExperimental defines undocumented/experimental methods (x-docs-ignore). These may change or be removed without notice.")
+		f.Comment("AgentExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
 		f.Type().Id("AgentExperimental").Interface(agentExperimentalMethods...)
 	}
 
@@ -296,7 +296,7 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		f.Type().Id("ClientTerminal").Interface(clientTerminal...)
 	}
 	if len(clientExperimental) > 0 {
-		f.Comment("ClientExperimental defines undocumented/experimental methods (x-docs-ignore) other than terminals. These may change or be removed without notice.")
+		f.Comment("ClientExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
 		f.Type().Id("ClientExperimental").Interface(clientExperimental...)
 	}
 

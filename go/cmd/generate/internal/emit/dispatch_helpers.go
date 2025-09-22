@@ -44,6 +44,11 @@ func jAgentAssert(binding ir.MethodBinding) ([]Code, string) {
 // jClientAssert returns prelude for interface assertions and the receiver name.
 func jClientAssert(binding ir.MethodBinding) ([]Code, string) {
 	switch binding {
+	case ir.BindClientExperimental:
+		return []Code{
+			List(Id("exp"), Id("ok")).Op(":=").Id("c").Dot("client").Assert(Id("ClientExperimental")),
+			If(Op("!").Id("ok")).Block(Return(Nil(), Id("NewMethodNotFound").Call(Id("method")))),
+		}, "exp"
 	case ir.BindClientTerminal:
 		return []Code{
 			List(Id("t"), Id("ok")).Op(":=").Id("c").Dot("client").Assert(Id("ClientTerminal")),

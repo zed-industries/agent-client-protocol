@@ -26,8 +26,9 @@ type exampleAgent struct {
 }
 
 var (
-	_ acp.Agent       = (*exampleAgent)(nil)
-	_ acp.AgentLoader = (*exampleAgent)(nil)
+	_ acp.Agent             = (*exampleAgent)(nil)
+	_ acp.AgentLoader       = (*exampleAgent)(nil)
+	_ acp.AgentExperimental = (*exampleAgent)(nil)
 )
 
 func newExampleAgent() *exampleAgent {
@@ -39,7 +40,7 @@ func (a *exampleAgent) SetSessionMode(ctx context.Context, params acp.SetSession
 	return acp.SetSessionModeResponse{}, nil
 }
 
-// SetSessionModel implements acp.Agent.
+// SetSessionModel implements acp.AgentExperimental.
 func (a *exampleAgent) SetSessionModel(ctx context.Context, params acp.SetSessionModelRequest) (acp.SetSessionModelResponse, error) {
 	return acp.SetSessionModelResponse{}, nil
 }

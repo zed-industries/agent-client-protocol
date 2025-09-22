@@ -163,15 +163,14 @@ func classifyBinding(schema *load.Schema, mi *MethodInfo) MethodBinding {
 		if mi.Method == "session/load" {
 			return BindAgentLoader
 		}
-		if isDocsIgnoredMethod(schema, mi) {
+		// Route unstable methods to the experimental interface.
+		if isUnstableMethod(schema, mi) {
 			return BindAgentExperimental
 		}
 		return BindAgent
 	case "client":
-		if isDocsIgnoredMethod(schema, mi) {
-			if strings.HasPrefix(mi.Method, "terminal/") {
-				return BindClientTerminal
-			}
+		// Route unstable methods to the experimental interface.
+		if isUnstableMethod(schema, mi) {
 			return BindClientExperimental
 		}
 		return BindClient
@@ -201,6 +200,27 @@ func isDocsIgnoredMethod(schema *load.Schema, mi *MethodInfo) bool {
 		}
 	}
 	return false
+}
+
+// isUnstableMethod returns true if any associated Request/Response/Notification
+// definition is marked as unstable in its description.
+func isUnstableMethod(schema *load.Schema, mi *MethodInfo) bool {
+	if mi == nil {
+		return false
+	}
+	has := func(name string) bool {
+		if name == "" {
+			return false
+		}
+		if d := schema.Defs[name]; d != nil {
+			desc := strings.ToLower(d.Description)
+			if strings.Contains(desc, "unstable") {
+				return true
+			}
+		}
+		return false
+	}
+	return has(mi.Req) || has(mi.Resp) || has(mi.Notif)
 }
 
 // inferTypeBaseFromMethodKey mirrors previous heuristic; prefer schema when available.

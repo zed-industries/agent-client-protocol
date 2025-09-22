@@ -104,8 +104,9 @@ type agentFuncs struct {
 }
 
 var (
-	_ Agent       = (*agentFuncs)(nil)
-	_ AgentLoader = (*agentFuncs)(nil)
+	_ Agent             = (*agentFuncs)(nil)
+	_ AgentLoader       = (*agentFuncs)(nil)
+	_ AgentExperimental = (*agentFuncs)(nil)
 )
 
 func (a agentFuncs) Initialize(ctx context.Context, p InitializeRequest) (InitializeResponse, error) {
@@ -158,7 +159,7 @@ func (a agentFuncs) SetSessionMode(ctx context.Context, params SetSessionModeReq
 	return SetSessionModeResponse{}, nil
 }
 
-// SetSessionModel implements Agent.
+// SetSessionModel implements AgentExperimental.
 func (a agentFuncs) SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error) {
 	if a.SetSessionModelFunc != nil {
 		return a.SetSessionModelFunc(ctx, params)

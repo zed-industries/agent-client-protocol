@@ -3402,7 +3402,6 @@ func (v *WriteTextFileResponse) Validate() error {
 type Agent interface {
 	Authenticate(ctx context.Context, params AuthenticateRequest) (AuthenticateResponse, error)
 	Initialize(ctx context.Context, params InitializeRequest) (InitializeResponse, error)
-	SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error)
 	Cancel(ctx context.Context, params CancelNotification) error
 	NewSession(ctx context.Context, params NewSessionRequest) (NewSessionResponse, error)
 	Prompt(ctx context.Context, params PromptRequest) (PromptResponse, error)
@@ -3412,6 +3411,11 @@ type Agent interface {
 // AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.
 type AgentLoader interface {
 	LoadSession(ctx context.Context, params LoadSessionRequest) (LoadSessionResponse, error)
+}
+
+// AgentExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.
+type AgentExperimental interface {
+	SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error)
 }
 type Client interface {
 	ReadTextFile(ctx context.Context, params ReadTextFileRequest) (ReadTextFileResponse, error)
@@ -3424,3 +3428,6 @@ type Client interface {
 	ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) (ReleaseTerminalResponse, error)
 	WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }
+
+// ClientExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.
+type ClientExperimental interface{}

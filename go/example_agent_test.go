@@ -17,11 +17,6 @@ func (a *agentExample) SetSessionMode(ctx context.Context, params SetSessionMode
 	return SetSessionModeResponse{}, nil
 }
 
-// SetSessionModel implements Agent.
-func (a *agentExample) SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error) {
-	return SetSessionModelResponse{}, nil
-}
-
 func (a *agentExample) SetAgentConnection(c *AgentSideConnection) { a.conn = c }
 
 func (agentExample) Authenticate(ctx context.Context, _ AuthenticateRequest) (AuthenticateResponse, error) {
