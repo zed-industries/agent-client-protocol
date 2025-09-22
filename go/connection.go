@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 )
@@ -38,6 +39,8 @@ type Connection struct {
 
 	ctx    context.Context
 	cancel context.CancelCauseFunc
+
+	logger *slog.Logger
 }
 
 func NewConnection(handler MethodHandler, peerInput io.Writer, peerOutput io.Reader) *Connection {
@@ -52,6 +55,17 @@ func NewConnection(handler MethodHandler, peerInput io.Writer, peerOutput io.Rea
 	}
 	go c.receive()
 	return c
+}
+
+// SetLogger installs a logger used for internal connection diagnostics.
+// If unset, logs are written via the default logger.
+func (c *Connection) SetLogger(l *slog.Logger) { c.logger = l }
+
+func (c *Connection) loggerOrDefault() *slog.Logger {
+	if c.logger != nil {
+		return c.logger
+	}
+	return slog.Default()
 }
 
 func (c *Connection) receive() {
@@ -72,6 +86,7 @@ func (c *Connection) receive() {
 
 		var msg anyMessage
 		if err := json.Unmarshal(line, &msg); err != nil {
+			c.loggerOrDefault().Error("failed to parse incoming message", "err", err, "raw", string(line))
 			continue
 		}
 
@@ -80,10 +95,13 @@ func (c *Connection) receive() {
 			c.handleResponse(&msg)
 		case msg.Method != "":
 			go c.handleInbound(&msg)
+		default:
+			c.loggerOrDefault().Error("received message with neither id nor method", "raw", string(line))
 		}
 	}
 
 	c.cancel(errors.New("peer connection closed"))
+	c.loggerOrDefault().Info("peer connection closed")
 }
 
 func (c *Connection) handleResponse(msg *anyMessage) {
@@ -117,7 +135,10 @@ func (c *Connection) handleInbound(req *anyMessage) {
 
 	result, err := c.handler(c.ctx, req.Method, req.Params)
 	if req.ID == nil {
-		// notification: nothing to send
+		// Notification: no response is sent; log handler errors to surface decode failures.
+		if err != nil {
+			c.loggerOrDefault().Error("failed to handle notification", "method", req.Method, "err", err)
+		}
 		return
 	}
 	if err != nil {

@@ -2,6 +2,7 @@ package acp
 
 import (
 	"io"
+	"log/slog"
 )
 
 // ClientSideConnection provides the client's view of the connection and implements Agent calls.
@@ -21,3 +22,6 @@ func NewClientSideConnection(client Client, peerInput io.Writer, peerOutput io.R
 
 // Done exposes a channel that closes when the peer disconnects.
 func (c *ClientSideConnection) Done() <-chan struct{} { return c.conn.Done() }
+
+// SetLogger directs connection diagnostics to the provided logger.
+func (c *ClientSideConnection) SetLogger(l *slog.Logger) { c.conn.SetLogger(l) }

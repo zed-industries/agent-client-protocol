@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -194,6 +195,7 @@ func main() {
 
 	client := &exampleClient{}
 	conn := acp.NewClientSideConnection(client, stdin, stdout)
+	conn.SetLogger(slog.Default())
 
 	// Initialize
 	initResp, err := conn.Initialize(ctx, acp.InitializeRequest{

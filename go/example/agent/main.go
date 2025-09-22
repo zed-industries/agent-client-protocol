@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -312,6 +313,7 @@ func main() {
 
 	ag := newExampleAgent()
 	asc := acp.NewAgentSideConnection(ag, out, in)
+	asc.SetLogger(slog.Default())
 	ag.SetAgentConnection(asc)
 
 	// Block until the peer disconnects.

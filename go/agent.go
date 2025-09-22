@@ -3,6 +3,7 @@ package acp
 import (
 	"context"
 	"io"
+	"log/slog"
 	"sync"
 )
 
@@ -27,3 +28,6 @@ func NewAgentSideConnection(agent Agent, peerInput io.Writer, peerOutput io.Read
 
 // Done exposes a channel that closes when the peer disconnects.
 func (c *AgentSideConnection) Done() <-chan struct{} { return c.conn.Done() }
+
+// SetLogger directs connection diagnostics to the provided logger.
+func (c *AgentSideConnection) SetLogger(l *slog.Logger) { c.conn.SetLogger(l) }

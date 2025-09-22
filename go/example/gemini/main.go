@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -202,6 +203,7 @@ func main() {
 
 	client := &replClient{autoApprove: *yolo}
 	conn := acp.NewClientSideConnection(client, stdin, stdout)
+	conn.SetLogger(slog.Default())
 
 	// Initialize
 	initResp, err := conn.Initialize(ctx, acp.InitializeRequest{
