@@ -250,7 +250,7 @@ export type AgentRequest =
   | LoadSessionRequest
   | SetSessionModeRequest
   | PromptRequest
-  | ModelSelectRequest
+  | SetSessionModelRequest
   | ExtMethodRequest1;
 /**
  * Configuration for connecting to an MCP (Model Context Protocol) server.
@@ -388,7 +388,7 @@ export type AgentResponse =
   | LoadSessionResponse
   | SetSessionModeResponse
   | PromptResponse
-  | ModelSelectResponse
+  | SetSessionModelResponse
   | ExtMethodResponse1;
 /**
  * Unique identifier for a Session Mode.
@@ -1157,7 +1157,7 @@ export interface PromptRequest {
  *
  * Request parameters for setting a session model.
  */
-export interface ModelSelectRequest {
+export interface SetSessionModelRequest {
   /**
    * Extension point for implementations
    */
@@ -1477,7 +1477,7 @@ export interface PromptResponse {
  *
  * Response to `session/set_model` method.
  */
-export interface ModelSelectResponse {
+export interface SetSessionModelResponse {
   /**
    * Extension point for implementations
    */
@@ -1876,7 +1876,7 @@ export const setSessionModeRequestSchema = z.object({
 });
 
 /** @internal */
-export const modelSelectRequestSchema = z.object({
+export const setSessionModelRequestSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
   modelId: z.string(),
   sessionId: z.string(),
@@ -1929,7 +1929,7 @@ export const promptResponseSchema = z.object({
 });
 
 /** @internal */
-export const modelSelectResponseSchema = z.object({
+export const setSessionModelResponseSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
 });
 
@@ -2413,7 +2413,7 @@ export const agentRequestSchema = z.union([
   loadSessionRequestSchema,
   setSessionModeRequestSchema,
   promptRequestSchema,
-  modelSelectRequestSchema,
+  setSessionModelRequestSchema,
   extMethodRequest1Schema,
 ]);
 
@@ -2425,7 +2425,7 @@ export const agentResponseSchema = z.union([
   loadSessionResponseSchema,
   setSessionModeResponseSchema,
   promptResponseSchema,
-  modelSelectResponseSchema,
+  setSessionModelResponseSchema,
   extMethodResponse1Schema,
 ]);
 

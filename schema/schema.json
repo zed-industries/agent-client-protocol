@@ -113,7 +113,7 @@
         },
         {
           "$ref": "#/$defs/SetSessionModelResponse",
-          "title": "ModelSelectResponse"
+          "title": "SetSessionModelResponse"
         },
         {
           "title": "ExtMethodResponse"
@@ -367,7 +367,7 @@
         },
         {
           "$ref": "#/$defs/SetSessionModelRequest",
-          "title": "ModelSelectRequest"
+          "title": "SetSessionModelRequest"
         },
         {
           "title": "ExtMethodRequest"

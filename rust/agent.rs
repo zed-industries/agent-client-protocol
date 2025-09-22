@@ -778,7 +778,7 @@ pub enum ClientRequest {
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
     #[cfg(feature = "unstable")]
-    ModelSelectRequest(SetSessionModelRequest),
+    SetSessionModelRequest(SetSessionModelRequest),
     ExtMethodRequest(ExtRequest),
 }
 
@@ -799,7 +799,7 @@ pub enum AgentResponse {
     SetSessionModeResponse(#[serde(default)] SetSessionModeResponse),
     PromptResponse(PromptResponse),
     #[cfg(feature = "unstable")]
-    ModelSelectResponse(SetSessionModelResponse),
+    SetSessionModelResponse(SetSessionModelResponse),
     ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
