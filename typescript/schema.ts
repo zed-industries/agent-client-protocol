@@ -1370,6 +1370,10 @@ export interface ModelInfo {
     [k: string]: unknown;
   };
   /**
+   * Optional description of the model.
+   */
+  description?: string | null;
+  /**
    * Unique identifier for the model.
    */
   modelId: string;
@@ -2135,6 +2139,7 @@ export const promptCapabilitiesSchema = z.object({
 /** @internal */
 export const modelInfoSchema = z.object({
   _meta: z.record(z.unknown()).optional(),
+  description: z.string().optional().nullable(),
   modelId: z.string(),
   name: z.string(),
 });
