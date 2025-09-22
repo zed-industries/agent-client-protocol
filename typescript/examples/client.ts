@@ -3,7 +3,6 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { WritableStream, ReadableStream } from "node:stream/web";
 import { Writable, Readable } from "node:stream";
 import readline from "node:readline/promises";
 
@@ -78,7 +77,7 @@ class ExampleClient implements acp.Client {
       JSON.stringify(params, null, 2),
     );
 
-    return null;
+    return {};
   }
 
   async readTextFile(
@@ -114,11 +113,8 @@ async function main() {
 
   // Create the client connection
   const client = new ExampleClient();
-  const connection = new acp.ClientSideConnection(
-    (_agent) => client,
-    input,
-    output,
-  );
+  const stream = acp.ndJsonStream(input, output);
+  const connection = new acp.ClientSideConnection((_agent) => client, stream);
 
   try {
     // Initialize the connection

@@ -17,11 +17,11 @@ The protocol architecture follows several key principles:
 
 When the user tries to connect to an agent, the editor boots the agent sub-process on demand, and all communication happens over stdin/stdout.
 
-Each connection can suppport several concurrent sessions, so you can have multiple trains of thought going on at once.
+Each connection can support several concurrent sessions, so you can have multiple trains of thought going on at once.
 
 ![Server Client setup](../images/server-client.svg)
 
-ACP makes heavy use of JSON-RPC notifications to allow the agent to stream updates to the UI in real-time. It also uses JSON-RPC's bidrectional requests to allow the agent to make requests of the code editor: for example to request permissions for a tool call.
+ACP makes heavy use of JSON-RPC notifications to allow the agent to stream updates to the UI in real-time. It also uses JSON-RPC's bidirectional requests to allow the agent to make requests of the code editor: for example to request permissions for a tool call.
 
 ## MCP
 

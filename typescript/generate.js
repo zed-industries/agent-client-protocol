@@ -20,9 +20,9 @@ const zodGenerator = generate({
 const zodSchemas = zodGenerator.getZodSchemasFile();
 
 const schemaTs = `
-export const AGENT_METHODS = ${JSON.stringify(metadata.agentMethods, null, 2)};
+export const AGENT_METHODS = ${JSON.stringify(metadata.agentMethods, null, 2)} as const;
 
-export const CLIENT_METHODS = ${JSON.stringify(metadata.clientMethods, null, 2)};
+export const CLIENT_METHODS = ${JSON.stringify(metadata.clientMethods, null, 2)} as const;
 
 export const PROTOCOL_VERSION = ${metadata.version};
 

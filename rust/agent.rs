@@ -8,13 +8,19 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 
-use crate::{ClientCapabilities, ContentBlock, Error, ProtocolVersion, SessionId};
+use crate::ext::ExtRequest;
+use crate::{
+    ClientCapabilities, ContentBlock, Error, ExtNotification, ExtResponse, ProtocolVersion,
+    SessionId,
+};
 
 /// Defines the interface that all ACP-compliant agents must implement.
 ///
 /// Agents are programs that use generative AI to autonomously modify code. They handle
 /// requests from clients and execute tasks using language models and tools.
+#[async_trait::async_trait(?Send)]
 pub trait Agent {
     /// Establishes the connection with a client and negotiates protocol capabilities.
     ///
@@ -26,10 +32,7 @@ pub trait Agent {
     /// The agent should respond with its supported protocol version and capabilities.
     ///
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
-    fn initialize(
-        &self,
-        arguments: InitializeRequest,
-    ) -> impl Future<Output = Result<InitializeResponse, Error>>;
+    async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error>;
 
     /// Authenticates the client using the specified authentication method.
     ///
@@ -40,10 +43,7 @@ pub trait Agent {
     /// `new_session` without receiving an `auth_required` error.
     ///
     /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
-    fn authenticate(
-        &self,
-        arguments: AuthenticateRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    async fn authenticate(&self, args: AuthenticateRequest) -> Result<AuthenticateResponse, Error>;
 
     /// Creates a new conversation session with the agent.
     ///
@@ -57,10 +57,7 @@ pub trait Agent {
     /// May return an `auth_required` error if the agent requires authentication.
     ///
     /// See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
-    fn new_session(
-        &self,
-        arguments: NewSessionRequest,
-    ) -> impl Future<Output = Result<NewSessionResponse, Error>>;
+    async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error>;
 
     /// Loads an existing session to resume a previous conversation.
     ///
@@ -72,19 +69,25 @@ pub trait Agent {
     /// - Stream the entire conversation history back to the client via notifications
     ///
     /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
-    fn load_session(
-        &self,
-        arguments: LoadSessionRequest,
-    ) -> impl Future<Output = Result<LoadSessionResponse, Error>>;
+    async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error>;
 
-    /// **UNSTABLE**
+    /// Sets the current mode for a session.
     ///
-    /// This method is not part of the spec, and may be removed or changed at any point.
-    #[cfg(feature = "unstable")]
-    fn set_session_mode(
+    /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
+    /// that affect system prompts, tool availability, and permission behaviors.
+    ///
+    /// The mode must be one of the modes advertised in `availableModes` during session
+    /// creation or loading. Agents may also change modes autonomously and notify the
+    /// client via `current_mode_update` notifications.
+    ///
+    /// This method can be called at any time during a session, whether the Agent is
+    /// idle or actively generating a response.
+    ///
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
+    async fn set_session_mode(
         &self,
-        arguments: SetSessionModeRequest,
-    ) -> impl Future<Output = Result<SetSessionModeResponse, Error>>;
+        args: SetSessionModeRequest,
+    ) -> Result<SetSessionModeResponse, Error>;
 
     /// Processes a user prompt within a session.
     ///
@@ -97,10 +100,7 @@ pub trait Agent {
     /// - Returns when the turn is complete with a stop reason
     ///
     /// See protocol docs: [Prompt Turn](https://agentclientprotocol.com/protocol/prompt-turn)
-    fn prompt(
-        &self,
-        arguments: PromptRequest,
-    ) -> impl Future<Output = Result<PromptResponse, Error>>;
+    async fn prompt(&self, args: PromptRequest) -> Result<PromptResponse, Error>;
 
     /// Cancels ongoing operations for a session.
     ///
@@ -113,7 +113,34 @@ pub trait Agent {
     /// - Respond to the original `session/prompt` request with `StopReason::Cancelled`
     ///
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
-    fn cancel(&self, args: CancelNotification) -> impl Future<Output = Result<(), Error>>;
+    async fn cancel(&self, args: CancelNotification) -> Result<(), Error>;
+
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Select a model for a given session.
+    #[cfg(feature = "unstable")]
+    async fn set_session_model(
+        &self,
+        args: SetSessionModelRequest,
+    ) -> Result<SetSessionModelResponse, Error>;
+
+    /// Handles extension method requests from the client.
+    ///
+    /// Extension methods provide a way to add custom functionality while maintaining
+    /// protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
+
+    /// Handles extension notifications from the client.
+    ///
+    /// Extension notifications provide a way to send one-way messages for custom functionality
+    /// while maintaining protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
 }
 
 // Initialize
@@ -124,7 +151,7 @@ pub trait Agent {
 ///
 /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
+#[schemars(extend("x-side" = "agent", "x-method" = INITIALIZE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
     /// The latest protocol version supported by the client.
@@ -132,6 +159,9 @@ pub struct InitializeRequest {
     /// Capabilities supported by the client.
     #[serde(default)]
     pub client_capabilities: ClientCapabilities,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from the initialize method.
@@ -140,7 +170,7 @@ pub struct InitializeRequest {
 ///
 /// See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "initialize"))]
+#[schemars(extend("x-side" = "agent", "x-method" = INITIALIZE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
     /// The protocol version the client specified if supported by the agent,
@@ -154,6 +184,9 @@ pub struct InitializeResponse {
     /// Authentication methods supported by the agent.
     #[serde(default)]
     pub auth_methods: Vec<AuthMethod>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Authentication
@@ -162,12 +195,25 @@ pub struct InitializeResponse {
 ///
 /// Specifies which authentication method to use.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "authenticate"))]
+#[schemars(extend("x-side" = "agent", "x-method" = AUTHENTICATE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateRequest {
     /// The ID of the authentication method to use.
     /// Must be one of the methods advertised in the initialize response.
     pub method_id: AuthMethodId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// Response to authenticate method
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "agent", "x-method" = AUTHENTICATE_METHOD_NAME))]
+pub struct AuthenticateResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Unique identifier for an authentication method.
@@ -185,6 +231,9 @@ pub struct AuthMethod {
     pub name: String,
     /// Optional description providing more details about this authentication method.
     pub description: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // New session
@@ -193,31 +242,45 @@ pub struct AuthMethod {
 ///
 /// See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_NEW_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionRequest {
     /// The working directory for this session. Must be an absolute path.
     pub cwd: PathBuf,
     /// List of MCP (Model Context Protocol) servers the agent should connect to.
     pub mcp_servers: Vec<McpServer>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from creating a new session.
 ///
 /// See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/new"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_NEW_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct NewSessionResponse {
     /// Unique identifier for the created session.
     ///
     /// Used in all subsequent requests for this conversation.
     pub session_id: SessionId,
-    /// **UNSTABLE**
+    /// Initial mode state if supported by the Agent
     ///
-    /// This field is not part of the spec, and may be removed or changed at any point.
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Initial model state if supported by the Agent
+    #[cfg(feature = "unstable")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<SessionModelState>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Load session
@@ -228,7 +291,7 @@ pub struct NewSessionResponse {
 ///
 /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/load"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_LOAD_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionRequest {
     /// List of MCP servers to connect to for this session.
@@ -237,34 +300,52 @@ pub struct LoadSessionRequest {
     pub cwd: PathBuf,
     /// The ID of the session to load.
     pub session_id: SessionId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from loading an existing session.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_LOAD_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSessionResponse {
-    /// **UNSTABLE**
+    /// Initial mode state if supported by the Agent
     ///
-    /// This field is not part of the spec, and may be removed or changed at any point.
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub modes: Option<SessionModeState>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Initial model state if supported by the Agent
+    #[cfg(feature = "unstable")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<SessionModelState>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Session modes
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// The set of modes and the one currently active.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionModeState {
+    /// The current mode the Agent is in.
     pub current_mode_id: SessionModeId,
+    /// The set of modes that the Agent can operate in
     pub available_modes: Vec<SessionMode>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
+/// A mode the agent can operate in.
 ///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionMode {
@@ -272,13 +353,14 @@ pub struct SessionMode {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// Unique identifier for a Session Mode.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
-#[serde(rename_all = "camelCase")]
+#[serde(transparent)]
 pub struct SessionModeId(pub Arc<str>);
 
 impl std::fmt::Display for SessionModeId {
@@ -287,23 +369,27 @@ impl std::fmt::Display for SessionModeId {
     }
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
+/// Request parameters for setting a session mode.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-docs-ignore" = true))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct SetSessionModeRequest {
+    /// The ID of the session to set the mode for.
     pub session_id: SessionId,
+    /// The ID of the mode to set.
     pub mode_id: SessionModeId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
-/// **UNSTABLE**
-///
-/// This type is not part of the spec, and may be removed or changed at any point.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+/// Response to `session/set_mode` method.
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
-pub struct SetSessionModeResponse {}
+pub struct SetSessionModeResponse {
+    pub meta: Option<serde_json::Value>,
+}
 
 // MCP
 
@@ -364,6 +450,9 @@ pub struct EnvVariable {
     pub name: String,
     /// The value to set for the environment variable.
     pub value: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// An HTTP header to set when making requests to the MCP server.
@@ -374,6 +463,9 @@ pub struct HttpHeader {
     pub name: String,
     /// The value to set for the HTTP header.
     pub value: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Prompt
@@ -384,7 +476,7 @@ pub struct HttpHeader {
 ///
 /// See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_PROMPT_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptRequest {
     /// The ID of the session to send this user message to
@@ -403,17 +495,23 @@ pub struct PromptRequest {
     /// as it avoids extra round-trips and allows the message to include
     /// pieces of context from sources the agent may not have access to.
     pub prompt: Vec<ContentBlock>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response from processing a user prompt.
 ///
 /// See protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/prompt"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_PROMPT_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct PromptResponse {
     /// Indicates why the agent stopped processing the turn.
     pub stop_reason: StopReason,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Reasons why an agent stops processing a prompt turn.
@@ -442,6 +540,95 @@ pub enum StopReason {
     Cancelled,
 }
 
+// Model
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// The set of models and the one currently active.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionModelState {
+    /// The current model the Agent is in.
+    pub current_model_id: ModelId,
+    /// The set of models that the Agent can use
+    pub available_models: Vec<ModelInfo>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// A unique identifier for a model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct ModelId(pub Arc<str>);
+
+#[cfg(feature = "unstable")]
+impl std::fmt::Display for ModelId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Information about a selectable model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelInfo {
+    /// Unique identifier for the model.
+    pub model_id: ModelId,
+    /// Human-readable name of the model.
+    pub name: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Request parameters for setting a session model.
+#[cfg(feature = "unstable")]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODEL_METHOD_NAME))]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModelRequest {
+    /// The ID of the session to set the model for.
+    pub session_id: SessionId,
+    /// The ID of the model to set.
+    pub model_id: ModelId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Response to `session/set_model` method.
+#[cfg(feature = "unstable")]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_SET_MODEL_METHOD_NAME))]
+#[serde(rename_all = "camelCase")]
+pub struct SetSessionModelResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
 // Capabilities
 
 /// Capabilities supported by the agent.
@@ -462,6 +649,9 @@ pub struct AgentCapabilities {
     /// MCP capabilities supported by the agent.
     #[serde(default)]
     pub mcp_capabilities: McpCapabilities,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -476,7 +666,7 @@ pub struct AgentCapabilities {
 /// the agent can process.
 ///
 /// See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptCapabilities {
     /// Agent supports [`ContentBlock::Image`].
@@ -491,10 +681,13 @@ pub struct PromptCapabilities {
     /// in prompt requests for pieces of context that are referenced in the message.
     #[serde(default)]
     pub embedded_context: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// MCP capabilities supported by the agent
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct McpCapabilities {
     /// Agent supports [`McpServer::Http`].
@@ -503,6 +696,9 @@ pub struct McpCapabilities {
     /// Agent supports [`McpServer::Sse`].
     #[serde(default)]
     pub sse: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Method schema
@@ -521,12 +717,14 @@ pub struct AgentMethodNames {
     /// Method for loading an existing session.
     pub session_load: &'static str,
     /// Method for setting the mode for a session.
-    #[cfg(feature = "unstable")]
     pub session_set_mode: &'static str,
     /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
     /// Notification for cancelling operations.
     pub session_cancel: &'static str,
+    /// Method for selecting a model for a given session.
+    #[cfg(feature = "unstable")]
+    pub model_select: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -535,10 +733,11 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     authenticate: AUTHENTICATE_METHOD_NAME,
     session_new: SESSION_NEW_METHOD_NAME,
     session_load: SESSION_LOAD_METHOD_NAME,
-    #[cfg(feature = "unstable")]
     session_set_mode: SESSION_SET_MODE_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
+    #[cfg(feature = "unstable")]
+    model_select: SESSION_SET_MODEL_METHOD_NAME,
 };
 
 /// Method name for the initialize request.
@@ -550,12 +749,14 @@ pub(crate) const SESSION_NEW_METHOD_NAME: &str = "session/new";
 /// Method name for loading an existing session.
 pub(crate) const SESSION_LOAD_METHOD_NAME: &str = "session/load";
 /// Method name for setting the mode for a session.
-#[cfg(feature = "unstable")]
 pub(crate) const SESSION_SET_MODE_METHOD_NAME: &str = "session/set_mode";
 /// Method name for sending a prompt.
 pub(crate) const SESSION_PROMPT_METHOD_NAME: &str = "session/prompt";
 /// Method name for the cancel notification.
 pub(crate) const SESSION_CANCEL_METHOD_NAME: &str = "session/cancel";
+/// Method name for selecting a model for a given session.
+#[cfg(feature = "unstable")]
+pub(crate) const SESSION_SET_MODEL_METHOD_NAME: &str = "session/set_model";
 
 /// All possible requests that a client can send to an agent.
 ///
@@ -571,9 +772,11 @@ pub enum ClientRequest {
     AuthenticateRequest(AuthenticateRequest),
     NewSessionRequest(NewSessionRequest),
     LoadSessionRequest(LoadSessionRequest),
-    #[cfg(feature = "unstable")]
     SetSessionModeRequest(SetSessionModeRequest),
     PromptRequest(PromptRequest),
+    #[cfg(feature = "unstable")]
+    ModelSelectRequest(SetSessionModelRequest),
+    ExtMethodRequest(ExtRequest),
 }
 
 /// All possible responses that an agent can send to a client.
@@ -581,18 +784,20 @@ pub enum ClientRequest {
 /// This enum is used internally for routing RPC responses. You typically won't need
 /// to use this directly - the responses are handled automatically by the connection.
 ///
-/// These are responses to the corresponding ClientRequest variants.
+/// These are responses to the corresponding `ClientRequest` variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentResponse {
     InitializeResponse(InitializeResponse),
-    AuthenticateResponse,
+    AuthenticateResponse(#[serde(default)] AuthenticateResponse),
     NewSessionResponse(NewSessionResponse),
-    LoadSessionResponse(LoadSessionResponse),
-    #[cfg(feature = "unstable")]
-    SetSessionModeResponse(SetSessionModeResponse),
+    LoadSessionResponse(#[serde(default)] LoadSessionResponse),
+    SetSessionModeResponse(#[serde(default)] SetSessionModeResponse),
     PromptResponse(PromptResponse),
+    #[cfg(feature = "unstable")]
+    ModelSelectResponse(SetSessionModelResponse),
+    ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
 /// All possible notifications that a client can send to an agent.
@@ -606,17 +811,21 @@ pub enum AgentResponse {
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientNotification {
     CancelNotification(CancelNotification),
+    ExtNotification(ExtNotification),
 }
 
 /// Notification to cancel ongoing operations for a session.
 ///
 /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "agent", "x-method" = "session/cancel"))]
+#[schemars(extend("x-side" = "agent", "x-method" = SESSION_CANCEL_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct CancelNotification {
     /// The ID of the session to cancel operations for.
     pub session_id: SessionId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -633,6 +842,7 @@ mod test_serialization {
             env: vec![EnvVariable {
                 name: "API_KEY".to_string(),
                 value: "secret123".to_string(),
+                meta: None,
             }],
         };
 
@@ -680,10 +890,12 @@ mod test_serialization {
                 HttpHeader {
                     name: "Authorization".to_string(),
                     value: "Bearer token123".to_string(),
+                    meta: None,
                 },
                 HttpHeader {
                     name: "Content-Type".to_string(),
                     value: "application/json".to_string(),
+                    meta: None,
                 },
             ],
         };
@@ -731,6 +943,7 @@ mod test_serialization {
             headers: vec![HttpHeader {
                 name: "X-API-Key".to_string(),
                 value: "apikey456".to_string(),
+                meta: None,
             }],
         };
 

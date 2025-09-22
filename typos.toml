@@ -1,0 +1,30 @@
+[files]
+ignore-files = true
+ignore-hidden = false
+extend-exclude = [
+    ".git/",
+    "target/",
+    "node_modules/",
+    "dist/",
+
+    # Generated schema files
+    "schema/",
+
+    # Package lock files contain hashes and encoded data
+    "package-lock.json",
+    "Cargo.lock",
+
+    # TypeScript documentation output
+    "typescript/docs/",
+
+    # Build artifacts
+    "tsconfig.tsbuildinfo",
+]
+
+[default]
+extend-ignore-re = [
+]
+check-filename = true
+
+[default.extend-identifiers]
+ndJsonStream = "ndJsonStream"

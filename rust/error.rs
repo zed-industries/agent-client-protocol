@@ -10,7 +10,7 @@
 //!
 //! See: [Error Handling](https://agentclientprotocol.com/protocol/overview#error-handling)
 
-use std::{fmt::Display, ops::Deref as _};
+use std::fmt::Display;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -52,37 +52,44 @@ impl Error {
     ///
     /// This method is chainable and allows attaching context-specific information
     /// to help with debugging or provide more details about the error.
+    #[must_use]
     pub fn with_data(mut self, data: impl Into<serde_json::Value>) -> Self {
         self.data = Some(data.into());
         self
     }
 
     /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+    #[must_use]
     pub fn parse_error() -> Self {
         Error::new(ErrorCode::PARSE_ERROR)
     }
 
     /// The JSON sent is not a valid Request object.
+    #[must_use]
     pub fn invalid_request() -> Self {
         Error::new(ErrorCode::INVALID_REQUEST)
     }
 
     /// The method does not exist / is not available.
+    #[must_use]
     pub fn method_not_found() -> Self {
         Error::new(ErrorCode::METHOD_NOT_FOUND)
     }
 
     /// Invalid method parameter(s).
+    #[must_use]
     pub fn invalid_params() -> Self {
         Error::new(ErrorCode::INVALID_PARAMS)
     }
 
     /// Internal JSON-RPC error.
+    #[must_use]
     pub fn internal_error() -> Self {
         Error::new(ErrorCode::INTERNAL_ERROR)
     }
 
     /// Authentication required.
+    #[must_use]
     pub fn auth_required() -> Self {
         Error::new(ErrorCode::AUTH_REQUIRED)
     }
@@ -181,7 +188,7 @@ impl Display for Error {
 
 impl From<anyhow::Error> for Error {
     fn from(error: anyhow::Error) -> Self {
-        Error::into_internal_error(error.deref())
+        Error::into_internal_error(&*error)
     }
 }
 

@@ -1,8 +1,18 @@
 import { z } from "zod";
 import * as schema from "./schema.js";
 export * from "./schema.js";
+export * from "./stream.js";
 
-import { WritableStream, ReadableStream } from "node:stream/web";
+import type { Stream } from "./stream.js";
+import type {
+  AnyMessage,
+  AnyResponse,
+  Result,
+  ErrorResponse,
+  PendingResponse,
+  RequestHandler,
+  NotificationHandler,
+} from "./jsonrpc.js";
 
 /**
  * An agent-side connection to a client.
@@ -24,19 +34,15 @@ export class AgentSideConnection {
    * following the ACP specification.
    *
    * @param toAgent - A function that creates an Agent handler to process incoming client requests
-   * @param input - The stream for sending data to the client (typically stdout)
-   * @param output - The stream for receiving data from the client (typically stdin)
+   * @param stream - The bidirectional message stream for communication. Typically created using
+   *                 {@link ndJsonStream} for stdio-based connections.
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
-  constructor(
-    toAgent: (conn: AgentSideConnection) => Agent,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
-  ) {
+  constructor(toAgent: (conn: AgentSideConnection) => Agent, stream: Stream) {
     const agent = toAgent(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -64,31 +70,65 @@ export class AgentSideConnection {
           }
           const validatedParams =
             schema.setSessionModeRequestSchema.parse(params);
-          return agent.setSessionMode(
+          const result = await agent.setSessionMode(
             validatedParams as schema.SetSessionModeRequest,
           );
+          return result ?? {};
         }
         case schema.AGENT_METHODS.authenticate: {
           const validatedParams =
             schema.authenticateRequestSchema.parse(params);
-          return agent.authenticate(
+          const result = await agent.authenticate(
             validatedParams as schema.AuthenticateRequest,
           );
+          return result ?? {};
         }
         case schema.AGENT_METHODS.session_prompt: {
           const validatedParams = schema.promptRequestSchema.parse(params);
           return agent.prompt(validatedParams as schema.PromptRequest);
         }
+        default:
+          if (method.startsWith("_")) {
+            if (!agent.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return agent.extMethod(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
         case schema.AGENT_METHODS.session_cancel: {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
           return agent.cancel(validatedParams as schema.CancelNotification);
         }
         default:
+          if (method.startsWith("_")) {
+            if (!agent.extNotification) {
+              return;
+            }
+            return agent.extNotification(
+              method.substring(1),
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      stream,
+    );
   }
 
   /**
@@ -160,9 +200,11 @@ export class AgentSideConnection {
   async writeTextFile(
     params: schema.WriteTextFileRequest,
   ): Promise<schema.WriteTextFileResponse> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.fs_write_text_file,
-      params,
+    return (
+      (await this.#connection.sendRequest(
+        schema.CLIENT_METHODS.fs_write_text_file,
+        params,
+      )) ?? {}
     );
   }
 
@@ -191,6 +233,30 @@ export class AgentSideConnection {
       params.sessionId,
       this.#connection,
     );
+  }
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(`_${method}`, params);
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(`_${method}`, params);
   }
 }
 
@@ -259,13 +325,12 @@ export class TerminalHandle {
    *
    * Useful for implementing timeouts or cancellation.
    */
-  async kill(): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_kill,
-      {
+  async kill(): Promise<schema.KillTerminalResponse> {
+    return (
+      (await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_kill, {
         sessionId: this.#sessionId,
         terminalId: this.id,
-      },
+      })) ?? {}
     );
   }
 
@@ -281,11 +346,16 @@ export class TerminalHandle {
    *
    * **Important:** Always call this method when done with the terminal.
    */
-  async release(): Promise<void> {
-    await this.#connection.sendRequest(schema.CLIENT_METHODS.terminal_release, {
-      sessionId: this.#sessionId,
-      terminalId: this.id,
-    });
+  async release(): Promise<schema.ReleaseTerminalResponse | void> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.CLIENT_METHODS.terminal_release,
+        {
+          sessionId: this.#sessionId,
+          terminalId: this.id,
+        },
+      )) ?? {}
+    );
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -313,19 +383,15 @@ export class ClientSideConnection implements Agent {
    * following the ACP specification.
    *
    * @param toClient - A function that creates a Client handler to process incoming agent requests
-   * @param input - The stream for sending data to the agent (typically stdout)
-   * @param output - The stream for receiving data from the agent (typically stdin)
+   * @param stream - The bidirectional message stream for communication. Typically created using
+   *                 {@link ndJsonStream} for stdio-based connections.
    *
    * See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
    */
-  constructor(
-    toClient: (agent: Agent) => Client,
-    input: WritableStream<Uint8Array>,
-    output: ReadableStream<Uint8Array>,
-  ) {
+  constructor(toClient: (agent: Agent) => Client, stream: Stream) {
     const client = toClient(this);
 
-    const handler = async (
+    const requestHandler = async (
       method: string,
       params: unknown,
     ): Promise<unknown> => {
@@ -351,13 +417,6 @@ export class ClientSideConnection implements Agent {
             validatedParams as schema.RequestPermissionRequest,
           );
         }
-        case schema.CLIENT_METHODS.session_update: {
-          const validatedParams =
-            schema.sessionNotificationSchema.parse(params);
-          return client.sessionUpdate(
-            validatedParams as schema.SessionNotification,
-          );
-        }
         case schema.CLIENT_METHODS.terminal_create: {
           const validatedParams =
             schema.createTerminalRequestSchema.parse(params);
@@ -375,9 +434,10 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.terminal_release: {
           const validatedParams =
             schema.releaseTerminalRequestSchema.parse(params);
-          return client.releaseTerminal?.(
+          const result = await client.releaseTerminal?.(
             validatedParams as schema.ReleaseTerminalRequest,
           );
+          return result ?? {};
         }
         case schema.CLIENT_METHODS.terminal_wait_for_exit: {
           const validatedParams =
@@ -389,16 +449,60 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.terminal_kill: {
           const validatedParams =
             schema.killTerminalCommandRequestSchema.parse(params);
-          return client.killTerminal?.(
+          const result = await client.killTerminal?.(
             validatedParams as schema.KillTerminalCommandRequest,
           );
+          return result ?? {};
         }
         default:
+          // Handle extension methods (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extMethod) {
+              throw RequestError.methodNotFound(method);
+            }
+            return client.extMethod(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
           throw RequestError.methodNotFound(method);
       }
     };
 
-    this.#connection = new Connection(handler, input, output);
+    const notificationHandler = async (
+      method: string,
+      params: unknown,
+    ): Promise<void> => {
+      switch (method) {
+        case schema.CLIENT_METHODS.session_update: {
+          const validatedParams =
+            schema.sessionNotificationSchema.parse(params);
+          return client.sessionUpdate(
+            validatedParams as schema.SessionNotification,
+          );
+        }
+        default:
+          // Handle extension notifications (any method starting with '_')
+          if (method.startsWith("_")) {
+            const customMethod = method.substring(1);
+            if (!client.extNotification) {
+              return;
+            }
+            return client.extNotification(
+              customMethod,
+              params as Record<string, unknown>,
+            );
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    };
+
+    this.#connection = new Connection(
+      requestHandler,
+      notificationHandler,
+      stream,
+    );
   }
 
   /**
@@ -460,26 +564,37 @@ export class ClientSideConnection implements Agent {
   async loadSession(
     params: schema.LoadSessionRequest,
   ): Promise<schema.LoadSessionResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_load,
-      params,
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.session_load,
+        params,
+      )) ?? {}
     );
   }
 
   /**
-   * Sets the mode for an existing session.
+   * Sets the operational mode for a session.
    *
-   * This method allows changing the operational mode of an existing session.
-   * The available modes are advertised in the agent's capabilities during initialization.
+   * Allows switching between different agent modes (e.g., "ask", "architect", "code")
+   * that affect system prompts, tool availability, and permission behaviors.
    *
-   * See protocol docs: [Session Mode Management](https://agentclientprotocol.com/protocol/session-management#mode-setting)
+   * The mode must be one of the modes advertised in `availableModes` during session
+   * creation or loading. Agents may also change modes autonomously and notify the
+   * client via `current_mode_update` notifications.
+   *
+   * This method can be called at any time during a session, whether the Agent is
+   * idle or actively generating a turn.
+   *
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   async setSessionMode(
     params: schema.SetSessionModeRequest,
-  ): Promise<void | schema.SetSessionModeResponse> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.session_set_mode,
-      params,
+  ): Promise<schema.SetSessionModeResponse> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.session_set_mode,
+        params,
+      )) ?? {}
     );
   }
 
@@ -494,10 +609,14 @@ export class ClientSideConnection implements Agent {
    *
    * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
-  async authenticate(params: schema.AuthenticateRequest): Promise<void> {
-    return await this.#connection.sendRequest(
-      schema.AGENT_METHODS.authenticate,
-      params,
+  async authenticate(
+    params: schema.AuthenticateRequest,
+  ): Promise<schema.AuthenticateResponse> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.authenticate,
+        params,
+      )) ?? {}
     );
   }
 
@@ -540,111 +659,95 @@ export class ClientSideConnection implements Agent {
       params,
     );
   }
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   */
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return await this.#connection.sendRequest(`_${method}`, params);
+  }
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  async extNotification(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return await this.#connection.sendNotification(`_${method}`, params);
+  }
 }
 
-type AnyMessage = AnyRequest | AnyResponse | AnyNotification;
-
-type AnyRequest = {
-  jsonrpc: "2.0";
-  id: string | number;
-  method: string;
-  params?: unknown;
-};
-
-type AnyResponse = {
-  jsonrpc: "2.0";
-  id: string | number;
-} & Result<unknown>;
-
-type AnyNotification = {
-  jsonrpc: "2.0";
-  method: string;
-  params?: unknown;
-};
-
-type Result<T> =
-  | {
-      result: T;
-    }
-  | {
-      error: ErrorResponse;
-    };
-
-type ErrorResponse = {
-  code: number;
-  message: string;
-  data?: unknown;
-};
-
-type PendingResponse = {
-  resolve: (response: unknown) => void;
-  reject: (error: ErrorResponse) => void;
-};
-
-type MethodHandler = (method: string, params: unknown) => Promise<unknown>;
+export type { AnyMessage } from "./jsonrpc.js";
 
 class Connection {
   #pendingResponses: Map<string | number, PendingResponse> = new Map();
   #nextRequestId: number = 0;
-  #handler: MethodHandler;
-  #peerInput: WritableStream<Uint8Array>;
+  #requestHandler: RequestHandler;
+  #notificationHandler: NotificationHandler;
+  #stream: Stream;
   #writeQueue: Promise<void> = Promise.resolve();
-  #textEncoder: TextEncoder;
 
   constructor(
-    handler: MethodHandler,
-    peerInput: WritableStream<Uint8Array>,
-    peerOutput: ReadableStream<Uint8Array>,
+    requestHandler: RequestHandler,
+    notificationHandler: NotificationHandler,
+    stream: Stream,
   ) {
-    this.#handler = handler;
-    this.#peerInput = peerInput;
-    this.#textEncoder = new TextEncoder();
-    this.#receive(peerOutput);
+    this.#requestHandler = requestHandler;
+    this.#notificationHandler = notificationHandler;
+    this.#stream = stream;
+    this.#receive();
   }
 
-  async #receive(output: ReadableStream<Uint8Array>) {
-    let content = "";
-    const decoder = new TextDecoder();
-    for await (const chunk of output) {
-      content += decoder.decode(chunk, { stream: true });
-      const lines = content.split("\n");
-      content = lines.pop() || "";
+  async #receive() {
+    const reader = this.#stream.readable.getReader();
+    try {
+      while (true) {
+        const { value: message, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (!message) {
+          continue;
+        }
 
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-
-        if (trimmedLine) {
-          let id;
-          try {
-            const message = JSON.parse(trimmedLine);
-            id = message.id;
-            this.#processMessage(message);
-          } catch (err) {
-            console.error(
-              "Unexpected error during message processing:",
-              trimmedLine,
-              err,
-            );
-            if (id) {
-              this.#sendMessage({
-                jsonrpc: "2.0",
-                id,
-                error: {
-                  code: -32700,
-                  message: "Parse error",
-                },
-              });
-            }
+        try {
+          this.#processMessage(message);
+        } catch (err) {
+          console.error(
+            "Unexpected error during message processing:",
+            message,
+            err,
+          );
+          // Only send error response if the message had an id (was a request)
+          if ("id" in message && message.id !== undefined) {
+            this.#sendMessage({
+              jsonrpc: "2.0",
+              id: message.id,
+              error: {
+                code: -32700,
+                message: "Parse error",
+              },
+            });
           }
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   }
 
   async #processMessage(message: AnyMessage) {
     if ("method" in message && "id" in message) {
       // It's a request
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallRequestHandler(
         message.method,
         message.params,
       );
@@ -659,7 +762,7 @@ class Connection {
       });
     } else if ("method" in message) {
       // It's a notification
-      const response = await this.#tryCallHandler(
+      const response = await this.#tryCallNotificationHandler(
         message.method,
         message.params,
       );
@@ -674,13 +777,52 @@ class Connection {
     }
   }
 
-  async #tryCallHandler(
+  async #tryCallRequestHandler(
     method: string,
     params: unknown,
   ): Promise<Result<unknown>> {
     try {
-      const result = await this.#handler(method, params);
+      const result = await this.#requestHandler(method, params);
       return { result: result ?? null };
+    } catch (error: unknown) {
+      if (error instanceof RequestError) {
+        return error.toResult();
+      }
+
+      if (error instanceof z.ZodError) {
+        return RequestError.invalidParams(error.format()).toResult();
+      }
+
+      let details;
+
+      if (error instanceof Error) {
+        details = error.message;
+      } else if (
+        typeof error === "object" &&
+        error != null &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        details = error.message;
+      }
+
+      try {
+        return RequestError.internalError(
+          details ? JSON.parse(details) : {},
+        ).toResult();
+      } catch (_err) {
+        return RequestError.internalError({ details }).toResult();
+      }
+    }
+  }
+
+  async #tryCallNotificationHandler(
+    method: string,
+    params: unknown,
+  ): Promise<Result<unknown>> {
+    try {
+      await this.#notificationHandler(method, params);
+      return { result: null };
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         return error.toResult();
@@ -740,13 +882,12 @@ class Connection {
     await this.#sendMessage({ jsonrpc: "2.0", method, params });
   }
 
-  async #sendMessage(json: AnyMessage) {
-    const content = JSON.stringify(json) + "\n";
+  async #sendMessage(message: AnyMessage) {
     this.#writeQueue = this.#writeQueue
       .then(async () => {
-        const writer = this.#peerInput.getWriter();
+        const writer = this.#stream.writable.getWriter();
         try {
-          await writer.write(this.#textEncoder.encode(content));
+          await writer.write(message);
         } finally {
           writer.releaseLock();
         }
@@ -938,7 +1079,9 @@ export interface Client {
    *
    * @see {@link https://agentclientprotocol.com/protocol/terminals#releasing-terminals | Releasing Terminals}
    */
-  releaseTerminal?(params: schema.ReleaseTerminalRequest): Promise<void>;
+  releaseTerminal?(
+    params: schema.ReleaseTerminalRequest,
+  ): Promise<schema.ReleaseTerminalResponse | void>;
 
   /**
    * Waits for a terminal command to exit and returns its exit status.
@@ -965,7 +1108,32 @@ export interface Client {
    *
    * @see {@link https://agentclientprotocol.com/protocol/terminals#killing-commands | Killing Commands}
    */
-  killTerminal?(params: schema.KillTerminalCommandRequest): Promise<void>;
+  killTerminal?(
+    params: schema.KillTerminalCommandRequest,
+  ): Promise<schema.KillTerminalResponse | void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }
 
 /**
@@ -1023,13 +1191,23 @@ export interface Agent {
     params: schema.LoadSessionRequest,
   ): Promise<schema.LoadSessionResponse>;
   /**
-   * @internal **UNSTABLE**
+   * Sets the operational mode for a session.
    *
-   * This method is not part of the spec, and may be removed or changed at any point.
+   * Allows switching between different agent modes (e.g., "ask", "architect", "code")
+   * that affect system prompts, tool availability, and permission behaviors.
+   *
+   * The mode must be one of the modes advertised in `availableModes` during session
+   * creation or loading. Agents may also change modes autonomously and notify the
+   * client via `current_mode_update` notifications.
+   *
+   * This method can be called at any time during a session, whether the Agent is
+   * idle or actively generating a turn.
+   *
+   * See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
    */
   setSessionMode?(
     params: schema.SetSessionModeRequest,
-  ): Promise<void | schema.SetSessionModeResponse>;
+  ): Promise<schema.SetSessionModeResponse | void>;
   /**
    * Authenticates the client using the specified authentication method.
    *
@@ -1041,7 +1219,9 @@ export interface Agent {
    *
    * See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
    */
-  authenticate(params: schema.AuthenticateRequest): Promise<void>;
+  authenticate(
+    params: schema.AuthenticateRequest,
+  ): Promise<schema.AuthenticateResponse | void>;
   /**
    * Processes a user prompt within a session.
    *
@@ -1070,4 +1250,27 @@ export interface Agent {
    * See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
    */
   cancel(params: schema.CancelNotification): Promise<void>;
+
+  /**
+   * Extension method
+   *
+   * Allows the Client to send an arbitrary request that is not part of the ACP spec.
+   *
+   * To help avoid conflicts, it's a good practice to prefix extension
+   * methods with a unique identifier such as domain name.
+   */
+  extMethod?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Extension notification
+   *
+   * Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+   */
+  extNotification?(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<void>;
 }

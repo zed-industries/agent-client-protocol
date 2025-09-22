@@ -12,12 +12,15 @@
 //! cargo build --example agent && cargo run --example client -- target/debug/examples/agent
 //! ```
 
-use agent_client_protocol::{self as acp, Agent};
+use agent_client_protocol::{
+    self as acp, Agent, ExtNotification, ExtRequest, ExtResponse, KillTerminalCommandResponse,
+};
 use anyhow::bail;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 struct ExampleClient {}
 
+#[async_trait::async_trait(?Send)]
 impl acp::Client for ExampleClient {
     async fn request_permission(
         &self,
@@ -29,7 +32,7 @@ impl acp::Client for ExampleClient {
     async fn write_text_file(
         &self,
         _args: acp::WriteTextFileRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<acp::WriteTextFileResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
@@ -57,7 +60,7 @@ impl acp::Client for ExampleClient {
     async fn release_terminal(
         &self,
         _args: acp::ReleaseTerminalRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<acp::ReleaseTerminalResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
@@ -71,7 +74,7 @@ impl acp::Client for ExampleClient {
     async fn kill_terminal_command(
         &self,
         _args: acp::KillTerminalCommandRequest,
-    ) -> anyhow::Result<(), acp::Error> {
+    ) -> anyhow::Result<KillTerminalCommandResponse, acp::Error> {
         Err(acp::Error::method_not_found())
     }
 
@@ -94,9 +97,19 @@ impl acp::Client for ExampleClient {
             | acp::SessionUpdate::AgentThoughtChunk { .. }
             | acp::SessionUpdate::ToolCall(_)
             | acp::SessionUpdate::ToolCallUpdate(_)
-            | acp::SessionUpdate::Plan(_) => {}
+            | acp::SessionUpdate::Plan(_)
+            | acp::SessionUpdate::CurrentModeUpdate { .. }
+            | acp::SessionUpdate::AvailableCommandsUpdate { .. } => {}
         }
         Ok(())
+    }
+
+    async fn ext_method(&self, _args: ExtRequest) -> Result<ExtResponse, acp::Error> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn ext_notification(&self, _args: ExtNotification) -> Result<(), acp::Error> {
+        Err(acp::Error::method_not_found())
     }
 }
 
@@ -141,12 +154,14 @@ async fn main() -> anyhow::Result<()> {
             conn.initialize(acp::InitializeRequest {
                 protocol_version: acp::V1,
                 client_capabilities: acp::ClientCapabilities::default(),
+                meta: None,
             })
             .await?;
             let response = conn
                 .new_session(acp::NewSessionRequest {
                     mcp_servers: Vec::new(),
                     cwd: std::env::current_dir()?,
+                    meta: None,
                 })
                 .await?;
 
@@ -157,6 +172,7 @@ async fn main() -> anyhow::Result<()> {
                     .prompt(acp::PromptRequest {
                         session_id: response.session_id.clone(),
                         prompt: vec![line.into()],
+                        meta: None,
                     })
                     .await;
                 if let Err(e) = result {

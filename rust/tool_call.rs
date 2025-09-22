@@ -45,6 +45,9 @@ pub struct ToolCall {
     /// Raw output returned by the tool.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub raw_output: Option<serde_json::Value>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 impl ToolCall {
@@ -90,6 +93,9 @@ pub struct ToolCallUpdate {
     /// Fields being updated.
     #[serde(flatten)]
     pub fields: ToolCallUpdateFields,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Optional fields that can be updated in a tool call.
@@ -142,6 +148,7 @@ impl TryFrom<ToolCallUpdate> for ToolCall {
                     raw_input,
                     raw_output,
                 },
+            meta: _,
         } = update;
 
         Ok(Self {
@@ -156,6 +163,7 @@ impl TryFrom<ToolCallUpdate> for ToolCall {
             locations: locations.unwrap_or_default(),
             raw_input,
             raw_output,
+            meta: None,
         })
     }
 }
@@ -171,6 +179,7 @@ impl From<ToolCall> for ToolCallUpdate {
             locations,
             raw_input,
             raw_output,
+            meta: _,
         } = value;
         Self {
             id,
@@ -183,6 +192,7 @@ impl From<ToolCall> for ToolCallUpdate {
                 raw_input,
                 raw_output,
             },
+            meta: None,
         }
     }
 }
@@ -217,10 +227,7 @@ pub enum ToolKind {
     Think,
     /// Retrieving external data.
     Fetch,
-    /// **UNSTABLE**
-    ///
-    /// This tool kind is not part of the spec and may be removed at any point.
-    #[cfg(feature = "unstable")]
+    /// Switching the current session mode.
     SwitchMode,
     /// Other tool types (default).
     #[default]
@@ -317,6 +324,9 @@ pub struct Diff {
     pub old_text: Option<String>,
     /// The new content after modification.
     pub new_text: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// A file location being accessed or modified by a tool.
@@ -333,4 +343,7 @@ pub struct ToolCallLocation {
     /// Optional line number within the file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }

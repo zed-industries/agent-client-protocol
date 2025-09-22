@@ -8,16 +8,18 @@ use std::{fmt, path::PathBuf, sync::Arc};
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 
-#[cfg(feature = "unstable")]
-use crate::SessionModeId;
-use crate::{ContentBlock, Error, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::ext::ExtRequest;
+use crate::{ContentBlock, Error, ExtNotification, Plan, SessionId, ToolCall, ToolCallUpdate};
+use crate::{ExtResponse, SessionModeId};
 
 /// Defines the interface that ACP-compliant clients must implement.
 ///
 /// Clients are typically code editors (IDEs, text editors) that provide the interface
 /// between users and AI agents. They manage the environment, handle user interactions,
 /// and control access to resources.
+#[async_trait::async_trait(?Send)]
 pub trait Client {
     /// Requests permission from the user for a tool call operation.
     ///
@@ -29,10 +31,10 @@ pub trait Client {
     /// respond to this request with `RequestPermissionOutcome::Cancelled`.
     ///
     /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
-    fn request_permission(
+    async fn request_permission(
         &self,
         args: RequestPermissionRequest,
-    ) -> impl Future<Output = Result<RequestPermissionResponse, Error>>;
+    ) -> Result<RequestPermissionResponse, Error>;
 
     /// Writes content to a text file in the client's file system.
     ///
@@ -40,10 +42,10 @@ pub trait Client {
     /// Allows the agent to create or modify files within the client's environment.
     ///
     /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    fn write_text_file(
+    async fn write_text_file(
         &self,
         args: WriteTextFileRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> Result<WriteTextFileResponse, Error>;
 
     /// Reads content from a text file in the client's file system.
     ///
@@ -51,10 +53,10 @@ pub trait Client {
     /// Allows the agent to access file contents within the client's environment.
     ///
     /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    fn read_text_file(
+    async fn read_text_file(
         &self,
         args: ReadTextFileRequest,
-    ) -> impl Future<Output = Result<ReadTextFileResponse, Error>>;
+    ) -> Result<ReadTextFileResponse, Error>;
 
     /// Handles session update notifications from the agent.
     ///
@@ -67,10 +69,7 @@ pub trait Client {
     /// updates before responding with the cancelled stop reason.
     ///
     /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
-    fn session_notification(
-        &self,
-        args: SessionNotification,
-    ) -> impl Future<Output = Result<(), Error>>;
+    async fn session_notification(&self, args: SessionNotification) -> Result<(), Error>;
 
     /// Executes a command in a new terminal
     ///
@@ -86,21 +85,21 @@ pub trait Client {
     /// method.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn create_terminal(
+    async fn create_terminal(
         &self,
         args: CreateTerminalRequest,
-    ) -> impl Future<Output = Result<CreateTerminalResponse, Error>>;
+    ) -> Result<CreateTerminalResponse, Error>;
 
-    /// Gets the terminal ouput and exit status
+    /// Gets the terminal output and exit status
     ///
     /// Returns the current content in the terminal without waiting for the command to exit.
     /// If the command has already exited, the exit status is included.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn terminal_output(
+    async fn terminal_output(
         &self,
         args: TerminalOutputRequest,
-    ) -> impl Future<Output = Result<TerminalOutputResponse, Error>>;
+    ) -> Result<TerminalOutputResponse, Error>;
 
     /// Releases a terminal
     ///
@@ -114,18 +113,18 @@ pub trait Client {
     /// the terminal, allowing the Agent to call `terminal/output` and other methods.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn release_terminal(
+    async fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> Result<ReleaseTerminalResponse, Error>;
 
     /// Waits for the terminal command to exit and return its exit status
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn wait_for_terminal_exit(
+    async fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
-    ) -> impl Future<Output = Result<WaitForTerminalExitResponse, Error>>;
+    ) -> Result<WaitForTerminalExitResponse, Error>;
 
     /// Kills the terminal command without releasing the terminal
     ///
@@ -139,10 +138,28 @@ pub trait Client {
     /// Note: `terminal/release` when `TerminalId` is no longer needed.
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
-    fn kill_terminal_command(
+    async fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
-    ) -> impl Future<Output = Result<(), Error>>;
+    ) -> Result<KillTerminalCommandResponse, Error>;
+
+    /// Handles extension method requests from the agent.
+    ///
+    /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+    /// Extension methods provide a way to add custom functionality while maintaining
+    /// protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
+
+    /// Handles extension notifications from the agent.
+    ///
+    /// Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+    /// Extension notifications provide a way to send one-way messages for custom functionality
+    /// while maintaining protocol compatibility.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
 }
 
 // Session updates
@@ -153,13 +170,16 @@ pub trait Client {
 ///
 /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/update"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_UPDATE_NOTIFICATION))]
 #[serde(rename_all = "camelCase")]
 pub struct SessionNotification {
     /// The ID of the session this update pertains to.
     pub session_id: SessionId,
     /// The actual update content.
     pub update: SessionUpdate,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Different types of updates that can be sent during session processing.
@@ -184,40 +204,40 @@ pub enum SessionUpdate {
     /// See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
     Plan(Plan),
     /// Available commands are ready or have changed
-    #[cfg(feature = "unstable")]
     #[serde(rename_all = "camelCase")]
-    #[schemars(extend("x-docs-ignore" = true))]
     AvailableCommandsUpdate {
         available_commands: Vec<AvailableCommand>,
     },
     /// The current mode of the session has changed
-    #[cfg(feature = "unstable")]
+    ///
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     #[serde(rename_all = "camelCase")]
-    #[schemars(extend("x-docs-ignore" = true))]
     CurrentModeUpdate { current_mode_id: SessionModeId },
 }
 
 /// Information about a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
 pub struct AvailableCommand {
-    /// Command name (e.g., "create_plan", "research_codebase").
+    /// Command name (e.g., `create_plan`, `research_codebase`).
     pub name: String,
     /// Human-readable description of what the command does.
     pub description: String,
     /// Input for the command if required
     pub input: Option<AvailableCommandInput>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
+/// The input specification for a command.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, rename_all = "camelCase")]
-#[cfg(feature = "unstable")]
 pub enum AvailableCommandInput {
     /// All text that was typed after the command name is provided as input.
     #[schemars(rename = "UnstructuredCommandInput")]
     Unstructured {
-        /// A brief description of the expected input
+        /// A hint to display when the input hasn't been provided yet
         hint: String,
     },
 }
@@ -230,7 +250,7 @@ pub enum AvailableCommandInput {
 ///
 /// See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_REQUEST_PERMISSION_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionRequest {
     /// The session ID for this request.
@@ -239,6 +259,9 @@ pub struct RequestPermissionRequest {
     pub tool_call: ToolCallUpdate,
     /// Available permission options for the user to choose from.
     pub options: Vec<PermissionOption>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// An option presented to the user when requesting permission.
@@ -251,6 +274,9 @@ pub struct PermissionOption {
     pub name: String,
     /// Hint about the nature of this permission option.
     pub kind: PermissionOptionKind,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Unique identifier for a permission option.
@@ -282,12 +308,15 @@ pub enum PermissionOptionKind {
 
 /// Response to a permission request.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "session/request_permission"))]
+#[schemars(extend("x-side" = "client", "x-method" = SESSION_REQUEST_PERMISSION_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPermissionResponse {
     /// The user's decision on the permission request.
     // This extra-level is unfortunately needed because the output must be an object
     pub outcome: RequestPermissionOutcome,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// The outcome of a permission request.
@@ -316,7 +345,7 @@ pub enum RequestPermissionOutcome {
 ///
 /// Only available if the client supports the `fs.writeTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "fs/write_text_file"))]
+#[schemars(extend("x-side" = "client", "x-method" = FS_WRITE_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileRequest {
     /// The session ID for this request.
@@ -325,6 +354,20 @@ pub struct WriteTextFileRequest {
     pub path: PathBuf,
     /// The text content to write to the file.
     pub content: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// Response to `fs/write_text_file`
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = FS_WRITE_TEXT_FILE_METHOD_NAME))]
+#[serde(default)]
+pub struct WriteTextFileResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Read text file
@@ -333,7 +376,7 @@ pub struct WriteTextFileRequest {
 ///
 /// Only available if the client supports the `fs.readTextFile` capability.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(extend("x-side" = "client", "x-method" = "fs/read_text_file"))]
+#[schemars(extend("x-side" = "client", "x-method" = FS_READ_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileRequest {
     /// The session ID for this request.
@@ -346,13 +389,20 @@ pub struct ReadTextFileRequest {
     /// Maximum number of lines to read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response containing the contents of a text file.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(extend("x-side" = "client", "x-method" = FS_READ_TEXT_FILE_METHOD_NAME))]
 #[serde(rename_all = "camelCase")]
 pub struct ReadTextFileResponse {
     pub content: String,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Terminals
@@ -361,7 +411,6 @@ pub struct ReadTextFileResponse {
 #[serde(transparent)]
 pub struct TerminalId(pub Arc<str>);
 
-#[cfg(feature = "unstable")]
 impl std::fmt::Display for TerminalId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -396,6 +445,9 @@ pub struct CreateTerminalRequest {
     /// specified limit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_byte_limit: Option<u64>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response containing the ID of the created terminal.
@@ -405,6 +457,9 @@ pub struct CreateTerminalRequest {
 pub struct CreateTerminalResponse {
     /// The unique identifier for the created terminal.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Request to get the current output and status of a terminal.
@@ -416,6 +471,9 @@ pub struct TerminalOutputRequest {
     pub session_id: SessionId,
     /// The ID of the terminal to get output from.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response containing the terminal output and exit status.
@@ -429,6 +487,9 @@ pub struct TerminalOutputResponse {
     pub truncated: bool,
     /// Exit status if the command has completed.
     pub exit_status: Option<TerminalExitStatus>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Request to release a terminal and free its resources.
@@ -440,6 +501,19 @@ pub struct ReleaseTerminalRequest {
     pub session_id: SessionId,
     /// The ID of the terminal to release.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// Response to terminal/release method
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_RELEASE_METHOD_NAME))]
+pub struct ReleaseTerminalResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Request to kill a terminal command without releasing the terminal.
@@ -451,6 +525,19 @@ pub struct KillTerminalCommandRequest {
     pub session_id: SessionId,
     /// The ID of the terminal to kill.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
+}
+
+/// Response to terminal/kill command method
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(extend("x-side" = "client", "x-method" = TERMINAL_KILL_METHOD_NAME))]
+pub struct KillTerminalCommandResponse {
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Request to wait for a terminal command to exit.
@@ -462,6 +549,9 @@ pub struct WaitForTerminalExitRequest {
     pub session_id: SessionId,
     /// The ID of the terminal to wait for.
     pub terminal_id: TerminalId,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Response containing the exit status of a terminal command.
@@ -472,6 +562,9 @@ pub struct WaitForTerminalExitResponse {
     /// The exit status of the terminal command.
     #[serde(flatten)]
     pub exit_status: TerminalExitStatus,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Exit status of a terminal command.
@@ -482,6 +575,9 @@ pub struct TerminalExitStatus {
     pub exit_code: Option<u32>,
     /// The signal that terminated the process (may be null if exited normally).
     pub signal: Option<String>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Capabilities
@@ -499,10 +595,12 @@ pub struct ClientCapabilities {
     /// Determines which file operations the agent can request.
     #[serde(default)]
     pub fs: FileSystemCapability,
-
     /// Whether the Client support all `terminal/*` methods.
     #[serde(default)]
     pub terminal: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// File system capabilities that a client may support.
@@ -517,6 +615,9 @@ pub struct FileSystemCapability {
     /// Whether the Client supports `fs/write_text_file` requests.
     #[serde(default)]
     pub write_text_file: bool,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 // Method schema
@@ -596,6 +697,7 @@ pub enum AgentRequest {
     ReleaseTerminalRequest(ReleaseTerminalRequest),
     WaitForTerminalExitRequest(WaitForTerminalExitRequest),
     KillTerminalCommandRequest(KillTerminalCommandRequest),
+    ExtMethodRequest(ExtRequest),
 }
 
 /// All possible responses that a client can send to an agent.
@@ -603,19 +705,20 @@ pub enum AgentRequest {
 /// This enum is used internally for routing RPC responses. You typically won't need
 /// to use this directly - the responses are handled automatically by the connection.
 ///
-/// These are responses to the corresponding AgentRequest variants.
+/// These are responses to the corresponding `AgentRequest` variants.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum ClientResponse {
-    WriteTextFileResponse,
+    WriteTextFileResponse(#[serde(default)] WriteTextFileResponse),
     ReadTextFileResponse(ReadTextFileResponse),
     RequestPermissionResponse(RequestPermissionResponse),
     CreateTerminalResponse(CreateTerminalResponse),
     TerminalOutputResponse(TerminalOutputResponse),
-    ReleaseTerminalResponse,
+    ReleaseTerminalResponse(#[serde(default)] ReleaseTerminalResponse),
     WaitForTerminalExitResponse(WaitForTerminalExitResponse),
-    KillTerminalResponse,
+    KillTerminalResponse(#[serde(default)] KillTerminalCommandResponse),
+    ExtMethodResponse(#[schemars(with = "serde_json::Value")] Arc<RawValue>),
 }
 
 /// All possible notifications that an agent can send to a client.
@@ -626,7 +729,9 @@ pub enum ClientResponse {
 /// Notifications do not expect a response.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 #[schemars(extend("x-docs-ignore" = true))]
 pub enum AgentNotification {
     SessionNotification(SessionNotification),
+    ExtNotification(ExtNotification),
 }

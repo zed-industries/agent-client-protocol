@@ -16,6 +16,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
 - [Zed](https://zed.dev/docs/ai/external-agents)
 - [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
+- [marimo notebook](https://github.com/marimo-team/marimo)
 - [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
 
 ### Agents
@@ -23,14 +24,14 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
   - [via Zed's SDK adapter](https://github.com/zed-industries/claude-code-acp)
-  - [via Xuanwo's SDK adapter](https://github.com/Xuanwo/acp-claude-code)
 
 ## Libraries and Schema
 
-- **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [example_agent.rs](./rust/example_agent.rs) and [example_client.rs](./rust/example_client.rs)
+- **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [examples/agent.rs](./rust/examples/agent.rs) and [examples/client.rs](./rust/examples/client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
 - **Go**: [`github.com/zed-industries/agent-client-protocol/go`](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go) - See [example/](./go/example/) and the [Go README](./go/README.md)
 - **JSON Schema**: [schema.json](./schema/schema.json)
+- [**use-acp**](https://github.com/marimo-team/use-acp): React hooks for connecting to Agent Client Protocol (ACP) servers.
 
 ## Contributing
 

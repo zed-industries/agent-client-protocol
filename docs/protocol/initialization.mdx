@@ -99,6 +99,8 @@ Capabilities are high-level and are not attached to a specific base protocol con
 
 Capabilities may specify the availability of protocol methods, notifications, or a subset of their parameters. They may also signal behaviors of the Agent or Client implementation.
 
+Implementations can also [advertise custom capabilities](./extensibility#advertising-custom-capabilities) using the `_meta` field to indicate support for protocol extensions.
+
 ### Client Capabilities
 
 The Client **SHOULD** specify whether it supports the following capabilities:

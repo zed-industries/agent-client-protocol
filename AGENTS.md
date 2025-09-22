@@ -35,4 +35,4 @@ All paths in the protocol should be absolute
 - Run `npm run check` to make sure the json and zod schemas gets generated properly
 - Params and responses docs make it to the schema, but the method-level docs, so make sure to update the typescript library accordingly.
 
-Never write readme files related to the conversation unless explictly asked to.
+Never write readme files related to the conversation unless explicitly asked to.

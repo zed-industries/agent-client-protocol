@@ -23,6 +23,9 @@ pub struct Plan {
     /// When updating a plan, the agent must send a complete list of all entries
     /// with their current status. The client replaces the entire plan with each update.
     pub entries: Vec<PlanEntry>,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// A single entry in the execution plan.
@@ -40,6 +43,9 @@ pub struct PlanEntry {
     pub priority: PlanEntryPriority,
     /// Current execution status of this task.
     pub status: PlanEntryStatus,
+    /// Extension point for implementations
+    #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
+    pub meta: Option<serde_json::Value>,
 }
 
 /// Priority levels for plan entries.
