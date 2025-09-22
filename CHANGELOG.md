@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 (2025-09-22)
+
+### Rust
+
+**Unstable** fix missing method for model selection in Rust library.
+
 ## 0.4.1 (2025-09-22)
 
 ### Protocol
