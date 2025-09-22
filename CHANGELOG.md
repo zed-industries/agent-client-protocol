@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2025-09-22)
+
+### Protocol
+
+**Unstable** initial support for model selection.
+
 ## 0.4.0 (2025-09-17)
 
 ### Protocol
