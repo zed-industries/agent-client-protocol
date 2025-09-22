@@ -1938,6 +1938,8 @@ type ModelId string
 type ModelInfo struct {
 	// Extension point for implementations
 	Meta any `json:"_meta,omitempty"`
+	// Optional description of the model.
+	Description *string `json:"description,omitempty"`
 	// Unique identifier for the model.
 	ModelId ModelId `json:"modelId"`
 	// Human-readable name of the model.

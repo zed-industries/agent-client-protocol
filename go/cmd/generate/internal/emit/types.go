@@ -255,10 +255,9 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		f.Comment("AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.")
 		f.Type().Id("AgentLoader").Interface(agentLoaderMethods...)
 	}
-	if len(agentExperimentalMethods) > 0 {
-		f.Comment("AgentExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
-		f.Type().Id("AgentExperimental").Interface(agentExperimentalMethods...)
-	}
+	// Always emit AgentExperimental, even if empty.
+	f.Comment("AgentExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
+	f.Type().Id("AgentExperimental").Interface(agentExperimentalMethods...)
 
 	// Client
 	clientStable := []Code{}
@@ -295,10 +294,9 @@ func WriteTypesJen(outDir string, schema *load.Schema, meta *load.Meta) error {
 		f.Comment("ClientTerminal defines terminal-related experimental methods (x-docs-ignore). Implement and advertise 'terminal: true' to enable 'terminal/*'.")
 		f.Type().Id("ClientTerminal").Interface(clientTerminal...)
 	}
-	if len(clientExperimental) > 0 {
-		f.Comment("ClientExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
-		f.Type().Id("ClientExperimental").Interface(clientExperimental...)
-	}
+	// Always emit ClientExperimental, even if empty.
+	f.Comment("ClientExperimental defines unstable methods that are not part of the official spec. These may change or be removed without notice.")
+	f.Type().Id("ClientExperimental").Interface(clientExperimental...)
 
 	var buf bytes.Buffer
 	if err := f.Render(&buf); err != nil {
