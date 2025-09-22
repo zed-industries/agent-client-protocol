@@ -590,6 +590,9 @@ pub struct ModelInfo {
     pub model_id: ModelId,
     /// Human-readable name of the model.
     pub name: String,
+    /// Optional description of the model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// Extension point for implementations
     #[serde(skip_serializing_if = "Option::is_none", rename = "_meta")]
     pub meta: Option<serde_json::Value>,

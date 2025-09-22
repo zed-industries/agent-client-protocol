@@ -1036,6 +1036,10 @@
         "_meta": {
           "description": "Extension point for implementations"
         },
+        "description": {
+          "description": "Optional description of the model.",
+          "type": ["string", "null"]
+        },
         "modelId": {
           "$ref": "#/$defs/ModelId",
           "description": "Unique identifier for the model."
