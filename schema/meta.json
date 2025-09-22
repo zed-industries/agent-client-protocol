@@ -2,6 +2,7 @@
   "agentMethods": {
     "authenticate": "authenticate",
     "initialize": "initialize",
+    "model_select": "session/set_model",
     "session_cancel": "session/cancel",
     "session_load": "session/load",
     "session_new": "session/new",

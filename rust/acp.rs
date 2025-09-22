@@ -234,6 +234,19 @@ impl Agent for ClientSideConnection {
         )
     }
 
+    #[cfg(feature = "unstable")]
+    async fn set_session_model(
+        &self,
+        args: SetSessionModelRequest,
+    ) -> Result<SetSessionModelResponse, Error> {
+        self.conn
+            .request(
+                SESSION_SET_MODEL_METHOD_NAME,
+                Some(ClientRequest::ModelSelectRequest(args)),
+            )
+            .await
+    }
+
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
         self.conn
             .request(
@@ -666,6 +679,11 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
             ClientRequest::SetSessionModeRequest(args) => {
                 let response = self.set_session_mode(args).await?;
                 Ok(AgentResponse::SetSessionModeResponse(response))
+            }
+            #[cfg(feature = "unstable")]
+            ClientRequest::ModelSelectRequest(args) => {
+                let response = self.set_session_model(args).await?;
+                Ok(AgentResponse::ModelSelectResponse(response))
             }
             ClientRequest::ExtMethodRequest(args) => {
                 let response = self.ext_method(args).await?;
