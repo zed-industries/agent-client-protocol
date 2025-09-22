@@ -3,6 +3,7 @@
 package load
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,6 +41,32 @@ type Definition struct {
 	// Default holds the JSON Schema default value, when present.
 	// Used by generators to synthesize defaulting behavior.
 	Default any `json:"default"`
+
+	// boolSchema records whether this definition was a boolean schema (true/false).
+	// JSON Schema allows boolean schemas, where true matches anything and false matches nothing.
+	// We ignore the semantic difference in codegen and treat both as permissive/unknown shapes.
+	boolSchema *bool `json:"-"`
+}
+
+// UnmarshalJSON allows Definition to decode both object and boolean JSON Schema forms.
+func (d *Definition) UnmarshalJSON(b []byte) error {
+	// Trim whitespace for simple equality checks
+	tb := bytes.TrimSpace(b)
+	if bytes.Equal(tb, []byte("true")) || bytes.Equal(tb, []byte("false")) {
+		v := bytes.Equal(tb, []byte("true"))
+		// Reset to zero-value and record that this was a boolean schema.
+		*d = Definition{}
+		d.boolSchema = &v
+		return nil
+	}
+	// Fallback to normal object decoding
+	type alias Definition
+	var a alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	*d = Definition(a)
+	return nil
 }
 
 // ReadMeta loads schema/meta.json.

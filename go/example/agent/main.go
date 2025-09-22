@@ -34,6 +34,16 @@ func newExampleAgent() *exampleAgent {
 	return &exampleAgent{sessions: make(map[string]*agentSession)}
 }
 
+// SetSessionMode implements acp.Agent.
+func (a *exampleAgent) SetSessionMode(ctx context.Context, params acp.SetSessionModeRequest) (acp.SetSessionModeResponse, error) {
+	return acp.SetSessionModeResponse{}, nil
+}
+
+// SetSessionModel implements acp.Agent.
+func (a *exampleAgent) SetSessionModel(ctx context.Context, params acp.SetSessionModelRequest) (acp.SetSessionModelResponse, error) {
+	return acp.SetSessionModelResponse{}, nil
+}
+
 // Implement acp.AgentConnAware to receive the connection after construction.
 func (a *exampleAgent) SetAgentConnection(conn *acp.AgentSideConnection) { a.conn = conn }
 
@@ -54,7 +64,9 @@ func (a *exampleAgent) NewSession(ctx context.Context, params acp.NewSessionRequ
 	return acp.NewSessionResponse{SessionId: acp.SessionId(sid)}, nil
 }
 
-func (a *exampleAgent) Authenticate(ctx context.Context, _ acp.AuthenticateRequest) error { return nil }
+func (a *exampleAgent) Authenticate(ctx context.Context, _ acp.AuthenticateRequest) (acp.AuthenticateResponse, error) {
+	return acp.AuthenticateResponse{}, nil
+}
 
 func (a *exampleAgent) LoadSession(ctx context.Context, _ acp.LoadSessionRequest) (acp.LoadSessionResponse, error) {
 	return acp.LoadSessionResponse{}, nil

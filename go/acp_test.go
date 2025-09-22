@@ -10,25 +10,25 @@ import (
 )
 
 type clientFuncs struct {
-	WriteTextFileFunc     func(context.Context, WriteTextFileRequest) error
+	WriteTextFileFunc     func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error)
 	ReadTextFileFunc      func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error)
 	RequestPermissionFunc func(context.Context, RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdateFunc     func(context.Context, SessionNotification) error
 	// Terminal-related handlers
 	CreateTerminalFunc      func(context.Context, CreateTerminalRequest) (CreateTerminalResponse, error)
-	KillTerminalCommandFunc func(context.Context, KillTerminalCommandRequest) error
-	ReleaseTerminalFunc     func(context.Context, ReleaseTerminalRequest) error
+	KillTerminalCommandFunc func(context.Context, KillTerminalCommandRequest) (KillTerminalCommandResponse, error)
+	ReleaseTerminalFunc     func(context.Context, ReleaseTerminalRequest) (ReleaseTerminalResponse, error)
 	TerminalOutputFunc      func(context.Context, TerminalOutputRequest) (TerminalOutputResponse, error)
 	WaitForTerminalExitFunc func(context.Context, WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }
 
 var _ Client = (*clientFuncs)(nil)
 
-func (c clientFuncs) WriteTextFile(ctx context.Context, p WriteTextFileRequest) error {
+func (c clientFuncs) WriteTextFile(ctx context.Context, p WriteTextFileRequest) (WriteTextFileResponse, error) {
 	if c.WriteTextFileFunc != nil {
 		return c.WriteTextFileFunc(ctx, p)
 	}
-	return nil
+	return WriteTextFileResponse{}, nil
 }
 
 func (c clientFuncs) ReadTextFile(ctx context.Context, p ReadTextFileRequest) (ReadTextFileResponse, error) {
@@ -61,19 +61,19 @@ func (c *clientFuncs) CreateTerminal(ctx context.Context, params CreateTerminalR
 }
 
 // KillTerminalCommand implements Client.
-func (c *clientFuncs) KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) error {
+func (c clientFuncs) KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) (KillTerminalCommandResponse, error) {
 	if c.KillTerminalCommandFunc != nil {
 		return c.KillTerminalCommandFunc(ctx, params)
 	}
-	return nil
+	return KillTerminalCommandResponse{}, nil
 }
 
 // ReleaseTerminal implements Client.
-func (c *clientFuncs) ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error {
+func (c clientFuncs) ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) (ReleaseTerminalResponse, error) {
 	if c.ReleaseTerminalFunc != nil {
 		return c.ReleaseTerminalFunc(ctx, params)
 	}
-	return nil
+	return ReleaseTerminalResponse{}, nil
 }
 
 // TerminalOutput implements Client.
@@ -93,12 +93,14 @@ func (c *clientFuncs) WaitForTerminalExit(ctx context.Context, params WaitForTer
 }
 
 type agentFuncs struct {
-	InitializeFunc   func(context.Context, InitializeRequest) (InitializeResponse, error)
-	NewSessionFunc   func(context.Context, NewSessionRequest) (NewSessionResponse, error)
-	LoadSessionFunc  func(context.Context, LoadSessionRequest) (LoadSessionResponse, error)
-	AuthenticateFunc func(context.Context, AuthenticateRequest) error
-	PromptFunc       func(context.Context, PromptRequest) (PromptResponse, error)
-	CancelFunc       func(context.Context, CancelNotification) error
+	InitializeFunc      func(context.Context, InitializeRequest) (InitializeResponse, error)
+	NewSessionFunc      func(context.Context, NewSessionRequest) (NewSessionResponse, error)
+	LoadSessionFunc     func(context.Context, LoadSessionRequest) (LoadSessionResponse, error)
+	AuthenticateFunc    func(context.Context, AuthenticateRequest) (AuthenticateResponse, error)
+	PromptFunc          func(context.Context, PromptRequest) (PromptResponse, error)
+	CancelFunc          func(context.Context, CancelNotification) error
+	SetSessionModeFunc  func(ctx context.Context, params SetSessionModeRequest) (SetSessionModeResponse, error)
+	SetSessionModelFunc func(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error)
 }
 
 var (
@@ -127,11 +129,11 @@ func (a agentFuncs) LoadSession(ctx context.Context, p LoadSessionRequest) (Load
 	return LoadSessionResponse{}, nil
 }
 
-func (a agentFuncs) Authenticate(ctx context.Context, p AuthenticateRequest) error {
+func (a agentFuncs) Authenticate(ctx context.Context, p AuthenticateRequest) (AuthenticateResponse, error) {
 	if a.AuthenticateFunc != nil {
 		return a.AuthenticateFunc(ctx, p)
 	}
-	return nil
+	return AuthenticateResponse{}, nil
 }
 
 func (a agentFuncs) Prompt(ctx context.Context, p PromptRequest) (PromptResponse, error) {
@@ -148,6 +150,22 @@ func (a agentFuncs) Cancel(ctx context.Context, n CancelNotification) error {
 	return nil
 }
 
+// SetSessionMode implements Agent.
+func (a agentFuncs) SetSessionMode(ctx context.Context, params SetSessionModeRequest) (SetSessionModeResponse, error) {
+	if a.SetSessionModeFunc != nil {
+		return a.SetSessionModeFunc(ctx, params)
+	}
+	return SetSessionModeResponse{}, nil
+}
+
+// SetSessionModel implements Agent.
+func (a agentFuncs) SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error) {
+	if a.SetSessionModelFunc != nil {
+		return a.SetSessionModelFunc(ctx, params)
+	}
+	return SetSessionModelResponse{}, nil
+}
+
 // Test bidirectional error handling similar to typescript/acp.test.ts
 func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 	ctx := context.Background()
@@ -155,8 +173,8 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 	a2cR, a2cW := io.Pipe()
 
 	c := NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error {
-			return &RequestError{Code: -32603, Message: "Write failed"}
+		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error) {
+			return WriteTextFileResponse{}, &RequestError{Code: -32603, Message: "Write failed"}
 		},
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{}, &RequestError{Code: -32603, Message: "Read failed"}
@@ -176,8 +194,8 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
 			return LoadSessionResponse{}, &RequestError{Code: -32603, Message: "Failed to load session"}
 		},
-		AuthenticateFunc: func(context.Context, AuthenticateRequest) error {
-			return &RequestError{Code: -32603, Message: "Authentication failed"}
+		AuthenticateFunc: func(context.Context, AuthenticateRequest) (AuthenticateResponse, error) {
+			return AuthenticateResponse{}, &RequestError{Code: -32603, Message: "Authentication failed"}
 		},
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{}, &RequestError{Code: -32603, Message: "Prompt failed"}
@@ -186,7 +204,7 @@ func TestConnectionHandlesErrorsBidirectional(t *testing.T) {
 	}, a2cW, c2aR)
 
 	// Client->Agent direction: expect error
-	if err := agentConn.WriteTextFile(ctx, WriteTextFileRequest{Path: "/test.txt", Content: "test", SessionId: "test-session"}); err == nil {
+	if _, err := agentConn.WriteTextFile(ctx, WriteTextFileRequest{Path: "/test.txt", Content: "test", SessionId: "test-session"}); err == nil {
 		t.Fatalf("expected error for writeTextFile, got nil")
 	}
 
@@ -205,12 +223,12 @@ func TestConnectionHandlesConcurrentRequests(t *testing.T) {
 	requestCount := 0
 
 	_ = NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error {
+		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error) {
 			mu.Lock()
 			requestCount++
 			mu.Unlock()
 			time.Sleep(40 * time.Millisecond)
-			return nil
+			return WriteTextFileResponse{}, nil
 		},
 		ReadTextFileFunc: func(_ context.Context, req ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: "Content of " + req.Path}, nil
@@ -230,7 +248,9 @@ func TestConnectionHandlesConcurrentRequests(t *testing.T) {
 		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
 			return LoadSessionResponse{}, nil
 		},
-		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
+		AuthenticateFunc: func(context.Context, AuthenticateRequest) (AuthenticateResponse, error) {
+			return AuthenticateResponse{}, nil
+		},
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
 		},
@@ -249,7 +269,7 @@ func TestConnectionHandlesConcurrentRequests(t *testing.T) {
 		req := p
 		go func() {
 			defer wg.Done()
-			errs[idx] = agentConn.WriteTextFile(context.Background(), req)
+			_, errs[idx] = agentConn.WriteTextFile(context.Background(), req)
 		}()
 	}
 	wg.Wait()
@@ -276,9 +296,9 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 	push := func(s string) { mu.Lock(); defer mu.Unlock(); log = append(log, s) }
 
 	cs := NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(_ context.Context, req WriteTextFileRequest) error {
+		WriteTextFileFunc: func(_ context.Context, req WriteTextFileRequest) (WriteTextFileResponse, error) {
 			push("writeTextFile called: " + req.Path)
-			return nil
+			return WriteTextFileResponse{}, nil
 		},
 		ReadTextFileFunc: func(_ context.Context, req ReadTextFileRequest) (ReadTextFileResponse, error) {
 			push("readTextFile called: " + req.Path)
@@ -306,9 +326,9 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 			push("loadSession called: " + string(p.SessionId))
 			return LoadSessionResponse{}, nil
 		},
-		AuthenticateFunc: func(_ context.Context, p AuthenticateRequest) error {
+		AuthenticateFunc: func(_ context.Context, p AuthenticateRequest) (AuthenticateResponse, error) {
 			push("authenticate called: " + string(p.MethodId))
-			return nil
+			return AuthenticateResponse{}, nil
 		},
 		PromptFunc: func(_ context.Context, p PromptRequest) (PromptResponse, error) {
 			push("prompt called: " + string(p.SessionId))
@@ -323,7 +343,7 @@ func TestConnectionHandlesMessageOrdering(t *testing.T) {
 	if _, err := cs.NewSession(context.Background(), NewSessionRequest{Cwd: "/test", McpServers: []McpServer{}}); err != nil {
 		t.Fatalf("newSession error: %v", err)
 	}
-	if err := as.WriteTextFile(context.Background(), WriteTextFileRequest{Path: "/test.txt", Content: "test", SessionId: "test-session"}); err != nil {
+	if _, err := as.WriteTextFile(context.Background(), WriteTextFileRequest{Path: "/test.txt", Content: "test", SessionId: "test-session"}); err != nil {
 		t.Fatalf("writeTextFile error: %v", err)
 	}
 	if _, err := as.ReadTextFile(context.Background(), ReadTextFileRequest{Path: "/test.txt", SessionId: "test-session"}); err != nil {
@@ -376,7 +396,9 @@ func TestConnectionHandlesNotifications(t *testing.T) {
 	push := func(s string) { mu.Lock(); logs = append(logs, s); mu.Unlock() }
 
 	clientSide := NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
+		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error) {
+			return WriteTextFileResponse{}, nil
+		},
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: "test"}, nil
 		},
@@ -405,7 +427,9 @@ func TestConnectionHandlesNotifications(t *testing.T) {
 		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
 			return LoadSessionResponse{}, nil
 		},
-		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
+		AuthenticateFunc: func(context.Context, AuthenticateRequest) (AuthenticateResponse, error) {
+			return AuthenticateResponse{}, nil
+		},
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
 		},
@@ -447,7 +471,9 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 	a2cR, a2cW := io.Pipe()
 
 	agentConn := NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
+		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error) {
+			return WriteTextFileResponse{}, nil
+		},
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: "test"}, nil
 		},
@@ -478,7 +504,9 @@ func TestConnectionHandlesInitialize(t *testing.T) {
 		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
 			return LoadSessionResponse{}, nil
 		},
-		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
+		AuthenticateFunc: func(context.Context, AuthenticateRequest) (AuthenticateResponse, error) {
+			return AuthenticateResponse{}, nil
+		},
 		PromptFunc: func(context.Context, PromptRequest) (PromptResponse, error) {
 			return PromptResponse{StopReason: "end_turn"}, nil
 		},
@@ -527,7 +555,9 @@ func TestPromptCancellationSendsCancelAndAllowsNewSession(t *testing.T) {
 		LoadSessionFunc: func(context.Context, LoadSessionRequest) (LoadSessionResponse, error) {
 			return LoadSessionResponse{}, nil
 		},
-		AuthenticateFunc: func(context.Context, AuthenticateRequest) error { return nil },
+		AuthenticateFunc: func(context.Context, AuthenticateRequest) (AuthenticateResponse, error) {
+			return AuthenticateResponse{}, nil
+		},
 		PromptFunc: func(ctx context.Context, p PromptRequest) (PromptResponse, error) {
 			<-ctx.Done()
 			// mark that prompt finished due to cancellation
@@ -548,7 +578,9 @@ func TestPromptCancellationSendsCancelAndAllowsNewSession(t *testing.T) {
 
 	// Client side
 	cs := NewClientSideConnection(&clientFuncs{
-		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) error { return nil },
+		WriteTextFileFunc: func(context.Context, WriteTextFileRequest) (WriteTextFileResponse, error) {
+			return WriteTextFileResponse{}, nil
+		},
 		ReadTextFileFunc: func(context.Context, ReadTextFileRequest) (ReadTextFileResponse, error) {
 			return ReadTextFileResponse{Content: ""}, nil
 		},

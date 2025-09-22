@@ -89,21 +89,21 @@ func (c *replClient) SessionUpdate(ctx context.Context, params acp.SessionNotifi
 	return nil
 }
 
-func (c *replClient) WriteTextFile(ctx context.Context, params acp.WriteTextFileRequest) error {
+func (c *replClient) WriteTextFile(ctx context.Context, params acp.WriteTextFileRequest) (acp.WriteTextFileResponse, error) {
 	if !filepath.IsAbs(params.Path) {
-		return fmt.Errorf("path must be absolute: %s", params.Path)
+		return acp.WriteTextFileResponse{}, fmt.Errorf("path must be absolute: %s", params.Path)
 	}
 	dir := filepath.Dir(params.Path)
 	if dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("mkdir %s: %w", dir, err)
+			return acp.WriteTextFileResponse{}, fmt.Errorf("mkdir %s: %w", dir, err)
 		}
 	}
 	if err := os.WriteFile(params.Path, []byte(params.Content), 0o644); err != nil {
-		return fmt.Errorf("write %s: %w", params.Path, err)
+		return acp.WriteTextFileResponse{}, fmt.Errorf("write %s: %w", params.Path, err)
 	}
 	fmt.Printf("[Client] Wrote %d bytes to %s\n", len(params.Content), params.Path)
-	return nil
+	return acp.WriteTextFileResponse{}, nil
 }
 
 func (c *replClient) ReadTextFile(ctx context.Context, params acp.ReadTextFileRequest) (acp.ReadTextFileResponse, error) {
@@ -144,9 +144,9 @@ func (c *replClient) TerminalOutput(ctx context.Context, params acp.TerminalOutp
 	return acp.TerminalOutputResponse{Output: "", Truncated: false}, nil
 }
 
-func (c *replClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseTerminalRequest) error {
+func (c *replClient) ReleaseTerminal(ctx context.Context, params acp.ReleaseTerminalRequest) (acp.ReleaseTerminalResponse, error) {
 	fmt.Printf("[Client] ReleaseTerminal: %v\n", params)
-	return nil
+	return acp.ReleaseTerminalResponse{}, nil
 }
 
 func (c *replClient) WaitForTerminalExit(ctx context.Context, params acp.WaitForTerminalExitRequest) (acp.WaitForTerminalExitResponse, error) {
@@ -155,9 +155,9 @@ func (c *replClient) WaitForTerminalExit(ctx context.Context, params acp.WaitFor
 }
 
 // KillTerminalCommand implements acp.Client.
-func (c *replClient) KillTerminalCommand(ctx context.Context, params acp.KillTerminalCommandRequest) error {
+func (c *replClient) KillTerminalCommand(ctx context.Context, params acp.KillTerminalCommandRequest) (acp.KillTerminalCommandResponse, error) {
 	fmt.Printf("[Client] KillTerminalCommand: %v\n", params)
-	return nil
+	return acp.KillTerminalCommandResponse{}, nil
 }
 
 func main() {

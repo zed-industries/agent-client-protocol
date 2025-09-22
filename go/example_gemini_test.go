@@ -10,6 +10,8 @@ import (
 // selects the first permission option. File ops are no-ops here.
 type geminiClient struct{}
 
+var _ Client = (*geminiClient)(nil)
+
 func (geminiClient) RequestPermission(ctx context.Context, p RequestPermissionRequest) (RequestPermissionResponse, error) {
 	if len(p.Options) == 0 {
 		return RequestPermissionResponse{Outcome: RequestPermissionOutcome{Cancelled: &RequestPermissionOutcomeCancelled{}}}, nil
@@ -30,17 +32,24 @@ func (geminiClient) SessionUpdate(ctx context.Context, n SessionNotification) er
 func (geminiClient) ReadTextFile(ctx context.Context, _ ReadTextFileRequest) (ReadTextFileResponse, error) {
 	return ReadTextFileResponse{}, nil
 }
-func (geminiClient) WriteTextFile(ctx context.Context, _ WriteTextFileRequest) error { return nil }
+
+func (geminiClient) WriteTextFile(ctx context.Context, _ WriteTextFileRequest) (WriteTextFileResponse, error) {
+	return WriteTextFileResponse{}, nil
+}
 
 // Terminal interface implementations (minimal stubs for examples)
 func (geminiClient) CreateTerminal(ctx context.Context, p CreateTerminalRequest) (CreateTerminalResponse, error) {
 	return CreateTerminalResponse{TerminalId: "t-1"}, nil
 }
 
-func (geminiClient) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) error {
-	return nil
+func (geminiClient) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) (KillTerminalCommandResponse, error) {
+	return KillTerminalCommandResponse{}, nil
 }
-func (geminiClient) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) error { return nil }
+
+func (geminiClient) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) (ReleaseTerminalResponse, error) {
+	return ReleaseTerminalResponse{}, nil
+}
+
 func (geminiClient) TerminalOutput(ctx context.Context, p TerminalOutputRequest) (TerminalOutputResponse, error) {
 	return TerminalOutputResponse{Output: "ok", Truncated: false}, nil
 }

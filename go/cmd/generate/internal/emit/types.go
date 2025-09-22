@@ -559,20 +559,21 @@ func emitUnion(f *File, name string, defs []*load.Definition, exactlyOne bool) {
 		if s, ok := v.Type.(string); ok && s == "null" {
 			isNull = true
 		}
-		tname := v.Title
-		if tname == "" {
-			if v.Ref != "" && strings.HasPrefix(v.Ref, "#/$defs/") {
-				tname = v.Ref[len("#/$defs/"):]
-			} else {
-				if discKey != "" {
-					if pd := v.Properties[discKey]; pd != nil && pd.Const != nil {
-						s := fmt.Sprint(pd.Const)
-						tname = name + util.ToExportedField(s)
-					}
+		// Determine type name: prefer $ref target name when present; do not treat Title as a rename for $ref.
+		tname := ""
+		if v.Ref != "" && strings.HasPrefix(v.Ref, "#/$defs/") {
+			tname = v.Ref[len("#/$defs/"):]
+		} else if v.Title != "" {
+			tname = v.Title
+		} else {
+			if discKey != "" {
+				if pd := v.Properties[discKey]; pd != nil && pd.Const != nil {
+					s := fmt.Sprint(pd.Const)
+					tname = name + util.ToExportedField(s)
 				}
-				if tname == "" {
-					tname = name + fmt.Sprintf("Variant%d", idx+1)
-				}
+			}
+			if tname == "" {
+				tname = name + fmt.Sprintf("Variant%d", idx+1)
 			}
 		}
 		// Ensure Title-derived names are exported (e.g., "stdio" -> "Stdio").
@@ -587,6 +588,10 @@ func emitUnion(f *File, name string, defs []*load.Definition, exactlyOne bool) {
 			}
 		}
 		isObj := len(v.Properties) > 0
+		// Skip phantom variants that have neither $ref nor object shape nor null (e.g., placeholders with only a title)
+		if !isObj && v.Ref == "" && !isNull {
+			continue
+		}
 		// collect const properties (e.g., type, outcome)
 		consts := [][2]string{}
 		for pk, pd := range v.Properties {

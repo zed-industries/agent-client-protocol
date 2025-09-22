@@ -10,9 +10,24 @@ import (
 // then ends the turn.
 type agentExample struct{ conn *AgentSideConnection }
 
+var _ Agent = (*agentExample)(nil)
+
+// SetSessionMode implements Agent.
+func (a *agentExample) SetSessionMode(ctx context.Context, params SetSessionModeRequest) (SetSessionModeResponse, error) {
+	return SetSessionModeResponse{}, nil
+}
+
+// SetSessionModel implements Agent.
+func (a *agentExample) SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error) {
+	return SetSessionModelResponse{}, nil
+}
+
 func (a *agentExample) SetAgentConnection(c *AgentSideConnection) { a.conn = c }
 
-func (agentExample) Authenticate(ctx context.Context, _ AuthenticateRequest) error { return nil }
+func (agentExample) Authenticate(ctx context.Context, _ AuthenticateRequest) (AuthenticateResponse, error) {
+	return AuthenticateResponse{}, nil
+}
+
 func (agentExample) Initialize(ctx context.Context, _ InitializeRequest) (InitializeResponse, error) {
 	return InitializeResponse{
 		ProtocolVersion:   ProtocolVersionNumber,

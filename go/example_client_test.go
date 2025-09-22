@@ -14,6 +14,8 @@ import (
 // permission option.
 type clientExample struct{}
 
+var _ Client = (*clientExample)(nil)
+
 func (clientExample) RequestPermission(ctx context.Context, p RequestPermissionRequest) (RequestPermissionResponse, error) {
 	if len(p.Options) == 0 {
 		return RequestPermissionResponse{
@@ -46,14 +48,14 @@ func (clientExample) SessionUpdate(ctx context.Context, n SessionNotification) e
 	return nil
 }
 
-func (clientExample) WriteTextFile(ctx context.Context, p WriteTextFileRequest) error {
+func (clientExample) WriteTextFile(ctx context.Context, p WriteTextFileRequest) (WriteTextFileResponse, error) {
 	if !filepath.IsAbs(p.Path) {
-		return fmt.Errorf("path must be absolute: %s", p.Path)
+		return WriteTextFileResponse{}, fmt.Errorf("path must be absolute: %s", p.Path)
 	}
 	if dir := filepath.Dir(p.Path); dir != "" {
 		_ = os.MkdirAll(dir, 0o755)
 	}
-	return os.WriteFile(p.Path, []byte(p.Content), 0o644)
+	return WriteTextFileResponse{}, os.WriteFile(p.Path, []byte(p.Content), 0o644)
 }
 
 func (clientExample) ReadTextFile(ctx context.Context, p ReadTextFileRequest) (ReadTextFileResponse, error) {
@@ -91,12 +93,12 @@ func (clientExample) CreateTerminal(ctx context.Context, p CreateTerminalRequest
 	return CreateTerminalResponse{TerminalId: "t-1"}, nil
 }
 
-func (clientExample) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) error {
-	return nil
+func (clientExample) KillTerminalCommand(ctx context.Context, p KillTerminalCommandRequest) (KillTerminalCommandResponse, error) {
+	return KillTerminalCommandResponse{}, nil
 }
 
-func (clientExample) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) error {
-	return nil
+func (clientExample) ReleaseTerminal(ctx context.Context, p ReleaseTerminalRequest) (ReleaseTerminalResponse, error) {
+	return ReleaseTerminalResponse{}, nil
 }
 
 func (clientExample) TerminalOutput(ctx context.Context, p TerminalOutputRequest) (TerminalOutputResponse, error) {

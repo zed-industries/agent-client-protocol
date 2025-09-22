@@ -11,6 +11,8 @@ import (
 
 // Capabilities supported by the agent.  Advertised during initialization to inform the client about available features and content types.  See protocol docs: [Agent Capabilities](https://agentclientprotocol.com/protocol/initialization#agent-capabilities)
 type AgentCapabilities struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Whether the agent supports 'session/load'.
 	//
 	// Defaults to false if unset.
@@ -265,24 +267,18 @@ func (u AgentRequest) MarshalJSON() ([]byte, error) {
 	return []byte{}, nil
 }
 
-// All possible responses that an agent can send to a client.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding ClientRequest variants.
-type AuthenticateResponse struct{}
-
+// All possible responses that an agent can send to a client.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding 'ClientRequest' variants.
 type AgentResponse struct {
-	InitializeResponse     *InitializeResponse     `json:"-"`
-	AuthenticateResponse   *AuthenticateResponse   `json:"-"`
-	NewSessionResponse     *NewSessionResponse     `json:"-"`
-	LoadSessionResponse    *LoadSessionResponse    `json:"-"`
-	SetSessionModeResponse *SetSessionModeResponse `json:"-"`
-	PromptResponse         *PromptResponse         `json:"-"`
+	InitializeResponse      *InitializeResponse      `json:"-"`
+	AuthenticateResponse    *AuthenticateResponse    `json:"-"`
+	NewSessionResponse      *NewSessionResponse      `json:"-"`
+	LoadSessionResponse     *LoadSessionResponse     `json:"-"`
+	SetSessionModeResponse  *SetSessionModeResponse  `json:"-"`
+	PromptResponse          *PromptResponse          `json:"-"`
+	SetSessionModelResponse *SetSessionModelResponse `json:"-"`
 }
 
 func (u *AgentResponse) UnmarshalJSON(b []byte) error {
-	if string(b) == "null" {
-		var v AuthenticateResponse
-		u.AuthenticateResponse = &v
-		return nil
-	}
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
@@ -329,6 +325,13 @@ func (u *AgentResponse) UnmarshalJSON(b []byte) error {
 			return nil
 		}
 	}
+	{
+		var v SetSessionModelResponse
+		if json.Unmarshal(b, &v) == nil {
+			u.SetSessionModelResponse = &v
+			return nil
+		}
+	}
 	return nil
 }
 func (u AgentResponse) MarshalJSON() ([]byte, error) {
@@ -344,7 +347,15 @@ func (u AgentResponse) MarshalJSON() ([]byte, error) {
 		return json.Marshal(m)
 	}
 	if u.AuthenticateResponse != nil {
-		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.AuthenticateResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	if u.NewSessionResponse != nil {
 		var m map[string]any
@@ -390,11 +401,24 @@ func (u AgentResponse) MarshalJSON() ([]byte, error) {
 		}
 		return json.Marshal(m)
 	}
+	if u.SetSessionModelResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.SetSessionModelResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
 	return []byte{}, nil
 }
 
 // Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 type Annotations struct {
+	// Extension point for implementations
+	Meta         any      `json:"_meta,omitempty"`
 	Audience     []Role   `json:"audience,omitempty"`
 	LastModified *string  `json:"lastModified,omitempty"`
 	Priority     *float64 `json:"priority,omitempty"`
@@ -402,6 +426,8 @@ type Annotations struct {
 
 // Audio provided to or from an LLM.
 type AudioContent struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Data        string       `json:"data"`
 	MimeType    string       `json:"mimeType"`
@@ -409,6 +435,8 @@ type AudioContent struct {
 
 // Describes an available authentication method.
 type AuthMethod struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Optional description providing more details about this authentication method.
 	Description *string `json:"description,omitempty"`
 	// Unique identifier for this authentication method.
@@ -422,6 +450,8 @@ type AuthMethodId string
 
 // Request parameters for the authenticate method.  Specifies which authentication method to use.
 type AuthenticateRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The ID of the authentication method to use. Must be one of the methods advertised in the initialize response.
 	MethodId AuthMethodId `json:"methodId"`
 }
@@ -430,19 +460,32 @@ func (v *AuthenticateRequest) Validate() error {
 	return nil
 }
 
+// Response to authenticate method
+type AuthenticateResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+}
+
+func (v *AuthenticateResponse) Validate() error {
+	return nil
+}
+
 // Information about a command.
 type AvailableCommand struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Human-readable description of what the command does.
 	Description string `json:"description"`
 	// Input for the command if required
 	Input *AvailableCommandInput `json:"input,omitempty"`
-	// Command name (e.g., "create_plan", "research_codebase").
+	// Command name (e.g., 'create_plan', 'research_codebase').
 	Name string `json:"name"`
 }
 
+// The input specification for a command.
 // All text that was typed after the command name is provided as input.
 type UnstructuredCommandInput struct {
-	// A brief description of the expected input
+	// A hint to display when the input hasn't been provided yet
 	Hint string `json:"hint"`
 }
 
@@ -495,6 +538,8 @@ func (u AvailableCommandInput) MarshalJSON() ([]byte, error) {
 
 // Binary resource contents.
 type BlobResourceContents struct {
+	// Extension point for implementations
+	Meta     any     `json:"_meta,omitempty"`
 	Blob     string  `json:"blob"`
 	MimeType *string `json:"mimeType,omitempty"`
 	Uri      string  `json:"uri"`
@@ -502,6 +547,8 @@ type BlobResourceContents struct {
 
 // Notification to cancel ongoing operations for a session.  See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 type CancelNotification struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The ID of the session to cancel operations for.
 	SessionId SessionId `json:"sessionId"`
 }
@@ -512,6 +559,8 @@ func (v *CancelNotification) Validate() error {
 
 // Capabilities supported by the client.  Advertised during initialization to inform the agent about available features and methods.  See protocol docs: [Client Capabilities](https://agentclientprotocol.com/protocol/initialization#client-capabilities)
 type ClientCapabilities struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// File system capabilities supported by the client. Determines which file operations the agent can request.
 	//
 	// Defaults to {"readTextFile":false,"writeTextFile":false} if unset.
@@ -591,12 +640,13 @@ func (u ClientNotification) MarshalJSON() ([]byte, error) {
 
 // All possible requests that a client can send to an agent.  This enum is used internally for routing RPC requests. You typically won't need to use this directly - instead, use the methods on the ['Agent'] trait.  This enum encompasses all method calls from client to agent.
 type ClientRequest struct {
-	InitializeRequest     *InitializeRequest     `json:"-"`
-	AuthenticateRequest   *AuthenticateRequest   `json:"-"`
-	NewSessionRequest     *NewSessionRequest     `json:"-"`
-	LoadSessionRequest    *LoadSessionRequest    `json:"-"`
-	SetSessionModeRequest *SetSessionModeRequest `json:"-"`
-	PromptRequest         *PromptRequest         `json:"-"`
+	InitializeRequest      *InitializeRequest      `json:"-"`
+	AuthenticateRequest    *AuthenticateRequest    `json:"-"`
+	NewSessionRequest      *NewSessionRequest      `json:"-"`
+	LoadSessionRequest     *LoadSessionRequest     `json:"-"`
+	SetSessionModeRequest  *SetSessionModeRequest  `json:"-"`
+	PromptRequest          *PromptRequest          `json:"-"`
+	SetSessionModelRequest *SetSessionModelRequest `json:"-"`
 }
 
 func (u *ClientRequest) UnmarshalJSON(b []byte) error {
@@ -643,6 +693,13 @@ func (u *ClientRequest) UnmarshalJSON(b []byte) error {
 		var v PromptRequest
 		if json.Unmarshal(b, &v) == nil {
 			u.PromptRequest = &v
+			return nil
+		}
+	}
+	{
+		var v SetSessionModelRequest
+		if json.Unmarshal(b, &v) == nil {
+			u.SetSessionModelRequest = &v
 			return nil
 		}
 	}
@@ -715,16 +772,21 @@ func (u ClientRequest) MarshalJSON() ([]byte, error) {
 		}
 		return json.Marshal(m)
 	}
+	if u.SetSessionModelRequest != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.SetSessionModelRequest)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
+	}
 	return []byte{}, nil
 }
 
-// All possible responses that a client can send to an agent.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding AgentRequest variants.
-type WriteTextFileResponse struct{}
-
-type ReleaseTerminalResponse struct{}
-
-type KillTerminalResponse struct{}
-
+// All possible responses that a client can send to an agent.  This enum is used internally for routing RPC responses. You typically won't need to use this directly - the responses are handled automatically by the connection.  These are responses to the corresponding 'AgentRequest' variants.
 type ClientResponse struct {
 	WriteTextFileResponse       *WriteTextFileResponse       `json:"-"`
 	ReadTextFileResponse        *ReadTextFileResponse        `json:"-"`
@@ -733,15 +795,10 @@ type ClientResponse struct {
 	TerminalOutputResponse      *TerminalOutputResponse      `json:"-"`
 	ReleaseTerminalResponse     *ReleaseTerminalResponse     `json:"-"`
 	WaitForTerminalExitResponse *WaitForTerminalExitResponse `json:"-"`
-	KillTerminalResponse        *KillTerminalResponse        `json:"-"`
+	KillTerminalCommandResponse *KillTerminalCommandResponse `json:"-"`
 }
 
 func (u *ClientResponse) UnmarshalJSON(b []byte) error {
-	if string(b) == "null" {
-		var v WriteTextFileResponse
-		u.WriteTextFileResponse = &v
-		return nil
-	}
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
@@ -796,9 +853,9 @@ func (u *ClientResponse) UnmarshalJSON(b []byte) error {
 		}
 	}
 	{
-		var v KillTerminalResponse
+		var v KillTerminalCommandResponse
 		if json.Unmarshal(b, &v) == nil {
-			u.KillTerminalResponse = &v
+			u.KillTerminalCommandResponse = &v
 			return nil
 		}
 	}
@@ -806,7 +863,15 @@ func (u *ClientResponse) UnmarshalJSON(b []byte) error {
 }
 func (u ClientResponse) MarshalJSON() ([]byte, error) {
 	if u.WriteTextFileResponse != nil {
-		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.WriteTextFileResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	if u.ReadTextFileResponse != nil {
 		var m map[string]any
@@ -853,7 +918,15 @@ func (u ClientResponse) MarshalJSON() ([]byte, error) {
 		return json.Marshal(m)
 	}
 	if u.ReleaseTerminalResponse != nil {
-		return json.Marshal(nil)
+		var m map[string]any
+		_b, _e := json.Marshal(*u.ReleaseTerminalResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	if u.WaitForTerminalExitResponse != nil {
 		var m map[string]any
@@ -866,8 +939,16 @@ func (u ClientResponse) MarshalJSON() ([]byte, error) {
 		}
 		return json.Marshal(m)
 	}
-	if u.KillTerminalResponse != nil {
-		return json.Marshal(nil)
+	if u.KillTerminalCommandResponse != nil {
+		var m map[string]any
+		_b, _e := json.Marshal(*u.KillTerminalCommandResponse)
+		if _e != nil {
+			return []byte{}, _e
+		}
+		if json.Unmarshal(_b, &m) != nil {
+			return []byte{}, errors.New("invalid variant payload")
+		}
+		return json.Marshal(m)
 	}
 	return []byte{}, nil
 }
@@ -875,6 +956,8 @@ func (u ClientResponse) MarshalJSON() ([]byte, error) {
 // Content blocks represent displayable information in the Agent Client Protocol.  They provide a structured way to handle various types of user-facing content—whether it's text from language models, images for analysis, or embedded resources for context.  Content blocks appear in: - User prompts sent via 'session/prompt' - Language model output streamed through 'session/update' notifications - Progress updates and results from tool calls  This structure is compatible with the Model Context Protocol (MCP), enabling agents to seamlessly forward content from MCP tool outputs without transformation.  See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
 // Plain text content  All agents MUST support text content blocks in prompts.
 type ContentBlockText struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Text        string       `json:"text"`
 	Type        string       `json:"type"`
@@ -882,6 +965,8 @@ type ContentBlockText struct {
 
 // Images for visual context or analysis.  Requires the 'image' prompt capability when included in prompts.
 type ContentBlockImage struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Data        string       `json:"data"`
 	MimeType    string       `json:"mimeType"`
@@ -891,6 +976,8 @@ type ContentBlockImage struct {
 
 // Audio data for transcription or analysis.  Requires the 'audio' prompt capability when included in prompts.
 type ContentBlockAudio struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Data        string       `json:"data"`
 	MimeType    string       `json:"mimeType"`
@@ -899,6 +986,8 @@ type ContentBlockAudio struct {
 
 // References to resources that the agent can access.  All agents MUST support resource links in prompts.
 type ContentBlockResourceLink struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Description *string      `json:"description,omitempty"`
 	MimeType    *string      `json:"mimeType,omitempty"`
@@ -911,6 +1000,8 @@ type ContentBlockResourceLink struct {
 
 // Complete resource contents embedded directly in the message.  Preferred for including context as it avoids extra round-trips.  Requires the 'embeddedContext' prompt capability when included in prompts.
 type ContentBlockResource struct {
+	// Extension point for implementations
+	Meta        any                      `json:"_meta,omitempty"`
 	Annotations *Annotations             `json:"annotations,omitempty"`
 	Resource    EmbeddedResourceResource `json:"resource"`
 	Type        string                   `json:"type"`
@@ -1240,6 +1331,8 @@ func (u *ContentBlock) Validate() error {
 
 // Request to create a new terminal and execute a command.
 type CreateTerminalRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Array of command arguments.
 	Args []string `json:"args,omitempty"`
 	// The command to execute.
@@ -1263,6 +1356,8 @@ func (v *CreateTerminalRequest) Validate() error {
 
 // Response containing the ID of the created terminal.
 type CreateTerminalResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The unique identifier for the created terminal.
 	TerminalId string `json:"terminalId"`
 }
@@ -1276,6 +1371,8 @@ func (v *CreateTerminalResponse) Validate() error {
 
 // The contents of a resource, embedded into a prompt or tool call result.
 type EmbeddedResource struct {
+	// Extension point for implementations
+	Meta        any                      `json:"_meta,omitempty"`
 	Annotations *Annotations             `json:"annotations,omitempty"`
 	Resource    EmbeddedResourceResource `json:"resource"`
 }
@@ -1351,6 +1448,8 @@ func (u EmbeddedResourceResource) MarshalJSON() ([]byte, error) {
 
 // An environment variable to set when launching an MCP server.
 type EnvVariable struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The name of the environment variable.
 	Name string `json:"name"`
 	// The value to set for the environment variable.
@@ -1359,6 +1458,8 @@ type EnvVariable struct {
 
 // File system capabilities that a client may support.  See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
 type FileSystemCapability struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Whether the Client supports 'fs/read_text_file' requests.
 	//
 	// Defaults to false if unset.
@@ -1404,6 +1505,8 @@ func (v *FileSystemCapability) UnmarshalJSON(b []byte) error {
 
 // An HTTP header to set when making requests to the MCP server.
 type HttpHeader struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The name of the HTTP header.
 	Name string `json:"name"`
 	// The value to set for the HTTP header.
@@ -1412,6 +1515,8 @@ type HttpHeader struct {
 
 // An image provided to or from an LLM.
 type ImageContent struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Data        string       `json:"data"`
 	MimeType    string       `json:"mimeType"`
@@ -1420,6 +1525,8 @@ type ImageContent struct {
 
 // Request parameters for the initialize method.  Sent by the client to establish connection and negotiate capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 type InitializeRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Capabilities supported by the client.
 	//
 	// Defaults to {"fs":{"readTextFile":false,"writeTextFile":false},"terminal":false} if unset.
@@ -1461,6 +1568,8 @@ func (v *InitializeRequest) Validate() error {
 
 // Response from the initialize method.  Contains the negotiated protocol version and agent capabilities.  See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
 type InitializeResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Capabilities supported by the agent.
 	//
 	// Defaults to {"loadSession":false,"mcpCapabilities":{"http":false,"sse":false},"promptCapabilities":{"audio":false,"embeddedContext":false,"image":false}} if unset.
@@ -1515,6 +1624,8 @@ func (v *InitializeResponse) Validate() error {
 
 // Request to kill a terminal command without releasing the terminal.
 type KillTerminalCommandRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The session ID for this request.
 	SessionId SessionId `json:"sessionId"`
 	// The ID of the terminal to kill.
@@ -1528,8 +1639,20 @@ func (v *KillTerminalCommandRequest) Validate() error {
 	return nil
 }
 
+// Response to terminal/kill command method
+type KillTerminalCommandResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+}
+
+func (v *KillTerminalCommandResponse) Validate() error {
+	return nil
+}
+
 // Request parameters for loading an existing session.  Only available if the Agent supports the 'loadSession' capability.  See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
 type LoadSessionRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The working directory for this session.
 	Cwd string `json:"cwd"`
 	// List of MCP servers to connect to for this session.
@@ -1550,7 +1673,11 @@ func (v *LoadSessionRequest) Validate() error {
 
 // Response from loading an existing session.
 type LoadSessionResponse struct {
-	// **UNSTABLE**  This field is not part of the spec, and may be removed or changed at any point.
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  Initial model state if supported by the Agent
+	Models *SessionModelState `json:"models,omitempty"`
+	// Initial mode state if supported by the Agent  See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 	Modes *SessionModeState `json:"modes,omitempty"`
 }
 
@@ -1560,6 +1687,8 @@ func (v *LoadSessionResponse) Validate() error {
 
 // MCP capabilities supported by the agent
 type McpCapabilities struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Agent supports ['McpServer::Http'].
 	//
 	// Defaults to false if unset.
@@ -1802,8 +1931,23 @@ func (u McpServer) MarshalJSON() ([]byte, error) {
 	return []byte{}, nil
 }
 
+// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  A unique identifier for a model.
+type ModelId string
+
+// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  Information about a selectable model.
+type ModelInfo struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// Unique identifier for the model.
+	ModelId ModelId `json:"modelId"`
+	// Human-readable name of the model.
+	Name string `json:"name"`
+}
+
 // Request parameters for creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 type NewSessionRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The working directory for this session. Must be an absolute path.
 	Cwd string `json:"cwd"`
 	// List of MCP (Model Context Protocol) servers the agent should connect to.
@@ -1822,7 +1966,11 @@ func (v *NewSessionRequest) Validate() error {
 
 // Response from creating a new session.  See protocol docs: [Creating a Session](https://agentclientprotocol.com/protocol/session-setup#creating-a-session)
 type NewSessionResponse struct {
-	// **UNSTABLE**  This field is not part of the spec, and may be removed or changed at any point.
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  Initial model state if supported by the Agent
+	Models *SessionModelState `json:"models,omitempty"`
+	// Initial mode state if supported by the Agent  See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 	Modes *SessionModeState `json:"modes,omitempty"`
 	// Unique identifier for the created session.  Used in all subsequent requests for this conversation.
 	SessionId SessionId `json:"sessionId"`
@@ -1834,6 +1982,8 @@ func (v *NewSessionResponse) Validate() error {
 
 // An option presented to the user when requesting permission.
 type PermissionOption struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Hint about the nature of this permission option.
 	Kind PermissionOptionKind `json:"kind"`
 	// Human-readable label to display to the user.
@@ -1857,12 +2007,16 @@ const (
 
 // An execution plan for accomplishing complex tasks.  Plans consist of multiple entries representing individual tasks or goals. Agents report plans to clients to provide visibility into their execution strategy. Plans can evolve during execution as the agent discovers new requirements or completes tasks.  See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
 type Plan struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The list of tasks to be accomplished.  When updating a plan, the agent must send a complete list of all entries with their current status. The client replaces the entire plan with each update.
 	Entries []PlanEntry `json:"entries"`
 }
 
 // A single entry in the execution plan.  Represents a task or goal that the assistant intends to accomplish as part of fulfilling the user's request. See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 type PlanEntry struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Human-readable description of what this task aims to accomplish.
 	Content string `json:"content"`
 	// The relative importance of this task. Used to indicate which tasks are most critical to the overall goal.
@@ -1891,6 +2045,8 @@ const (
 
 // Prompt capabilities supported by the agent in 'session/prompt' requests.  Baseline agent functionality requires support for ['ContentBlock::Text'] and ['ContentBlock::ResourceLink'] in prompt requests.  Other variants must be explicitly opted in to. Capabilities for different types of content in prompt requests.  Indicates which content types beyond the baseline (text and resource links) the agent can process.  See protocol docs: [Prompt Capabilities](https://agentclientprotocol.com/protocol/initialization#prompt-capabilities)
 type PromptCapabilities struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Agent supports ['ContentBlock::Audio'].
 	//
 	// Defaults to false if unset.
@@ -1946,6 +2102,8 @@ func (v *PromptCapabilities) UnmarshalJSON(b []byte) error {
 
 // Request parameters for sending a user prompt to the agent.  Contains the user's message and any additional context.  See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
 type PromptRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The blocks of content that compose the user's message.  As a baseline, the Agent MUST support ['ContentBlock::Text'] and ['ContentBlock::ResourceLink'], while other variants are optionally enabled via ['PromptCapabilities'].  The Client MUST adapt its interface according to ['PromptCapabilities'].  The client MAY include referenced pieces of context as either ['ContentBlock::Resource'] or ['ContentBlock::ResourceLink'].  When available, ['ContentBlock::Resource'] is preferred as it avoids extra round-trips and allows the message to include pieces of context from sources the agent may not have access to.
 	Prompt []ContentBlock `json:"prompt"`
 	// The ID of the session to send this user message to
@@ -1961,6 +2119,8 @@ func (v *PromptRequest) Validate() error {
 
 // Response from processing a user prompt.  See protocol docs: [Check for Completion](https://agentclientprotocol.com/protocol/prompt-turn#4-check-for-completion)
 type PromptResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Indicates why the agent stopped processing the turn.
 	StopReason StopReason `json:"stopReason"`
 }
@@ -1974,6 +2134,8 @@ type ProtocolVersion int
 
 // Request to read content from a text file.  Only available if the client supports the 'fs.readTextFile' capability.
 type ReadTextFileRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Maximum number of lines to read.
 	Limit *int `json:"limit,omitempty"`
 	// Line number to start reading from (1-based).
@@ -1993,6 +2155,8 @@ func (v *ReadTextFileRequest) Validate() error {
 
 // Response containing the contents of a text file.
 type ReadTextFileResponse struct {
+	// Extension point for implementations
+	Meta    any    `json:"_meta,omitempty"`
 	Content string `json:"content"`
 }
 
@@ -2005,6 +2169,8 @@ func (v *ReadTextFileResponse) Validate() error {
 
 // Request to release a terminal and free its resources.
 type ReleaseTerminalRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The session ID for this request.
 	SessionId SessionId `json:"sessionId"`
 	// The ID of the terminal to release.
@@ -2015,6 +2181,16 @@ func (v *ReleaseTerminalRequest) Validate() error {
 	if v.TerminalId == "" {
 		return fmt.Errorf("terminalId is required")
 	}
+	return nil
+}
+
+// Response to terminal/release method
+type ReleaseTerminalResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+}
+
+func (v *ReleaseTerminalResponse) Validate() error {
 	return nil
 }
 
@@ -2154,6 +2330,8 @@ func (u *RequestPermissionOutcome) Validate() error {
 
 // Request for user permission to execute a tool call.  Sent when the agent needs authorization before performing a sensitive operation.  See protocol docs: [Requesting Permission](https://agentclientprotocol.com/protocol/tool-calls#requesting-permission)
 type RequestPermissionRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Available permission options for the user to choose from.
 	Options []PermissionOption `json:"options"`
 	// The session ID for this request.
@@ -2171,6 +2349,8 @@ func (v *RequestPermissionRequest) Validate() error {
 
 // Response to a permission request.
 type RequestPermissionResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The user's decision on the permission request.
 	Outcome RequestPermissionOutcome `json:"outcome"`
 }
@@ -2181,6 +2361,8 @@ func (v *RequestPermissionResponse) Validate() error {
 
 // A resource that the server is capable of reading, included in a prompt or tool call result.
 type ResourceLink struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Description *string      `json:"description,omitempty"`
 	MimeType    *string      `json:"mimeType,omitempty"`
@@ -2201,24 +2383,42 @@ const (
 // A unique identifier for a conversation session between a client and agent.  Sessions maintain their own context, conversation history, and state, allowing multiple independent interactions with the same agent.  # Example  ”' use agent_client_protocol::SessionId; use std::sync::Arc;  let session_id = SessionId(Arc::from("sess_abc123def456")); ”'  See protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)
 type SessionId string
 
-// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+// A mode the agent can operate in.  See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 type SessionMode struct {
+	// Extension point for implementations
+	Meta        any           `json:"_meta,omitempty"`
 	Description *string       `json:"description,omitempty"`
 	Id          SessionModeId `json:"id"`
 	Name        string        `json:"name"`
 }
 
-// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+// Unique identifier for a Session Mode.
 type SessionModeId string
 
-// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+// The set of modes and the one currently active.
 type SessionModeState struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// The set of modes that the Agent can operate in
 	AvailableModes []SessionMode `json:"availableModes"`
-	CurrentModeId  SessionModeId `json:"currentModeId"`
+	// The current mode the Agent is in.
+	CurrentModeId SessionModeId `json:"currentModeId"`
+}
+
+// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  The set of models and the one currently active.
+type SessionModelState struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// The set of models that the Agent can use
+	AvailableModels []ModelInfo `json:"availableModels"`
+	// The current model the Agent is in.
+	CurrentModelId ModelId `json:"currentModelId"`
 }
 
 // Notification containing a session update from the agent.  Used to stream real-time progress and results during prompt processing.  See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 type SessionNotification struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The ID of the session this update pertains to.
 	SessionId SessionId `json:"sessionId"`
 	// The actual update content.
@@ -2250,6 +2450,8 @@ type SessionUpdateAgentThoughtChunk struct {
 
 // Notification that a new tool call has been initiated.
 type SessionUpdateToolCall struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Content produced by the tool call.
 	Content []ToolCallContent `json:"content,omitempty"`
 	// The category of tool being invoked. Helps clients choose appropriate icons and UI treatment.
@@ -2271,6 +2473,8 @@ type SessionUpdateToolCall struct {
 
 // Update on the status or results of a tool call.
 type SessionUpdateToolCallUpdate struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Replace the content collection.
 	Content []ToolCallContent `json:"content,omitempty"`
 	// Update the tool kind.
@@ -2292,6 +2496,8 @@ type SessionUpdateToolCallUpdate struct {
 
 // The agent's execution plan for complex tasks. See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan)
 type SessionUpdatePlan struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The list of tasks to be accomplished.  When updating a plan, the agent must send a complete list of all entries with their current status. The client replaces the entire plan with each update.
 	Entries       []PlanEntry `json:"entries"`
 	SessionUpdate string      `json:"sessionUpdate"`
@@ -2303,7 +2509,7 @@ type SessionUpdateAvailableCommandsUpdate struct {
 	SessionUpdate     string             `json:"sessionUpdate"`
 }
 
-// The current mode of the session has changed
+// The current mode of the session has changed  See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
 type SessionUpdateCurrentModeUpdate struct {
 	CurrentModeId SessionModeId `json:"currentModeId"`
 	SessionUpdate string        `json:"sessionUpdate"`
@@ -2718,20 +2924,50 @@ func (u *SessionUpdate) Validate() error {
 	return nil
 }
 
-// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
+// Request parameters for setting a session mode.
 type SetSessionModeRequest struct {
-	ModeId    SessionModeId `json:"modeId"`
-	SessionId SessionId     `json:"sessionId"`
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// The ID of the mode to set.
+	ModeId SessionModeId `json:"modeId"`
+	// The ID of the session to set the mode for.
+	SessionId SessionId `json:"sessionId"`
 }
 
 func (v *SetSessionModeRequest) Validate() error {
 	return nil
 }
 
-// **UNSTABLE**  This type is not part of the spec, and may be removed or changed at any point.
-type SetSessionModeResponse struct{}
+// Response to 'session/set_mode' method.
+type SetSessionModeResponse struct {
+	Meta any `json:"meta,omitempty"`
+}
 
 func (v *SetSessionModeResponse) Validate() error {
+	return nil
+}
+
+// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  Request parameters for setting a session model.
+type SetSessionModelRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+	// The ID of the model to set.
+	ModelId ModelId `json:"modelId"`
+	// The ID of the session to set the model for.
+	SessionId SessionId `json:"sessionId"`
+}
+
+func (v *SetSessionModelRequest) Validate() error {
+	return nil
+}
+
+// **UNSTABLE**  This capability is not part of the spec yet, and may be removed or changed at any point.  Response to 'session/set_model' method.
+type SetSessionModelResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+}
+
+func (v *SetSessionModelResponse) Validate() error {
 	return nil
 }
 
@@ -2748,6 +2984,8 @@ const (
 
 // Exit status of a terminal command.
 type TerminalExitStatus struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The process exit code (may be null if terminated by signal).
 	ExitCode *int `json:"exitCode,omitempty"`
 	// The signal that terminated the process (may be null if exited normally).
@@ -2756,6 +2994,8 @@ type TerminalExitStatus struct {
 
 // Request to get the current output and status of a terminal.
 type TerminalOutputRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The session ID for this request.
 	SessionId SessionId `json:"sessionId"`
 	// The ID of the terminal to get output from.
@@ -2771,6 +3011,8 @@ func (v *TerminalOutputRequest) Validate() error {
 
 // Response containing the terminal output and exit status.
 type TerminalOutputResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Exit status if the command has completed.
 	ExitStatus *TerminalExitStatus `json:"exitStatus,omitempty"`
 	// The terminal output captured so far.
@@ -2788,12 +3030,16 @@ func (v *TerminalOutputResponse) Validate() error {
 
 // Text provided to or from an LLM.
 type TextContent struct {
+	// Extension point for implementations
+	Meta        any          `json:"_meta,omitempty"`
 	Annotations *Annotations `json:"annotations,omitempty"`
 	Text        string       `json:"text"`
 }
 
 // Text-based resource contents.
 type TextResourceContents struct {
+	// Extension point for implementations
+	Meta     any     `json:"_meta,omitempty"`
 	MimeType *string `json:"mimeType,omitempty"`
 	Text     string  `json:"text"`
 	Uri      string  `json:"uri"`
@@ -2801,6 +3047,8 @@ type TextResourceContents struct {
 
 // Represents a tool call that the language model has requested.  Tool calls are actions that the agent executes on behalf of the language model, such as reading files, executing code, or fetching data from external sources.  See protocol docs: [Tool Calls](https://agentclientprotocol.com/protocol/tool-calls)
 type ToolCall struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Content produced by the tool call.
 	Content []ToolCallContent `json:"content,omitempty"`
 	// The category of tool being invoked. Helps clients choose appropriate icons and UI treatment.
@@ -2829,6 +3077,8 @@ type ToolCallContentContent struct {
 
 // File modification shown as a diff.
 type ToolCallContentDiff struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The new content after modification.
 	NewText string `json:"newText"`
 	// The original content (None for new files).
@@ -3023,6 +3273,8 @@ type ToolCallId string
 
 // A file location being accessed or modified by a tool.  Enables clients to implement "follow-along" features that track which files the agent is working with in real-time.  See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
 type ToolCallLocation struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Optional line number within the file.
 	Line *int `json:"line,omitempty"`
 	// The file path being accessed or modified.
@@ -3041,6 +3293,8 @@ const (
 
 // An update to an existing tool call.  Used to report progress and results as tools execute. All fields except the tool call ID are optional - only changed fields need to be included.  See protocol docs: [Updating](https://agentclientprotocol.com/protocol/tool-calls#updating)
 type ToolCallUpdate struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// Replace the content collection.
 	Content []ToolCallContent `json:"content,omitempty"`
 	// Update the tool kind.
@@ -3084,6 +3338,8 @@ const (
 
 // Request to wait for a terminal command to exit.
 type WaitForTerminalExitRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The session ID for this request.
 	SessionId SessionId `json:"sessionId"`
 	// The ID of the terminal to wait for.
@@ -3099,6 +3355,8 @@ func (v *WaitForTerminalExitRequest) Validate() error {
 
 // Response containing the exit status of a terminal command.
 type WaitForTerminalExitResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The process exit code (may be null if terminated by signal).
 	ExitCode *int `json:"exitCode,omitempty"`
 	// The signal that terminated the process (may be null if exited normally).
@@ -3111,6 +3369,8 @@ func (v *WaitForTerminalExitResponse) Validate() error {
 
 // Request to write content to a text file.  Only available if the client supports the 'fs.writeTextFile' capability.
 type WriteTextFileRequest struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
 	// The text content to write to the file.
 	Content string `json:"content"`
 	// Absolute path to the file to write.
@@ -3129,12 +3389,24 @@ func (v *WriteTextFileRequest) Validate() error {
 	return nil
 }
 
+// Response to 'fs/write_text_file'
+type WriteTextFileResponse struct {
+	// Extension point for implementations
+	Meta any `json:"_meta,omitempty"`
+}
+
+func (v *WriteTextFileResponse) Validate() error {
+	return nil
+}
+
 type Agent interface {
-	Authenticate(ctx context.Context, params AuthenticateRequest) error
+	Authenticate(ctx context.Context, params AuthenticateRequest) (AuthenticateResponse, error)
 	Initialize(ctx context.Context, params InitializeRequest) (InitializeResponse, error)
+	SetSessionModel(ctx context.Context, params SetSessionModelRequest) (SetSessionModelResponse, error)
 	Cancel(ctx context.Context, params CancelNotification) error
 	NewSession(ctx context.Context, params NewSessionRequest) (NewSessionResponse, error)
 	Prompt(ctx context.Context, params PromptRequest) (PromptResponse, error)
+	SetSessionMode(ctx context.Context, params SetSessionModeRequest) (SetSessionModeResponse, error)
 }
 
 // AgentLoader defines optional support for loading sessions. Implement and advertise the capability to enable 'session/load'.
@@ -3143,12 +3415,12 @@ type AgentLoader interface {
 }
 type Client interface {
 	ReadTextFile(ctx context.Context, params ReadTextFileRequest) (ReadTextFileResponse, error)
-	WriteTextFile(ctx context.Context, params WriteTextFileRequest) error
+	WriteTextFile(ctx context.Context, params WriteTextFileRequest) (WriteTextFileResponse, error)
 	RequestPermission(ctx context.Context, params RequestPermissionRequest) (RequestPermissionResponse, error)
 	SessionUpdate(ctx context.Context, params SessionNotification) error
 	CreateTerminal(ctx context.Context, params CreateTerminalRequest) (CreateTerminalResponse, error)
-	KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) error
+	KillTerminalCommand(ctx context.Context, params KillTerminalCommandRequest) (KillTerminalCommandResponse, error)
 	TerminalOutput(ctx context.Context, params TerminalOutputRequest) (TerminalOutputResponse, error)
-	ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) error
+	ReleaseTerminal(ctx context.Context, params ReleaseTerminalRequest) (ReleaseTerminalResponse, error)
 	WaitForTerminalExit(ctx context.Context, params WaitForTerminalExitRequest) (WaitForTerminalExitResponse, error)
 }

@@ -9,6 +9,7 @@ const ProtocolVersionNumber = 1
 const (
 	AgentMethodAuthenticate   = "authenticate"
 	AgentMethodInitialize     = "initialize"
+	AgentMethodModelSelect    = "session/set_model"
 	AgentMethodSessionCancel  = "session/cancel"
 	AgentMethodSessionLoad    = "session/load"
 	AgentMethodSessionNew     = "session/new"
