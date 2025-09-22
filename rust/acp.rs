@@ -242,7 +242,7 @@ impl Agent for ClientSideConnection {
         self.conn
             .request(
                 SESSION_SET_MODEL_METHOD_NAME,
-                Some(ClientRequest::ModelSelectRequest(args)),
+                Some(ClientRequest::SetSessionModelRequest(args)),
             )
             .await
     }
@@ -613,6 +613,10 @@ impl Side for AgentSide {
             SESSION_SET_MODE_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::SetSessionModeRequest)
                 .map_err(Into::into),
+            #[cfg(feature = "unstable")]
+            SESSION_SET_MODEL_METHOD_NAME => serde_json::from_str(params.get())
+                .map(ClientRequest::SetSessionModelRequest)
+                .map_err(Into::into),
             SESSION_PROMPT_METHOD_NAME => serde_json::from_str(params.get())
                 .map(ClientRequest::PromptRequest)
                 .map_err(Into::into),
@@ -681,9 +685,9 @@ impl<T: Agent> MessageHandler<AgentSide> for T {
                 Ok(AgentResponse::SetSessionModeResponse(response))
             }
             #[cfg(feature = "unstable")]
-            ClientRequest::ModelSelectRequest(args) => {
+            ClientRequest::SetSessionModelRequest(args) => {
                 let response = self.set_session_model(args).await?;
-                Ok(AgentResponse::ModelSelectResponse(response))
+                Ok(AgentResponse::SetSessionModelResponse(response))
             }
             ClientRequest::ExtMethodRequest(args) => {
                 let response = self.ext_method(args).await?;
