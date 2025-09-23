@@ -77,7 +77,6 @@ pub use tool_call::*;
 pub use version::*;
 
 use anyhow::Result;
-use futures::{AsyncRead, AsyncWrite, Future, future::LocalBoxFuture};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{fmt, sync::Arc};
@@ -119,116 +118,85 @@ impl fmt::Display for SessionId {
 /// prompts, and managing the agent lifecycle.
 ///
 /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-pub struct ClientSideConnection {
-    conn: RpcConnection<ClientSide, AgentSide>,
-}
-
-impl ClientSideConnection {
-    /// Creates a new client-side connection to an agent.
-    ///
-    /// This establishes the communication channel between a client and agent
-    /// following the ACP specification.
-    ///
-    /// # Arguments
-    ///
-    /// * `client` - A handler that implements the [`Client`] trait to process incoming agent requests
-    /// * `outgoing_bytes` - The stream for sending data to the agent (typically stdout)
-    /// * `incoming_bytes` - The stream for receiving data from the agent (typically stdin)
-    /// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
-    ///
-    /// # Returns
-    ///
-    /// Returns a tuple containing:
-    /// - The connection instance for making requests to the agent
-    /// - An I/O future that must be spawned to handle the underlying communication
-    ///
-    /// See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
-    pub fn new(
-        client: impl MessageHandler<ClientSide> + 'static,
-        outgoing_bytes: impl Unpin + AsyncWrite,
-        incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
-        let (conn, io_task) = RpcConnection::new(client, outgoing_bytes, incoming_bytes, spawn);
-        (Self { conn }, io_task)
-    }
-
-    /// Subscribe to receive stream updates from the agent.
-    ///
-    /// This allows the client to receive real-time notifications about
-    /// agent activities, such as tool calls, content updates, and progress reports.
-    ///
-    /// # Returns
-    ///
-    /// A [`StreamReceiver`] that can be used to receive stream messages.
-    pub fn subscribe(&self) -> StreamReceiver {
-        self.conn.subscribe()
-    }
-}
+///
+/// Creates a new client-side connection to an agent.
+///
+/// This establishes the communication channel between a client and agent
+/// following the ACP specification.
+///
+/// # Arguments
+///
+/// * `client` - A handler that implements the [`Client`] trait to process incoming agent requests
+/// * `outgoing_bytes` - The stream for sending data to the agent (typically stdout)
+/// * `incoming_bytes` - The stream for receiving data from the agent (typically stdin)
+/// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
+///
+/// # Returns
+///
+/// Returns a tuple containing:
+/// - The connection instance for making requests to the agent
+/// - An I/O future that must be spawned to handle the underlying communication
+///
+/// See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
+pub type ClientSideConnection = RpcConnection<ClientSide, AgentSide>;
 
 #[async_trait::async_trait(?Send)]
 impl Agent for ClientSideConnection {
     async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error> {
-        self.conn
-            .request(
-                INITIALIZE_METHOD_NAME,
-                Some(ClientRequest::InitializeRequest(args)),
-            )
-            .await
+        self.request(
+            INITIALIZE_METHOD_NAME,
+            Some(ClientRequest::InitializeRequest(args)),
+        )
+        .await
     }
 
     async fn authenticate(&self, args: AuthenticateRequest) -> Result<AuthenticateResponse, Error> {
-        self.conn
-            .request::<Option<_>>(
-                AUTHENTICATE_METHOD_NAME,
-                Some(ClientRequest::AuthenticateRequest(args)),
-            )
-            .await
-            .map(Option::unwrap_or_default)
+        self.request::<Option<_>>(
+            AUTHENTICATE_METHOD_NAME,
+            Some(ClientRequest::AuthenticateRequest(args)),
+        )
+        .await
+        .map(Option::unwrap_or_default)
     }
 
     async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error> {
-        self.conn
-            .request(
-                SESSION_NEW_METHOD_NAME,
-                Some(ClientRequest::NewSessionRequest(args)),
-            )
-            .await
+        self.request(
+            SESSION_NEW_METHOD_NAME,
+            Some(ClientRequest::NewSessionRequest(args)),
+        )
+        .await
     }
 
     async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
-        self.conn
-            .request::<Option<_>>(
-                SESSION_LOAD_METHOD_NAME,
-                Some(ClientRequest::LoadSessionRequest(args)),
-            )
-            .await
-            .map(Option::unwrap_or_default)
+        self.request::<Option<_>>(
+            SESSION_LOAD_METHOD_NAME,
+            Some(ClientRequest::LoadSessionRequest(args)),
+        )
+        .await
+        .map(Option::unwrap_or_default)
     }
 
     async fn set_session_mode(
         &self,
         args: SetSessionModeRequest,
     ) -> Result<SetSessionModeResponse, Error> {
-        self.conn
-            .request(
-                SESSION_SET_MODE_METHOD_NAME,
-                Some(ClientRequest::SetSessionModeRequest(args)),
-            )
-            .await
+        self.request(
+            SESSION_SET_MODE_METHOD_NAME,
+            Some(ClientRequest::SetSessionModeRequest(args)),
+        )
+        .await
     }
 
     async fn prompt(&self, args: PromptRequest) -> Result<PromptResponse, Error> {
-        self.conn
-            .request(
-                SESSION_PROMPT_METHOD_NAME,
-                Some(ClientRequest::PromptRequest(args)),
-            )
-            .await
+        self.request(
+            SESSION_PROMPT_METHOD_NAME,
+            Some(ClientRequest::PromptRequest(args)),
+        )
+        .await
     }
 
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error> {
-        self.conn.notify(
+        self.notify(
             SESSION_CANCEL_METHOD_NAME,
             Some(ClientNotification::CancelNotification(args)),
         )
@@ -239,25 +207,23 @@ impl Agent for ClientSideConnection {
         &self,
         args: SetSessionModelRequest,
     ) -> Result<SetSessionModelResponse, Error> {
-        self.conn
-            .request(
-                SESSION_SET_MODEL_METHOD_NAME,
-                Some(ClientRequest::SetSessionModelRequest(args)),
-            )
-            .await
+        self.request(
+            SESSION_SET_MODEL_METHOD_NAME,
+            Some(ClientRequest::SetSessionModelRequest(args)),
+        )
+        .await
     }
 
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.conn
-            .request(
-                format!("_{}", args.method),
-                Some(ClientRequest::ExtMethodRequest(args)),
-            )
-            .await
+        self.request(
+            format!("_{}", args.method),
+            Some(ClientRequest::ExtMethodRequest(args)),
+        )
+        .await
     }
 
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.conn.notify(
+        self.notify(
             format!("_{}", args.method),
             Some(ClientNotification::ExtNotification(args)),
         )
@@ -408,52 +374,27 @@ impl<T: Client> MessageHandler<ClientSide> for T {
 /// and sending session updates.
 ///
 /// See protocol docs: [Agent](https://agentclientprotocol.com/protocol/overview#agent)
-pub struct AgentSideConnection {
-    conn: RpcConnection<AgentSide, ClientSide>,
-}
-
-impl AgentSideConnection {
-    /// Creates a new agent-side connection to a client.
-    ///
-    /// This establishes the communication channel from the agent's perspective
-    /// following the ACP specification.
-    ///
-    /// # Arguments
-    ///
-    /// * `agent` - A handler that implements the [`Agent`] trait to process incoming client requests
-    /// * `outgoing_bytes` - The stream for sending data to the client (typically stdout)
-    /// * `incoming_bytes` - The stream for receiving data from the client (typically stdin)
-    /// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
-    ///
-    /// # Returns
-    ///
-    /// Returns a tuple containing:
-    /// - The connection instance for making requests to the client
-    /// - An I/O future that must be spawned to handle the underlying communication
-    ///
-    /// See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
-    pub fn new(
-        agent: impl MessageHandler<AgentSide> + 'static,
-        outgoing_bytes: impl Unpin + AsyncWrite,
-        incoming_bytes: impl Unpin + AsyncRead,
-        spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl Future<Output = Result<()>>) {
-        let (conn, io_task) = RpcConnection::new(agent, outgoing_bytes, incoming_bytes, spawn);
-        (Self { conn }, io_task)
-    }
-
-    /// Subscribe to receive stream updates from the client.
-    ///
-    /// This allows the agent to receive real-time notifications about
-    /// client activities and cancellation requests.
-    ///
-    /// # Returns
-    ///
-    /// A [`StreamReceiver`] that can be used to receive stream messages.
-    pub fn subscribe(&self) -> StreamReceiver {
-        self.conn.subscribe()
-    }
-}
+///
+/// Creates a new agent-side connection to a client.
+///
+/// This establishes the communication channel from the agent's perspective
+/// following the ACP specification.
+///
+/// # Arguments
+///
+/// * `agent` - A handler that implements the [`Agent`] trait to process incoming client requests
+/// * `outgoing_bytes` - The stream for sending data to the client (typically stdout)
+/// * `incoming_bytes` - The stream for receiving data from the client (typically stdin)
+/// * `spawn` - A function to spawn async tasks (e.g., `tokio::spawn`)
+///
+/// # Returns
+///
+/// Returns a tuple containing:
+/// - The connection instance for making requests to the client
+/// - An I/O future that must be spawned to handle the underlying communication
+///
+/// See protocol docs: [Communication Model](https://agentclientprotocol.com/protocol/overview#communication-model)
+pub type AgentSideConnection = RpcConnection<AgentSide, ClientSide>;
 
 #[async_trait::async_trait(?Send)]
 impl Client for AgentSideConnection {
@@ -461,119 +402,110 @@ impl Client for AgentSideConnection {
         &self,
         args: RequestPermissionRequest,
     ) -> Result<RequestPermissionResponse, Error> {
-        self.conn
-            .request(
-                SESSION_REQUEST_PERMISSION_METHOD_NAME,
-                Some(AgentRequest::RequestPermissionRequest(args)),
-            )
-            .await
+        self.request(
+            SESSION_REQUEST_PERMISSION_METHOD_NAME,
+            Some(AgentRequest::RequestPermissionRequest(args)),
+        )
+        .await
     }
 
     async fn write_text_file(
         &self,
         args: WriteTextFileRequest,
     ) -> Result<WriteTextFileResponse, Error> {
-        self.conn
-            .request::<Option<_>>(
-                FS_WRITE_TEXT_FILE_METHOD_NAME,
-                Some(AgentRequest::WriteTextFileRequest(args)),
-            )
-            .await
-            .map(Option::unwrap_or_default)
+        self.request::<Option<_>>(
+            FS_WRITE_TEXT_FILE_METHOD_NAME,
+            Some(AgentRequest::WriteTextFileRequest(args)),
+        )
+        .await
+        .map(Option::unwrap_or_default)
     }
 
     async fn read_text_file(
         &self,
         args: ReadTextFileRequest,
     ) -> Result<ReadTextFileResponse, Error> {
-        self.conn
-            .request(
-                FS_READ_TEXT_FILE_METHOD_NAME,
-                Some(AgentRequest::ReadTextFileRequest(args)),
-            )
-            .await
+        self.request(
+            FS_READ_TEXT_FILE_METHOD_NAME,
+            Some(AgentRequest::ReadTextFileRequest(args)),
+        )
+        .await
     }
 
     async fn create_terminal(
         &self,
         args: CreateTerminalRequest,
     ) -> Result<CreateTerminalResponse, Error> {
-        self.conn
-            .request(
-                TERMINAL_CREATE_METHOD_NAME,
-                Some(AgentRequest::CreateTerminalRequest(args)),
-            )
-            .await
+        self.request(
+            TERMINAL_CREATE_METHOD_NAME,
+            Some(AgentRequest::CreateTerminalRequest(args)),
+        )
+        .await
     }
 
     async fn terminal_output(
         &self,
         args: TerminalOutputRequest,
     ) -> Result<TerminalOutputResponse, Error> {
-        self.conn
-            .request(
-                TERMINAL_OUTPUT_METHOD_NAME,
-                Some(AgentRequest::TerminalOutputRequest(args)),
-            )
-            .await
+        self.request(
+            TERMINAL_OUTPUT_METHOD_NAME,
+            Some(AgentRequest::TerminalOutputRequest(args)),
+        )
+        .await
     }
 
     async fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
     ) -> Result<ReleaseTerminalResponse, Error> {
-        self.conn
-            .request::<Option<_>>(
-                TERMINAL_RELEASE_METHOD_NAME,
-                Some(AgentRequest::ReleaseTerminalRequest(args)),
-            )
-            .await
-            .map(Option::unwrap_or_default)
+        self.request::<Option<_>>(
+            TERMINAL_RELEASE_METHOD_NAME,
+            Some(AgentRequest::ReleaseTerminalRequest(args)),
+        )
+        .await
+        .map(Option::unwrap_or_default)
     }
 
     async fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
     ) -> Result<WaitForTerminalExitResponse, Error> {
-        self.conn
-            .request(
-                TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
-                Some(AgentRequest::WaitForTerminalExitRequest(args)),
-            )
-            .await
+        self.request(
+            TERMINAL_WAIT_FOR_EXIT_METHOD_NAME,
+            Some(AgentRequest::WaitForTerminalExitRequest(args)),
+        )
+        .await
     }
 
     async fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
     ) -> Result<KillTerminalCommandResponse, Error> {
-        self.conn
-            .request::<Option<_>>(
-                TERMINAL_KILL_METHOD_NAME,
-                Some(AgentRequest::KillTerminalCommandRequest(args)),
-            )
-            .await
-            .map(Option::unwrap_or_default)
+        self.request::<Option<_>>(
+            TERMINAL_KILL_METHOD_NAME,
+            Some(AgentRequest::KillTerminalCommandRequest(args)),
+        )
+        .await
+        .map(Option::unwrap_or_default)
     }
 
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {
-        self.conn.notify(
+        self.notify(
             SESSION_UPDATE_NOTIFICATION,
             Some(AgentNotification::SessionNotification(args)),
         )
     }
 
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.conn
-            .request(
-                format!("_{}", args.method),
-                Some(AgentRequest::ExtMethodRequest(args)),
-            )
-            .await
+        self.request(
+            format!("_{}", args.method),
+            Some(AgentRequest::ExtMethodRequest(args)),
+        )
+        .await
     }
 
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.conn.notify(
+        self.notify(
             format!("_{}", args.method),
             Some(AgentNotification::ExtNotification(args)),
         )

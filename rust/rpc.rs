@@ -44,14 +44,15 @@ where
     Local: Side + 'static,
     Remote: Side + 'static,
 {
-    pub fn new<Handler>(
-        handler: Handler,
+    pub fn new<Handler, F>(
+        handler: F,
         outgoing_bytes: impl Unpin + AsyncWrite,
         incoming_bytes: impl Unpin + AsyncRead,
         spawn: impl Fn(LocalBoxFuture<'static, ()>) + 'static,
-    ) -> (Self, impl futures::Future<Output = Result<()>>)
+    ) -> (Rc<Self>, impl futures::Future<Output = Result<()>>)
     where
         Handler: MessageHandler<Local> + 'static,
+        F: FnOnce(Rc<Self>) -> Handler,
     {
         let (incoming_tx, incoming_rx) = mpsc::unbounded();
         let (outgoing_tx, outgoing_rx) = mpsc::unbounded();
@@ -76,18 +77,26 @@ where
             }
         };
 
-        Self::handle_incoming(outgoing_tx.clone(), incoming_rx, handler, spawn);
-
-        let this = Self {
-            outgoing_tx,
+        let this = Rc::new(Self {
+            outgoing_tx: outgoing_tx.clone(),
             pending_responses,
             next_id: AtomicI32::new(0),
             broadcast,
-        };
+        });
+
+        Self::handle_incoming(outgoing_tx, incoming_rx, handler(this.clone()), spawn);
 
         (this, io_task)
     }
 
+    /// Subscribe to receive stream updates from the client.
+    ///
+    /// This allows the agent to receive real-time notifications about
+    /// client activities and cancellation requests.
+    ///
+    /// # Returns
+    ///
+    /// A [`StreamReceiver`] that can be used to receive stream messages.
     pub fn subscribe(&self) -> StreamReceiver {
         self.broadcast.receiver()
     }
