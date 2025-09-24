@@ -169,58 +169,58 @@ impl<T: Client> Client for Rc<T> {
         &self,
         args: RequestPermissionRequest,
     ) -> Result<RequestPermissionResponse, Error> {
-        self.request_permission(args).await
+        self.as_ref().request_permission(args).await
     }
     async fn write_text_file(
         &self,
         args: WriteTextFileRequest,
     ) -> Result<WriteTextFileResponse, Error> {
-        self.write_text_file(args).await
+        self.as_ref().write_text_file(args).await
     }
     async fn read_text_file(
         &self,
         args: ReadTextFileRequest,
     ) -> Result<ReadTextFileResponse, Error> {
-        self.read_text_file(args).await
+        self.as_ref().read_text_file(args).await
     }
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {
-        self.session_notification(args).await
+        self.as_ref().session_notification(args).await
     }
     async fn create_terminal(
         &self,
         args: CreateTerminalRequest,
     ) -> Result<CreateTerminalResponse, Error> {
-        self.create_terminal(args).await
+        self.as_ref().create_terminal(args).await
     }
     async fn terminal_output(
         &self,
         args: TerminalOutputRequest,
     ) -> Result<TerminalOutputResponse, Error> {
-        self.terminal_output(args).await
+        self.as_ref().terminal_output(args).await
     }
     async fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
     ) -> Result<ReleaseTerminalResponse, Error> {
-        self.release_terminal(args).await
+        self.as_ref().release_terminal(args).await
     }
     async fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
     ) -> Result<WaitForTerminalExitResponse, Error> {
-        self.wait_for_terminal_exit(args).await
+        self.as_ref().wait_for_terminal_exit(args).await
     }
     async fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
     ) -> Result<KillTerminalCommandResponse, Error> {
-        self.kill_terminal_command(args).await
+        self.as_ref().kill_terminal_command(args).await
     }
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.ext_method(args).await
+        self.as_ref().ext_method(args).await
     }
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.ext_notification(args).await
+        self.as_ref().ext_notification(args).await
     }
 }
 
@@ -230,58 +230,58 @@ impl<T: Client> Client for Arc<T> {
         &self,
         args: RequestPermissionRequest,
     ) -> Result<RequestPermissionResponse, Error> {
-        self.request_permission(args).await
+        self.as_ref().request_permission(args).await
     }
     async fn write_text_file(
         &self,
         args: WriteTextFileRequest,
     ) -> Result<WriteTextFileResponse, Error> {
-        self.write_text_file(args).await
+        self.as_ref().write_text_file(args).await
     }
     async fn read_text_file(
         &self,
         args: ReadTextFileRequest,
     ) -> Result<ReadTextFileResponse, Error> {
-        self.read_text_file(args).await
+        self.as_ref().read_text_file(args).await
     }
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error> {
-        self.session_notification(args).await
+        self.as_ref().session_notification(args).await
     }
     async fn create_terminal(
         &self,
         args: CreateTerminalRequest,
     ) -> Result<CreateTerminalResponse, Error> {
-        self.create_terminal(args).await
+        self.as_ref().create_terminal(args).await
     }
     async fn terminal_output(
         &self,
         args: TerminalOutputRequest,
     ) -> Result<TerminalOutputResponse, Error> {
-        self.terminal_output(args).await
+        self.as_ref().terminal_output(args).await
     }
     async fn release_terminal(
         &self,
         args: ReleaseTerminalRequest,
     ) -> Result<ReleaseTerminalResponse, Error> {
-        self.release_terminal(args).await
+        self.as_ref().release_terminal(args).await
     }
     async fn wait_for_terminal_exit(
         &self,
         args: WaitForTerminalExitRequest,
     ) -> Result<WaitForTerminalExitResponse, Error> {
-        self.wait_for_terminal_exit(args).await
+        self.as_ref().wait_for_terminal_exit(args).await
     }
     async fn kill_terminal_command(
         &self,
         args: KillTerminalCommandRequest,
     ) -> Result<KillTerminalCommandResponse, Error> {
-        self.kill_terminal_command(args).await
+        self.as_ref().kill_terminal_command(args).await
     }
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.ext_method(args).await
+        self.as_ref().ext_method(args).await
     }
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.ext_notification(args).await
+        self.as_ref().ext_notification(args).await
     }
 }
 
