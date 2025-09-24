@@ -147,82 +147,82 @@ pub trait Agent {
 #[async_trait::async_trait(?Send)]
 impl<T: Agent> Agent for Rc<T> {
     async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error> {
-        self.initialize(args).await
+        self.as_ref().initialize(args).await
     }
     async fn authenticate(&self, args: AuthenticateRequest) -> Result<AuthenticateResponse, Error> {
-        self.authenticate(args).await
+        self.as_ref().authenticate(args).await
     }
     async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error> {
-        self.new_session(args).await
+        self.as_ref().new_session(args).await
     }
     async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
-        self.load_session(args).await
+        self.as_ref().load_session(args).await
     }
     async fn set_session_mode(
         &self,
         args: SetSessionModeRequest,
     ) -> Result<SetSessionModeResponse, Error> {
-        self.set_session_mode(args).await
+        self.as_ref().set_session_mode(args).await
     }
     async fn prompt(&self, args: PromptRequest) -> Result<PromptResponse, Error> {
-        self.prompt(args).await
+        self.as_ref().prompt(args).await
     }
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error> {
-        self.cancel(args).await
+        self.as_ref().cancel(args).await
     }
     #[cfg(feature = "unstable")]
     async fn set_session_model(
         &self,
         args: SetSessionModelRequest,
     ) -> Result<SetSessionModelResponse, Error> {
-        self.set_session_model(args).await
+        self.as_ref().set_session_model(args).await
     }
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.ext_method(args).await
+        self.as_ref().ext_method(args).await
     }
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.ext_notification(args).await
+        self.as_ref().ext_notification(args).await
     }
 }
 
 #[async_trait::async_trait(?Send)]
 impl<T: Agent> Agent for Arc<T> {
     async fn initialize(&self, args: InitializeRequest) -> Result<InitializeResponse, Error> {
-        self.initialize(args).await
+        self.as_ref().initialize(args).await
     }
     async fn authenticate(&self, args: AuthenticateRequest) -> Result<AuthenticateResponse, Error> {
-        self.authenticate(args).await
+        self.as_ref().authenticate(args).await
     }
     async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error> {
-        self.new_session(args).await
+        self.as_ref().new_session(args).await
     }
     async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
-        self.load_session(args).await
+        self.as_ref().load_session(args).await
     }
     async fn set_session_mode(
         &self,
         args: SetSessionModeRequest,
     ) -> Result<SetSessionModeResponse, Error> {
-        self.set_session_mode(args).await
+        self.as_ref().set_session_mode(args).await
     }
     async fn prompt(&self, args: PromptRequest) -> Result<PromptResponse, Error> {
-        self.prompt(args).await
+        self.as_ref().prompt(args).await
     }
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error> {
-        self.cancel(args).await
+        self.as_ref().cancel(args).await
     }
     #[cfg(feature = "unstable")]
     async fn set_session_model(
         &self,
         args: SetSessionModelRequest,
     ) -> Result<SetSessionModelResponse, Error> {
-        self.set_session_model(args).await
+        self.as_ref().set_session_model(args).await
     }
     async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error> {
-        self.ext_method(args).await
+        self.as_ref().ext_method(args).await
     }
     async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error> {
-        self.ext_notification(args).await
+        self.as_ref().ext_notification(args).await
     }
 }
 
