@@ -35,7 +35,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48
         with:
           toolchain: nightly,stable
-          components: rustfmt
+          components: rustfmt,clippy
 
       - name: Install dependencies
         run: npm ci
