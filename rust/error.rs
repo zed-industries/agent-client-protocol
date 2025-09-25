@@ -94,6 +94,17 @@ impl Error {
         Error::new(ErrorCode::AUTH_REQUIRED)
     }
 
+    /// A given resource, such as a file, was not found.
+    #[must_use]
+    pub fn resource_not_found(uri: Option<String>) -> Self {
+        let err = Error::new(ErrorCode::RESOURCE_NOT_FOUND);
+        if let Some(uri) = uri {
+            err.with_data(serde_json::json!({ "uri": uri }))
+        } else {
+            err
+        }
+    }
+
     /// Converts a standard error into an internal JSON-RPC error.
     ///
     /// The error's string representation is included as additional data.
@@ -152,6 +163,13 @@ impl ErrorCode {
     pub const AUTH_REQUIRED: ErrorCode = ErrorCode {
         code: -32000,
         message: "Authentication required",
+    };
+
+    /// A given resource, such as a file, was not found.
+    /// This is an ACP-specific error code in the reserved range.
+    pub const RESOURCE_NOT_FOUND: ErrorCode = ErrorCode {
+        code: -32002,
+        message: "Resource not found",
     };
 }
 

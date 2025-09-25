@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.3 (2025-09-25)
+
+### Protocol
+
+- Defined `Resource not found` error type as code `-32002` (same as MCP)
+
+### Rust
+
+- impl `Agent` and `Client` for `Rc<T>` and `Arc<T>` where `T` implements either trait.
+
 ## 0.4.2 (2025-09-22)
 
 ### Rust
