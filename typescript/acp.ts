@@ -963,6 +963,13 @@ export class RequestError extends Error {
     return new RequestError(-32000, "Authentication required", data);
   }
 
+  /**
+   * Resource, such as a file, was not found
+   */
+  static resourceNotFound(uri?: string): RequestError {
+    return new RequestError(-32002, "Resource not found", uri && { uri });
+  }
+
   toResult<T>(): Result<T> {
     return {
       error: {
