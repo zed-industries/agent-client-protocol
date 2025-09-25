@@ -142,10 +142,14 @@ async fn main() -> anyhow::Result<()> {
     local_set
         .run_until(async move {
             // Set up the ExampleClient connected to the agent's stdio.
-            let (conn, handle_io) =
-                acp::ClientSideConnection::new(ExampleClient {}, outgoing, incoming, |fut| {
+            let (conn, handle_io) = acp::ClientSideConnection::new(
+                |_| ExampleClient {},
+                outgoing,
+                incoming,
+                |fut| {
                     tokio::task::spawn_local(fut);
-                });
+                },
+            );
 
             // Handle I/O in the background.
             tokio::task::spawn_local(handle_io);

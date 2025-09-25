@@ -1,6 +1,9 @@
 use anyhow::Result;
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::{
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 use crate::*;
 
@@ -264,14 +267,14 @@ impl Agent for TestAgent {
 
 // Helper function to create a bidirectional connection
 fn create_connection_pair(
-    client: &TestClient,
-    agent: &TestAgent,
-) -> (ClientSideConnection, AgentSideConnection) {
+    client: TestClient,
+    agent: TestAgent,
+) -> (Rc<ClientSideConnection>, Rc<AgentSideConnection>) {
     let (client_to_agent_rx, client_to_agent_tx) = piper::pipe(1024);
     let (agent_to_client_rx, agent_to_client_tx) = piper::pipe(1024);
 
     let (agent_conn, agent_io_task) = ClientSideConnection::new(
-        client.clone(),
+        move |_| client,
         client_to_agent_tx,
         agent_to_client_rx,
         |fut| {
@@ -280,7 +283,7 @@ fn create_connection_pair(
     );
 
     let (client_conn, client_io_task) = AgentSideConnection::new(
-        agent.clone(),
+        move |_| agent,
         agent_to_client_tx,
         client_to_agent_rx,
         |fut| {
@@ -303,7 +306,7 @@ async fn test_initialize() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (agent_conn, _client_conn) = create_connection_pair(&client, &agent);
+            let (agent_conn, _client_conn) = create_connection_pair(client, agent);
 
             let result = agent_conn
                 .initialize(InitializeRequest {
@@ -328,7 +331,7 @@ async fn test_basic_session_creation() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (agent_conn, _client_conn) = create_connection_pair(&client, &agent);
+            let (agent_conn, _client_conn) = create_connection_pair(client, agent);
 
             agent_conn
                 .new_session(NewSessionRequest {
@@ -354,7 +357,7 @@ async fn test_bidirectional_file_operations() {
             let test_path = std::path::PathBuf::from("/test/file.txt");
             client.add_file_content(test_path.clone(), "Hello, World!".to_string());
 
-            let (_agent_conn, client_conn) = create_connection_pair(&client, &agent);
+            let (_agent_conn, client_conn) = create_connection_pair(client, agent);
 
             // Test reading a file
             let session_id = SessionId(Arc::from("test-session"));
@@ -394,7 +397,7 @@ async fn test_session_notifications() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (_agent_conn, client_conn) = create_connection_pair(&client, &agent);
+            let (_agent_conn, client_conn) = create_connection_pair(client.clone(), agent);
 
             let session_id = SessionId(Arc::from("test-session"));
             // Send various session updates
@@ -446,7 +449,7 @@ async fn test_cancel_notification() {
             let client = TestClient::new();
             let agent = TestAgent::new();
 
-            let (agent_conn, _client_conn) = create_connection_pair(&client, &agent);
+            let (agent_conn, _client_conn) = create_connection_pair(client, agent.clone());
 
             let session_id = SessionId(Arc::from("test-session"));
             // Send cancel notification
@@ -481,7 +484,7 @@ async fn test_concurrent_operations() {
                 client.add_file_content(path, format!("Content {i}"));
             }
 
-            let (_agent_conn, client_conn) = create_connection_pair(&client, &agent);
+            let (_agent_conn, client_conn) = create_connection_pair(client, agent);
 
             let session_id = SessionId(Arc::from("test-session"));
 
@@ -524,7 +527,7 @@ async fn test_full_conversation_flow() {
                 option_id: PermissionOptionId(Arc::from("allow-once")),
             });
 
-            let (agent_conn, client_conn) = create_connection_pair(&client, &agent);
+            let (agent_conn, client_conn) = create_connection_pair(client.clone(), agent);
             // 1. Start new session
             let new_session_result = agent_conn
                 .new_session(NewSessionRequest {
@@ -820,7 +823,7 @@ async fn test_extension_methods_and_notifications() {
             let client_ref = client.clone();
             let agent_ref = agent.clone();
 
-            let (client_conn, agent_conn) = create_connection_pair(&client, &agent);
+            let (client_conn, agent_conn) = create_connection_pair(client, agent);
 
             // Test agent calling client extension method
             let client_response = agent_conn

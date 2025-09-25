@@ -171,10 +171,14 @@ async fn main() -> anyhow::Result<()> {
         .run_until(async move {
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
             // Start up the ExampleAgent connected to stdio.
-            let (conn, handle_io) =
-                acp::AgentSideConnection::new(ExampleAgent::new(tx), outgoing, incoming, |fut| {
+            let (conn, handle_io) = acp::AgentSideConnection::new(
+                move |_| ExampleAgent::new(tx),
+                outgoing,
+                incoming,
+                |fut| {
                     tokio::task::spawn_local(fut);
-                });
+                },
+            );
             // Kick off a background task to send the ExampleAgent's session notifications to the client.
             tokio::task::spawn_local(async move {
                 while let Some((session_notification, tx)) = rx.recv().await {
