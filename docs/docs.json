@@ -44,7 +44,11 @@
     "groups": [
       {
         "group": "Overview",
-        "pages": ["overview/introduction", "overview/architecture"]
+        "pages": [
+          "overview/introduction",
+          "overview/architecture",
+          "overview/agents"
+        ]
       },
       {
         "group": "Protocol",
