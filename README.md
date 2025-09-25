@@ -33,6 +33,7 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [examples/agent.rs](./rust/examples/agent.rs) and [examples/client.rs](./rust/examples/client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
+- **Go**: [`github.com/zed-industries/agent-client-protocol/go`](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go) - See [example/](./go/example/) and the [Go README](./go/README.md)
 - **JSON Schema**: [schema.json](./schema/schema.json)
 - **React**: [use-acp](https://github.com/marimo-team/use-acp): hooks for connecting to Agent Client Protocol (ACP) servers.
 - **Emacs**: [acp.el](https://github.com/xenodium/acp.el)

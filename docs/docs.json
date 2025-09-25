@@ -74,6 +74,7 @@
         "pages": [
           "libraries/typescript",
           "libraries/rust",
+          "libraries/go",
           "libraries/community"
         ]
       },
