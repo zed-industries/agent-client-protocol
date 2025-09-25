@@ -15,15 +15,17 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 ### Editors
 
 - [Zed](https://zed.dev/docs/ai/external-agents)
-- [neovim](https://neovim.io) through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
+- Emacs via [agent-shell.el](https://github.com/xenodium/agent-shell)
 - [marimo notebook](https://github.com/marimo-team/marimo)
-- [yetone/avante.nvim](https://github.com/yetone/avante.nvim): A Neovim plugin designed to emulate the behaviour of the Cursor AI IDE.
+- [neovim](https://neovim.io)
+  - through the [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) plugin
+  - through the [yetone/avante.nvim](https://github.com/yetone/avante.nvim) plugin
 
 ### Agents
 
-- [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
   - [via Zed's SDK adapter](https://github.com/zed-industries/claude-code-acp)
+- [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Goose](https://github.com/block/goose)
   - [via Goose's acp command](https://block.github.io/goose/docs/guides/acp-clients)
 
@@ -32,7 +34,8 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - **Rust**: [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) - See [examples/agent.rs](./rust/examples/agent.rs) and [examples/client.rs](./rust/examples/client.rs)
 - **TypeScript**: [`@zed-industries/agent-client-protocol`](https://www.npmjs.com/package/@zed-industries/agent-client-protocol) - See [examples/](./typescript/examples/)
 - **JSON Schema**: [schema.json](./schema/schema.json)
-- [**use-acp**](https://github.com/marimo-team/use-acp): React hooks for connecting to Agent Client Protocol (ACP) servers.
+- **React**: [use-acp](https://github.com/marimo-team/use-acp): hooks for connecting to Agent Client Protocol (ACP) servers.
+- **Emacs**: [acp.el](https://github.com/xenodium/acp.el)
 
 ## Contributing
 
