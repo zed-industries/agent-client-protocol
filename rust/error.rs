@@ -206,7 +206,10 @@ impl Display for Error {
 
 impl From<anyhow::Error> for Error {
     fn from(error: anyhow::Error) -> Self {
-        Error::into_internal_error(&*error)
+        match error.downcast::<Self>() {
+            Ok(error) => error,
+            Err(error) => Error::into_internal_error(&*error),
+        }
     }
 }
 
