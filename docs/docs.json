@@ -47,7 +47,8 @@
         "pages": [
           "overview/introduction",
           "overview/architecture",
-          "overview/agents"
+          "overview/agents",
+          "overview/clients"
         ]
       },
       {
