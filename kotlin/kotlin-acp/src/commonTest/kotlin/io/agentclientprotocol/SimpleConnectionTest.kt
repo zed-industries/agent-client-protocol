@@ -3,12 +3,12 @@ package io.agentclientprotocol
 import io.agentclientprotocol.client.ClientSideConnection
 import io.agentclientprotocol.mock.MockClient
 import io.agentclientprotocol.mock.TestTransport
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class SimpleConnectionTest {
     @Test
-    fun `test basic connection`() = runBlocking {
+    fun `test basic connection`() = runTest {
         // Given
         val mockClient = MockClient()
         val (clientTransport, agentTransport) = TestTransport.createPair()

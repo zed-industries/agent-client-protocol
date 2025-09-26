@@ -30,9 +30,9 @@ kotlin {
         compilerOptions.jvmTarget = JvmTarget.JVM_1_8
     }
     // Future multiplatform targets can be added here without changing the code
-    // js { nodejs() }
-    // wasmJs { nodejs() }
-    // linuxX64(); macosX64(); mingwX64()
+//     js { nodejs() }
+     wasmJs { nodejs() }
+//     linuxX64(); macosX64(); mingwX64()
 
     explicitApi = ExplicitApiMode.Strict
     jvmToolchain(21)

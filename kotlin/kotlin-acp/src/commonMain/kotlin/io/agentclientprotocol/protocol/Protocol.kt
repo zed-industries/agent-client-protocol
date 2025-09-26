@@ -12,7 +12,11 @@ import io.agentclientprotocol.rpc.JsonRpcResponse
 import io.agentclientprotocol.rpc.RequestId
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.collections.immutable.persistentMapOf
-import kotlin.concurrent.Volatile
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.AtomicRef
+import kotlinx.atomicfu.AtomicLong
+import kotlinx.atomicfu.update
 import kotlinx.coroutines.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -62,22 +66,21 @@ public abstract class Protocol(
     public var transport: Transport? = null
         private set
 
-    @Volatile
-    private var pendingRequests = persistentMapOf<RequestId, CompletableDeferred<JsonElement>>()
-    @Volatile 
-    private var requestIdCounter = 0L
+    private val pendingRequests: AtomicRef<PersistentMap<RequestId, CompletableDeferred<JsonElement>>> = 
+        atomic(persistentMapOf())
+    private val requestIdCounter: AtomicLong = atomic(0L)
 
     /**
      * Request handlers for incoming requests.
      */
-    @Volatile
-    private var requestHandlers = persistentMapOf<String, suspend (JsonRpcRequest) -> JsonElement?>()
+    private val requestHandlers: AtomicRef<PersistentMap<String, suspend (JsonRpcRequest) -> JsonElement?>> = 
+        atomic(persistentMapOf())
 
     /**
      * Notification handlers for incoming notifications.
      */
-    @Volatile
-    private var notificationHandlers = persistentMapOf<String, suspend (JsonRpcNotification) -> Unit>()
+    private val notificationHandlers: AtomicRef<PersistentMap<String, suspend (JsonRpcNotification) -> Unit>> = 
+        atomic(persistentMapOf())
 
     /**
      * Connect to a transport and start processing messages.
@@ -87,11 +90,9 @@ public abstract class Protocol(
         
         transport.onClose = {
             // Cancel all pending requests
-            synchronized(this) {
-                pendingRequests.values.forEach { deferred ->
-                    deferred.cancel("Transport closed")
-                }
-                pendingRequests = persistentMapOf()
+            val requests = pendingRequests.getAndSet(persistentMapOf())
+            requests.values.forEach { deferred ->
+                deferred.cancel("Transport closed")
             }
         }
 
@@ -126,15 +127,10 @@ public abstract class Protocol(
     ): JsonElement {
         val transport = checkNotNull(this.transport) { "Transport not connected" }
         
-        val requestId = RequestId((synchronized(this) {
-            requestIdCounter++
-            requestIdCounter
-        }).toString())
+        val requestId = RequestId(requestIdCounter.incrementAndGet().toString())
         val deferred = CompletableDeferred<JsonElement>()
         
-        synchronized(this) {
-            pendingRequests = pendingRequests.put(requestId, deferred)
-        }
+        pendingRequests.update { it.put(requestId, deferred) }
         
         try {
             val request = JsonRpcRequest(
@@ -150,14 +146,10 @@ public abstract class Protocol(
                 deferred.await()
             }
         } catch (e: TimeoutCancellationException) {
-            synchronized(this) {
-                pendingRequests = pendingRequests.remove(requestId)
-            }
+            pendingRequests.update { it.remove(requestId) }
             throw RequestTimeoutException("Request timed out after $timeout: $method")
         } catch (e: Exception) {
-            synchronized(this) {
-                pendingRequests = pendingRequests.remove(requestId)
-            }
+            pendingRequests.update { it.remove(requestId) }
             throw e
         }
     }
@@ -184,9 +176,7 @@ public abstract class Protocol(
         method: String, 
         handler: suspend (JsonRpcRequest) -> JsonElement?
     ) {
-        synchronized(this) {
-            requestHandlers = requestHandlers.put(method, handler)
-        }
+        requestHandlers.update { it.put(method, handler) }
     }
 
     /**
@@ -196,9 +186,7 @@ public abstract class Protocol(
         method: String,
         handler: suspend (JsonRpcNotification) -> Unit
     ) {
-        synchronized(this) {
-            notificationHandlers = notificationHandlers.put(method, handler)
-        }
+        notificationHandlers.update { it.put(method, handler) }
     }
 
     /**
@@ -240,7 +228,7 @@ public abstract class Protocol(
     }
 
     private suspend fun handleRequest(request: JsonRpcRequest) {
-        val handler = requestHandlers[request.method]
+        val handler = requestHandlers.value[request.method]
         if (handler != null) {
             try {
                 val result = handler(request)
@@ -263,7 +251,7 @@ public abstract class Protocol(
     }
 
     private suspend fun handleNotification(notification: JsonRpcNotification) {
-        val handler = notificationHandlers[notification.method]
+        val handler = notificationHandlers.value[notification.method]
         if (handler != null) {
             try {
                 handler(notification)
@@ -276,11 +264,10 @@ public abstract class Protocol(
     }
 
     private fun handleResponse(response: JsonRpcResponse) {
-        val deferred = synchronized(this) {
-            val currentRequests = pendingRequests
-            val deferred = currentRequests[response.id]
-            pendingRequests = currentRequests.remove(response.id)
-            deferred
+        var deferred: CompletableDeferred<JsonElement>? = null
+        pendingRequests.update { currentRequests ->
+            deferred = currentRequests[response.id]
+            currentRequests.remove(response.id)
         }
         if (deferred != null) {
             if (response.error != null) {

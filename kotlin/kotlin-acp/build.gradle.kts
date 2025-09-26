@@ -12,6 +12,7 @@ kotlin {
                 api(libs.kotlinx.coroutines.core)
                 api(libs.kotlinx.io.core)
                 api(libs.kotlinx.collections.immutable)
+                api(libs.kotlinx.atomicfu)
                 api(libs.kotlin.logging)
             }
         }
@@ -19,7 +20,13 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
-                implementation(libs.kotest.assertions.json)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+
+        jvmTest {
+            dependencies {
+                implementation(libs.slf4j.simple)
             }
         }
     }

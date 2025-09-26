@@ -3,45 +3,11 @@ package io.agentclientprotocol
 import io.agentclientprotocol.client.Client
 import io.agentclientprotocol.client.ClientSideConnection
 import io.agentclientprotocol.mock.MockClient
-import io.agentclientprotocol.model.ACPJson
-import io.agentclientprotocol.model.AgentCapabilities
-import io.agentclientprotocol.model.AuthMethodId
-import io.agentclientprotocol.model.AuthenticateRequest
-import io.agentclientprotocol.model.CancelNotification
-import io.agentclientprotocol.model.ClientCapabilities
-import io.agentclientprotocol.model.ContentBlock
-import io.agentclientprotocol.model.FileSystemCapability
-import io.agentclientprotocol.model.InitializeRequest
-import io.agentclientprotocol.model.InitializeResponse
-import io.agentclientprotocol.model.LATEST_PROTOCOL_VERSION
-import io.agentclientprotocol.model.LoadSessionRequest
-import io.agentclientprotocol.model.NewSessionRequest
-import io.agentclientprotocol.model.NewSessionResponse
-import io.agentclientprotocol.model.PermissionOption
-import io.agentclientprotocol.model.PermissionOptionId
-import io.agentclientprotocol.model.PermissionOptionKind
-import io.agentclientprotocol.model.PromptRequest
-import io.agentclientprotocol.model.PromptResponse
-import io.agentclientprotocol.model.ReadTextFileRequest
-import io.agentclientprotocol.model.ReadTextFileResponse
-import io.agentclientprotocol.model.RequestPermissionOutcome
-import io.agentclientprotocol.model.RequestPermissionRequest
-import io.agentclientprotocol.model.RequestPermissionResponse
-import io.agentclientprotocol.model.SessionId
-import io.agentclientprotocol.model.SessionNotification
-import io.agentclientprotocol.model.SessionUpdate
-import io.agentclientprotocol.model.StopReason
-import io.agentclientprotocol.model.ToolCallId
-import io.agentclientprotocol.model.ToolCallStatus
-import io.agentclientprotocol.model.ToolCallUpdate
-import io.agentclientprotocol.model.ToolKind
-import io.agentclientprotocol.model.WriteTextFileRequest
 import io.agentclientprotocol.mock.TestTransport
+import io.agentclientprotocol.model.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlin.collections.get
-
+import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ClientSideConnectionTest {
@@ -60,7 +26,7 @@ class ClientSideConnectionTest {
     }
 
     @AfterTest
-    fun teardown() = runBlocking {
+    fun teardown() = runTest {
         clientTransport.close()
         agentTransport.close()
     }
@@ -68,7 +34,7 @@ class ClientSideConnectionTest {
     // === Connection Tests ===
 
     @Test
-    fun `test connection establishment`() = runBlocking {
+    fun `test connection establishment`() = runTest {
         // When
         clientConnection.connect(clientTransport)
 
@@ -78,9 +44,9 @@ class ClientSideConnectionTest {
 
     // === Agent Method Tests (outgoing requests) ===
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test initialize method sends correct request and handles response`() = runBlocking {
+    fun `test initialize method sends correct request and handles response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -112,9 +78,9 @@ class ClientSideConnectionTest {
         assertEquals(expectedResponse.protocolVersion, result.protocolVersion)
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test authenticate method sends correct request`() = runBlocking {
+    fun `test authenticate method sends correct request`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -135,9 +101,9 @@ class ClientSideConnectionTest {
         resultDeferred.await()
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test newSession method sends correct request and handles response`() = runBlocking {
+    fun `test newSession method sends correct request and handles response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -164,9 +130,9 @@ class ClientSideConnectionTest {
         assertEquals(expectedResponse.sessionId, result.sessionId)
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test loadSession method sends correct request`() = runBlocking {
+    fun `test loadSession method sends correct request`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -191,9 +157,9 @@ class ClientSideConnectionTest {
         resultDeferred.await()
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test prompt method sends correct request and handles response`() = runBlocking {
+    fun `test prompt method sends correct request and handles response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -221,7 +187,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test cancel method sends notification`() = runBlocking {
+    fun `test cancel method sends notification`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -239,7 +205,7 @@ class ClientSideConnectionTest {
     // === Client Request Handler Tests (incoming requests) ===
 
     @Test
-    fun `test readTextFile handler calls client and returns response`() = runBlocking {
+    fun `test readTextFile handler calls client and returns response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -269,7 +235,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test writeTextFile handler calls client`() = runBlocking {
+    fun `test writeTextFile handler calls client`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -297,7 +263,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test requestPermission handler calls client and returns response`() = runBlocking {
+    fun `test requestPermission handler calls client and returns response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -341,7 +307,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test sessionUpdate handler calls client`() = runBlocking {
+    fun `test sessionUpdate handler calls client`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -373,9 +339,9 @@ class ClientSideConnectionTest {
 
     // === Error Handling Tests ===
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test initialize method handles JSON-RPC error response`(): Unit = runBlocking {
+    fun `test initialize method handles JSON-RPC error response`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -399,7 +365,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test client method exception propagates to agent`() = runBlocking {
+    fun `test client method exception propagates to agent`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -440,7 +406,7 @@ class ClientSideConnectionTest {
     }
 
     @Test
-    fun `test transport disconnection during operation`(): Unit = runBlocking {
+    fun `test transport disconnection during operation`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -464,9 +430,9 @@ class ClientSideConnectionTest {
 
     // === Integration Tests ===
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test full request-response cycle with real JSON serialization`() = runBlocking {
+    fun `test full request-response cycle with real JSON serialization`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -518,9 +484,9 @@ class ClientSideConnectionTest {
         assertEquals(expectedSessionResponse.sessionId, sessionResult.sessionId)
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test concurrent requests handling`() = runBlocking {
+    fun `test concurrent requests handling`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
@@ -551,9 +517,9 @@ class ClientSideConnectionTest {
         assertEquals(response2.sessionId, result2.sessionId)
     }
 
-    @Ignore("Time out")
+    @Ignore
     @Test
-    fun `test bidirectional communication with file operations`() = runBlocking {
+    fun `test bidirectional communication with file operations`() = runTest {
         // Given
         clientConnection.connect(clientTransport)
         clientTransport.start()
