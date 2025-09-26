@@ -1,0 +1,2301 @@
+public abstract interface class io/agentclientprotocol/kotlin/Agent {
+	public abstract fun authenticate (Lio/agentclientprotocol/kotlin/AuthenticateRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun cancel (Lio/agentclientprotocol/kotlin/CancelNotification;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun initialize (Lio/agentclientprotocol/kotlin/InitializeRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun loadSession (Lio/agentclientprotocol/kotlin/LoadSessionRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun newSession (Lio/agentclientprotocol/kotlin/NewSessionRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun prompt (Lio/agentclientprotocol/kotlin/PromptRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/agentclientprotocol/kotlin/AgentCapabilities {
+	public static final field Companion Lio/agentclientprotocol/kotlin/AgentCapabilities$Companion;
+	public fun <init> ()V
+	public fun <init> (ZLio/agentclientprotocol/kotlin/PromptCapabilities;)V
+	public synthetic fun <init> (ZLio/agentclientprotocol/kotlin/PromptCapabilities;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/PromptCapabilities;
+	public final fun copy (ZLio/agentclientprotocol/kotlin/PromptCapabilities;)Lio/agentclientprotocol/kotlin/AgentCapabilities;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/AgentCapabilities;ZLio/agentclientprotocol/kotlin/PromptCapabilities;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/AgentCapabilities;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLoadSession ()Z
+	public final fun getPromptCapabilities ()Lio/agentclientprotocol/kotlin/PromptCapabilities;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/AgentCapabilities$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/AgentCapabilities$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/AgentCapabilities;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/AgentCapabilities;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AgentCapabilities$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AgentMethods {
+	public static final field AUTHENTICATE Ljava/lang/String;
+	public static final field INITIALIZE Ljava/lang/String;
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/AgentMethods;
+	public static final field SESSION_CANCEL Ljava/lang/String;
+	public static final field SESSION_LOAD Ljava/lang/String;
+	public static final field SESSION_NEW Ljava/lang/String;
+	public static final field SESSION_PROMPT Ljava/lang/String;
+}
+
+public final class io/agentclientprotocol/kotlin/Annotations {
+	public static final field Companion Lio/agentclientprotocol/kotlin/Annotations$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/Double;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/Annotations;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/Annotations;Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/Annotations;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAudience ()Ljava/util/List;
+	public final fun getLastModified ()Ljava/lang/String;
+	public final fun getPriority ()Ljava/lang/Double;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/Annotations$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/Annotations$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/Annotations;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/Annotations$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthMethod {
+	public static final field Companion Lio/agentclientprotocol/kotlin/AuthMethod$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-F0oC_O8 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-r0iqVMw (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/AuthMethod;
+	public static synthetic fun copy-r0iqVMw$default (Lio/agentclientprotocol/kotlin/AuthMethod;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/AuthMethod;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getId-F0oC_O8 ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/AuthMethod$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/AuthMethod$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/AuthMethod;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/AuthMethod;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthMethod$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthMethodId {
+	public static final field Companion Lio/agentclientprotocol/kotlin/AuthMethodId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/AuthMethodId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/AuthMethodId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/AuthMethodId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-jgLAUR0 (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-p9azLWA (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthMethodId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthenticateRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/AuthenticateRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-F0oC_O8 ()Ljava/lang/String;
+	public final fun copy-QQ4Igxo (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/AuthenticateRequest;
+	public static synthetic fun copy-QQ4Igxo$default (Lio/agentclientprotocol/kotlin/AuthenticateRequest;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/AuthenticateRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMethodId-F0oC_O8 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/AuthenticateRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/AuthenticateRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/AuthenticateRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/AuthenticateRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/AuthenticateRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CancelNotification {
+	public static final field Companion Lio/agentclientprotocol/kotlin/CancelNotification$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun copy-AbO0u9c (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/CancelNotification;
+	public static synthetic fun copy-AbO0u9c$default (Lio/agentclientprotocol/kotlin/CancelNotification;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/CancelNotification;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/CancelNotification$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/CancelNotification$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/CancelNotification;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/CancelNotification;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CancelNotification$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class io/agentclientprotocol/kotlin/Client {
+	public abstract fun readTextFile (Lio/agentclientprotocol/kotlin/ReadTextFileRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun requestPermission (Lio/agentclientprotocol/kotlin/RequestPermissionRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun sessionUpdate (Lio/agentclientprotocol/kotlin/SessionNotification;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun writeTextFile (Lio/agentclientprotocol/kotlin/WriteTextFileRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/agentclientprotocol/kotlin/ClientCapabilities {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ClientCapabilities$Companion;
+	public fun <init> ()V
+	public fun <init> (Lio/agentclientprotocol/kotlin/FileSystemCapability;Z)V
+	public synthetic fun <init> (Lio/agentclientprotocol/kotlin/FileSystemCapability;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/FileSystemCapability;
+	public final fun component2 ()Z
+	public final fun copy (Lio/agentclientprotocol/kotlin/FileSystemCapability;Z)Lio/agentclientprotocol/kotlin/ClientCapabilities;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ClientCapabilities;Lio/agentclientprotocol/kotlin/FileSystemCapability;ZILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ClientCapabilities;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFs ()Lio/agentclientprotocol/kotlin/FileSystemCapability;
+	public final fun getTerminal ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ClientCapabilities$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ClientCapabilities$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ClientCapabilities;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ClientCapabilities;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ClientCapabilities$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ClientMethods {
+	public static final field FS_READ_TEXT_FILE Ljava/lang/String;
+	public static final field FS_WRITE_TEXT_FILE Ljava/lang/String;
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ClientMethods;
+	public static final field SESSION_REQUEST_PERMISSION Ljava/lang/String;
+	public static final field SESSION_UPDATE Ljava/lang/String;
+}
+
+public abstract class io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$Companion;
+	public synthetic fun <init> (ILkotlinx/serialization/internal/SerializationConstructorMarker;)V
+	public abstract fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public static final synthetic fun write$Self (Lio/agentclientprotocol/kotlin/ContentBlock;Lkotlinx/serialization/encoding/CompositeEncoder;Lkotlinx/serialization/descriptors/SerialDescriptor;)V
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Audio : io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$Audio$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ContentBlock$Audio;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ContentBlock$Audio;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ContentBlock$Audio;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getData ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ContentBlock$Audio$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ContentBlock$Audio$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ContentBlock$Audio;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ContentBlock$Audio;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Audio$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Image : io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$Image$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ContentBlock$Image;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ContentBlock$Image;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ContentBlock$Image;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getData ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getUri ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ContentBlock$Image$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ContentBlock$Image$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ContentBlock$Image;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ContentBlock$Image;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Image$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Resource : io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$Resource$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ContentBlock$Resource;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ContentBlock$Resource;Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ContentBlock$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getResource ()Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ContentBlock$Resource$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ContentBlock$Resource$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ContentBlock$Resource;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ContentBlock$Resource;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Resource$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$ResourceLink : io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/Long;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSize ()Ljava/lang/Long;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getUri ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ContentBlock$ResourceLink$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ContentBlock$ResourceLink;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$ResourceLink$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Text : io/agentclientprotocol/kotlin/ContentBlock {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ContentBlock$Text$Companion;
+	public fun <init> (Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ContentBlock$Text;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ContentBlock$Text;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ContentBlock$Text;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ContentBlock$Text$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ContentBlock$Text$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ContentBlock$Text;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ContentBlock$Text;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ContentBlock$Text$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CreateTerminalRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/CreateTerminalRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lkotlin/ULong;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lkotlin/ULong;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6-6VbMDqA ()Lkotlin/ULong;
+	public final fun copy-Ubya67Y (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lkotlin/ULong;)Lio/agentclientprotocol/kotlin/CreateTerminalRequest;
+	public static synthetic fun copy-Ubya67Y$default (Lio/agentclientprotocol/kotlin/CreateTerminalRequest;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lkotlin/ULong;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/CreateTerminalRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getCwd ()Ljava/lang/String;
+	public final fun getEnv ()Ljava/util/List;
+	public final fun getOutputByteLimit-6VbMDqA ()Lkotlin/ULong;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/CreateTerminalRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/CreateTerminalRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/CreateTerminalRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/CreateTerminalRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CreateTerminalRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CreateTerminalResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/CreateTerminalResponse$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/CreateTerminalResponse;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/CreateTerminalResponse;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/CreateTerminalResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTerminalId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/CreateTerminalResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/CreateTerminalResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/CreateTerminalResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/CreateTerminalResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/CreateTerminalResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResource {
+	public static final field Companion Lio/agentclientprotocol/kotlin/EmbeddedResource$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/EmbeddedResource;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/EmbeddedResource;Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/EmbeddedResource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getResource ()Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/EmbeddedResource$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/EmbeddedResource$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/EmbeddedResource;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/EmbeddedResource;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResource$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract class io/agentclientprotocol/kotlin/EmbeddedResourceResource {
+	public static final field Companion Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$Companion;
+	public synthetic fun <init> (ILkotlinx/serialization/internal/SerializationConstructorMarker;)V
+	public static final synthetic fun write$Self (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource;Lkotlinx/serialization/encoding/CompositeEncoder;Lkotlinx/serialization/descriptors/SerialDescriptor;)V
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents : io/agentclientprotocol/kotlin/EmbeddedResourceResource {
+	public static final field Companion Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlob ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getUri ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResourceResource$BlobResourceContents$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResourceResource$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents : io/agentclientprotocol/kotlin/EmbeddedResourceResource {
+	public static final field Companion Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getUri ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EmbeddedResourceResource$TextResourceContents$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EnvVariable {
+	public static final field Companion Lio/agentclientprotocol/kotlin/EnvVariable$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/EnvVariable;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/EnvVariable;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/EnvVariable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/EnvVariable$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/EnvVariable$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/EnvVariable;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/EnvVariable;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/EnvVariable$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/FileSystemCapability {
+	public static final field Companion Lio/agentclientprotocol/kotlin/FileSystemCapability$Companion;
+	public fun <init> ()V
+	public fun <init> (ZZ)V
+	public synthetic fun <init> (ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun copy (ZZ)Lio/agentclientprotocol/kotlin/FileSystemCapability;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/FileSystemCapability;ZZILjava/lang/Object;)Lio/agentclientprotocol/kotlin/FileSystemCapability;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReadTextFile ()Z
+	public final fun getWriteTextFile ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/FileSystemCapability$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/FileSystemCapability$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/FileSystemCapability;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/FileSystemCapability;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/FileSystemCapability$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/InitializeRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/InitializeRequest$Companion;
+	public synthetic fun <init> (SLio/agentclientprotocol/kotlin/ClientCapabilities;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (SLio/agentclientprotocol/kotlin/ClientCapabilities;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-Mh2AYeg ()S
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/ClientCapabilities;
+	public final fun copy-vckuEUM (SLio/agentclientprotocol/kotlin/ClientCapabilities;)Lio/agentclientprotocol/kotlin/InitializeRequest;
+	public static synthetic fun copy-vckuEUM$default (Lio/agentclientprotocol/kotlin/InitializeRequest;SLio/agentclientprotocol/kotlin/ClientCapabilities;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/InitializeRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClientCapabilities ()Lio/agentclientprotocol/kotlin/ClientCapabilities;
+	public final fun getProtocolVersion-Mh2AYeg ()S
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/InitializeRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/InitializeRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/InitializeRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/InitializeRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/InitializeRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/InitializeResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/InitializeResponse$Companion;
+	public synthetic fun <init> (SLio/agentclientprotocol/kotlin/AgentCapabilities;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (SLio/agentclientprotocol/kotlin/AgentCapabilities;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-Mh2AYeg ()S
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/AgentCapabilities;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy-_TFR7lA (SLio/agentclientprotocol/kotlin/AgentCapabilities;Ljava/util/List;)Lio/agentclientprotocol/kotlin/InitializeResponse;
+	public static synthetic fun copy-_TFR7lA$default (Lio/agentclientprotocol/kotlin/InitializeResponse;SLio/agentclientprotocol/kotlin/AgentCapabilities;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/InitializeResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAgentCapabilities ()Lio/agentclientprotocol/kotlin/AgentCapabilities;
+	public final fun getAuthMethods ()Ljava/util/List;
+	public final fun getProtocolVersion-Mh2AYeg ()S
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/InitializeResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/InitializeResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/InitializeResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/InitializeResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/InitializeResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/LibVersionKt {
+	public static final field LIB_VERSION Ljava/lang/String;
+}
+
+public final class io/agentclientprotocol/kotlin/LoadSessionRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/LoadSessionRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy-jjzZOuM (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lio/agentclientprotocol/kotlin/LoadSessionRequest;
+	public static synthetic fun copy-jjzZOuM$default (Lio/agentclientprotocol/kotlin/LoadSessionRequest;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/LoadSessionRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCwd ()Ljava/lang/String;
+	public final fun getMcpServers ()Ljava/util/List;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/LoadSessionRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/LoadSessionRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/LoadSessionRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/LoadSessionRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/LoadSessionRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/McpServer {
+	public static final field Companion Lio/agentclientprotocol/kotlin/McpServer$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Lio/agentclientprotocol/kotlin/McpServer;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/McpServer;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/McpServer;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getEnv ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/McpServer$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/McpServer$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/McpServer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/McpServer;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/McpServer$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/NewSessionRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/NewSessionRequest$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Lio/agentclientprotocol/kotlin/NewSessionRequest;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/NewSessionRequest;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/NewSessionRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCwd ()Ljava/lang/String;
+	public final fun getMcpServers ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/NewSessionRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/NewSessionRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/NewSessionRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/NewSessionRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/NewSessionRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/NewSessionResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/NewSessionResponse$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun copy-AbO0u9c (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/NewSessionResponse;
+	public static synthetic fun copy-AbO0u9c$default (Lio/agentclientprotocol/kotlin/NewSessionResponse;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/NewSessionResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/NewSessionResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/NewSessionResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/NewSessionResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/NewSessionResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/NewSessionResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOption {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PermissionOption$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/PermissionOptionKind;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-_6dlOTE ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public final fun copy-W49aGaA (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/PermissionOptionKind;)Lio/agentclientprotocol/kotlin/PermissionOption;
+	public static synthetic fun copy-W49aGaA$default (Lio/agentclientprotocol/kotlin/PermissionOption;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/PermissionOptionKind;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/PermissionOption;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKind ()Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOptionId-_6dlOTE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PermissionOption$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PermissionOption$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/PermissionOption;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/PermissionOption;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOption$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOptionId {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PermissionOptionId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/PermissionOptionId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PermissionOptionId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PermissionOptionId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-R0A3peY (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-OA9R3LA (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOptionId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOptionKind : java/lang/Enum {
+	public static final field ALLOW_ALWAYS Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public static final field ALLOW_ONCE Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public static final field Companion Lio/agentclientprotocol/kotlin/PermissionOptionKind$Companion;
+	public static final field REJECT_ALWAYS Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public static final field REJECT_ONCE Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/PermissionOptionKind;
+}
+
+public final class io/agentclientprotocol/kotlin/PermissionOptionKind$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/Plan {
+	public static final field Companion Lio/agentclientprotocol/kotlin/Plan$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lio/agentclientprotocol/kotlin/Plan;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/Plan;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/Plan;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntries ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/Plan$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/Plan$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/Plan;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/Plan;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/Plan$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntry {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PlanEntry$Companion;
+	public fun <init> (Ljava/lang/String;Lio/agentclientprotocol/kotlin/PlanEntryPriority;Lio/agentclientprotocol/kotlin/PlanEntryStatus;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public final fun copy (Ljava/lang/String;Lio/agentclientprotocol/kotlin/PlanEntryPriority;Lio/agentclientprotocol/kotlin/PlanEntryStatus;)Lio/agentclientprotocol/kotlin/PlanEntry;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/PlanEntry;Ljava/lang/String;Lio/agentclientprotocol/kotlin/PlanEntryPriority;Lio/agentclientprotocol/kotlin/PlanEntryStatus;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/PlanEntry;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/lang/String;
+	public final fun getPriority ()Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public final fun getStatus ()Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PlanEntry$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PlanEntry$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/PlanEntry;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/PlanEntry;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntry$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntryPriority : java/lang/Enum {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PlanEntryPriority$Companion;
+	public static final field HIGH Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public static final field LOW Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public static final field MEDIUM Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/PlanEntryPriority;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntryPriority$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntryStatus : java/lang/Enum {
+	public static final field COMPLETED Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public static final field Companion Lio/agentclientprotocol/kotlin/PlanEntryStatus$Companion;
+	public static final field IN_PROGRESS Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public static final field PENDING Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/PlanEntryStatus;
+}
+
+public final class io/agentclientprotocol/kotlin/PlanEntryStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptCapabilities {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PromptCapabilities$Companion;
+	public fun <init> ()V
+	public fun <init> (ZZZ)V
+	public synthetic fun <init> (ZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun copy (ZZZ)Lio/agentclientprotocol/kotlin/PromptCapabilities;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/PromptCapabilities;ZZZILjava/lang/Object;)Lio/agentclientprotocol/kotlin/PromptCapabilities;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAudio ()Z
+	public final fun getEmbeddedContext ()Z
+	public final fun getImage ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PromptCapabilities$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PromptCapabilities$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/PromptCapabilities;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/PromptCapabilities;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptCapabilities$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PromptRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy-w43jVEM (Ljava/lang/String;Ljava/util/List;)Lio/agentclientprotocol/kotlin/PromptRequest;
+	public static synthetic fun copy-w43jVEM$default (Lio/agentclientprotocol/kotlin/PromptRequest;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/PromptRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPrompt ()Ljava/util/List;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PromptRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PromptRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/PromptRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/PromptRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/PromptResponse$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/StopReason;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/StopReason;
+	public final fun copy (Lio/agentclientprotocol/kotlin/StopReason;)Lio/agentclientprotocol/kotlin/PromptResponse;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/PromptResponse;Lio/agentclientprotocol/kotlin/StopReason;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/PromptResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStopReason ()Lio/agentclientprotocol/kotlin/StopReason;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/PromptResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/PromptResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/PromptResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/PromptResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/PromptResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReadTextFileRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ReadTextFileRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/UInt;Lkotlin/UInt;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/UInt;Lkotlin/UInt;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3-0hXNFcg ()Lkotlin/UInt;
+	public final fun component4-0hXNFcg ()Lkotlin/UInt;
+	public final fun copy-cs_Mj5s (Ljava/lang/String;Ljava/lang/String;Lkotlin/UInt;Lkotlin/UInt;)Lio/agentclientprotocol/kotlin/ReadTextFileRequest;
+	public static synthetic fun copy-cs_Mj5s$default (Lio/agentclientprotocol/kotlin/ReadTextFileRequest;Ljava/lang/String;Ljava/lang/String;Lkotlin/UInt;Lkotlin/UInt;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ReadTextFileRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLimit-0hXNFcg ()Lkotlin/UInt;
+	public final fun getLine-0hXNFcg ()Lkotlin/UInt;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ReadTextFileRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ReadTextFileRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ReadTextFileRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ReadTextFileRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReadTextFileRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReadTextFileResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ReadTextFileResponse$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ReadTextFileResponse;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ReadTextFileResponse;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ReadTextFileResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ReadTextFileResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ReadTextFileResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ReadTextFileResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ReadTextFileResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReadTextFileResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReleaseTerminalRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-w43jVEM (Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest;
+	public static synthetic fun copy-w43jVEM$default (Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public final fun getTerminalId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ReleaseTerminalRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ReleaseTerminalRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ReleaseTerminalRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract class io/agentclientprotocol/kotlin/RequestPermissionOutcome {
+	public static final field Companion Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Companion;
+	public synthetic fun <init> (ILkotlinx/serialization/internal/SerializationConstructorMarker;)V
+	public static final synthetic fun write$Self (Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;Lkotlinx/serialization/encoding/CompositeEncoder;Lkotlinx/serialization/descriptors/SerialDescriptor;)V
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionOutcome$Cancelled : io/agentclientprotocol/kotlin/RequestPermissionOutcome {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Cancelled;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionOutcome$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected : io/agentclientprotocol/kotlin/RequestPermissionOutcome {
+	public static final field Companion Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-_6dlOTE ()Ljava/lang/String;
+	public final fun copy-aFfSYww (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected;
+	public static synthetic fun copy-aFfSYww$default (Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptionId-_6dlOTE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionOutcome$Selected$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/RequestPermissionRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolCallUpdate;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/ToolCallUpdate;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy-jjzZOuM (Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolCallUpdate;Ljava/util/List;)Lio/agentclientprotocol/kotlin/RequestPermissionRequest;
+	public static synthetic fun copy-jjzZOuM$default (Lio/agentclientprotocol/kotlin/RequestPermissionRequest;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolCallUpdate;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/RequestPermissionRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptions ()Ljava/util/List;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public final fun getToolCall ()Lio/agentclientprotocol/kotlin/ToolCallUpdate;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/RequestPermissionRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/RequestPermissionRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/RequestPermissionRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/RequestPermissionRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/RequestPermissionResponse$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;
+	public final fun copy (Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;)Lio/agentclientprotocol/kotlin/RequestPermissionResponse;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/RequestPermissionResponse;Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/RequestPermissionResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOutcome ()Lio/agentclientprotocol/kotlin/RequestPermissionOutcome;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/RequestPermissionResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/RequestPermissionResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/RequestPermissionResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/RequestPermissionResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/RequestPermissionResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ResourceLink {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ResourceLink$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/Long;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;)Lio/agentclientprotocol/kotlin/ResourceLink;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ResourceLink;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lio/agentclientprotocol/kotlin/Annotations;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ResourceLink;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Lio/agentclientprotocol/kotlin/Annotations;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSize ()Ljava/lang/Long;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getUri ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ResourceLink$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ResourceLink$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ResourceLink;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ResourceLink;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ResourceLink$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/Role : java/lang/Enum {
+	public static final field ASSISTANT Lio/agentclientprotocol/kotlin/Role;
+	public static final field Companion Lio/agentclientprotocol/kotlin/Role$Companion;
+	public static final field USER Lio/agentclientprotocol/kotlin/Role;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/Role;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/Role;
+}
+
+public final class io/agentclientprotocol/kotlin/Role$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionId {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/SessionId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-O2IlQdc (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-Lw9vkyQ (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionNotification {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionNotification$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lio/agentclientprotocol/kotlin/SessionUpdate;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Lio/agentclientprotocol/kotlin/SessionUpdate;
+	public final fun copy-w43jVEM (Ljava/lang/String;Lio/agentclientprotocol/kotlin/SessionUpdate;)Lio/agentclientprotocol/kotlin/SessionNotification;
+	public static synthetic fun copy-w43jVEM$default (Lio/agentclientprotocol/kotlin/SessionNotification;Ljava/lang/String;Lio/agentclientprotocol/kotlin/SessionUpdate;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionNotification;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public final fun getUpdate ()Lio/agentclientprotocol/kotlin/SessionUpdate;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionNotification$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionNotification$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionNotification;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionNotification;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionNotification$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract class io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$Companion;
+	public synthetic fun <init> (ILkotlinx/serialization/internal/SerializationConstructorMarker;)V
+	public static final synthetic fun write$Self (Lio/agentclientprotocol/kotlin/SessionUpdate;Lkotlinx/serialization/encoding/CompositeEncoder;Lkotlinx/serialization/descriptors/SerialDescriptor;)V
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/ContentBlock;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public final fun copy (Lio/agentclientprotocol/kotlin/ContentBlock;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk;Lio/agentclientprotocol/kotlin/ContentBlock;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$AgentMessageChunk$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/ContentBlock;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public final fun copy (Lio/agentclientprotocol/kotlin/ContentBlock;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk;Lio/agentclientprotocol/kotlin/ContentBlock;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$AgentThoughtChunk$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate;Ljava/util/List;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntries ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$PlanUpdate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3n--X0s ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component8 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy-G7kovQE (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate;
+	public static synthetic fun copy-G7kovQE$default (Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/util/List;
+	public final fun getKind ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun getLocations ()Ljava/util/List;
+	public final fun getRawInput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getRawOutput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getStatus ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getToolCallId-3n--X0s ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3n--X0s ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component8 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy-G7kovQE (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus;
+	public static synthetic fun copy-G7kovQE$default (Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/util/List;
+	public final fun getKind ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun getLocations ()Ljava/util/List;
+	public final fun getRawInput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getRawOutput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getStatus ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getToolCallId-3n--X0s ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$ToolCallUpdateStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk : io/agentclientprotocol/kotlin/SessionUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/ContentBlock;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public final fun copy (Lio/agentclientprotocol/kotlin/ContentBlock;)Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk;Lio/agentclientprotocol/kotlin/ContentBlock;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/SessionUpdate$UserMessageChunk$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/StopReason : java/lang/Enum {
+	public static final field CANCELLED Lio/agentclientprotocol/kotlin/StopReason;
+	public static final field Companion Lio/agentclientprotocol/kotlin/StopReason$Companion;
+	public static final field END_TURN Lio/agentclientprotocol/kotlin/StopReason;
+	public static final field MAX_TOKENS Lio/agentclientprotocol/kotlin/StopReason;
+	public static final field MAX_TURN_REQUESTS Lio/agentclientprotocol/kotlin/StopReason;
+	public static final field REFUSAL Lio/agentclientprotocol/kotlin/StopReason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/StopReason;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/StopReason;
+}
+
+public final class io/agentclientprotocol/kotlin/StopReason$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalExitStatus {
+	public static final field Companion Lio/agentclientprotocol/kotlin/TerminalExitStatus$Companion;
+	public synthetic fun <init> (Lkotlin/UInt;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lkotlin/UInt;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-0hXNFcg ()Lkotlin/UInt;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-aPkLuA0 (Lkotlin/UInt;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/TerminalExitStatus;
+	public static synthetic fun copy-aPkLuA0$default (Lio/agentclientprotocol/kotlin/TerminalExitStatus;Lkotlin/UInt;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/TerminalExitStatus;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExitCode-0hXNFcg ()Lkotlin/UInt;
+	public final fun getSignal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/TerminalExitStatus$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/TerminalExitStatus$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/TerminalExitStatus;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/TerminalExitStatus;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalExitStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalOutputRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/TerminalOutputRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-w43jVEM (Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/TerminalOutputRequest;
+	public static synthetic fun copy-w43jVEM$default (Lio/agentclientprotocol/kotlin/TerminalOutputRequest;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/TerminalOutputRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public final fun getTerminalId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/TerminalOutputRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/TerminalOutputRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/TerminalOutputRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/TerminalOutputRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalOutputRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalOutputResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/TerminalOutputResponse$Companion;
+	public fun <init> (Ljava/lang/String;ZLio/agentclientprotocol/kotlin/TerminalExitStatus;)V
+	public synthetic fun <init> (Ljava/lang/String;ZLio/agentclientprotocol/kotlin/TerminalExitStatus;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/TerminalExitStatus;
+	public final fun copy (Ljava/lang/String;ZLio/agentclientprotocol/kotlin/TerminalExitStatus;)Lio/agentclientprotocol/kotlin/TerminalOutputResponse;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/TerminalOutputResponse;Ljava/lang/String;ZLio/agentclientprotocol/kotlin/TerminalExitStatus;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/TerminalOutputResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExitStatus ()Lio/agentclientprotocol/kotlin/TerminalExitStatus;
+	public final fun getOutput ()Ljava/lang/String;
+	public final fun getTruncated ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/TerminalOutputResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/TerminalOutputResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/TerminalOutputResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/TerminalOutputResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TerminalOutputResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCall {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCall$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3n--X0s ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component8 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy-G7kovQE (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/ToolCall;
+	public static synthetic fun copy-G7kovQE$default (Lio/agentclientprotocol/kotlin/ToolCall;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCall;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/util/List;
+	public final fun getKind ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun getLocations ()Ljava/util/List;
+	public final fun getRawInput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getRawOutput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getStatus ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getToolCallId-3n--X0s ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCall$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCall$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCall;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCall;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCall$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract class io/agentclientprotocol/kotlin/ToolCallContent {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallContent$Companion;
+	public synthetic fun <init> (ILkotlinx/serialization/internal/SerializationConstructorMarker;)V
+	public static final synthetic fun write$Self (Lio/agentclientprotocol/kotlin/ToolCallContent;Lkotlinx/serialization/encoding/CompositeEncoder;Lkotlinx/serialization/descriptors/SerialDescriptor;)V
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Content : io/agentclientprotocol/kotlin/ToolCallContent {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallContent$Content$Companion;
+	public fun <init> (Lio/agentclientprotocol/kotlin/ContentBlock;)V
+	public final fun component1 ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public final fun copy (Lio/agentclientprotocol/kotlin/ContentBlock;)Lio/agentclientprotocol/kotlin/ToolCallContent$Content;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ToolCallContent$Content;Lio/agentclientprotocol/kotlin/ContentBlock;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCallContent$Content;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Lio/agentclientprotocol/kotlin/ContentBlock;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallContent$Content$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallContent$Content$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCallContent$Content;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCallContent$Content;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Content$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Diff : io/agentclientprotocol/kotlin/ToolCallContent {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallContent$Diff$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ToolCallContent$Diff;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ToolCallContent$Diff;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCallContent$Diff;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNewText ()Ljava/lang/String;
+	public final fun getOldText ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallContent$Diff$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallContent$Diff$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCallContent$Diff;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCallContent$Diff;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Diff$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Terminal : io/agentclientprotocol/kotlin/ToolCallContent {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTerminalId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallContent$Terminal$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCallContent$Terminal;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallContent$Terminal$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallId {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ToolCallId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-HcFQ6sY (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-fmFKHSg (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallLocation {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallLocation$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/UInt;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/UInt;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-0hXNFcg ()Lkotlin/UInt;
+	public final fun copy-FrkygD8 (Ljava/lang/String;Lkotlin/UInt;)Lio/agentclientprotocol/kotlin/ToolCallLocation;
+	public static synthetic fun copy-FrkygD8$default (Lio/agentclientprotocol/kotlin/ToolCallLocation;Ljava/lang/String;Lkotlin/UInt;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCallLocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLine-0hXNFcg ()Lkotlin/UInt;
+	public final fun getPath ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallLocation$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallLocation$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCallLocation;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCallLocation;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallLocation$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallStatus : java/lang/Enum {
+	public static final field COMPLETED Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallStatus$Companion;
+	public static final field FAILED Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public static final field IN_PROGRESS Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public static final field PENDING Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/ToolCallStatus;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallUpdate {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolCallUpdate$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3n--X0s ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component8 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy-G7kovQE (Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/ToolCallUpdate;
+	public static synthetic fun copy-G7kovQE$default (Lio/agentclientprotocol/kotlin/ToolCallUpdate;Ljava/lang/String;Ljava/lang/String;Lio/agentclientprotocol/kotlin/ToolKind;Lio/agentclientprotocol/kotlin/ToolCallStatus;Ljava/util/List;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/ToolCallUpdate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/util/List;
+	public final fun getKind ()Lio/agentclientprotocol/kotlin/ToolKind;
+	public final fun getLocations ()Ljava/util/List;
+	public final fun getRawInput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getRawOutput ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getStatus ()Lio/agentclientprotocol/kotlin/ToolCallStatus;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getToolCallId-3n--X0s ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/ToolCallUpdate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/ToolCallUpdate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/ToolCallUpdate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/ToolCallUpdate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolCallUpdate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolKind : java/lang/Enum {
+	public static final field Companion Lio/agentclientprotocol/kotlin/ToolKind$Companion;
+	public static final field DELETE Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field EDIT Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field EXECUTE Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field FETCH Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field MOVE Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field OTHER Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field READ Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field SEARCH Lio/agentclientprotocol/kotlin/ToolKind;
+	public static final field THINK Lio/agentclientprotocol/kotlin/ToolKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/ToolKind;
+	public static fun values ()[Lio/agentclientprotocol/kotlin/ToolKind;
+}
+
+public final class io/agentclientprotocol/kotlin/ToolKind$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/TypesKt {
+	public static final field LATEST_PROTOCOL_VERSION S
+	public static final fun getACPJson ()Lkotlinx/serialization/json/Json;
+	public static final fun getSUPPORTED_PROTOCOL_VERSIONS ()[Lkotlin/UShort;
+}
+
+public final class io/agentclientprotocol/kotlin/WaitForTerminalExitRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-w43jVEM (Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest;
+	public static synthetic fun copy-w43jVEM$default (Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public final fun getTerminalId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/WaitForTerminalExitRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/WaitForTerminalExitRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/WaitForTerminalExitRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/WaitForTerminalExitResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse$Companion;
+	public synthetic fun <init> (Lkotlin/UInt;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lkotlin/UInt;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-0hXNFcg ()Lkotlin/UInt;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-aPkLuA0 (Lkotlin/UInt;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse;
+	public static synthetic fun copy-aPkLuA0$default (Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse;Lkotlin/UInt;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExitCode-0hXNFcg ()Lkotlin/UInt;
+	public final fun getSignal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/WaitForTerminalExitResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/WaitForTerminalExitResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/WaitForTerminalExitResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/WriteTextFileRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/WriteTextFileRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-oyAj1Ek ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-jjzZOuM (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/agentclientprotocol/kotlin/WriteTextFileRequest;
+	public static synthetic fun copy-jjzZOuM$default (Lio/agentclientprotocol/kotlin/WriteTextFileRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/WriteTextFileRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getSessionId-oyAj1Ek ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/WriteTextFileRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/WriteTextFileRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/WriteTextFileRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/WriteTextFileRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/WriteTextFileRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/protocol/JsonRpcException : java/lang/Exception {
+	public fun <init> (ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;)V
+	public synthetic fun <init> (ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCode ()I
+	public final fun getData ()Lkotlinx/serialization/json/JsonElement;
+}
+
+public abstract class io/agentclientprotocol/kotlin/protocol/Protocol : kotlinx/coroutines/CoroutineScope {
+	public fun <init> ()V
+	public fun <init> (Lio/agentclientprotocol/kotlin/protocol/ProtocolOptions;)V
+	public synthetic fun <init> (Lio/agentclientprotocol/kotlin/protocol/ProtocolOptions;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun connect (Lio/agentclientprotocol/kotlin/transport/Transport;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getCoroutineContext ()Lkotlin/coroutines/CoroutineContext;
+	public final fun getTransport ()Lio/agentclientprotocol/kotlin/transport/Transport;
+	public final fun sendNotification (Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendNotification$default (Lio/agentclientprotocol/kotlin/protocol/Protocol;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun sendRequest-exY8QGI (Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendRequest-exY8QGI$default (Lio/agentclientprotocol/kotlin/protocol/Protocol;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setNotificationHandler (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public final fun setRequestHandler (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+}
+
+public class io/agentclientprotocol/kotlin/protocol/ProtocolOptions {
+	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getRequestTimeout-UwyO8pc ()J
+}
+
+public final class io/agentclientprotocol/kotlin/protocol/RequestTimeoutException : java/lang/Exception {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcError {
+	public static final field Companion Lio/agentclientprotocol/kotlin/rpc/JsonRpcError$Companion;
+	public fun <init> (ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;)V
+	public synthetic fun <init> (ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy (ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;ILjava/lang/String;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()I
+	public final fun getData ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/rpc/JsonRpcError$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/JsonRpcError$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcError$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcErrorCode {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/JsonRpcErrorCode;
+	public static final field INTERNAL_ERROR I
+	public static final field INVALID_PARAMS I
+	public static final field INVALID_REQUEST I
+	public static final field METHOD_NOT_FOUND I
+	public static final field PARSE_ERROR I
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcKt {
+	public static final field JSONRPC_VERSION Ljava/lang/String;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcNotification {
+	public static final field Companion Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification;
+	public static synthetic fun copy$default (Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getJsonrpc ()Ljava/lang/String;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getParams ()Lkotlinx/serialization/json/JsonElement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/rpc/JsonRpcNotification$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/rpc/JsonRpcNotification;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcNotification$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcRequest {
+	public static final field Companion Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-ZtLOYiU ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy-WJgykg8 (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest;
+	public static synthetic fun copy-WJgykg8$default (Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-ZtLOYiU ()Ljava/lang/String;
+	public final fun getJsonrpc ()Ljava/lang/String;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getParams ()Lkotlinx/serialization/json/JsonElement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/rpc/JsonRpcRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/rpc/JsonRpcRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcResponse {
+	public static final field Companion Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-ZtLOYiU ()Ljava/lang/String;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component4 ()Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;
+	public final fun copy-WJgykg8 (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse;
+	public static synthetic fun copy-WJgykg8$default (Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;ILjava/lang/Object;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lio/agentclientprotocol/kotlin/rpc/JsonRpcError;
+	public final fun getId-ZtLOYiU ()Ljava/lang/String;
+	public final fun getJsonrpc ()Ljava/lang/String;
+	public final fun getResult ()Lkotlinx/serialization/json/JsonElement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/rpc/JsonRpcResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/agentclientprotocol/kotlin/rpc/JsonRpcResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/JsonRpcResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/RequestId {
+	public static final field Companion Lio/agentclientprotocol/kotlin/rpc/RequestId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lio/agentclientprotocol/kotlin/rpc/RequestId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public synthetic class io/agentclientprotocol/kotlin/rpc/RequestId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/agentclientprotocol/kotlin/rpc/RequestId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-Sl5NdLQ (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-FYT6az0 (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/rpc/RequestId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/agentclientprotocol/kotlin/transport/StdioTransport : io/agentclientprotocol/kotlin/transport/Transport {
+	public fun <init> (Lkotlinx/io/Source;Lkotlinx/io/Sink;)V
+	public fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getErrors ()Lkotlinx/coroutines/flow/Flow;
+	public fun getMessages ()Lkotlinx/coroutines/flow/Flow;
+	public fun getOnClose ()Lkotlin/jvm/functions/Function0;
+	public fun isConnected ()Z
+	public fun send (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun setOnClose (Lkotlin/jvm/functions/Function0;)V
+	public fun start (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class io/agentclientprotocol/kotlin/transport/Transport {
+	public abstract fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getErrors ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getMessages ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getOnClose ()Lkotlin/jvm/functions/Function0;
+	public abstract fun isConnected ()Z
+	public abstract fun send (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun setOnClose (Lkotlin/jvm/functions/Function0;)V
+	public abstract fun start (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

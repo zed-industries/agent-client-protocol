@@ -1,0 +1,96 @@
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# Kotlin/Java
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Kotlin Multiplatform
+kotlin-js-store/
+node_modules/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# JetBrains IDEs
+.idea/
+*.iml
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local configuration
+local.properties
+
+# Generated files
+**/build/
+**/out/
+**/target/
+
+# Backup files
+*.bak
+*.backup
+
+# Test results
+test-results/
+test-output/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Dependency directories
+.pnp
+.pnp.js
+
+# Distribution / packaging
+dist/
+bin/
+lib/
+
+# Build outputs
+kotlin-js-store
+build
+out
+/.kotlin/
