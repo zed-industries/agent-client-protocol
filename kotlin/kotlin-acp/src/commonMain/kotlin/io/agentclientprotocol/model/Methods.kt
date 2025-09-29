@@ -9,13 +9,12 @@ package io.agentclientprotocol.model
  */
 public object AgentMethods {
     public const val INITIALIZE: String = "initialize"
-    public const val AUTHENTICATE: String = "authenticate"  
+    public const val AUTHENTICATE: String = "authenticate"
     public const val SESSION_NEW: String = "session/new"
     public const val SESSION_LOAD: String = "session/load"
     public const val SESSION_PROMPT: String = "session/prompt"
     public const val SESSION_CANCEL: String = "session/cancel"
     public const val SESSION_SET_MODE: String = "session/set_mode"
-    public const val SESSION_SET_MODEL: String = "session/set_model"
 }
 
 /**

@@ -53,8 +53,8 @@ public class AgentSideConnection(
             } else {
                 throw IllegalArgumentException("authenticate requires parameters")
             }
-            agent.authenticate(params)
-            JsonNull // No response body for authenticate
+            val response = agent.authenticate(params)
+            ACPJson.encodeToJsonElement(response)
         }
 
         protocol.setRequestHandler(AgentMethods.SESSION_NEW) { request ->
@@ -63,7 +63,7 @@ public class AgentSideConnection(
             } else {
                 throw IllegalArgumentException("session/new requires parameters")
             }
-            val response = agent.newSession(params)
+            val response = agent.sessionNew(params)
             ACPJson.encodeToJsonElement(response)
         }
 
@@ -73,17 +73,27 @@ public class AgentSideConnection(
             } else {
                 throw IllegalArgumentException("session/load requires parameters")
             }
-            agent.loadSession(params)
-            JsonNull // No response body for loadSession
+            val response = agent.sessionLoad(params)
+            ACPJson.encodeToJsonElement(response)
+        }
+
+        protocol.setRequestHandler(AgentMethods.SESSION_SET_MODE) { request ->
+            val params = if (request.params != null) {
+                ACPJson.decodeFromJsonElement<SetSessionModeRequest>(request.params)
+            } else {
+                throw IllegalArgumentException("session/set_mode requires parameters")
+            }
+            val response = agent.sessionSetMode(params)
+            ACPJson.encodeToJsonElement(response)
         }
 
         protocol.setRequestHandler(AgentMethods.SESSION_PROMPT) { request ->
             val params = if (request.params != null) {
                 ACPJson.decodeFromJsonElement<PromptRequest>(request.params)
             } else {
-                throw IllegalArgumentException("session/prompt requires parameters")
+                throw IllegalArgumentException("session/sessionPrompt requires parameters")
             }
-            val response = agent.prompt(params)
+            val response = agent.sessionPrompt(params)
             ACPJson.encodeToJsonElement(response)
         }
 
@@ -91,9 +101,9 @@ public class AgentSideConnection(
             val params = if (notification.params != null) {
                 ACPJson.decodeFromJsonElement<CancelNotification>(notification.params)
             } else {
-                throw IllegalArgumentException("session/cancel requires parameters")
+                throw IllegalArgumentException("session/sessionCancel requires parameters")
             }
-            agent.cancel(params)
+            agent.sessionCancel(params)
         }
 
         protocol.start()
@@ -105,20 +115,52 @@ public class AgentSideConnection(
         protocol.sendNotification(ClientMethods.SESSION_UPDATE, params)
     }
 
-    override suspend fun requestPermission(request: RequestPermissionRequest): RequestPermissionResponse {
+    override suspend fun sessionRequestPermission(request: RequestPermissionRequest): RequestPermissionResponse {
         val params = ACPJson.encodeToJsonElement(request)
         val responseJson = protocol.sendRequest(ClientMethods.SESSION_REQUEST_PERMISSION, params)
         return ACPJson.decodeFromJsonElement(responseJson)
     }
 
-    override suspend fun readTextFile(request: ReadTextFileRequest): ReadTextFileResponse {
+    override suspend fun fsReadTextFile(request: ReadTextFileRequest): ReadTextFileResponse {
         val params = ACPJson.encodeToJsonElement(request)
         val responseJson = protocol.sendRequest(ClientMethods.FS_READ_TEXT_FILE, params)
         return ACPJson.decodeFromJsonElement(responseJson)
     }
 
-    override suspend fun writeTextFile(request: WriteTextFileRequest) {
+    override suspend fun fsWriteTextFile(request: WriteTextFileRequest): WriteTextFileResponse {
         val params = ACPJson.encodeToJsonElement(request)
-        protocol.sendRequest(ClientMethods.FS_WRITE_TEXT_FILE, params)
+        val responseJson = protocol.sendRequest(ClientMethods.FS_WRITE_TEXT_FILE, params)
+        return ACPJson.decodeFromJsonElement(responseJson)
+    }
+
+    override suspend fun terminalCreate(request: CreateTerminalRequest): CreateTerminalResponse {
+        val params = ACPJson.encodeToJsonElement(request)
+        val responseJson = protocol.sendRequest(ClientMethods.TERMINAL_CREATE, params)
+        return ACPJson.decodeFromJsonElement(responseJson)
+    }
+
+    override suspend fun terminalOutput(request: TerminalOutputRequest): TerminalOutputResponse {
+        val params = ACPJson.encodeToJsonElement(request)
+        val responseJson = protocol.sendRequest(ClientMethods.TERMINAL_OUTPUT, params)
+        return ACPJson.decodeFromJsonElement(responseJson)
+    }
+
+    override suspend fun terminalRelease(request: ReleaseTerminalRequest): ReleaseTerminalResponse {
+        val params = ACPJson.encodeToJsonElement(request)
+        val responseJson = protocol.sendRequest(ClientMethods.TERMINAL_RELEASE, params)
+        return ACPJson.decodeFromJsonElement(responseJson)
+    }
+
+    override suspend fun terminalWaitForExit(request: WaitForTerminalExitRequest): WaitForTerminalExitResponse {
+        val params = ACPJson.encodeToJsonElement(request)
+        val responseJson = protocol.sendRequest(ClientMethods.TERMINAL_WAIT_FOR_EXIT, params)
+        return ACPJson.decodeFromJsonElement(responseJson)
+    }
+
+    override suspend fun terminalKill(request: KillTerminalCommandRequest): KillTerminalCommandResponse {
+        val params = ACPJson.encodeToJsonElement(request)
+        val responseJson = protocol.sendRequest(ClientMethods.TERMINAL_KILL, params)
+
+        return ACPJson.decodeFromJsonElement(responseJson)
     }
 }
