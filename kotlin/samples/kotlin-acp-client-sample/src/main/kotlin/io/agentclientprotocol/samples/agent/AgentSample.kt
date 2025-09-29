@@ -25,10 +25,8 @@ private val logger = KotlinLogging.logger {}
  */
 suspend fun main() = coroutineScope {
     logger.info { "Starting ACP Agent Sample" }
-    
-    try {
-        // Create the agent implementation
 
+    try {
         // Create STDIO transport
         val transport = StdioTransport(
             parentScope = this,
@@ -36,9 +34,16 @@ suspend fun main() = coroutineScope {
             output = System.out.asSink().buffered()
         )
 
+        // Create agent
         val agent = SimpleAgent()
-        // Create agent-side connection
+
+        // Create agent-side connection - this implements Client interface
         val connection = AgentSideConnection(this, agent, transport)
+
+        // Wire up the agent to send updates through the connection
+        agent.onSessionUpdate = { notification ->
+            connection.sessionUpdate(notification)
+        }
 
         // Connect and start processing
         connection.start()

@@ -5,6 +5,7 @@ import io.agentclientprotocol.client.ClientSideConnection
 import io.agentclientprotocol.mock.MockClient
 import io.agentclientprotocol.mock.TestTransport
 import io.agentclientprotocol.model.*
+import io.agentclientprotocol.rpc.ACPJson
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
@@ -17,12 +18,12 @@ class ClientSideConnectionTest {
     private lateinit var clientConnection: ClientSideConnection
 
     @BeforeTest
-    fun setup() {
+    fun setup() = runTest {
         mockClient = MockClient()
         val (transport1, transport2) = TestTransport.createPair()
         clientTransport = transport1
         agentTransport = transport2
-        clientConnection = ClientSideConnection(mockClient)
+        clientConnection = ClientSideConnection(this, clientTransport, mockClient)
     }
 
     @AfterTest
@@ -36,7 +37,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test connection establishment`() = runTest {
         // When
-        clientConnection.start(clientTransport)
+        clientConnection.start()
 
         // Then
         assertTrue(clientTransport.isConnected)
@@ -48,7 +49,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test initialize method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -82,7 +83,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test authenticate method sends correct request`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -105,7 +106,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test newSession method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -118,7 +119,7 @@ class ClientSideConnectionTest {
 
         // When
         val resultDeferred = async {
-            clientConnection.newSession(request)
+            clientConnection.sessionNew(request)
         }
         
         // Simulate agent responding
@@ -134,7 +135,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test loadSession method sends correct request`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -146,7 +147,7 @@ class ClientSideConnectionTest {
 
         // When
         val resultDeferred = async {
-            clientConnection.loadSession(request)
+            clientConnection.sessionLoad(request)
         }
         
         // Simulate agent responding with success
@@ -161,7 +162,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test prompt method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -174,7 +175,7 @@ class ClientSideConnectionTest {
 
         // When
         val resultDeferred = async {
-            clientConnection.prompt(request)
+            clientConnection.sessionPrompt(request)
         }
         
         // Simulate agent responding
@@ -189,14 +190,14 @@ class ClientSideConnectionTest {
     @Test
     fun `test cancel method sends notification`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
         val notification = CancelNotification(SessionId("test-session"))
 
         // When
-        clientConnection.cancel(notification)
+        clientConnection.sessionCancel(notification)
 
         // Then - notification should be sent without waiting for response
         // This is a fire-and-forget operation
@@ -207,7 +208,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test readTextFile handler calls client and returns response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -219,7 +220,7 @@ class ClientSideConnectionTest {
             path = "/test/file.txt"
         )
 
-        // When - simulate agent sending readTextFile request
+        // When - simulate agent sending fsReadTextFile request
         val requestJson = """{"jsonrpc":"2.0","id":42,"method":"fs/read_text_file","params":${
             ACPJson.encodeToString(
                 ReadTextFileRequest.serializer(), request)}}"""
@@ -237,7 +238,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test writeTextFile handler calls client`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -247,7 +248,7 @@ class ClientSideConnectionTest {
             content = "new content"
         )
 
-        // When - simulate agent sending writeTextFile request
+        // When - simulate agent sending fsWriteTextFile request
         val requestJson = """{"jsonrpc":"2.0","id":43,"method":"fs/write_text_file","params":${
             ACPJson.encodeToString(
                 WriteTextFileRequest.serializer(), request)}}"""
@@ -265,7 +266,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test requestPermission handler calls client and returns response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -291,7 +292,7 @@ class ClientSideConnectionTest {
         val expectedOutcome = RequestPermissionOutcome.Selected(PermissionOptionId("allow"))
         mockClient.requestPermissionResult = RequestPermissionResponse(expectedOutcome)
 
-        // When - simulate agent sending requestPermission request
+        // When - simulate agent sending sessionRequestPermission request
         val requestJson = """{"jsonrpc":"2.0","id":44,"method":"session/request_permission","params":${
             ACPJson.encodeToString(
                 RequestPermissionRequest.serializer(), request)}}"""
@@ -309,7 +310,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test sessionUpdate handler calls client`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -343,7 +344,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test initialize method handles JSON-RPC error response`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -367,31 +368,48 @@ class ClientSideConnectionTest {
     @Test
     fun `test client method exception propagates to agent`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
         // Configure mock to throw exception
         val testClient = object : Client {
-            override suspend fun readTextFile(request: ReadTextFileRequest): ReadTextFileResponse {
+            override suspend fun fsReadTextFile(request: ReadTextFileRequest): ReadTextFileResponse {
                 throw RuntimeException("File not found")
             }
-            override suspend fun writeTextFile(request: WriteTextFileRequest) {}
-            override suspend fun requestPermission(request: RequestPermissionRequest): RequestPermissionResponse {
+            override suspend fun fsWriteTextFile(request: WriteTextFileRequest): WriteTextFileResponse {
+                throw RuntimeException("Write failed")
+            }
+            override suspend fun sessionRequestPermission(request: RequestPermissionRequest): RequestPermissionResponse {
                 return RequestPermissionResponse(RequestPermissionOutcome.Cancelled)
             }
             override suspend fun sessionUpdate(notification: SessionNotification) {}
+            override suspend fun terminalCreate(request: CreateTerminalRequest): CreateTerminalResponse {
+                throw RuntimeException("Terminal not supported")
+            }
+            override suspend fun terminalOutput(request: TerminalOutputRequest): TerminalOutputResponse {
+                throw RuntimeException("Terminal not supported")
+            }
+            override suspend fun terminalRelease(request: ReleaseTerminalRequest): ReleaseTerminalResponse {
+                throw RuntimeException("Terminal not supported")
+            }
+            override suspend fun terminalWaitForExit(request: WaitForTerminalExitRequest): WaitForTerminalExitResponse {
+                throw RuntimeException("Terminal not supported")
+            }
+            override suspend fun terminalKill(request: KillTerminalCommandRequest): KillTerminalCommandResponse {
+                throw RuntimeException("Terminal not supported")
+            }
         }
 
-        val connectionWithFailingClient = ClientSideConnection(testClient)
-        connectionWithFailingClient.start(agentTransport)
+        val connectionWithFailingClient = ClientSideConnection(this, agentTransport, testClient)
+        connectionWithFailingClient.start()
 
         val request = ReadTextFileRequest(
             sessionId = SessionId("test-session"),
             path = "/nonexistent/file.txt"
         )
 
-        // When - simulate agent sending readTextFile request
+        // When - simulate agent sending fsReadTextFile request
         val requestJson = """{"jsonrpc":"2.0","id":42,"method":"fs/read_text_file","params":${
             ACPJson.encodeToString(
                 ReadTextFileRequest.serializer(), request)}}"""
@@ -408,7 +426,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test transport disconnection during operation`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -434,7 +452,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test full request-response cycle with real JSON serialization`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -472,7 +490,7 @@ class ClientSideConnectionTest {
         val expectedSessionResponse = NewSessionResponse(SessionId("new-session-123"))
 
         val sessionDeferred = async {
-            clientConnection.newSession(sessionRequest)
+            clientConnection.sessionNew(sessionRequest)
         }
         
         val sessionResponseJson = """{"jsonrpc":"2.0","id":2,"result":${ACPJson.encodeToString(NewSessionResponse.serializer(), expectedSessionResponse)}}"""
@@ -488,7 +506,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test concurrent requests handling`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -500,7 +518,7 @@ class ClientSideConnectionTest {
 
         // When - send concurrent requests
         val deferred1 = async { clientConnection.initialize(request1) }
-        val deferred2 = async { clientConnection.newSession(request2) }
+        val deferred2 = async { clientConnection.sessionNew(request2) }
 
         // Respond to both requests (order shouldn't matter due to ID correlation)
         val response1Json = """{"jsonrpc":"2.0","id":1,"result":${ACPJson.encodeToString(InitializeResponse.serializer(), response1)}}"""
@@ -521,7 +539,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test bidirectional communication with file operations`() = runTest {
         // Given
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
 
@@ -545,7 +563,7 @@ class ClientSideConnectionTest {
         assertEquals(1, mockClient.readTextFileCalls.size)
         assertEquals("/test/hello.txt", mockClient.readTextFileCalls[0].path)
 
-        // When - client sends prompt request
+        // When - client sends sessionPrompt request
         val promptRequest = PromptRequest(
             sessionId = SessionId("test-session"),
             prompt = listOf(ContentBlock.Text("Process the file content"))
@@ -554,7 +572,7 @@ class ClientSideConnectionTest {
         val promptResponse = PromptResponse(StopReason.END_TURN)
 
         val promptDeferred = async {
-            clientConnection.prompt(promptRequest)
+            clientConnection.sessionPrompt(promptRequest)
         }
 
         val promptResponseJson = """{"jsonrpc":"2.0","id":3,"result":${ACPJson.encodeToString(PromptResponse.serializer(), promptResponse)}}"""

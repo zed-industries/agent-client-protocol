@@ -5,12 +5,14 @@ import io.agentclientprotocol.model.AgentCapabilities
 import io.agentclientprotocol.model.AuthenticateRequest
 import io.agentclientprotocol.model.CancelNotification
 import io.agentclientprotocol.client.Client
+import io.agentclientprotocol.model.AuthenticateResponse
 import io.agentclientprotocol.model.ClientCapabilities
 import io.agentclientprotocol.model.ContentBlock
 import io.agentclientprotocol.model.InitializeRequest
 import io.agentclientprotocol.model.InitializeResponse
 import io.agentclientprotocol.model.LATEST_PROTOCOL_VERSION
 import io.agentclientprotocol.model.LoadSessionRequest
+import io.agentclientprotocol.model.LoadSessionResponse
 import io.agentclientprotocol.model.McpServer
 import io.agentclientprotocol.model.NewSessionRequest
 import io.agentclientprotocol.model.NewSessionResponse
@@ -24,6 +26,8 @@ import io.agentclientprotocol.model.PromptResponse
 import io.agentclientprotocol.model.SessionId
 import io.agentclientprotocol.model.SessionNotification
 import io.agentclientprotocol.model.SessionUpdate
+import io.agentclientprotocol.model.SetSessionModeRequest
+import io.agentclientprotocol.model.SetSessionModeResponse
 import io.agentclientprotocol.model.StopReason
 import io.agentclientprotocol.model.ToolCallContent
 import io.agentclientprotocol.model.ToolCallId
@@ -39,16 +43,22 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Simple example agent implementation.
- * 
+ *
  * This agent demonstrates basic ACP functionality including:
  * - Session management
  * - Content processing
  * - Tool call simulation
  * - Plan reporting
+ *
+ * Note: This agent needs a way to send updates back to the client.
+ * Use [withClient] to create a wrapper that can send updates.
  */
-class SimpleAgent(val client: Client) : Agent {
+class SimpleAgent : Agent {
     private val sessions = ConcurrentHashMap<SessionId, SessionContext>()
     private var clientCapabilities: ClientCapabilities? = null
+
+    // Callback for sending session updates - set by the connection wrapper
+    internal var onSessionUpdate: (suspend (SessionNotification) -> Unit)? = null
 
     data class SessionContext(
         val sessionId: SessionId,
@@ -75,12 +85,13 @@ class SimpleAgent(val client: Client) : Agent {
         )
     }
     
-    override suspend fun authenticate(request: AuthenticateRequest) {
+    override suspend fun authenticate(request: AuthenticateRequest): AuthenticateResponse {
         logger.info { "Authentication requested with method: ${request.methodId}" }
         // No-op: this agent doesn't require authentication
+        return AuthenticateResponse()
     }
     
-    override suspend fun newSession(request: NewSessionRequest): NewSessionResponse {
+    override suspend fun sessionNew(request: NewSessionRequest): NewSessionResponse {
         val sessionId = SessionId("session-${System.currentTimeMillis()}")
         val context = SessionContext(
             sessionId = sessionId,
@@ -93,18 +104,25 @@ class SimpleAgent(val client: Client) : Agent {
         return NewSessionResponse(sessionId)
     }
     
-    override suspend fun loadSession(request: LoadSessionRequest) {
+    override suspend fun sessionLoad(request: LoadSessionRequest): LoadSessionResponse {
         val context = SessionContext(
             sessionId = request.sessionId,
             cwd = request.cwd,
             mcpServers = request.mcpServers
         )
         sessions[request.sessionId] = context
-        
+
         logger.info { "Loaded session: ${request.sessionId}" }
+        return LoadSessionResponse()
     }
-    
-    override suspend fun prompt(request: PromptRequest): PromptResponse {
+
+    override suspend fun sessionSetMode(request: SetSessionModeRequest): SetSessionModeResponse {
+        logger.info { "Session mode change requested for session ${request.sessionId} to mode ${request.modeId}" }
+        // This simple agent doesn't support multiple modes, so just acknowledge
+        return SetSessionModeResponse()
+    }
+
+    override suspend fun sessionPrompt(request: PromptRequest): PromptResponse {
         val context = sessions[request.sessionId]
             ?: throw IllegalArgumentException("Unknown session: ${request.sessionId}")
             
@@ -112,7 +130,7 @@ class SimpleAgent(val client: Client) : Agent {
             return PromptResponse(StopReason.CANCELLED)
         }
         
-        logger.info { "Processing prompt for session ${request.sessionId}" }
+        logger.info { "Processing sessionPrompt for session ${request.sessionId}" }
         
         try {
             // Send initial plan
@@ -120,7 +138,7 @@ class SimpleAgent(val client: Client) : Agent {
             
             // Echo the user's message
             for (block in request.prompt) {
-                client.sessionUpdate(
+                onSessionUpdate?.invoke(
                     SessionNotification(
                         sessionId = request.sessionId,
                         update = SessionUpdate.UserMessageChunk(block)
@@ -128,14 +146,14 @@ class SimpleAgent(val client: Client) : Agent {
                 )
                 delay(100) // Simulate processing time
             }
-            
+
             // Send agent response
             val responseText = "I received your message: ${
                 request.prompt.filterIsInstance<ContentBlock.Text>()
                     .joinToString(" ") { it.text }
             }"
-            
-            client.sessionUpdate(
+
+            onSessionUpdate?.invoke(
                 SessionNotification(
                     sessionId = request.sessionId,
                     update = SessionUpdate.AgentMessageChunk(
@@ -152,12 +170,12 @@ class SimpleAgent(val client: Client) : Agent {
             return PromptResponse(StopReason.END_TURN)
             
         } catch (e: Exception) {
-            logger.error(e) { "Error processing prompt" }
+            logger.error(e) { "Error processing sessionPrompt" }
             return PromptResponse(StopReason.REFUSAL)
         }
     }
     
-    override suspend fun cancel(notification: CancelNotification) {
+    override suspend fun sessionCancel(notification: CancelNotification) {
         logger.info { "Cancellation requested for session: ${notification.sessionId}" }
         sessions[notification.sessionId]?.cancelled = true
     }
@@ -171,7 +189,7 @@ class SimpleAgent(val client: Client) : Agent {
             )
         )
         
-        client.sessionUpdate(
+        onSessionUpdate?.invoke(
             SessionNotification(
                 sessionId = sessionId,
                 update = SessionUpdate.PlanUpdate(plan.entries)
@@ -181,9 +199,9 @@ class SimpleAgent(val client: Client) : Agent {
     
     private suspend fun simulateToolCall(sessionId: SessionId) {
         val toolCallId = ToolCallId("tool-${System.currentTimeMillis()}")
-        
+
         // Start tool call
-        client.sessionUpdate(
+        onSessionUpdate?.invoke(
             SessionNotification(
                 sessionId = sessionId,
                 update = SessionUpdate.ToolCallUpdate(
@@ -196,11 +214,11 @@ class SimpleAgent(val client: Client) : Agent {
                 )
             )
         )
-        
+
         delay(500) // Simulate work
-        
+
         // Update to in progress
-        client.sessionUpdate(
+        onSessionUpdate?.invoke(
             SessionNotification(
                 sessionId = sessionId,
                 update = SessionUpdate.ToolCallUpdate(
@@ -209,11 +227,11 @@ class SimpleAgent(val client: Client) : Agent {
                 )
             )
         )
-        
+
         delay(500) // Simulate more work
-        
+
         // Complete the tool call
-        client.sessionUpdate(
+        onSessionUpdate?.invoke(
             SessionNotification(
                 sessionId = sessionId,
                 update = SessionUpdate.ToolCallUpdate(

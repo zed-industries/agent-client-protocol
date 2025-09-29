@@ -39,15 +39,16 @@ fun main() = runBlocking {
         // Create STDIO transport (for subprocess communication)
         // In a real scenario, this would connect to an agent process
         val transport = StdioTransport(
+            parentScope = this,
             input = System.`in`.asSource().buffered(),
             output = System.out.asSink().buffered()
         )
-        
+
         // Create client-side connection
-        val connection = ClientSideConnection(client)
-        
+        val connection = ClientSideConnection(this, transport, client)
+
         // Connect to agent
-        connection.start(transport)
+        connection.start()
         
         // Initialize the agent
         val initResponse = connection.initialize(
@@ -68,7 +69,7 @@ fun main() = runBlocking {
         println("  Auth methods: ${initResponse.authMethods}")
         
         // Create a session
-        val sessionResponse = connection.newSession(
+        val sessionResponse = connection.sessionNew(
             NewSessionRequest(
                 cwd = System.getProperty("user.dir"),
                 mcpServers = emptyList()
@@ -77,8 +78,8 @@ fun main() = runBlocking {
         
         println("Created session: ${sessionResponse.sessionId}")
         
-        // Send a test prompt
-        val promptResponse = connection.prompt(
+        // Send a test sessionPrompt
+        val promptResponse = connection.sessionPrompt(
             PromptRequest(
                 sessionId = sessionResponse.sessionId,
                 prompt = listOf(

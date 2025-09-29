@@ -12,17 +12,17 @@ class SimpleConnectionTest {
         // Given
         val mockClient = MockClient()
         val (clientTransport, agentTransport) = TestTransport.createPair()
-        val clientConnection = ClientSideConnection(mockClient)
-        
+        val clientConnection = ClientSideConnection(this, clientTransport, mockClient)
+
         // When
-        clientConnection.start(clientTransport)
+        clientConnection.start()
         clientTransport.start()
         agentTransport.start()
-        
+
         // Then
         assertTrue(clientTransport.isConnected)
         assertTrue(agentTransport.isConnected)
-        
+
         // Cleanup
         clientTransport.close()
         agentTransport.close()

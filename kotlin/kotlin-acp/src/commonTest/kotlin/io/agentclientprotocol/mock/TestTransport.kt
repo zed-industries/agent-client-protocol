@@ -1,11 +1,12 @@
 package io.agentclientprotocol.mock
 
+import io.agentclientprotocol.rpc.ACPJson
 import io.agentclientprotocol.rpc.JsonRpcMessage
 import io.agentclientprotocol.transport.Transport
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * In-memory transport for testing ACP implementations.
@@ -14,17 +15,12 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * without requiring external protocols like STDIO or WebSocket.
  */
 class TestTransport : Transport {
-    private val incomingMessages = Channel<String>(Channel.Factory.UNLIMITED)
-    private val outgoingMessages = Channel<String>(Channel.Factory.UNLIMITED)
-    private val transportErrors = Channel<Throwable>(Channel.Factory.UNLIMITED)
+    private val _messages = Channel<JsonRpcMessage>(Channel.Factory.UNLIMITED)
 
     private var _isConnected = false
     override val isConnected: Boolean get() = _isConnected
 
-    override var onClose: (() -> Unit)? = null
-
-    override val messages: ReceiveChannel<JsonRpcMessage> = incomingMessages.receiveAsFlow()
-    override val errors: Flow<Throwable> = transportErrors.receiveAsFlow()
+    override val messages: ReceiveChannel<JsonRpcMessage> = _messages
 
     /**
      * Create a connected pair of test transports for agent-client communication.
@@ -44,43 +40,47 @@ class TestTransport : Transport {
 
     private var connectedTransport: TestTransport? = null
 
-    override suspend fun start() {
+    override fun start() {
         _isConnected = true
     }
 
-    override suspend fun send(message: JsonRpcMessage) {
+    override fun send(message: JsonRpcMessage) {
         if (!_isConnected) {
             throw IllegalStateException("Transport is not connected")
         }
 
         val connected = connectedTransport
         if (connected != null && connected._isConnected) {
-            connected.incomingMessages.send(message)
+            // Send directly to connected transport's incoming channel
+            // This needs to be non-blocking for the new interface
+            if (!connected._messages.trySend(message).isSuccess) {
+                throw IllegalStateException("Failed to send message - channel full or closed")
+            }
         }
     }
 
-    override suspend fun close() {
+    override fun close() {
         if (!_isConnected) return
 
         _isConnected = false
-        incomingMessages.close()
-        outgoingMessages.close()
-        transportErrors.close()
-
-        onClose?.invoke()
+        _messages.close()
     }
 
     /**
      * Simulate receiving a message from the connected transport.
      */
-    public suspend fun receiveMessage(message: String) {
-        incomingMessages.send(message)
+    public fun receiveMessage(message: JsonRpcMessage) {
+        if (!_messages.trySend(message).isSuccess) {
+            throw IllegalStateException("Failed to receive message - channel full or closed")
+        }
     }
 
     /**
-     * Simulate a transport error.
+     * Simulate receiving a JSON-encoded message from the connected transport.
+     * Parses the JSON string and determines the message type based on the presence of fields.
      */
-    public suspend fun simulateError(error: Throwable) {
-        transportErrors.send(error)
+    public fun receiveMessage(jsonMessage: String) {
+        val message = ACPJson.decodeFromString<JsonRpcMessage>(jsonMessage)
+        receiveMessage(message)
     }
 }

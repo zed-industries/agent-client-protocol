@@ -11,7 +11,6 @@ import io.agentclientprotocol.model.StopReason
 import io.agentclientprotocol.client.ClientSideConnection
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
@@ -72,7 +71,7 @@ suspend fun main() = coroutineScope {
         println()
         
         // Create a session
-        val sessionResponse = connection.newSession(
+        val sessionResponse = connection.sessionNew(
             NewSessionRequest(
                 cwd = System.getProperty("user.dir"),
                 mcpServers = emptyList()
@@ -104,7 +103,7 @@ suspend fun main() = coroutineScope {
                 print("Agent: ")
                 
                 // Send user input to agent
-                val promptResponse = connection.prompt(
+                val promptResponse = connection.sessionPrompt(
                     PromptRequest(
                         sessionId = sessionResponse.sessionId,
                         prompt = listOf(
