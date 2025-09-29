@@ -4,9 +4,7 @@ package io.agentclientprotocol.rpc
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.ClassDiscriminatorMode
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.*
 import kotlin.jvm.JvmInline
 
 /**
@@ -85,7 +83,30 @@ public val ACPJson: Json by lazy {
         ignoreUnknownKeys = true
         encodeDefaults = true
         isLenient = true
-        classDiscriminatorMode = ClassDiscriminatorMode.POLYMORPHIC
         explicitNulls = false
+    }
+}
+
+/**
+ * Helper function to decode JSON-RPC messages based on field presence.
+ * JSON-RPC 2.0 spec distinguishes message types by which fields are present:
+ * - Response: has "id" and ("result" or "error")
+ * - Request: has "id" and "method"
+ * - Notification: has "method" but no "id"
+ */
+public fun decodeJsonRpcMessage(jsonString: String): JsonRpcMessage {
+    val element = ACPJson.parseToJsonElement(jsonString)
+    require(element is JsonObject) { "Expected JSON object" }
+
+    val hasId = element.containsKey("id")
+    val hasMethod = element.containsKey("method")
+    val hasResult = element.containsKey("result")
+    val hasError = element.containsKey("error")
+
+    return when {
+        hasId && (hasResult || hasError) -> ACPJson.decodeFromJsonElement(JsonRpcResponse.serializer(), element)
+        hasId && hasMethod -> ACPJson.decodeFromJsonElement(JsonRpcRequest.serializer(), element)
+        hasMethod -> ACPJson.decodeFromJsonElement(JsonRpcNotification.serializer(), element)
+        else -> error("Unable to determine JsonRpcMessage type from JSON structure")
     }
 }

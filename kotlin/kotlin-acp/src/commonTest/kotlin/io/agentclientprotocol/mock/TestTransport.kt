@@ -1,7 +1,7 @@
 package io.agentclientprotocol.mock
 
-import io.agentclientprotocol.rpc.ACPJson
 import io.agentclientprotocol.rpc.JsonRpcMessage
+import io.agentclientprotocol.rpc.decodeJsonRpcMessage
 import io.agentclientprotocol.transport.Transport
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -80,7 +80,7 @@ class TestTransport : Transport {
      * Parses the JSON string and determines the message type based on the presence of fields.
      */
     public fun receiveMessage(jsonMessage: String) {
-        val message = ACPJson.decodeFromString<JsonRpcMessage>(jsonMessage)
+        val message = decodeJsonRpcMessage(jsonMessage)
         receiveMessage(message)
     }
 }

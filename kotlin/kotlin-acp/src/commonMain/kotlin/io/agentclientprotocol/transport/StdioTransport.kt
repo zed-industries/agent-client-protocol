@@ -2,6 +2,7 @@ package io.agentclientprotocol.transport
 
 import io.agentclientprotocol.rpc.ACPJson
 import io.agentclientprotocol.rpc.JsonRpcMessage
+import io.agentclientprotocol.rpc.decodeJsonRpcMessage
 import io.agentclientprotocol.util.DispatcherIO
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.atomicfu.atomic
@@ -57,7 +58,7 @@ public class StdioTransport(
                     }
 
                     val jsonRpcMessage = try {
-                        ACPJson.decodeFromString<JsonRpcMessage>(line)
+                        decodeJsonRpcMessage(line)
                     } catch (t: Throwable) {
                         logger.error(t) { "Failed to decode JSON message: $line" }
                         continue
