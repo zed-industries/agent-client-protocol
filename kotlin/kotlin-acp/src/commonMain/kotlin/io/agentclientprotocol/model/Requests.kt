@@ -158,7 +158,7 @@ public sealed class RequestPermissionOutcome {
 public data class InitializeRequest(
     val protocolVersion: ProtocolVersion,
     val clientCapabilities: ClientCapabilities = ClientCapabilities()
-)
+) : AcpRequest
 
 /**
  * Request parameters for the authenticate method.
@@ -168,7 +168,7 @@ public data class InitializeRequest(
 @Serializable
 public data class AuthenticateRequest(
     val methodId: AuthMethodId
-)
+) : AcpRequest
 
 /**
  * Request parameters for creating a new session.
@@ -179,7 +179,7 @@ public data class AuthenticateRequest(
 public data class NewSessionRequest(
     val cwd: String,
     val mcpServers: List<McpServer>
-)
+) : AcpRequest
 
 /**
  * Request parameters for loading an existing session.
@@ -193,7 +193,7 @@ public data class LoadSessionRequest(
     val sessionId: SessionId,
     val cwd: String,
     val mcpServers: List<McpServer>
-)
+) : AcpRequest
 
 /**
  * Request parameters for sending a user prompt to the agent.
@@ -206,7 +206,7 @@ public data class LoadSessionRequest(
 public data class PromptRequest(
     val sessionId: SessionId,
     val prompt: List<ContentBlock>
-)
+) : AcpRequest
 
 /**
  * Request to read content from a text file.
@@ -219,7 +219,7 @@ public data class ReadTextFileRequest(
     val path: String,
     val line: UInt? = null,
     val limit: UInt? = null
-)
+) : AcpRequest
 
 /**
  * Request to write content to a text file.
@@ -231,7 +231,7 @@ public data class WriteTextFileRequest(
     val sessionId: SessionId,
     val path: String,
     val content: String
-)
+) : AcpRequest
 
 /**
  * Request for user permission to execute a tool call.
@@ -245,7 +245,7 @@ public data class RequestPermissionRequest(
     val sessionId: SessionId,
     val toolCall: ToolCallUpdate,
     val options: List<PermissionOption>
-)
+) : AcpRequest
 
 /**
  * Request parameters for setting a session mode.
@@ -254,7 +254,7 @@ public data class RequestPermissionRequest(
 public data class SetSessionModeRequest(
     val sessionId: SessionId,
     val modeId: SessionModeId
-)
+) : AcpRequest
 
 /**
  * **UNSTABLE**
@@ -267,7 +267,7 @@ public data class SetSessionModeRequest(
 public data class SetSessionModelRequest(
     val sessionId: SessionId,
     val modelId: ModelId
-)
+) : AcpRequest
 
 // === Response Types ===
 
@@ -283,7 +283,7 @@ public data class InitializeResponse(
     val protocolVersion: ProtocolVersion,
     val agentCapabilities: AgentCapabilities = AgentCapabilities(),
     val authMethods: List<AuthMethod> = emptyList()
-)
+) : AcpResponse
 
 /**
  * A mode the agent can operate in.
@@ -343,7 +343,7 @@ public data class NewSessionResponse(
     val sessionId: SessionId,
     val modes: SessionModeState? = null,
     val models: SessionModelState? = null
-)
+) : AcpResponse
 
 /**
  * Response from processing a user prompt.
@@ -353,7 +353,7 @@ public data class NewSessionResponse(
 @Serializable
 public data class PromptResponse(
     val stopReason: StopReason
-)
+) : AcpResponse
 
 /**
  * Response from loading an existing session.
@@ -362,7 +362,7 @@ public data class PromptResponse(
 public data class LoadSessionResponse(
     val modes: SessionModeState? = null,
     val models: SessionModelState? = null
-)
+) : AcpResponse
 
 /**
  * Response containing the contents of a text file.
@@ -370,7 +370,7 @@ public data class LoadSessionResponse(
 @Serializable
 public data class ReadTextFileResponse(
     val content: String
-)
+) : AcpResponse
 
 /**
  * Response to a permission request.
@@ -378,19 +378,19 @@ public data class ReadTextFileResponse(
 @Serializable
 public data class RequestPermissionResponse(
     val outcome: RequestPermissionOutcome
-)
+) : AcpResponse
 
 /**
  * Response to authenticate method
  */
 @Serializable
-public class AuthenticateResponse
+public class AuthenticateResponse : AcpResponse
 
 /**
  * Response to `session/set_mode` method.
  */
 @Serializable
-public class SetSessionModeResponse
+public class SetSessionModeResponse : AcpResponse
 
 /**
  * **UNSTABLE**
@@ -400,19 +400,19 @@ public class SetSessionModeResponse
  * Response to `session/set_model` method.
  */
 @Serializable
-public class SetSessionModelResponse
+public class SetSessionModelResponse : AcpResponse
 
 /**
  * Response to `fs/write_text_file`
  */
 @Serializable
-public class WriteTextFileResponse
+public class WriteTextFileResponse : AcpResponse
 
 /**
  * Response to terminal/release method
  */
 @Serializable
-public class ReleaseTerminalResponse
+public class ReleaseTerminalResponse : AcpResponse
 
 // === Notification Types ===
 

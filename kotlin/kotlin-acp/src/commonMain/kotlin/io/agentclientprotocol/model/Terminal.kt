@@ -22,7 +22,7 @@ public data class CreateTerminalRequest(
     val cwd: String? = null,
     val env: List<EnvVariable> = emptyList(),
     val outputByteLimit: ULong? = null
-)
+) : AcpRequest
 
 /**
  * Response from creating a terminal session.
@@ -30,7 +30,7 @@ public data class CreateTerminalRequest(
 @Serializable
 public data class CreateTerminalResponse(
     val terminalId: String
-)
+) : AcpResponse
 
 /**
  * Request to get output from a terminal.
@@ -39,7 +39,7 @@ public data class CreateTerminalResponse(
 public data class TerminalOutputRequest(
     val sessionId: SessionId,
     val terminalId: String
-)
+) : AcpRequest
 
 /**
  * Response containing terminal output.
@@ -49,7 +49,7 @@ public data class TerminalOutputResponse(
     val output: String,
     val truncated: Boolean,
     val exitStatus: TerminalExitStatus? = null
-)
+) : AcpResponse
 
 /**
  * Request to release a terminal session.
@@ -58,7 +58,7 @@ public data class TerminalOutputResponse(
 public data class ReleaseTerminalRequest(
     val sessionId: SessionId,
     val terminalId: String
-)
+) : AcpRequest
 
 /**
  * Request to wait for a terminal to exit.
@@ -67,7 +67,7 @@ public data class ReleaseTerminalRequest(
 public data class WaitForTerminalExitRequest(
     val sessionId: SessionId,
     val terminalId: String
-)
+) : AcpRequest
 
 /**
  * Response from waiting for terminal exit.
@@ -76,7 +76,7 @@ public data class WaitForTerminalExitRequest(
 public data class WaitForTerminalExitResponse(
     val exitCode: UInt? = null,
     val signal: String? = null
-)
+) : AcpResponse
 
 /**
  * Terminal exit status information.
@@ -94,10 +94,10 @@ public data class TerminalExitStatus(
 public data class KillTerminalCommandRequest(
     val sessionId: SessionId,
     val terminalId: String
-)
+) : AcpRequest
 
 /**
  * Response to terminal/kill command method
  */
 @Serializable
-public class KillTerminalCommandResponse
+public class KillTerminalCommandResponse : AcpResponse
