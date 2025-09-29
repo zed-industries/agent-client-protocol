@@ -1,7 +1,9 @@
 package io.agentclientprotocol.mock
 
+import io.agentclientprotocol.rpc.JsonRpcMessage
 import io.agentclientprotocol.transport.Transport
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -21,7 +23,7 @@ class TestTransport : Transport {
 
     override var onClose: (() -> Unit)? = null
 
-    override val messages: Flow<String> = incomingMessages.receiveAsFlow()
+    override val messages: ReceiveChannel<JsonRpcMessage> = incomingMessages.receiveAsFlow()
     override val errors: Flow<Throwable> = transportErrors.receiveAsFlow()
 
     /**
@@ -46,7 +48,7 @@ class TestTransport : Transport {
         _isConnected = true
     }
 
-    override suspend fun send(message: String) {
+    override suspend fun send(message: JsonRpcMessage) {
         if (!_isConnected) {
             throw IllegalStateException("Transport is not connected")
         }

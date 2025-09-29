@@ -2,6 +2,7 @@ package io.agentclientprotocol.samples.client
 
 import io.agentclientprotocol.transport.StdioTransport
 import io.agentclientprotocol.transport.Transport
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.io.asSink
 import kotlinx.io.asSource
 import kotlinx.io.buffered
@@ -14,7 +15,7 @@ import kotlinx.io.buffered
  * @param command The command to execute as varargs (command and arguments)
  * @return A Transport connected to the process's stdin/stdout
  */
-fun createProcessStdioTransport(vararg command: String): Transport {
+fun createProcessStdioTransport(coroutineScope: CoroutineScope, vararg command: String): Transport {
     val process = ProcessBuilder(*command)
         .redirectInput(ProcessBuilder.Redirect.PIPE)
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
@@ -22,5 +23,5 @@ fun createProcessStdioTransport(vararg command: String): Transport {
         .start()
     val stdin = process.outputStream.asSink().buffered()
     val stdout = process.inputStream.asSource().buffered()
-    return StdioTransport(input = stdout, output = stdin)
+    return StdioTransport(parentScope = coroutineScope, input = stdout, output = stdin)
 }

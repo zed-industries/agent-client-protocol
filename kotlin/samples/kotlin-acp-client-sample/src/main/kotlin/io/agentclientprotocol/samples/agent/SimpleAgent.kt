@@ -46,15 +46,10 @@ private val logger = KotlinLogging.logger {}
  * - Tool call simulation
  * - Plan reporting
  */
-class SimpleAgent : Agent {
+class SimpleAgent(val client: Client) : Agent {
     private val sessions = ConcurrentHashMap<SessionId, SessionContext>()
     private var clientCapabilities: ClientCapabilities? = null
-    private lateinit var client: Client
-    
-    fun setClient(client: Client) {
-        this.client = client
-    }
-    
+
     data class SessionContext(
         val sessionId: SessionId,
         val cwd: String,

@@ -10,6 +10,7 @@ import io.agentclientprotocol.model.PromptRequest
 import io.agentclientprotocol.model.StopReason
 import io.agentclientprotocol.client.ClientSideConnection
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -29,7 +30,7 @@ private val logger = KotlinLogging.logger {}
  * ./gradlew :samples:kotlin-acp-client-sample:run -PmainClass=io.agentclientprotocol.samples.client.GeminiClientAppKt
  * ```
  */
-fun main() = runBlocking {
+suspend fun main() = coroutineScope {
     logger.info { "Starting Gemini ACP Client App" }
     
     try {
@@ -37,16 +38,15 @@ fun main() = runBlocking {
         val client = SimpleClient(File("."))
         
         // Create process transport to start Gemini agent
-        val transport = createProcessStdioTransport("gemini", "--experimental-acp")
+        val transport = createProcessStdioTransport(this, "gemini", "--experimental-acp")
         
         // Create client-side connection
-        val connection = ClientSideConnection(client)
+        val connection = ClientSideConnection(this, transport, client)
         
         logger.info { "Starting Gemini agent process..." }
         
         // Connect to agent and start transport
-        connection.connect(transport)
-        transport.start()
+        connection.start()
         
         logger.info { "Connected to Gemini agent, initializing..." }
         

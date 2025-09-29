@@ -36,7 +36,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test connection establishment`() = runTest {
         // When
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
 
         // Then
         assertTrue(clientTransport.isConnected)
@@ -48,7 +48,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test initialize method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -82,7 +82,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test authenticate method sends correct request`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -105,7 +105,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test newSession method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -134,7 +134,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test loadSession method sends correct request`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -161,7 +161,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test prompt method sends correct request and handles response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -189,7 +189,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test cancel method sends notification`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -207,7 +207,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test readTextFile handler calls client and returns response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -237,7 +237,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test writeTextFile handler calls client`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -265,7 +265,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test requestPermission handler calls client and returns response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -309,7 +309,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test sessionUpdate handler calls client`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -343,7 +343,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test initialize method handles JSON-RPC error response`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -367,7 +367,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test client method exception propagates to agent`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -384,7 +384,7 @@ class ClientSideConnectionTest {
         }
 
         val connectionWithFailingClient = ClientSideConnection(testClient)
-        connectionWithFailingClient.connect(agentTransport)
+        connectionWithFailingClient.start(agentTransport)
 
         val request = ReadTextFileRequest(
             sessionId = SessionId("test-session"),
@@ -408,7 +408,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test transport disconnection during operation`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -434,7 +434,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test full request-response cycle with real JSON serialization`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -488,7 +488,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test concurrent requests handling`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 
@@ -521,7 +521,7 @@ class ClientSideConnectionTest {
     @Test
     fun `test bidirectional communication with file operations`() = runTest {
         // Given
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
 

@@ -15,7 +15,7 @@ class SimpleConnectionTest {
         val clientConnection = ClientSideConnection(mockClient)
         
         // When
-        clientConnection.connect(clientTransport)
+        clientConnection.start(clientTransport)
         clientTransport.start()
         agentTransport.start()
         

@@ -3,6 +3,7 @@ package io.agentclientprotocol.samples.agent
 import io.agentclientprotocol.agent.AgentSideConnection
 import io.agentclientprotocol.transport.StdioTransport
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.asSource
@@ -22,25 +23,25 @@ private val logger = KotlinLogging.logger {}
  * ./gradlew :samples:kotlin-acp-agent-sample:run
  * ```
  */
-fun main() = runBlocking {
+suspend fun main() = coroutineScope {
     logger.info { "Starting ACP Agent Sample" }
     
     try {
         // Create the agent implementation
-        val agent = SimpleAgent()
-        
+
         // Create STDIO transport
         val transport = StdioTransport(
+            parentScope = this,
             input = System.`in`.asSource().buffered(),
             output = System.out.asSink().buffered()
         )
-        
+
+        val agent = SimpleAgent()
         // Create agent-side connection
-        val connection = AgentSideConnection(agent)
-        agent.setClient(connection)
-        
+        val connection = AgentSideConnection(this, agent, transport)
+
         // Connect and start processing
-        connection.connect(transport)
+        connection.start()
         
         logger.info { "Agent connected and ready" }
         

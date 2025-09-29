@@ -47,7 +47,7 @@ fun main() = runBlocking {
         val connection = ClientSideConnection(client)
         
         // Connect to agent
-        connection.connect(transport)
+        connection.start(transport)
         
         // Initialize the agent
         val initResponse = connection.initialize(

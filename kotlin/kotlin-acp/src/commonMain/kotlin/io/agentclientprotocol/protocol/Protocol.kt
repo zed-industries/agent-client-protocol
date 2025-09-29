@@ -2,26 +2,18 @@
 
 package io.agentclientprotocol.protocol
 
-import io.agentclientprotocol.model.ACPJson
+import io.agentclientprotocol.rpc.*
 import io.agentclientprotocol.transport.Transport
-import io.agentclientprotocol.rpc.JsonRpcError
-import io.agentclientprotocol.rpc.JsonRpcErrorCode
-import io.agentclientprotocol.rpc.JsonRpcNotification
-import io.agentclientprotocol.rpc.JsonRpcRequest
-import io.agentclientprotocol.rpc.JsonRpcResponse
-import io.agentclientprotocol.rpc.RequestId
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.AtomicLong
+import kotlinx.atomicfu.AtomicRef
+import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.*
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlin.coroutines.CoroutineContext
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -56,19 +48,15 @@ public open class ProtocolOptions(
  *
  * This class manages request/response correlation, notifications, and error handling.
  */
-public abstract class Protocol(
-    private val options: ProtocolOptions = ProtocolOptions()
-) : CoroutineScope {
-    
-    private val job = SupervisorJob()
-    override val coroutineContext: CoroutineContext = Dispatchers.Default + job
-
-    public var transport: Transport? = null
-        private set
-
-    private val pendingRequests: AtomicRef<PersistentMap<RequestId, CompletableDeferred<JsonElement>>> = 
-        atomic(persistentMapOf())
+public class Protocol(
+    parentScope: CoroutineScope,
+    private val transport: Transport,
+    private val options: ProtocolOptions = ProtocolOptions(),
+) {
+    private val scope = CoroutineScope(parentScope.coroutineContext + CoroutineName(::Protocol.name) + SupervisorJob(parentScope.coroutineContext[Job]))
     private val requestIdCounter: AtomicLong = atomic(0L)
+    private val pendingRequests: AtomicRef<PersistentMap<RequestId, CompletableDeferred<JsonElement>>> =
+        atomic(persistentMapOf())
 
     /**
      * Request handlers for incoming requests.
@@ -85,20 +73,19 @@ public abstract class Protocol(
     /**
      * Connect to a transport and start processing messages.
      */
-    public open suspend fun connect(transport: Transport) {
-        this.transport = transport
+    public fun start() {
         
-        transport.onClose = {
-            // Cancel all pending requests
-            val requests = pendingRequests.getAndSet(persistentMapOf())
-            requests.values.forEach { deferred ->
-                deferred.cancel("Transport closed")
-            }
-        }
+//        transport.onClose = {
+//            // Cancel all pending requests
+//            val requests = pendingRequests.getAndSet(persistentMapOf())
+//            requests.values.forEach { deferred ->
+//                deferred.cancel("Transport closed")
+//            }
+//        }
 
         // Start processing incoming messages
-        launch {
-            transport.messages.collect { message ->
+        scope.launch {
+            for (message in transport.messages) {
                 try {
                     handleIncomingMessage(message)
                 } catch (e: Exception) {
@@ -106,14 +93,6 @@ public abstract class Protocol(
                 }
             }
         }
-
-        // Handle transport errors
-        launch {
-            transport.errors.collect { error ->
-                logger.error(error) { "Transport error occurred" }
-            }
-        }
-
         transport.start()
     }
 
@@ -125,8 +104,6 @@ public abstract class Protocol(
         params: JsonElement? = null,
         timeout: Duration = options.requestTimeout
     ): JsonElement {
-        val transport = checkNotNull(this.transport) { "Transport not connected" }
-        
         val requestId = RequestId(requestIdCounter.incrementAndGet().toString())
         val deferred = CompletableDeferred<JsonElement>()
         
@@ -139,34 +116,30 @@ public abstract class Protocol(
                 params = params
             )
             
-            val requestJson = ACPJson.encodeToString(request)
-            transport.send(requestJson)
+            transport.send(request)
             
             return withTimeout(timeout) {
                 deferred.await()
             }
         } catch (e: TimeoutCancellationException) {
-            pendingRequests.update { it.remove(requestId) }
             throw RequestTimeoutException("Request timed out after $timeout: $method")
         } catch (e: Exception) {
-            pendingRequests.update { it.remove(requestId) }
             throw e
+        }
+        finally {
+            pendingRequests.update { it.remove(requestId) }
         }
     }
 
     /**
      * Send a notification (no response expected).
      */
-    public suspend fun sendNotification(method: String, params: JsonElement? = null) {
-        val transport = checkNotNull(this.transport) { "Transport not connected" }
-        
+    public fun sendNotification(method: String, params: JsonElement? = null) {
         val notification = JsonRpcNotification(
             method = method,
             params = params
         )
-        
-        val notificationJson = ACPJson.encodeToString(notification)
-        transport.send(notificationJson)
+        transport.send(notification)
     }
 
     /**
@@ -192,34 +165,22 @@ public abstract class Protocol(
     /**
      * Close the protocol and cleanup resources.
      */
-    public open suspend fun close() {
-        transport?.close()
-        job.cancel()
+    public fun close() {
+        transport.close()
+        scope.cancel()
     }
 
-    private suspend fun handleIncomingMessage(message: String) {
+    private suspend fun handleIncomingMessage(message: JsonRpcMessage) {
         try {
-            val jsonElement = ACPJson.parseToJsonElement(message)
-            val jsonObject = jsonElement.jsonObject
-
-            when {
-                jsonObject.containsKey("method") && jsonObject.containsKey("id") -> {
-                    // Request
-                    val request = ACPJson.decodeFromJsonElement<JsonRpcRequest>(jsonElement)
-                    handleRequest(request)
+            when (message) {
+                is JsonRpcNotification -> {
+                    handleNotification(message)
                 }
-                jsonObject.containsKey("method") -> {
-                    // Notification
-                    val notification = ACPJson.decodeFromJsonElement<JsonRpcNotification>(jsonElement)
-                    handleNotification(notification)
+                is JsonRpcRequest -> {
+                    handleRequest(message)
                 }
-                jsonObject.containsKey("result") || jsonObject.containsKey("error") -> {
-                    // Response
-                    val response = ACPJson.decodeFromJsonElement<JsonRpcResponse>(jsonElement)
-                    handleResponse(response)
-                }
-                else -> {
-                    logger.warn { "Unknown message type: $message" }
+                is JsonRpcResponse -> {
+                    handleResponse(message)
                 }
             }
         } catch (e: Exception) {
@@ -244,7 +205,7 @@ public abstract class Protocol(
         } else {
             val error = JsonRpcError(
                 code = JsonRpcErrorCode.METHOD_NOT_FOUND,
-                message = "Method not found: ${request.method}"
+                message = "Method not supported: ${request.method}"
             )
             sendResponse(request.id, null, error)
         }
@@ -285,7 +246,7 @@ public abstract class Protocol(
         }
     }
 
-    private suspend fun sendResponse(
+    private fun sendResponse(
         requestId: RequestId,
         result: JsonElement?,
         error: JsonRpcError?
@@ -297,8 +258,6 @@ public abstract class Protocol(
             result = result,
             error = error
         )
-        
-        val responseJson = ACPJson.encodeToString(response)
-        transport.send(responseJson)
+        transport.send(response)
     }
 }

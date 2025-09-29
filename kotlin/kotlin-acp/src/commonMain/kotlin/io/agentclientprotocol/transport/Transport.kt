@@ -2,6 +2,8 @@
 
 package io.agentclientprotocol.transport
 
+import io.agentclientprotocol.rpc.JsonRpcMessage
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -10,39 +12,24 @@ import kotlinx.coroutines.flow.Flow
  * Transports handle the actual communication between clients and agents,
  * supporting various protocols like STDIO, WebSocket, and SSE.
  */
-public interface Transport {
+public interface Transport : AutoCloseable {
     /**
      * Start the transport and begin listening for messages.
      */
-    public suspend fun start()
-
-    /**
-     * Close the transport and cleanup resources.
-     */
-    public suspend fun close()
+    public fun start()
 
     /**
      * Send a message over the transport.
      * 
      * @param message The JSON-encoded message to send
      */
-    public suspend fun send(message: String)
+    public fun send(message: JsonRpcMessage)
 
     /**
      * Flow of incoming messages from the transport.
      * Each message is a JSON-encoded string.
      */
-    public val messages: Flow<String>
-
-    /**
-     * Flow of transport errors.
-     */
-    public val errors: Flow<Throwable>
-
-    /**
-     * Callback invoked when the transport is closed.
-     */
-    public var onClose: (() -> Unit)?
+    public val messages: ReceiveChannel<JsonRpcMessage>
 
     /**
      * Whether the transport is currently connected.

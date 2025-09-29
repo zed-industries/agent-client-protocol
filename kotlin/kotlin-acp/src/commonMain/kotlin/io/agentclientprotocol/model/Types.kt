@@ -105,14 +105,3 @@ public data class Annotations(
     val priority: Double? = null,
     val lastModified: String? = null
 )
-
-@OptIn(ExperimentalSerializationApi::class)
-public val ACPJson: Json by lazy {
-    Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        isLenient = true
-        classDiscriminatorMode = ClassDiscriminatorMode.POLYMORPHIC
-        explicitNulls = false
-    }
-}
