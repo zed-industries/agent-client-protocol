@@ -2,6 +2,7 @@
 
 package io.agentclientprotocol.protocol
 
+import io.agentclientprotocol.model.AcpMethod
 import io.agentclientprotocol.rpc.*
 import io.agentclientprotocol.transport.Transport
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -100,29 +101,29 @@ public class Protocol(
      * Send a request and wait for the response.
      */
     public suspend fun sendRequest(
-        method: String,
+        method: AcpMethod,
         params: JsonElement? = null,
         timeout: Duration = options.requestTimeout
     ): JsonElement {
         val requestId = RequestId(requestIdCounter.incrementAndGet().toString())
         val deferred = CompletableDeferred<JsonElement>()
-        
+
         pendingRequests.update { it.put(requestId, deferred) }
-        
+
         try {
             val request = JsonRpcRequest(
                 id = requestId,
-                method = method,
+                method = method.methodName,
                 params = params
             )
-            
+
             transport.send(request)
-            
+
             return withTimeout(timeout) {
                 deferred.await()
             }
         } catch (e: TimeoutCancellationException) {
-            throw RequestTimeoutException("Request timed out after $timeout: $method")
+            throw RequestTimeoutException("Request timed out after $timeout: ${method.methodName}")
         } catch (e: Exception) {
             throw e
         }
@@ -134,9 +135,9 @@ public class Protocol(
     /**
      * Send a notification (no response expected).
      */
-    public fun sendNotification(method: String, params: JsonElement? = null) {
+    public fun sendNotification(method: AcpMethod, params: JsonElement? = null) {
         val notification = JsonRpcNotification(
-            method = method,
+            method = method.methodName,
             params = params
         )
         transport.send(notification)
@@ -146,20 +147,20 @@ public class Protocol(
      * Register a handler for incoming requests.
      */
     public fun setRequestHandler(
-        method: String, 
+        method: AcpMethod,
         handler: suspend (JsonRpcRequest) -> JsonElement?
     ) {
-        requestHandlers.update { it.put(method, handler) }
+        requestHandlers.update { it.put(method.methodName, handler) }
     }
 
     /**
      * Register a handler for incoming notifications.
      */
     public fun setNotificationHandler(
-        method: String,
+        method: AcpMethod,
         handler: suspend (JsonRpcNotification) -> Unit
     ) {
-        notificationHandlers.update { it.put(method, handler) }
+        notificationHandlers.update { it.put(method.methodName, handler) }
     }
 
     /**
