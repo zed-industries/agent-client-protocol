@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.4 (2025-09-30)
+
+### Protocol
+
+- No changes
+
+### Rust
+
+- Provide default trait implementations for optional capability-based `Agent` and `Client` methods.
+
+### Typescript
+
+- Correctly mark capability-based `Agent` and `Client` methods as optional.
+
 ## 0.4.3 (2025-09-25)
 
 ### Protocol

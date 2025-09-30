@@ -37,28 +37,6 @@ pub trait Client {
         args: RequestPermissionRequest,
     ) -> Result<RequestPermissionResponse, Error>;
 
-    /// Writes content to a text file in the client's file system.
-    ///
-    /// Only available if the client advertises the `fs.writeTextFile` capability.
-    /// Allows the agent to create or modify files within the client's environment.
-    ///
-    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    async fn write_text_file(
-        &self,
-        args: WriteTextFileRequest,
-    ) -> Result<WriteTextFileResponse, Error>;
-
-    /// Reads content from a text file in the client's file system.
-    ///
-    /// Only available if the client advertises the `fs.readTextFile` capability.
-    /// Allows the agent to access file contents within the client's environment.
-    ///
-    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
-    async fn read_text_file(
-        &self,
-        args: ReadTextFileRequest,
-    ) -> Result<ReadTextFileResponse, Error>;
-
     /// Handles session update notifications from the agent.
     ///
     /// This is a notification endpoint (no response expected) that receives
@@ -71,6 +49,32 @@ pub trait Client {
     ///
     /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
     async fn session_notification(&self, args: SessionNotification) -> Result<(), Error>;
+
+    /// Writes content to a text file in the client's file system.
+    ///
+    /// Only available if the client advertises the `fs.writeTextFile` capability.
+    /// Allows the agent to create or modify files within the client's environment.
+    ///
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+    async fn write_text_file(
+        &self,
+        _args: WriteTextFileRequest,
+    ) -> Result<WriteTextFileResponse, Error> {
+        Err(Error::method_not_found())
+    }
+
+    /// Reads content from a text file in the client's file system.
+    ///
+    /// Only available if the client advertises the `fs.readTextFile` capability.
+    /// Allows the agent to access file contents within the client's environment.
+    ///
+    /// See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
+    async fn read_text_file(
+        &self,
+        _args: ReadTextFileRequest,
+    ) -> Result<ReadTextFileResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Executes a command in a new terminal
     ///
@@ -88,8 +92,10 @@ pub trait Client {
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     async fn create_terminal(
         &self,
-        args: CreateTerminalRequest,
-    ) -> Result<CreateTerminalResponse, Error>;
+        _args: CreateTerminalRequest,
+    ) -> Result<CreateTerminalResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Gets the terminal output and exit status
     ///
@@ -99,8 +105,10 @@ pub trait Client {
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     async fn terminal_output(
         &self,
-        args: TerminalOutputRequest,
-    ) -> Result<TerminalOutputResponse, Error>;
+        _args: TerminalOutputRequest,
+    ) -> Result<TerminalOutputResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Releases a terminal
     ///
@@ -116,16 +124,20 @@ pub trait Client {
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     async fn release_terminal(
         &self,
-        args: ReleaseTerminalRequest,
-    ) -> Result<ReleaseTerminalResponse, Error>;
+        _args: ReleaseTerminalRequest,
+    ) -> Result<ReleaseTerminalResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Waits for the terminal command to exit and return its exit status
     ///
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     async fn wait_for_terminal_exit(
         &self,
-        args: WaitForTerminalExitRequest,
-    ) -> Result<WaitForTerminalExitResponse, Error>;
+        _args: WaitForTerminalExitRequest,
+    ) -> Result<WaitForTerminalExitResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Kills the terminal command without releasing the terminal
     ///
@@ -141,8 +153,10 @@ pub trait Client {
     /// See protocol docs: [Terminals](https://agentclientprotocol.com/protocol/terminals)
     async fn kill_terminal_command(
         &self,
-        args: KillTerminalCommandRequest,
-    ) -> Result<KillTerminalCommandResponse, Error>;
+        _args: KillTerminalCommandRequest,
+    ) -> Result<KillTerminalCommandResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Handles extension method requests from the agent.
     ///
@@ -151,7 +165,9 @@ pub trait Client {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
+    async fn ext_method(&self, _args: ExtRequest) -> Result<ExtResponse, Error> {
+        Ok(RawValue::NULL.to_owned().into())
+    }
 
     /// Handles extension notifications from the agent.
     ///
@@ -160,7 +176,9 @@ pub trait Client {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
+    async fn ext_notification(&self, _args: ExtNotification) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait(?Send)]
