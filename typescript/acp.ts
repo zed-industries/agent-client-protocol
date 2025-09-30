@@ -399,14 +399,14 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.fs_write_text_file: {
           const validatedParams =
             schema.writeTextFileRequestSchema.parse(params);
-          return client.writeTextFile(
+          return client.writeTextFile?.(
             validatedParams as schema.WriteTextFileRequest,
           );
         }
         case schema.CLIENT_METHODS.fs_read_text_file: {
           const validatedParams =
             schema.readTextFileRequestSchema.parse(params);
-          return client.readTextFile(
+          return client.readTextFile?.(
             validatedParams as schema.ReadTextFileRequest,
           );
         }
@@ -1034,7 +1034,7 @@ export interface Client {
    *
    * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
-  writeTextFile(
+  writeTextFile?(
     params: schema.WriteTextFileRequest,
   ): Promise<schema.WriteTextFileResponse>;
   /**
@@ -1045,7 +1045,7 @@ export interface Client {
    *
    * See protocol docs: [Client](https://agentclientprotocol.com/protocol/overview#client)
    */
-  readTextFile(
+  readTextFile?(
     params: schema.ReadTextFileRequest,
   ): Promise<schema.ReadTextFileResponse>;
 

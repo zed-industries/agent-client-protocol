@@ -60,36 +60,6 @@ pub trait Agent {
     /// See protocol docs: [Session Setup](https://agentclientprotocol.com/protocol/session-setup)
     async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse, Error>;
 
-    /// Loads an existing session to resume a previous conversation.
-    ///
-    /// This method is only available if the agent advertises the `loadSession` capability.
-    ///
-    /// The agent should:
-    /// - Restore the session context and conversation history
-    /// - Connect to the specified MCP servers
-    /// - Stream the entire conversation history back to the client via notifications
-    ///
-    /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
-    async fn load_session(&self, args: LoadSessionRequest) -> Result<LoadSessionResponse, Error>;
-
-    /// Sets the current mode for a session.
-    ///
-    /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
-    /// that affect system prompts, tool availability, and permission behaviors.
-    ///
-    /// The mode must be one of the modes advertised in `availableModes` during session
-    /// creation or loading. Agents may also change modes autonomously and notify the
-    /// client via `current_mode_update` notifications.
-    ///
-    /// This method can be called at any time during a session, whether the Agent is
-    /// idle or actively generating a response.
-    ///
-    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
-    async fn set_session_mode(
-        &self,
-        args: SetSessionModeRequest,
-    ) -> Result<SetSessionModeResponse, Error>;
-
     /// Processes a user prompt within a session.
     ///
     /// This method handles the whole lifecycle of a prompt:
@@ -116,6 +86,40 @@ pub trait Agent {
     /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     async fn cancel(&self, args: CancelNotification) -> Result<(), Error>;
 
+    /// Loads an existing session to resume a previous conversation.
+    ///
+    /// This method is only available if the agent advertises the `loadSession` capability.
+    ///
+    /// The agent should:
+    /// - Restore the session context and conversation history
+    /// - Connect to the specified MCP servers
+    /// - Stream the entire conversation history back to the client via notifications
+    ///
+    /// See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
+    async fn load_session(&self, _args: LoadSessionRequest) -> Result<LoadSessionResponse, Error> {
+        Err(Error::method_not_found())
+    }
+
+    /// Sets the current mode for a session.
+    ///
+    /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
+    /// that affect system prompts, tool availability, and permission behaviors.
+    ///
+    /// The mode must be one of the modes advertised in `availableModes` during session
+    /// creation or loading. Agents may also change modes autonomously and notify the
+    /// client via `current_mode_update` notifications.
+    ///
+    /// This method can be called at any time during a session, whether the Agent is
+    /// idle or actively generating a response.
+    ///
+    /// See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
+    async fn set_session_mode(
+        &self,
+        _args: SetSessionModeRequest,
+    ) -> Result<SetSessionModeResponse, Error> {
+        Err(Error::method_not_found())
+    }
+
     /// **UNSTABLE**
     ///
     /// This capability is not part of the spec yet, and may be removed or changed at any point.
@@ -124,8 +128,10 @@ pub trait Agent {
     #[cfg(feature = "unstable")]
     async fn set_session_model(
         &self,
-        args: SetSessionModelRequest,
-    ) -> Result<SetSessionModelResponse, Error>;
+        _args: SetSessionModelRequest,
+    ) -> Result<SetSessionModelResponse, Error> {
+        Err(Error::method_not_found())
+    }
 
     /// Handles extension method requests from the client.
     ///
@@ -133,7 +139,9 @@ pub trait Agent {
     /// protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    async fn ext_method(&self, args: ExtRequest) -> Result<ExtResponse, Error>;
+    async fn ext_method(&self, _args: ExtRequest) -> Result<ExtResponse, Error> {
+        Ok(RawValue::NULL.to_owned().into())
+    }
 
     /// Handles extension notifications from the client.
     ///
@@ -141,7 +149,9 @@ pub trait Agent {
     /// while maintaining protocol compatibility.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
-    async fn ext_notification(&self, args: ExtNotification) -> Result<(), Error>;
+    async fn ext_notification(&self, _args: ExtNotification) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait(?Send)]
