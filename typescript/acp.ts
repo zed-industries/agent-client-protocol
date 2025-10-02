@@ -79,7 +79,15 @@ export class AgentSideConnection {
         }
         case schema.AGENT_METHODS.session_prompt: {
           const validatedParams = schema.promptRequestSchema.parse(params);
-          return agent.prompt(validatedParams as schema.PromptRequest);
+          return agent.prompt(validatedParams);
+        }
+        case schema.AGENT_METHODS.session_set_model: {
+          if (!agent.setSessionModel) {
+            throw RequestError.methodNotFound(method);
+          }
+          const validatedParams =
+            schema.setSessionModelRequestSchema.parse(params);
+          return agent.setSessionModel(validatedParams);
         }
         default:
           if (method.startsWith("_")) {
@@ -1191,6 +1199,16 @@ export interface Agent {
   setSessionMode?(
     params: schema.SetSessionModeRequest,
   ): Promise<schema.SetSessionModeResponse | void>;
+  /**
+   * **UNSTABLE**
+   *
+   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   *
+   * Select a model for a given session.
+   */
+  setSessionModel?(
+    params: schema.SetSessionModelRequest,
+  ): Promise<schema.SetSessionModelResponse | void>;
   /**
    * Authenticates the client using the specified authentication method.
    *
