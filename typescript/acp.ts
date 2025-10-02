@@ -583,6 +583,24 @@ export class ClientSideConnection implements Agent {
   }
 
   /**
+   * **UNSTABLE**
+   *
+   * This capability is not part of the spec yet, and may be removed or changed at any point.
+   *
+   * Select a model for a given session.
+   */
+  async setSessionModel(
+    params: schema.SetSessionModelRequest,
+  ): Promise<schema.SetSessionModelResponse> {
+    return (
+      (await this.#connection.sendRequest(
+        schema.AGENT_METHODS.session_set_mode,
+        params,
+      )) ?? {}
+    );
+  }
+
+  /**
    * Authenticates the client using the specified authentication method.
    *
    * Called when the agent requires authentication before allowing session creation.
