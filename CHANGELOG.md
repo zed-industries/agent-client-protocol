@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.5 (2025-10-02)
+
+### Protocol
+
+- No changes
+
+### Typescript
+
+- **Unstable** initial support for model selection.
+
 ## 0.4.4 (2025-09-30)
 
 ### Protocol
