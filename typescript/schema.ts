@@ -1,12 +1,12 @@
 export const AGENT_METHODS = {
   authenticate: "authenticate",
   initialize: "initialize",
-  model_select: "session/set_model",
   session_cancel: "session/cancel",
   session_load: "session/load",
   session_new: "session/new",
   session_prompt: "session/prompt",
   session_set_mode: "session/set_mode",
+  session_set_model: "session/set_model",
 } as const;
 
 export const CLIENT_METHODS = {

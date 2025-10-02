@@ -2,12 +2,12 @@
   "agentMethods": {
     "authenticate": "authenticate",
     "initialize": "initialize",
-    "model_select": "session/set_model",
     "session_cancel": "session/cancel",
     "session_load": "session/load",
     "session_new": "session/new",
     "session_prompt": "session/prompt",
-    "session_set_mode": "session/set_mode"
+    "session_set_mode": "session/set_mode",
+    "session_set_model": "session/set_model"
   },
   "clientMethods": {
     "fs_read_text_file": "fs/read_text_file",

@@ -820,7 +820,7 @@ pub struct AgentMethodNames {
     pub session_cancel: &'static str,
     /// Method for selecting a model for a given session.
     #[cfg(feature = "unstable")]
-    pub model_select: &'static str,
+    pub session_set_model: &'static str,
 }
 
 /// Constant containing all agent method names.
@@ -833,7 +833,7 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_prompt: SESSION_PROMPT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
     #[cfg(feature = "unstable")]
-    model_select: SESSION_SET_MODEL_METHOD_NAME,
+    session_set_model: SESSION_SET_MODEL_METHOD_NAME,
 };
 
 /// Method name for the initialize request.
