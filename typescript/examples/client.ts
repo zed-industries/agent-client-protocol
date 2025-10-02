@@ -106,7 +106,7 @@ async function main() {
   });
 
   // Create streams to communicate with the agent
-  const input = Writable.toWeb(agentProcess.stdin!) as WritableStream;
+  const input = Writable.toWeb(agentProcess.stdin!);
   const output = Readable.toWeb(
     agentProcess.stdout!,
   ) as ReadableStream<Uint8Array>;

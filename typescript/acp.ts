@@ -49,20 +49,18 @@ export class AgentSideConnection {
       switch (method) {
         case schema.AGENT_METHODS.initialize: {
           const validatedParams = schema.initializeRequestSchema.parse(params);
-          return agent.initialize(validatedParams as schema.InitializeRequest);
+          return agent.initialize(validatedParams);
         }
         case schema.AGENT_METHODS.session_new: {
           const validatedParams = schema.newSessionRequestSchema.parse(params);
-          return agent.newSession(validatedParams as schema.NewSessionRequest);
+          return agent.newSession(validatedParams);
         }
         case schema.AGENT_METHODS.session_load: {
           if (!agent.loadSession) {
             throw RequestError.methodNotFound(method);
           }
           const validatedParams = schema.loadSessionRequestSchema.parse(params);
-          return agent.loadSession(
-            validatedParams as schema.LoadSessionRequest,
-          );
+          return agent.loadSession(validatedParams);
         }
         case schema.AGENT_METHODS.session_set_mode: {
           if (!agent.setSessionMode) {
@@ -70,17 +68,13 @@ export class AgentSideConnection {
           }
           const validatedParams =
             schema.setSessionModeRequestSchema.parse(params);
-          const result = await agent.setSessionMode(
-            validatedParams as schema.SetSessionModeRequest,
-          );
+          const result = await agent.setSessionMode(validatedParams);
           return result ?? {};
         }
         case schema.AGENT_METHODS.authenticate: {
           const validatedParams =
             schema.authenticateRequestSchema.parse(params);
-          const result = await agent.authenticate(
-            validatedParams as schema.AuthenticateRequest,
-          );
+          const result = await agent.authenticate(validatedParams);
           return result ?? {};
         }
         case schema.AGENT_METHODS.session_prompt: {
@@ -108,7 +102,7 @@ export class AgentSideConnection {
       switch (method) {
         case schema.AGENT_METHODS.session_cancel: {
           const validatedParams = schema.cancelNotificationSchema.parse(params);
-          return agent.cancel(validatedParams as schema.CancelNotification);
+          return agent.cancel(validatedParams);
         }
         default:
           if (method.startsWith("_")) {
@@ -223,10 +217,10 @@ export class AgentSideConnection {
   async createTerminal(
     params: schema.CreateTerminalRequest,
   ): Promise<TerminalHandle> {
-    const response = (await this.#connection.sendRequest(
-      schema.CLIENT_METHODS.terminal_create,
-      params,
-    )) as schema.CreateTerminalResponse;
+    const response = await this.#connection.sendRequest<
+      schema.CreateTerminalRequest,
+      schema.CreateTerminalResponse
+    >(schema.CLIENT_METHODS.terminal_create, params);
 
     return new TerminalHandle(
       response.terminalId,
@@ -399,59 +393,43 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.fs_write_text_file: {
           const validatedParams =
             schema.writeTextFileRequestSchema.parse(params);
-          return client.writeTextFile?.(
-            validatedParams as schema.WriteTextFileRequest,
-          );
+          return client.writeTextFile?.(validatedParams);
         }
         case schema.CLIENT_METHODS.fs_read_text_file: {
           const validatedParams =
             schema.readTextFileRequestSchema.parse(params);
-          return client.readTextFile?.(
-            validatedParams as schema.ReadTextFileRequest,
-          );
+          return client.readTextFile?.(validatedParams);
         }
         case schema.CLIENT_METHODS.session_request_permission: {
           const validatedParams =
             schema.requestPermissionRequestSchema.parse(params);
-          return client.requestPermission(
-            validatedParams as schema.RequestPermissionRequest,
-          );
+          return client.requestPermission(validatedParams);
         }
         case schema.CLIENT_METHODS.terminal_create: {
           const validatedParams =
             schema.createTerminalRequestSchema.parse(params);
-          return client.createTerminal?.(
-            validatedParams as schema.CreateTerminalRequest,
-          );
+          return client.createTerminal?.(validatedParams);
         }
         case schema.CLIENT_METHODS.terminal_output: {
           const validatedParams =
             schema.terminalOutputRequestSchema.parse(params);
-          return client.terminalOutput?.(
-            validatedParams as schema.TerminalOutputRequest,
-          );
+          return client.terminalOutput?.(validatedParams);
         }
         case schema.CLIENT_METHODS.terminal_release: {
           const validatedParams =
             schema.releaseTerminalRequestSchema.parse(params);
-          const result = await client.releaseTerminal?.(
-            validatedParams as schema.ReleaseTerminalRequest,
-          );
+          const result = await client.releaseTerminal?.(validatedParams);
           return result ?? {};
         }
         case schema.CLIENT_METHODS.terminal_wait_for_exit: {
           const validatedParams =
             schema.waitForTerminalExitRequestSchema.parse(params);
-          return client.waitForTerminalExit?.(
-            validatedParams as schema.WaitForTerminalExitRequest,
-          );
+          return client.waitForTerminalExit?.(validatedParams);
         }
         case schema.CLIENT_METHODS.terminal_kill: {
           const validatedParams =
             schema.killTerminalCommandRequestSchema.parse(params);
-          const result = await client.killTerminal?.(
-            validatedParams as schema.KillTerminalCommandRequest,
-          );
+          const result = await client.killTerminal?.(validatedParams);
           return result ?? {};
         }
         default:
@@ -478,9 +456,7 @@ export class ClientSideConnection implements Agent {
         case schema.CLIENT_METHODS.session_update: {
           const validatedParams =
             schema.sessionNotificationSchema.parse(params);
-          return client.sessionUpdate(
-            validatedParams as schema.SessionNotification,
-          );
+          return client.sessionUpdate(validatedParams);
         }
         default:
           // Handle extension notifications (any method starting with '_')
@@ -771,7 +747,7 @@ class Connection {
       }
     } else if ("id" in message) {
       // It's a response
-      this.#handleResponse(message as AnyResponse);
+      this.#handleResponse(message);
     } else {
       console.error("Invalid message", { message });
     }

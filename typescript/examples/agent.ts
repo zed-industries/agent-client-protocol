@@ -267,7 +267,7 @@ class ExampleAgent implements acp.Agent {
   }
 }
 
-const input = Writable.toWeb(process.stdout) as WritableStream;
+const input = Writable.toWeb(process.stdout);
 const output = Readable.toWeb(process.stdin) as ReadableStream<Uint8Array>;
 
 const stream = acp.ndJsonStream(input, output);
