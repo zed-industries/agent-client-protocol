@@ -1,0 +1,33 @@
+---
+title: "Go"
+description: "Go library for the Agent Client Protocol"
+---
+
+The [`github.com/zed-industries/agent-client-protocol/go`](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go)
+package provides implementations of both sides of the Agent Client Protocol that
+you can use to build your own agent server or client.
+
+To get started, add the module to your project:
+
+```bash
+go get github.com/zed-industries/agent-client-protocol/go@latest
+```
+
+Depending on what kind of tool you're building, you'll create either the
+[AgentSideConnection](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go#NewAgentSideConnection)
+or the
+[ClientSideConnection](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go#NewClientSideConnection)
+and implement the corresponding interfaces (`Agent`, `Client`).
+
+You can find example implementations of both sides in the
+[main repository](https://github.com/zed-industries/agent-client-protocol/tree/main/go/example).
+These can be run from your terminal or connected to external ACP agents, making
+them great starting points for your own integration!
+
+Browse the Go package docs on
+[pkg.go.dev](https://pkg.go.dev/github.com/zed-industries/agent-client-protocol/go)
+for detailed API documentation.
+
+For a complete, production-ready implementation of an ACP agent, see the
+[Gemini CLI](https://github.com/google-gemini/gemini-cli) which exposes an ACP
+interface. The Go example client demonstrates connecting to it via stdio.

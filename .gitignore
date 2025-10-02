@@ -13,3 +13,12 @@ typescript/*.js.map
 
 # TypeDoc generated documentation
 typescript/docs/
+
+# Go files
+.gocache
+.gopath
+
+.envrc
+.direnv
+.rustup/
+.cargo/

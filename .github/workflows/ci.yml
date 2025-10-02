@@ -31,6 +31,14 @@ jobs:
           node-version: latest
           cache: "npm"
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+          cache-dependency-path: |
+            go/cmd/generate/go.sum
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48
         with:
