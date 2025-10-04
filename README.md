@@ -28,6 +28,8 @@ Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 - [Gemini](https://github.com/google-gemini/gemini-cli)
 - [Goose](https://github.com/block/goose)
   - [via Goose's acp command](https://block.github.io/goose/docs/guides/acp-clients)
+- [VT Code](https://github.com/vinhnx/vtcode)
+  - [via VT Code's `acp` command, enabled by default)(https://github.com/vinhnx/vtcode/blob/main/README.md#zed-ide-integration-agent-client-protocol)
 
 ## Libraries and Schema
 
