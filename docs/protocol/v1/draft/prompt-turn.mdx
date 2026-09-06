@@ -105,6 +105,13 @@ Upon receiving the prompt request, the Agent processes the user's message and se
 
 The Agent reports the model's output to the Client via `session/update` notifications. This may include the Agent's plan for accomplishing the task:
 
+<Note>
+  This page walks through the `session/update` variants most common in a prompt
+  turn. It is not the full set. See the
+  [`SessionUpdate`](/protocol/v1/draft/schema#sessionupdate) schema reference
+  for every variant defined in this version.
+</Note>
+
 ```json expandable
 {
   "jsonrpc": "2.0",

@@ -132,3 +132,7 @@ Implementations **SHOULD** use the `_meta` field in capability objects to advert
 ```
 
 This allows implementations to negotiate custom features during initialization without breaking compatibility with standard Clients and Agents.
+
+## Unrecognized Session Update Variants
+
+Every `session/update` notification carries a `sessionUpdate` field that identifies the variant. Future protocol versions may define new variants. Clients are encouraged to ignore variants they do not recognize rather than treating them as errors. The [`SessionUpdate`](/protocol/v1/draft/schema#sessionupdate) schema reference lists the variants defined in this version.
