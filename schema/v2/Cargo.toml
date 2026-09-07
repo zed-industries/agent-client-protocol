@@ -1,6 +1,6 @@
 [package]
 name = "agent-client-protocol-json-schema-v2"
-version = "2.0.0-alpha.3"
+version = "2.0.0-alpha.4"
 edition = "2024"
 license = "Apache-2.0"
 description = "Version marker for ACP v2 JSON Schema artifacts"

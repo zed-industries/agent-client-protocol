@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.4](https://github.com/agentclientprotocol/agent-client-protocol/compare/schema-v2.0.0-alpha.3...schema-v2.0.0-alpha.4) - 2026-09-07
+
+### Added
+
+- *(unstable)* add session notices schema ([#2004](https://github.com/agentclientprotocol/agent-client-protocol/pull/2004))
+
 ## [2.0.0-alpha.3](https://github.com/agentclientprotocol/agent-client-protocol/compare/schema-v2.0.0-alpha.2...schema-v2.0.0-alpha.3) - 2026-08-20
 
 ### Added
