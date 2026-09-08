@@ -1,0 +1,80 @@
+---
+title: "LSP over ACP: Expose LSP servers over ACP"
+---
+
+<!--
+
+Instructions:
+
+* Copy this file and give it a name like my-feature-slug.mdx
+* Do not remove the `>` sections -- they are part of the template!
+* Replace the HTML comments that give general guidance with your answers and content. Do not begin your answers with `>`, your text should be unquoted.
+* For optional sections, you can leave the HTML comment as is if you do not wish to provide an answer.
+* In the FAQ, begin each question with a markdown `##` section so that it gets a linkable anchor.
+
+-->
+
+Author(s): [Ruddickmg](https://github.com/Ruddickmg)
+
+## Elevator pitch
+
+> Agents benefit from LSP access for code intelligence but are unable to use the client's already-configured LSP servers. Exposing the client's LSP servers over ACP would simplify configuration and enable agents to explore the code base with the same context as a user.
+
+<!--
+    Give a brief, high-level overview of what you plan to do and what problem you are solving. Feel free to use bullet points to help clarify the structure.
+-->
+
+## Status quo
+
+> There is currently no way to share LSP interactions between ACP clients and agents. Many agents are capable of using LSP servers to inspect code, provide diagnostics, execute code actions, etc. But, agents either bundle their own servers or require separate configuration to connect to LSP servers. Most editors (VS Code, Neovim, etc.) already have LSP servers configured and available. Agents, however, cannot reuse the client's LSP infrastructure. This gap necessitates duplicated setups and the potential for inconsistent LSP output between users and agents. 
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+<!--
+    Use this section to describe what you propose to do at a high-level.
+    Don't give every detail, this should be the high-level summary.
+
+    Note: This section is OPTIONAL when RFDs are first opened.
+    You can also include multiple variants if you have different ideas of how to approach the problem, though these should be narrowed down as the RFD progresses.
+-->
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+<!--
+    Use this section to describe the "status quo" as it will play out once
+    we have made these changes.
+
+    Note: This section is OPTIONAL when RFDs are first opened.
+-->
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+<!--
+    Use this section to add details that were not covered in the "What we propose to do about it" section and also include an implementation plan with phases.
+
+    Note: This section is OPTIONAL and NOT RECOMMENDED when RFDs are first opened. It can distract from the discussion of the problem.
+-->
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+<!--
+    Keep this section up-to-date as discussion proceeds. The goal is to capture major points that came up on a PR or in a discussion forum -- and if they reoccur, to point people to the FAQ so that we can start the dialog from a more informed place.
+-->
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+None. The idea came to me fully formed, like Athena springing from Zeus's head.
+
+<!-- You...may want to adjust this. -->
+
+## Revision history
+
+<!-- If there have been major updates to this RFD, you can include the git revisions and a summary of the changes. -->
