@@ -1,0 +1,254 @@
+---
+title: "Session Rewind: truncate and edit history"
+---
+
+Author(s): [@htahaozlu](https://github.com/htahaozlu)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Add two methods for in-place modification of a session's conversation timeline: `session/rewind` truncates history at a chosen message, and `session/edit_prompt` rewinds to a user message, replaces its content, and re-runs from that point. Both are user-facing actions familiar from every modern coding-agent UI, but ACP has no portable surface for them today, so each editor-agent pair reinvents the integration and ships the bugs (Zed [#52153](https://github.com/zed-industries/zed/issues/52153), [#39997](https://github.com/zed-industries/zed/issues/39997), [#28676](https://github.com/zed-industries/zed/issues/28676), [#55888](https://github.com/zed-industries/zed/issues/55888)).
+
+This drafts the **"Truncate/Edit support"** item the [v2 overview](./overview) lists under "RFDs to be Written." It is a v2 follow-on that rides on the [v2 prompt lifecycle](./prompt): agent-owned `messageId`, the `user_message` echo notification, and `state_change`. It supersedes the v1-substrate draft [PR #1214](https://github.com/agentclientprotocol/agent-client-protocol/pull/1214), which proposed the same two methods on top of `unstable_message_id` before the v2 prompt lifecycle existed.
+
+Rewind is the destructive sibling of [`session/inject` (#1261)](https://github.com/agentclientprotocol/agent-client-protocol/pull/1261): inject adds a user message without touching what came before; rewind removes or rewrites what is already there. Inject is "add this," rewind is "undo that." They share the v2 prompt lifecycle substrate and their capabilities and flags do not collide.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+Once a `session/prompt` turn completes, its messages are immutable from the client's perspective. There is no protocol-level operation for:
+
+1. **Editing a previously sent user message and re-running from it.** The only workaround is a fresh session and a manual re-prompt, which loses the intermediate context and tool-call results that were still useful.
+2. **Rewinding a conversation to an earlier point.** Agents that implement this internally cannot expose it through ACP: Gemini CLI keeps shadow-git checkpoints, Codex CLI has its own checkpoint store, Claude Code has `/clear`. Clients can only reach these via stringly-typed slash commands with no structured response, which is the direct cause of the Zed `/clear` state-desync bug ([zed#55888](https://github.com/zed-industries/zed/issues/55888)).
+3. **Dropping only the tail after a chosen point** — the common "edit message N, discard N+1..end, re-run from N" affordance every checkpointing UI exposes.
+
+[Discussion #239](https://github.com/orgs/agentclientprotocol/discussions/239) ("Restoring a checkpoint and an earlier point in the conversation") has been open since 2025-11 with engaged contributors but no concrete proposal. [Discussion #329](https://github.com/orgs/agentclientprotocol/discussions/329) ("`session/undo` and `session/redo`") covers the same ground. This RFD consolidates both.
+
+The v1 attempt ([#1214](https://github.com/agentclientprotocol/agent-client-protocol/pull/1214)) tied rewind to `unstable_message_id` and had to hand-wave how a truncation is observed by other clients and by `session/load` replay, because v1 has no agent-owned message identity and no notification that isn't a streaming chunk. The v2 prompt lifecycle settles exactly those questions — agent-owned `messageId`, full `user_message` notifications, `state_change` — so rewind composes far more cleanly on v2 than it ever could on v1. That is why this RFD re-bases the proposal onto v2 rather than iterating #1214 in place.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Two methods, one capability, one new notification type.
+
+### `session/rewind`
+
+"Treat history up to and including `toMessageId` as canonical, discard everything after it." After this returns, the next `session/prompt` continues from the rewound state as if the discarded tail never happened.
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "id": 17,
+  "method": "session/rewind",
+  "params": {
+    "sessionId": "sess_abc",
+    "toMessageId": "msg_42",
+  },
+}
+```
+
+The agent responds once the truncation has been applied:
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "id": 17,
+  "result": { "lastMessageId": "msg_42" },
+}
+```
+
+At the same point, the agent emits a `history_truncated` session update (see below) so every attached controller and observer, and any later `session/load` replay, converges on the truncated timeline.
+
+Semantics:
+
+- `toMessageId` MUST be a `messageId` the agent previously emitted (via `user_message`, an agent message notification, or the `session/prompt` response) for this session. An unknown id returns the existing `-32002 "Resource not found"` with `error.data.reason: "unknown_message_id"`.
+- After a successful rewind, the next `session/prompt` MUST behave as if the discarded messages never existed: no implicit re-prompt, no auto-replay.
+- If a turn is running (`state_change: running`) when `session/rewind` arrives, the agent first cancels it — same semantics as `session/cancel` — emits `state_change: idle` with `stop_reason: cancelled`, then applies the rewind.
+- Rewind does NOT touch the filesystem. Filesystem rollback is layered on top via `fs/*`, `session/fork`, IDE history, or SCM. See the FAQ.
+
+### `session/edit_prompt`
+
+"Replace the content of user message `messageId` with new content, then re-run the turn that followed it as if the new content had been sent in the first place." It is `session/rewind` to the message immediately before `messageId`, plus a fresh prompt carrying the new content.
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "id": 18,
+  "method": "session/edit_prompt",
+  "params": {
+    "sessionId": "sess_abc",
+    "messageId": "msg_42",
+    "content": [
+      { "type": "text", "text": "Updated prompt..." },
+    ],
+  },
+}
+```
+
+Like `session/prompt` under the v2 prompt lifecycle, the agent responds when the edited prompt has been **accepted**, returning the agent-owned `messageId` for the replacement message — which is a new id, because the old message and its turn have been discarded:
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "id": 18,
+  "result": { "messageId": "msg_57" },
+}
+```
+
+The agent then drives the re-run exactly as it would a normal prompt: a `history_truncated` notification to the point before the edited message, a `user_message` notification carrying the new content and `msg_57`, `state_change: running`, the streamed agent/tool updates, and finally `state_change: idle`. A client that already renders the v2 prompt lifecycle needs no new code to display the re-run — only to send the call and to handle `history_truncated`.
+
+Semantics:
+
+- `messageId` MUST identify a **user** message. Editing an agent or tool message returns `-32602 "Invalid params"` with `error.data.reason: "not_a_user_message"`.
+- The re-run uses the same model, MCP configuration, and tools that were active for the original message. Overriding those is a follow-up (`model` / `mcpServers` / `allowedTools` on `edit_prompt`), explicitly out of scope here.
+- `content` is a full `ContentBlock[]`, identical to `PromptRequest.prompt`.
+
+### `history_truncated` notification
+
+The one new wire shape. The v2 prompt lifecycle added `user_message` so that additive history is observable to every client and replayable; rewind needs the destructive analogue.
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc",
+    "update": {
+      "sessionUpdate": "history_truncated",
+      "lastMessageId": "msg_42",
+    },
+  },
+}
+```
+
+`lastMessageId` is the last surviving message; everything the agent emitted after it for this session is no longer part of the transcript. A controller that issued the rewind learns the truncation succeeded from the response; every *other* attached controller and observer learns it from this notification, the same way they learn about an injected message from `user_message`. `session/load` replay stops at `lastMessageId`; it never replays truncated messages, so a freshly loaded session and a live one converge. This is the only addition to `session/update`; `edit_prompt`'s replacement message reuses the existing `user_message` type.
+
+### Capability discovery
+
+Nested under `session`, matching `session.inject`:
+
+```jsonc
+{
+  "agentCapabilities": {
+    "session": {
+      "rewind": {
+        "edit_prompt": true,
+      },
+    },
+  },
+}
+```
+
+Presence of the `rewind` key means `session/rewind` (truncation) is supported. `edit_prompt: true` additionally advertises `session/edit_prompt`. An agent that can truncate but not re-run an edited prompt sets `edit_prompt: false` (or omits it). An agent that supports neither omits the `rewind` key entirely; clients without the capability fall back to today's behavior (new session + manual re-prompt).
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+A user has a 30-message conversation in Zed with Claude Code attached over ACP. The 10th user message was poorly phrased. They click the edit pencil, change the wording, hit enter. Zed sends `session/edit_prompt`. Claude Code truncates its context to before message 10, accepts the edit, and re-runs — `history_truncated`, `user_message`, `state_change: running`, streamed updates, `state_change: idle`. Zed renders the new branch with the same code path it uses for any prompt. No copy-paste, no new session, no lost prefix.
+
+The same user clicks "rewind to here" on message 5 of another conversation. The agent keeps 1–5, drops 6–30, emits `history_truncated { lastMessageId: msg_5 }`. A second device the user has attached to the same session (multi-client attach) sees the truncation land and re-renders to match. The user types a follow-up that continues from message 5.
+
+A `session/load` replay reconstructs whatever timeline survived the last rewind, with no provenance that a rewind ever happened — it simply replays the messages that remain. Third-party clients (Eclipse Agents, Cline, a Unity client) get the primitive without per-agent special-casing, and a Gemini CLI session and a Codex session behave identically because the protocol normalizes both internal checkpoint mechanisms behind one surface.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### Schema additions
+
+In the v2 `schema/schema.json`:
+
+1. Add `SessionRewindRequest`: `sessionId: SessionId`, `toMessageId: string`.
+2. Add `SessionRewindResponse`: `lastMessageId: string`.
+3. Add `SessionEditPromptRequest`: `sessionId: SessionId`, `messageId: string`, `content: ContentBlock[]`.
+4. Add `SessionEditPromptResponse`: `messageId: string` (agent-owned, the replacement message id) — same shape as the v2 `session/prompt` response.
+5. Add `agentCapabilities.session.rewind`: `edit_prompt: boolean` (optional; default `false`). Presence of the `rewind` object is itself the truncation capability bit.
+6. Add the `history_truncated` variant to the `SessionUpdate` union: `lastMessageId: string`.
+7. Register `session/rewind` and `session/edit_prompt` as request methods.
+8. Reuse the existing `-32002 "Resource not found"` for `unknown_message_id`; reuse `-32602 "Invalid params"` with `error.data.reason: "not_a_user_message"` for edit targeting a non-user message.
+
+`session/edit_prompt`'s response and re-run reuse the v2 prompt lifecycle wholesale; the only genuinely new wire shape is `history_truncated`.
+
+### Rust types (`src/agent.rs`), per `AGENTS.md`
+
+- `SessionRewindRequest` / `SessionRewindResponse`, `SessionEditPromptRequest` / `SessionEditPromptResponse`.
+- Trait methods `rewind_session`, `edit_prompt`; method constants `session_rewind`, `session_edit_prompt`.
+- Variants in `AgentRequest` / `AgentResponse`, and a `history_truncated` variant in the session-update enum.
+- Behind the v2 `unstable` feature flow (an `unstable_session_rewind` capability or a `_meta` flag, matching whatever the v2 prompt lifecycle lands on — the prompt RFD leaves this open and rewind follows it).
+- Register in `src/bin/generate.rs`; run `npm run generate` and `npm run check`.
+
+### Persistence and replay
+
+Truncated messages are gone: not replayed by `session/load`, not carried in any history snapshot. A loaded session carries no "this was rewound" provenance, deliberately — once truncated, the dropped tail is simply not in the transcript. An edited message's replacement is ordinary history: it replays as a `user_message` at its delivery position, with the new content only.
+
+### Multi-client interaction
+
+With [multi-client attach (#533)](https://github.com/agentclientprotocol/agent-client-protocol/pull/533), the controller that issues a rewind learns the result from the response; all other controllers and observers learn it from `history_truncated` and re-render. Because the agent is the single owner of the transcript and the sole emitter of `history_truncated`, every surface converges on the same timeline. Whether observers (vs. controllers) may issue `session/rewind` is an agent policy decision; an agent that restricts it should reject with a permission error rather than silently ignoring the call.
+
+### Interaction with in-flight requests
+
+- **Running turn.** `session/rewind` and `session/edit_prompt` first cancel the running turn (emitting `state_change: idle, stop_reason: cancelled`), then apply. There is no "rewind a frozen mid-turn" state in the protocol.
+- **Pending injects.** A pending [`session/inject`](https://github.com/agentclientprotocol/agent-client-protocol/pull/1261) whose target context is truncated by a rewind is dropped without a `user_message` emit — the same outcome as `session/revoke_inject`. Injects whose delivery point survives are unaffected.
+
+### Phased rollout
+
+1. Land schema and Rust SDK behind the v2 `unstable` flow.
+2. Reference implementation in the v2 example agent: `session/rewind` at minimum, `session/edit_prompt` if the example agent can re-run cleanly.
+3. Document in `docs/protocol/`, cross-linking `session/fork` and `session/inject`.
+4. Stabilize once at least one agent (Claude Code, Codex, or the reference agent) and one client (Zed) have exercised both methods end-to-end.
+
+### Docs navigation
+
+Add `rfds/v2/session-rewind` to the v2 group in `docs/docs.json`, after `rfds/v2/session-inject`.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### How does this differ from `session/inject` (#1261)?
+
+They are siblings on the "mid-conversation user intervention" axis, and Kenneth's inject RFD frames it the same way. Inject is additive: it adds a new user message and never touches prior history. Rewind is destructive: it removes or rewrites messages that already landed. Inject reuses the `user_message` notification; rewind adds `history_truncated` for the removal case and reuses `user_message` for the edit's replacement. Capabilities (`session.inject` vs `session.rewind`) and flags do not collide, and the two compose: a client can inject a correction mid-turn, or rewind to redo the turn — different tools for "add" vs "undo."
+
+### Why two methods instead of one?
+
+`edit_prompt` is `rewind` + a fresh prompt, so a client could do it in two calls. We keep it as one because the intermediate "rewound but not yet re-prompted" state is one the agent would otherwise observe and have to guess about (wait? summarize? stay idle?). An atomic `edit_prompt` removes that ambiguity and lets the agent treat the re-run as a recognizable edit (e.g. safely reusing cached tool outputs from the discarded turn). `session/rewind` stays available on its own for "drop the tail, I'll prompt fresh."
+
+### Why a new `history_truncated` notification instead of reusing something?
+
+Because v2 has no existing notification that means "messages were removed." `user_message` is additive; `state_change` is about turn status. Multi-client attach and `session/load` replay both need the destructive event to be observable, exactly as the v2 prompt lifecycle made the *additive* event observable with `user_message`. `history_truncated` is the minimal symmetric addition: one field, `lastMessageId`.
+
+### What about filesystem rollback?
+
+Explicitly out of scope. ACP has `fs/*` for filesystem operations; agent-side snapshots (Gemini shadow git, Roo Code) stay agent-side; client-side IDE history (Zed snapshots, VS Code timeline) stays client-side. The protocol does not arbitrate the agent-vs-client rollback debate that has circled Discussion #239 for months. A client that wants coupled rollback layers it on top, or forks first (see below).
+
+### How does this interact with `session/fork`?
+
+`session/fork` copies a session's prefix into a *new* session, leaving the original untouched — non-destructive, for side queries. `session/rewind` mutates the original in place. They compose: fork at point P to preserve a safety copy, then rewind the original. Their domains don't overlap.
+
+### Who owns the message IDs?
+
+The agent, per the v2 prompt lifecycle: the agent assigns `messageId`s and emits them (`user_message`, agent message notifications, the prompt response). Clients only reference ids they have observed; they never mint ids. This is cleaner than the v1 draft (#1214), which depended on `unstable_message_id` resolving the ownership question — v2 already resolved it in the agent's favor.
+
+### Why not add a `truncateAfter` param to `session/load`?
+
+`session/load` is a replay/resume operation; rewind is a discrete state mutation. Coupling them conflates two concerns and risks breaking existing `session/load` consumers. Keeping rewind a distinct method also lets multi-client observers see the `history_truncated` event in real time rather than only on the next load.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+1. **Slash-command-only.** Rejected: stringly-typed, agent-specific, unstructured, and the direct cause of zed#55888.
+2. **Single `restore_to_checkpoint` with opaque agent-owned checkpoint handles.** Rejected for v1 of this surface because v2 message ids already give a stable address. A `session/checkpoint/*` family (named, agent-owned handles covering state a client can't address, like filesystem snapshots) can be added later if shadow-git-style state proves worth a protocol surface.
+3. **Client-owned history (stateless agent, client sends truncated history each prompt).** Rejected: pushes history management onto every client, breaks long-running stateful agents, and is incompatible with `session/load` / multi-client attach.
+4. **Branching (a tree of timelines instead of discarding the tail).** Bigger surface; out of scope. `session/fork` + `session/rewind` already approximate it (fork before rewind keeps the tail as a sibling session). A future RFD could add explicit branch primitives if layering proves insufficient.
+
+### Is this going to break agents that don't implement it?
+
+No. It is a v2-only, capability-gated addition. Agents that don't implement it omit `session.rewind`; clients fall back to today's behavior. There is no v1 backport — rewind's clean shape depends on the v2 prompt lifecycle's `user_message` echo and agent-owned ids, neither of which exists in v1.
+
+## Revision history
+
+- 2026-05-31: Re-based onto the v2 prompt lifecycle and re-filed under `docs/rfds/v2/`, superseding the v1-substrate draft [#1214](https://github.com/agentclientprotocol/agent-client-protocol/pull/1214). Replaced the flat `rewindSession` capability with nested `session.rewind`; dropped the `unstable_message_id` co-stabilization dependency in favor of v2 agent-owned ids; added the `history_truncated` `session/update` notification for multi-client and replay convergence; aligned `edit_prompt` accept/echo/`state_change` flow with the v2 prompt lifecycle; added the `session/inject` (#1261) sibling framing.
+- 2026-05-16: v1 draft (#1214) — `session/rewind` + `session/edit_prompt` on top of `unstable_message_id`.
