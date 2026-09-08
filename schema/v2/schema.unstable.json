@@ -279,6 +279,33 @@
                     ]
                   },
                   {
+                    "title": "InjectSessionResponse",
+                    "description": "Successful result returned for a `session/inject` request.",
+                    "allOf": [
+                      {
+                        "$ref": "#/$defs/InjectSessionResponse"
+                      }
+                    ]
+                  },
+                  {
+                    "title": "RevokeInjectSessionResponse",
+                    "description": "Successful result returned for a `session/revoke_inject` request.",
+                    "allOf": [
+                      {
+                        "$ref": "#/$defs/RevokeInjectSessionResponse"
+                      }
+                    ]
+                  },
+                  {
+                    "title": "ReplaceInjectSessionResponse",
+                    "description": "Successful result returned for a `session/replace_inject` request.",
+                    "allOf": [
+                      {
+                        "$ref": "#/$defs/ReplaceInjectSessionResponse"
+                      }
+                    ]
+                  },
+                  {
                     "title": "StartNesResponse",
                     "description": "Successful result returned for a `nes/start` request.",
                     "allOf": [
@@ -3245,6 +3272,33 @@
                   ]
                 },
                 {
+                  "title": "InjectSessionResponse",
+                  "description": "Successful result returned for a `session/inject` request.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/InjectSessionResponse"
+                    }
+                  ]
+                },
+                {
+                  "title": "RevokeInjectSessionResponse",
+                  "description": "Successful result returned for a `session/revoke_inject` request.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/RevokeInjectSessionResponse"
+                    }
+                  ]
+                },
+                {
+                  "title": "ReplaceInjectSessionResponse",
+                  "description": "Successful result returned for a `session/replace_inject` request.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/ReplaceInjectSessionResponse"
+                    }
+                  ]
+                },
+                {
                   "title": "StartNesResponse",
                   "description": "Successful result returned for a `nes/start` request.",
                   "allOf": [
@@ -3528,6 +3582,18 @@
           ],
           "x-deserialize-default-on-error": true
         },
+        "inject": {
+          "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nMid-turn user-message injection supported by the agent.\n\nOptional. Omitted or `null` means the agent does not support\n`session/inject` or the mandatory `session/revoke_inject` companion method.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionInjectCapabilities"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-deserialize-default-on-error": true
+        },
         "fork": {
           "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nWhether the agent supports `session/fork`.\n\nOptional. Omitted or `null` both mean the agent does not advertise support.\nSupplying `{}` means the agent supports forking sessions.",
           "anyOf": [
@@ -3734,6 +3800,127 @@
       "properties": {
         "_meta": {
           "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.\n\nSee protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      }
+    },
+    "SessionInjectCapabilities": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nCapabilities for mid-turn user-message injection.\n\n`modes` must be non-empty. When it contains `steer`, `steerInStream` is\nrequired and must also be non-empty. Advertising this capability makes\n`session/revoke_inject` mandatory.",
+      "type": "object",
+      "properties": {
+        "modes": {
+          "description": "Supported injection delivery modes. Must be non-empty.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionInjectMode"
+          },
+          "minItems": 1
+        },
+        "steerInStream": {
+          "description": "Supported handling for steering during an LLM stream.\n\nRequired and non-empty when `modes` contains `steer`; otherwise optional.",
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/SessionInjectSteerInStream"
+          },
+          "minItems": 1
+        },
+        "pending": {
+          "description": "Capabilities for editing pending injected messages.\n\nOmitted or `null` means pending replacement is not supported.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionInjectPendingCapabilities"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-deserialize-default-on-error": true
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP for extension metadata.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["modes"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "modes": {
+                "contains": {
+                  "const": "steer"
+                }
+              }
+            },
+            "required": ["modes"]
+          },
+          "then": {
+            "properties": {
+              "steerInStream": {
+                "type": "array",
+                "minItems": 1
+              }
+            },
+            "required": ["steerInStream"]
+          }
+        }
+      ]
+    },
+    "SessionInjectMode": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nDelivery mode for a message injected into a session.",
+      "anyOf": [
+        {
+          "description": "Deliver after the current turn returns to idle.",
+          "type": "string",
+          "const": "queue"
+        },
+        {
+          "description": "Deliver at the next safe breakpoint in the current turn.",
+          "type": "string",
+          "const": "steer"
+        },
+        {
+          "title": "other",
+          "description": "Custom or future injection mode.\n\nValues beginning with `_` are reserved for implementation-specific\nextensions. Unknown values that do not begin with `_` are reserved for\nfuture ACP variants.",
+          "type": "string"
+        }
+      ]
+    },
+    "SessionInjectSteerInStream": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nHow an agent handles steering that arrives during an LLM stream.",
+      "anyOf": [
+        {
+          "description": "Truncate the in-flight stream and re-prompt with the injected message.",
+          "type": "string",
+          "const": "interrupt"
+        },
+        {
+          "description": "Finish the in-flight stream before delivering the injected message.",
+          "type": "string",
+          "const": "finish"
+        },
+        {
+          "title": "other",
+          "description": "Custom or future stream-steering behavior.\n\nValues beginning with `_` are reserved for implementation-specific\nextensions. Unknown values that do not begin with `_` are reserved for\nfuture ACP variants.",
+          "type": "string"
+        }
+      ]
+    },
+    "SessionInjectPendingCapabilities": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nCapabilities for pending injected messages.",
+      "type": "object",
+      "properties": {
+        "replace": {
+          "description": "Whether `session/replace_inject` is supported.\n\nOptional. Omitted or `null` defaults to `false`.",
+          "type": ["boolean", "null"],
+          "x-deserialize-default-on-error": true
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP for extension metadata.",
           "type": ["object", "null"],
           "x-deserialize-default-on-error": true,
           "additionalProperties": true
@@ -5093,6 +5280,70 @@
       "x-side": "agent",
       "x-method": "session/prompt"
     },
+    "InjectSessionResponse": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nResponse acknowledging that an injected message is pending delivery.",
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "description": "Agent-assigned ID for the pending message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/MessageId"
+            }
+          ]
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["messageId"],
+      "x-side": "agent",
+      "x-method": "session/inject"
+    },
+    "MessageId": {
+      "description": "Unique identifier for a message within a session.",
+      "type": "string"
+    },
+    "RevokeInjectSessionResponse": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nResponse confirming that a pending injected message was revoked.",
+      "type": "object",
+      "properties": {
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "x-side": "agent",
+      "x-method": "session/revoke_inject"
+    },
+    "ReplaceInjectSessionResponse": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nResponse confirming replacement of a pending injected message.",
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "description": "The unchanged ID of the pending message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/MessageId"
+            }
+          ]
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["messageId"],
+      "x-side": "agent",
+      "x-method": "session/replace_inject"
+    },
     "StartNesResponse": {
       "description": "Response to `nes/start`.",
       "type": "object",
@@ -5614,6 +5865,13 @@
           "type": "integer",
           "format": "int32",
           "const": -32002
+        },
+        {
+          "title": "Inject precondition failed",
+          "description": "**Inject precondition failed**: **UNSTABLE**\n\nThis error is not part of the spec yet, and may be removed or changed at any point.\n\nA session injection precondition failed.\n\n`error.data` uses a `reason` of `already_delivered`, `no_running_turn`,\nor `replace_not_supported`. Pending-message failures also include the\n`messageId`. Unknown message IDs instead use `-32002` with\n`data: { reason: \"unknown_message_id\", messageId }`. The error data remains\nopen JSON, consistent with the protocol's shared [`Error::data`] field.",
+          "type": "integer",
+          "format": "int32",
+          "const": -32010
         },
         {
           "title": "Other",
@@ -6256,10 +6514,6 @@
           "additionalProperties": true
         }
       ]
-    },
-    "MessageId": {
-      "description": "Unique identifier for a message within a session.",
-      "type": "string"
     },
     "ContentChunk": {
       "description": "A streamed item of message content.",
@@ -7704,6 +7958,33 @@
                   ]
                 },
                 {
+                  "title": "InjectSessionRequest",
+                  "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nInjects a user message for pending delivery.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/InjectSessionRequest"
+                    }
+                  ]
+                },
+                {
+                  "title": "RevokeInjectSessionRequest",
+                  "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nRevokes a pending injected message. Mandatory when injection is advertised.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/RevokeInjectSessionRequest"
+                    }
+                  ]
+                },
+                {
+                  "title": "ReplaceInjectSessionRequest",
+                  "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nReplaces pending injected content when `pending.replace` is advertised.",
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/ReplaceInjectSessionRequest"
+                    }
+                  ]
+                },
+                {
                   "title": "StartNesRequest",
                   "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nStarts an NES session.",
                   "allOf": [
@@ -8803,6 +9084,113 @@
       "required": ["sessionId", "prompt"],
       "x-side": "agent",
       "x-method": "session/prompt"
+    },
+    "InjectSessionRequest": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nRequest parameters for injecting a user message into a session.\n\nThe response acknowledges pending delivery. The agent later delivers the\nmessage by emitting a `user_message` session update with the returned\n[`MessageId`].",
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "description": "The ID of the session that receives the injected message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/SessionId"
+            }
+          ]
+        },
+        "mode": {
+          "description": "When the agent should deliver the message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/SessionInjectMode"
+            }
+          ]
+        },
+        "content": {
+          "description": "The content blocks that compose the injected user message.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContentBlock"
+          }
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["sessionId", "mode", "content"],
+      "x-side": "agent",
+      "x-method": "session/inject"
+    },
+    "RevokeInjectSessionRequest": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nRequest parameters for revoking a pending injected message.\n\nEvery agent that advertises session injection must support this method. A\nsuccessful response guarantees that no future `user_message` update will be\nemitted for this message ID. If delivery wins the race, the agent returns\n`-32010` with `data: { reason: \"already_delivered\", messageId }`. An unknown\nmessage ID returns `-32002` with\n`data: { reason: \"unknown_message_id\", messageId }`.",
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "description": "The ID of the session that owns the pending message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/SessionId"
+            }
+          ]
+        },
+        "messageId": {
+          "description": "The ID returned by `session/inject`.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/MessageId"
+            }
+          ]
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["sessionId", "messageId"],
+      "x-side": "agent",
+      "x-method": "session/revoke_inject"
+    },
+    "ReplaceInjectSessionRequest": {
+      "description": "**UNSTABLE**\n\nThis capability is not part of the spec yet, and may be removed or changed at any point.\n\nRequest parameters for replacing the content of a pending injected message.\n\nAgents support this optional method only when they advertise\n`session.inject.pending.replace`. Replacement preserves the message ID, mode,\nand pending-order position. Already-delivered messages return `-32010` with\n`data: { reason: \"already_delivered\", messageId }`; unknown message IDs return\n`-32002` with `data: { reason: \"unknown_message_id\", messageId }`. If replace\nwas not advertised, the agent returns method-not-found or `-32010` with\n`data: { reason: \"replace_not_supported\", messageId }`.",
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "description": "The ID of the session that owns the pending message.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/SessionId"
+            }
+          ]
+        },
+        "messageId": {
+          "description": "The ID returned by `session/inject`.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/MessageId"
+            }
+          ]
+        },
+        "content": {
+          "description": "Complete replacement content for the pending user message.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContentBlock"
+          }
+        },
+        "_meta": {
+          "description": "The _meta property is reserved by ACP to allow clients and agents to attach additional\nmetadata to their interactions. Implementations MUST NOT make assumptions about values at\nthese keys.",
+          "type": ["object", "null"],
+          "x-deserialize-default-on-error": true,
+          "additionalProperties": true
+        }
+      },
+      "required": ["sessionId", "messageId", "content"],
+      "x-side": "agent",
+      "x-method": "session/replace_inject"
     },
     "StartNesRequest": {
       "description": "Request to start an NES session.",

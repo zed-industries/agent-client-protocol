@@ -23,6 +23,8 @@ mod plan;
 mod protocol_level;
 #[cfg(feature = "schemars")]
 pub(crate) mod schema_util;
+#[cfg(feature = "unstable_session_inject")]
+mod session_inject;
 mod terminal;
 mod tool_call;
 
@@ -41,6 +43,8 @@ pub use nes::*;
 pub use plan::*;
 pub use protocol_level::*;
 pub use serde_json::value::RawValue;
+#[cfg(feature = "unstable_session_inject")]
+pub use session_inject::*;
 pub use terminal::*;
 pub use tool_call::*;
 

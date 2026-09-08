@@ -20,6 +20,14 @@ use super::{
 };
 use crate::{IntoOption, ProtocolVersion, SkipListener};
 
+#[cfg(feature = "unstable_session_inject")]
+use super::session_inject::{
+    InjectSessionRequest, InjectSessionResponse, ReplaceInjectSessionRequest,
+    ReplaceInjectSessionResponse, RevokeInjectSessionRequest, RevokeInjectSessionResponse,
+    SESSION_INJECT_METHOD_NAME, SESSION_REPLACE_INJECT_METHOD_NAME,
+    SESSION_REVOKE_INJECT_METHOD_NAME, SessionInjectCapabilities,
+};
+
 #[cfg(feature = "unstable_mcp_over_acp")]
 use super::mcp::{
     MCP_MESSAGE_METHOD_NAME, MessageMcpNotification, MessageMcpRequest, MessageMcpResponse,
@@ -4162,6 +4170,19 @@ pub struct SessionCapabilities {
     ///
     /// This capability is not part of the spec yet, and may be removed or changed at any point.
     ///
+    /// Mid-turn user-message injection supported by the agent.
+    ///
+    /// Optional. Omitted or `null` means the agent does not support
+    /// `session/inject` or the mandatory `session/revoke_inject` companion method.
+    #[cfg(feature = "unstable_session_inject")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    pub inject: Option<SessionInjectCapabilities>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
     /// Whether the agent supports `session/fork`.
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
@@ -4235,6 +4256,17 @@ impl SessionCapabilities {
         additional_directories: impl IntoOption<SessionAdditionalDirectoriesCapabilities>,
     ) -> Self {
         self.additional_directories = additional_directories.into_option();
+        self
+    }
+
+    #[cfg(feature = "unstable_session_inject")]
+    /// Mid-turn user-message injection supported by the agent.
+    ///
+    /// Advertising this capability also requires support for
+    /// `session/revoke_inject`.
+    #[must_use]
+    pub fn inject(mut self, inject: impl IntoOption<SessionInjectCapabilities>) -> Self {
+        self.inject = inject.into_option();
         self
     }
 
@@ -4926,6 +4958,15 @@ pub struct AgentMethodNames {
     pub session_set_config_option: &'static str,
     /// Method for sending a prompt to the agent.
     pub session_prompt: &'static str,
+    /// Method for injecting a message into a running session.
+    #[cfg(feature = "unstable_session_inject")]
+    pub session_inject: &'static str,
+    /// Method for revoking a pending injected message.
+    #[cfg(feature = "unstable_session_inject")]
+    pub session_revoke_inject: &'static str,
+    /// Method for replacing a pending injected message.
+    #[cfg(feature = "unstable_session_inject")]
+    pub session_replace_inject: &'static str,
     /// Notification for cancelling operations.
     pub session_cancel: &'static str,
     /// Method for exchanging MCP-over-ACP messages.
@@ -4989,6 +5030,12 @@ pub const AGENT_METHOD_NAMES: AgentMethodNames = AgentMethodNames {
     session_new: SESSION_NEW_METHOD_NAME,
     session_set_config_option: SESSION_SET_CONFIG_OPTION_METHOD_NAME,
     session_prompt: SESSION_PROMPT_METHOD_NAME,
+    #[cfg(feature = "unstable_session_inject")]
+    session_inject: SESSION_INJECT_METHOD_NAME,
+    #[cfg(feature = "unstable_session_inject")]
+    session_revoke_inject: SESSION_REVOKE_INJECT_METHOD_NAME,
+    #[cfg(feature = "unstable_session_inject")]
+    session_replace_inject: SESSION_REPLACE_INJECT_METHOD_NAME,
     session_cancel: SESSION_CANCEL_METHOD_NAME,
     #[cfg(feature = "unstable_mcp_over_acp")]
     mcp_message: MCP_MESSAGE_METHOD_NAME,
@@ -5184,6 +5231,27 @@ pub enum ClientRequest {
     ///
     /// See protocol docs: [Prompt Lifecycle](https://agentclientprotocol.com/protocol/prompt-lifecycle)
     PromptRequest(Box<PromptRequest>),
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Injects a user message for pending delivery.
+    #[cfg(feature = "unstable_session_inject")]
+    InjectSessionRequest(Box<InjectSessionRequest>),
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Revokes a pending injected message. Mandatory when injection is advertised.
+    #[cfg(feature = "unstable_session_inject")]
+    RevokeInjectSessionRequest(Box<RevokeInjectSessionRequest>),
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Replaces pending injected content when `pending.replace` is advertised.
+    #[cfg(feature = "unstable_session_inject")]
+    ReplaceInjectSessionRequest(Box<ReplaceInjectSessionRequest>),
     #[cfg(feature = "unstable_nes")]
     /// **UNSTABLE**
     ///
@@ -5247,6 +5315,12 @@ impl ClientRequest {
             Self::CloseSessionRequest(_) => AGENT_METHOD_NAMES.session_close,
             Self::SetSessionConfigOptionRequest(_) => AGENT_METHOD_NAMES.session_set_config_option,
             Self::PromptRequest(_) => AGENT_METHOD_NAMES.session_prompt,
+            #[cfg(feature = "unstable_session_inject")]
+            Self::InjectSessionRequest(_) => AGENT_METHOD_NAMES.session_inject,
+            #[cfg(feature = "unstable_session_inject")]
+            Self::RevokeInjectSessionRequest(_) => AGENT_METHOD_NAMES.session_revoke_inject,
+            #[cfg(feature = "unstable_session_inject")]
+            Self::ReplaceInjectSessionRequest(_) => AGENT_METHOD_NAMES.session_replace_inject,
             #[cfg(feature = "unstable_nes")]
             Self::StartNesRequest(_) => AGENT_METHOD_NAMES.nes_start,
             #[cfg(feature = "unstable_nes")]
@@ -5304,6 +5378,15 @@ pub enum AgentResponse {
     SetSessionConfigOptionResponse(Box<SetSessionConfigOptionResponse>),
     /// Successful result returned for a `session/prompt` request.
     PromptResponse(Box<PromptResponse>),
+    /// Successful result returned for a `session/inject` request.
+    #[cfg(feature = "unstable_session_inject")]
+    InjectSessionResponse(Box<InjectSessionResponse>),
+    /// Successful result returned for a `session/revoke_inject` request.
+    #[cfg(feature = "unstable_session_inject")]
+    RevokeInjectSessionResponse(#[serde(default)] Box<RevokeInjectSessionResponse>),
+    /// Successful result returned for a `session/replace_inject` request.
+    #[cfg(feature = "unstable_session_inject")]
+    ReplaceInjectSessionResponse(Box<ReplaceInjectSessionResponse>),
     /// Successful result returned for a `nes/start` request.
     #[cfg(feature = "unstable_nes")]
     StartNesResponse(Box<StartNesResponse>),

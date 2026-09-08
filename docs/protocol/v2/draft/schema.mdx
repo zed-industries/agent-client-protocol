@@ -1140,6 +1140,83 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Unique identifier for the newly created forked session.
 </ResponseField>
 
+<a id="session-inject"></a>
+### <span class="font-mono">session/inject</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Injects a user message for pending delivery.
+
+#### <span class="font-mono">InjectSessionRequest</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Request parameters for injecting a user message into a session.
+
+The response acknowledges pending delivery. The agent later delivers the
+message by emitting a `user_message` session update with the returned
+`MessageId`.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
+</ResponseField>
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock[]</a>}
+  required
+>
+  The content blocks that compose the injected user message.
+</ResponseField>
+<ResponseField
+  name="mode"
+  type={<a href="#sessioninjectmode">SessionInjectMode</a>}
+  required
+>
+  When the agent should deliver the message.
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The ID of the session that receives the injected message.
+</ResponseField>
+
+#### <span class="font-mono">InjectSessionResponse</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Response acknowledging that an injected message is pending delivery.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
+</ResponseField>
+<ResponseField
+  name="messageId"
+  type={<a href="#messageid">MessageId</a>}
+  required
+>
+  Agent-assigned ID for the pending message.
+</ResponseField>
+
 <a id="session-list"></a>
 ### <span class="font-mono">session/list</span>
 
@@ -1350,6 +1427,87 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 </ResponseField>
 
+<a id="session-replace_inject"></a>
+### <span class="font-mono">session/replace_inject</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Replaces pending injected content when `pending.replace` is advertised.
+
+#### <span class="font-mono">ReplaceInjectSessionRequest</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Request parameters for replacing the content of a pending injected message.
+
+Agents support this optional method only when they advertise
+`session.inject.pending.replace`. Replacement preserves the message ID, mode,
+and pending-order position. Already-delivered messages return `-32010` with
+`data: \{ reason: "already_delivered", messageId \}`; unknown message IDs return
+`-32002` with `data: \{ reason: "unknown_message_id", messageId \}`. If replace
+was not advertised, the agent returns method-not-found or `-32010` with
+`data: \{ reason: "replace_not_supported", messageId \}`.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
+</ResponseField>
+<ResponseField
+  name="content"
+  type={<a href="#contentblock">ContentBlock[]</a>}
+  required
+>
+  Complete replacement content for the pending user message.
+</ResponseField>
+<ResponseField
+  name="messageId"
+  type={<a href="#messageid">MessageId</a>}
+  required
+>
+  The ID returned by `session/inject`.
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The ID of the session that owns the pending message.
+</ResponseField>
+
+#### <span class="font-mono">ReplaceInjectSessionResponse</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Response confirming replacement of a pending injected message.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
+</ResponseField>
+<ResponseField
+  name="messageId"
+  type={<a href="#messageid">MessageId</a>}
+  required
+>
+  The unchanged ID of the pending message.
+</ResponseField>
+
 <a id="session-resume"></a>
 ### <span class="font-mono">session/resume</span>
 
@@ -1425,6 +1583,72 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} >
   Initial session configuration options.
+</ResponseField>
+
+<a id="session-revoke_inject"></a>
+### <span class="font-mono">session/revoke_inject</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Revokes a pending injected message. Mandatory when injection is advertised.
+
+#### <span class="font-mono">RevokeInjectSessionRequest</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Request parameters for revoking a pending injected message.
+
+Every agent that advertises session injection must support this method. A
+successful response guarantees that no future `user_message` update will be
+emitted for this message ID. If delivery wins the race, the agent returns
+`-32010` with `data: \{ reason: "already_delivered", messageId \}`. An unknown
+message ID returns `-32002` with
+`data: \{ reason: "unknown_message_id", messageId \}`.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
+</ResponseField>
+<ResponseField
+  name="messageId"
+  type={<a href="#messageid">MessageId</a>}
+  required
+>
+  The ID returned by `session/inject`.
+</ResponseField>
+<ResponseField
+  name="sessionId"
+  type={<a href="#sessionid">SessionId</a>}
+  required
+>
+  The ID of the session that owns the pending message.
+</ResponseField>
+
+#### <span class="font-mono">RevokeInjectSessionResponse</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Response confirming that a pending injected message was revoked.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"}>
+  The _meta property is reserved by ACP to allow clients and agents to attach
+  additional metadata to their interactions. Implementations MUST NOT make
+  assumptions about values at these keys.
 </ResponseField>
 
 <a id="session-set_config_option"></a>
@@ -4500,6 +4724,21 @@ and use the reserved range (-32000 to -32099) for protocol-specific errors.
 
 <ResponseField name="-32002" type="int32">
   **Resource not found**: A given resource, such as a file, was not found.
+</ResponseField>
+
+<ResponseField name="-32010" type="int32">
+**Inject precondition failed**: **UNSTABLE**
+
+This error is not part of the spec yet, and may be removed or changed at any point.
+
+A session injection precondition failed.
+
+`error.data` uses a `reason` of `already_delivered`, `no_running_turn`,
+or `replace_not_supported`. Pending-message failures also include the
+`messageId`. Unknown message IDs instead use `-32002` with
+`data: \{ reason: "unknown_message_id", messageId \}`. The error data remains
+open JSON, consistent with the protocol's shared `Error::data` field.
+
 </ResponseField>
 
 <ResponseField name="Other" type="int32">
@@ -7666,6 +7905,17 @@ Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports forking sessions.
 
 </ResponseField>
+<ResponseField name="inject" type={<><span><a href="#sessioninjectcapabilities">SessionInjectCapabilities</a></span><span> | null</span></>} >
+  **UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Mid-turn user-message injection supported by the agent.
+
+Optional. Omitted or `null` means the agent does not support
+`session/inject` or the mandatory `session/revoke_inject` companion method.
+
+</ResponseField>
 <ResponseField name="mcp" type={<><span><a href="#mcpcapabilities">McpCapabilities</a></span><span> | null</span></>} >
   MCP capabilities supported by the agent for session lifecycle requests.
 
@@ -8059,6 +8309,117 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   RFC 3339 timestamp of last activity. Set to null to clear.
 
     - Format: `date-time`
+
+</ResponseField>
+
+## <span class="font-mono">SessionInjectCapabilities</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Capabilities for mid-turn user-message injection.
+
+`modes` must be non-empty. When it contains `steer`, `steerInStream` is
+required and must also be non-empty. Advertising this capability makes
+`session/revoke_inject` mandatory.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"} >
+  The _meta property is reserved by ACP for extension metadata.
+</ResponseField>
+<ResponseField name="modes" type={<a href="#sessioninjectmode">SessionInjectMode[]</a>} required>
+  Supported injection delivery modes. Must be non-empty.
+</ResponseField>
+<ResponseField name="pending" type={<><span><a href="#sessioninjectpendingcapabilities">SessionInjectPendingCapabilities</a></span><span> | null</span></>} >
+  Capabilities for editing pending injected messages.
+
+Omitted or `null` means pending replacement is not supported.
+
+</ResponseField>
+<ResponseField name="steerInStream" type={<><span><a href="#sessioninjectsteerinstream">SessionInjectSteerInStream[]</a></span><span> | null</span></>} >
+  Supported handling for steering during an LLM stream.
+
+Required and non-empty when `modes` contains `steer`; otherwise optional.
+
+</ResponseField>
+
+## <span class="font-mono">SessionInjectMode</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Delivery mode for a message injected into a session.
+
+**Type:** Union
+
+<ResponseField name="queue" type="string">
+  Deliver after the current turn returns to idle.
+</ResponseField>
+
+<ResponseField name="steer" type="string">
+  Deliver at the next safe breakpoint in the current turn.
+</ResponseField>
+
+<ResponseField name="other" type="string">
+Custom or future injection mode.
+
+Values beginning with `_` are reserved for implementation-specific
+extensions. Unknown values that do not begin with `_` are reserved for
+future ACP variants.
+
+</ResponseField>
+
+## <span class="font-mono">SessionInjectPendingCapabilities</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+Capabilities for pending injected messages.
+
+**Type:** Object
+
+**Properties:**
+
+<ResponseField name="_meta" type={"object | null"} >
+  The _meta property is reserved by ACP for extension metadata.
+</ResponseField>
+<ResponseField name="replace" type={"boolean | null"} >
+  Whether `session/replace_inject` is supported.
+
+Optional. Omitted or `null` defaults to `false`.
+
+</ResponseField>
+
+## <span class="font-mono">SessionInjectSteerInStream</span>
+
+**UNSTABLE**
+
+This capability is not part of the spec yet, and may be removed or changed at any point.
+
+How an agent handles steering that arrives during an LLM stream.
+
+**Type:** Union
+
+<ResponseField name="interrupt" type="string">
+  Truncate the in-flight stream and re-prompt with the injected message.
+</ResponseField>
+
+<ResponseField name="finish" type="string">
+  Finish the in-flight stream before delivering the injected message.
+</ResponseField>
+
+<ResponseField name="other" type="string">
+Custom or future stream-steering behavior.
+
+Values beginning with `_` are reserved for implementation-specific
+extensions. Unknown values that do not begin with `_` are reserved for
+future ACP variants.
 
 </ResponseField>
 

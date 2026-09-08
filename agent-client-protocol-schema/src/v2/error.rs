@@ -127,6 +127,44 @@ impl Error {
         }
     }
 
+    /// A steer was rejected because the session has no running turn.
+    #[cfg(feature = "unstable_session_inject")]
+    #[must_use]
+    pub fn inject_no_running_turn() -> Self {
+        Self::from(ErrorCode::InjectPreconditionFailed)
+            .data(serde_json::json!({ "reason": "no_running_turn" }))
+    }
+
+    /// A pending injected message was delivered before it could be revoked or replaced.
+    #[cfg(feature = "unstable_session_inject")]
+    #[must_use]
+    pub fn inject_already_delivered(message_id: impl Into<super::MessageId>) -> Self {
+        Self::from(ErrorCode::InjectPreconditionFailed).data(serde_json::json!({
+            "reason": "already_delivered",
+            "messageId": message_id.into(),
+        }))
+    }
+
+    /// Pending injected-message replacement is not supported.
+    #[cfg(feature = "unstable_session_inject")]
+    #[must_use]
+    pub fn inject_replace_not_supported(message_id: impl Into<super::MessageId>) -> Self {
+        Self::from(ErrorCode::InjectPreconditionFailed).data(serde_json::json!({
+            "reason": "replace_not_supported",
+            "messageId": message_id.into(),
+        }))
+    }
+
+    /// The injected message ID is unknown for the requested session.
+    #[cfg(feature = "unstable_session_inject")]
+    #[must_use]
+    pub fn inject_unknown_message_id(message_id: impl Into<super::MessageId>) -> Self {
+        Self::from(ErrorCode::ResourceNotFound).data(serde_json::json!({
+            "reason": "unknown_message_id",
+            "messageId": message_id.into(),
+        }))
+    }
+
     /// Converts a standard error into an internal JSON-RPC error.
     ///
     /// The error's string representation is included as additional data.
@@ -185,6 +223,21 @@ pub enum ErrorCode {
     #[cfg_attr(feature = "schemars", schemars(transform = error_code_transform))]
     #[strum(to_string = "Resource not found")]
     ResourceNotFound, // -32002
+    /// **UNSTABLE**
+    ///
+    /// This error is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// A session injection precondition failed.
+    ///
+    /// `error.data` uses a `reason` of `already_delivered`, `no_running_turn`,
+    /// or `replace_not_supported`. Pending-message failures also include the
+    /// `messageId`. Unknown message IDs instead use `-32002` with
+    /// `data: { reason: "unknown_message_id", messageId }`. The error data remains
+    /// open JSON, consistent with the protocol's shared [`Error::data`] field.
+    #[cfg(feature = "unstable_session_inject")]
+    #[cfg_attr(feature = "schemars", schemars(transform = error_code_transform))]
+    #[strum(to_string = "Inject precondition failed")]
+    InjectPreconditionFailed, // -32010
     /// Other undefined error code.
     #[cfg_attr(feature = "schemars", schemars(untagged))]
     #[strum(to_string = "Unknown error")]
@@ -202,6 +255,8 @@ impl From<i32> for ErrorCode {
             -32800 => ErrorCode::RequestCancelled,
             -32000 => ErrorCode::AuthRequired,
             -32002 => ErrorCode::ResourceNotFound,
+            #[cfg(feature = "unstable_session_inject")]
+            -32010 => ErrorCode::InjectPreconditionFailed,
             _ => ErrorCode::Other(value),
         }
     }
@@ -218,6 +273,8 @@ impl From<ErrorCode> for i32 {
             ErrorCode::RequestCancelled => -32800,
             ErrorCode::AuthRequired => -32000,
             ErrorCode::ResourceNotFound => -32002,
+            #[cfg(feature = "unstable_session_inject")]
+            ErrorCode::InjectPreconditionFailed => -32010,
             ErrorCode::Other(value) => value,
         }
     }
@@ -245,6 +302,8 @@ fn error_code_transform(schema: &mut Schema) {
         "RequestCancelled" => ErrorCode::RequestCancelled,
         "AuthRequired" => ErrorCode::AuthRequired,
         "ResourceNotFound" => ErrorCode::ResourceNotFound,
+        #[cfg(feature = "unstable_session_inject")]
+        "InjectPreconditionFailed" => ErrorCode::InjectPreconditionFailed,
         _ => panic!("Unexpected error code name {name}"),
     };
     let mut description = schema
@@ -339,5 +398,51 @@ mod tests {
                 serde_json::from_value(serde_json::to_value(error).unwrap()).unwrap()
             );
         }
+    }
+
+    #[cfg(feature = "unstable_session_inject")]
+    #[test]
+    fn session_inject_errors_include_required_data() {
+        assert_eq!(
+            serde_json::to_value(Error::inject_no_running_turn()).unwrap(),
+            serde_json::json!({
+                "code": -32010,
+                "message": "Inject precondition failed",
+                "data": { "reason": "no_running_turn" },
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(Error::inject_already_delivered("message-1")).unwrap(),
+            serde_json::json!({
+                "code": -32010,
+                "message": "Inject precondition failed",
+                "data": {
+                    "reason": "already_delivered",
+                    "messageId": "message-1",
+                },
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(Error::inject_replace_not_supported("message-1")).unwrap(),
+            serde_json::json!({
+                "code": -32010,
+                "message": "Inject precondition failed",
+                "data": {
+                    "reason": "replace_not_supported",
+                    "messageId": "message-1",
+                },
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(Error::inject_unknown_message_id("message-1")).unwrap(),
+            serde_json::json!({
+                "code": -32002,
+                "message": "Resource not found",
+                "data": {
+                    "reason": "unknown_message_id",
+                    "messageId": "message-1",
+                },
+            })
+        );
     }
 }
