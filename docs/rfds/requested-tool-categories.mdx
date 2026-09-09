@@ -1,0 +1,128 @@
+---
+title: "Requested Tool Categories"
+---
+
+Author(s): [vansin](https://github.com/vansin) (filing on behalf of the [sleep2agi/agent-network](https://github.com/sleep2agi/agent-network) project — multi-agent orchestration platform built on ACP)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Add an optional `requested_tool_categories: Option<Vec<RequestedToolCategory>>` field to `ClientCapabilities` so a client can **hint to the agent** which **abstract categories of in-LLM tools** it would like the agent to expose during a session. Categories are vendor-neutral (e.g. `search`, `social_search`, `media_gen`, `web`, `code_exec`, `voice`), and each agent implementation maps a category to whatever concrete tools (built-in or vendor-private) it can offer.
+
+Backward-compatible: the field is optional; agents that don't understand it can ignore it without behaviour change.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+`ClientCapabilities` currently has only `fs` and `terminal` knobs. There is **no first-class way for a client to express "I want the LLM I'm talking through to have access to backend tools X, Y, Z"**, and `AgentCapabilities` correspondingly has no `availableTools` enumeration the client can read.
+
+This is fine for agents whose default tool set already matches what every client needs. But it is a real gap for agents that **gate some of their backend tools by default in isolated stdio mode**, where the client has no way to opt in.
+
+Concrete reproducer (from a real downstream project — full evidence at <https://github.com/sleep2agi/agent-network/blob/main/docs/rfcs/RFC-021-acp-capability-profile-expansion.md>):
+
+- Grok Build's interactive (non-ACP) sessions routinely call backend tools like **X search** (`x_keyword_search` / `x_user_search`), **video generation** (`video_gen`), and **web search**. We observed 27 X-search invocations and 2 video-generation invocations across one user's session history.
+- When the same user runs the same model under `grok agent stdio` (ACP), the LLM cannot reach those tools. A probe-prompt that explicitly asks the LLM to use X search returns `"无法完成请求。当前会话中没有连接任何 X 搜索相关的 MCP 工具"` — the LLM understands the task, tries `search_tool` to *find* the backend tools by name, and reports they aren't in its registry.
+- We tried a vendor-specific workaround via the `_meta` extension point (`_meta.x.ai/requestedBackendTools: ["x_keyword_search", "video_gen", ...]`) on both `initialize` and `session/new`. Grok agent 0.2.3 silently ignores it — zero behaviour change in real LLM tool-call counts.
+
+There is no spec-blessed way to say "expose these tool categories." The ecosystem will keep re-inventing vendor-specific `_meta` keys, which then don't transfer between agents.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+1. Add to `ClientCapabilities`:
+
+   ```rust
+   #[cfg(feature = "unstable_requested_tool_categories")]
+   #[serde(default, skip_serializing_if = "Option::is_none")]
+   pub requested_tool_categories: Option<Vec<RequestedToolCategory>>,
+   ```
+
+2. Add a small open-ended enum for the categories so each agent picks which it supports:
+
+   ```rust
+   #[cfg(feature = "unstable_requested_tool_categories")]
+   #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
+   #[serde(rename_all = "snake_case")]
+   #[non_exhaustive]
+   pub enum RequestedToolCategory {
+       Search,         // Generic full-text search (e.g. web search, wikipedia)
+       SocialSearch,   // Social-network search (e.g. Grok's X search)
+       MediaGen,       // Image / video / audio generation
+       Web,            // Web fetch / browsing
+       CodeExec,       // Sandboxed code execution
+       Voice,          // STT / TTS
+       // ...future categories...
+   }
+   ```
+
+3. Document the semantics: agents **MAY** honour the hint by exposing tools that match the requested categories. Agents that don't recognise a category MUST ignore it (no error). Clients **MUST NOT** assume any tool is available just because they requested a category.
+
+4. Optionally mirror in `AgentCapabilities` a `supported_tool_categories` list so clients can also introspect what an agent is willing to expose, but this is a "nice to have", not required by the core proposal.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+A multi-agent orchestration tool like `anet` (or any IDE plugin) can write:
+
+```ts
+client.initialize({
+  protocolVersion: "1",
+  clientCapabilities: {
+    fs: { readTextFile: true, writeTextFile: true },
+    terminal: false,
+    requestedToolCategories: ["search", "social_search", "media_gen"]
+  }
+});
+```
+
+and have **every** ACP agent that supports the field do the right thing — Grok exposes XSearch / video_gen / web_search; a hypothetical future Claude Code ACP exposes its WebSearch + computer-use; a Codex ACP exposes its own code-exec / web-fetch. No per-vendor `_meta` shimming, no `grep`-the-binary for hidden flags.
+
+When an agent doesn't support a requested category, the client gets a clear empty result rather than an opaque "the LLM just didn't try" — and can fall back gracefully.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+**Phase 1 — RFD dialogue (this PR)**: gather feedback on the category enum surface and semantics.
+
+**Phase 2 — feature-gated landing**: add the field to `ClientCapabilities` in both `src/v1/client.rs` and `src/v2/client.rs` behind `unstable_requested_tool_categories`, mirror in the JSON schema via `npm run generate`, add unit tests covering serde round-trip and the "absent / empty / unknown variant" cases.
+
+**Phase 3 — reference honouring**: open a follow-up PR (or upstream issue at Grok / Zed / Claude Code) demonstrating one ACP agent honouring at least one category, so the design is proven end-to-end.
+
+**Phase 4 — stabilisation**: when at least two agents and one client honour the field in real shipped releases, the feature flag is removed and the field becomes stable per the standard ACP RFD lifecycle.
+
+## Frequently asked questions
+
+### Why a closed enum rather than free-form strings?
+
+A closed enum keeps cross-agent semantics anchored: every implementation maps the same name to "what users mean by search." Free-form strings would degrade into a per-vendor namespace ("x.ai/x_keyword_search" / "zed.dev/web_search" / ...), which is exactly the situation we're trying to escape. The enum is `#[non_exhaustive]` and additions are easy via further RFDs, so the closed shape doesn't lock anyone in.
+
+### Why not extend `_meta` and call it done?
+
+`_meta` is by design an opaque per-implementation extension point — values there have **no cross-vendor semantics**. We tried it as a short-term workaround (`_meta.x.ai/requestedBackendTools`) and Grok agent 0.2.3 silently ignored it. Even when one agent does honour a `_meta` key, other agents won't, so every multi-agent orchestrator has to maintain a fan-out of vendor-specific keys. That's the spec gap this RFD addresses.
+
+### Doesn't this push the agent toward exposing tools it normally hides?
+
+No — the field is a **hint**, not a guarantee. Each agent decides what (if anything) to expose, and agents that gate backend tools by default for legitimate reasons (auth, quota, safety) can continue to gate them. The hint just makes the *desire* expressible in a portable way, so a security-conscious agent can also surface a clean "I don't expose `social_search` over ACP" stance.
+
+### What about per-category options (e.g. "search at most 10 results")?
+
+Out of scope for v1. The category is a coarse "yes, please" / "no, thank you" toggle. Per-call options stay where they belong: on the tool's MCP / native call schema once it's exposed.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+Three alternatives, all rejected:
+
+1. **`_meta`-only**: works for one vendor at a time, doesn't generalise, and as the Grok probe showed, the vendor doesn't have to honour our chosen key.
+2. **Mandatory tool exposure on initialize**: too strong — would break agents that legitimately gate tools by auth/quota.
+3. **Per-tool-name explicit allowlist**: forces clients to know every vendor's private tool names, leaking implementation detail and re-creating the `_meta` namespace problem at the spec level.
+
+Categories sit between "fully abstract" (mandatory exposure) and "fully concrete" (per-tool allowlist), and are the level of granularity that survives across vendor boundaries.
+
+## Revision history
+
+- 2026-05-28: Initial RFD draft (filed after a Phase-2 HARD GATE confirmed Grok agent 0.2.3 stdio does not honour vendor-specific `_meta` hints — see <https://github.com/sleep2agi/agent-network/blob/main/docs/rfcs/RFC-021-acp-capability-profile-expansion.md> §11 for the captured negative evidence).
