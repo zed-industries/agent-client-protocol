@@ -1,0 +1,233 @@
+---
+title: "Ephemeral IDE Context for Sessions"
+---
+
+- Author(s): [kevklam](https://github.com/kevklam)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+ACP currently gives clients two main ways to provide context to agents during chat-style sessions:
+
+- durable session lifecycle metadata such as `cwd` and `additionalDirectories`; and
+- per-turn prompt content via `session/prompt`, typically snapshotted into conversation history.
+
+That leaves a major gap for IDE-derived state that is useful to the agent but should not be serialized into the conversational transcript or repeatedly snapshotted into every turn.
+
+This RFD proposes a standard, capability-gated channel for ephemeral IDE context such as:
+
+- current editor contents
+- workspace trees
+- open documents
+- recent document activity
+- diagnostics
+
+The key property is that this is host-provided runtime context delivered alongside a message to the agent for use in constructing the next turn's prompt, without becoming part of the durable session record or prompt history.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+Today, popular IDE-based clients routinely have access to rich editor state that materially improves agent behavior:
+
+- what files are open;
+- what diagnostics are visible; and
+- what workspace folders are relevant;
+- what the current editor contents are; and
+- what project files are nearby in the workspace.
+
+ACP now has a protocol-level solution for durable multi-root workspace scope via `cwd` plus `additionalDirectories`, but it still lacks a general way to provide transient IDE state outside the prompt transcript.
+
+In practice, clients fall back to implementation-specific behavior:
+
+- inject IDE state as plain text on every prompt turn;
+- encode it in custom `_meta` fields;
+- expose ad hoc private methods; or
+- skip sending the context entirely.
+
+That creates several problems:
+
+- repeated prompt bloat and unnecessary token usage;
+- transcript pollution from non-conversational IDE metadata;
+- inconsistent behavior across clients and agents;
+- no interoperable semantics for clearing or replacing stale IDE state; and
+- no clear boundary between the durable conversation or session record and transient host state.
+
+There is also an important distinction inside "IDE context" itself.
+
+Some IDE signals are extremely small and may be reasonable to snapshot into prompt history when a client intentionally wants them to influence the current turn in a durable way, for example:
+
+- the current file path;
+- the current cursor position; and
+- the current text selection.
+
+Other IDE signals are ones that a client may want to send fresh on many turns, but that are large enough, expensive enough, or low-value enough as durable transcript content that they should not be snapshotted into conversation history on every turn, for example:
+
+- the current file contents;
+- the workspace file tree;
+- the set of open tabs or open documents; and
+- current diagnostics across the workspace.
+
+This RFD is primarily motivated by the second category: host-known runtime context that clients may want to provide fresh on many turns, but that is too large, too expensive, or too low-value to keep re-serializing into durable conversation history by default.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Add a standard ACP mechanism for ephemeral host-provided runtime context that is:
+
+- host-provided
+- capability-gated
+- delivered as part of the "send message to agent" path, so the agent can include it when constructing the prompt for the next turn
+- explicitly excluded from durable conversation history and session replay
+
+At a high level, this proposal would introduce:
+
+- an agent capability advertising support for host-provided `runtimeContext`;
+- an optional `runtimeContext` argument on `session/prompt`; and
+- clear lifecycle semantics stating that `runtimeContext` is used when constructing the prompt for that turn, but is not part of the transcript, is not replayed as history, and is not implicitly inherited across load, resume, or fork boundaries.
+
+The proposal should explicitly preserve a practical boundary that clients already need:
+
+- minimal turn-specific hints may still be included directly in prompt content when a client intentionally wants them to become part of that turn's durable prompt input
+- richer IDE state that clients may want to provide freshly on many turns should flow through the ephemeral runtime-context channel when it is too large, too expensive, or too low-value to durably snapshot on every turn.
+
+For example, a client may reasonably inline a one-off selection or cursor location into a prompt turn, while still keeping open documents, diagnostics, current editor contents, or workspace trees out of the transcript by default.
+
+This proposal is intentionally about standardizing the delivery mechanism and lifecycle semantics, not standardizing a fixed schema for which IDE facts must be present. The client should remain free to choose what runtime context it sends for a given turn.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+Clients can keep durable workspace scope in session lifecycle requests and keep transient IDE state in an ephemeral channel.
+
+Agents can rely on a standard source of editor state without requiring clients to stuff that state into prompt text. Session transcripts stay focused on the conversation itself, while IDE context remains host-owned, replaceable, and current.
+
+This should make ACP chat sessions feel much closer to modern IDE agent experiences without forcing every client and agent pair to reinvent the same private protocol.
+
+It also gives clients a clearer policy boundary: they can still snapshot tiny turn-specific hints when that is useful, while keeping the richer context that actually drives IDE experiences fresh without durably recording it on every turn.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### Proposed design
+
+- Add `sessionCapabilities.runtimeContext?: {}` as a yes/no capability.
+- Add an optional `runtimeContext` field to `session/prompt`.
+- Define `runtimeContext` as an array of text items so clients can send multiple independently framed pieces of runtime context for the turn.
+- Keep the shape minimal: ACP standardizes text items with optional titles, but does not standardize IDE-specific categories or required fields beyond that.
+- Define `runtimeContext` as host-provided runtime input for that prompt turn, not durable prompt content.
+
+The semantic rules are:
+
+- Agents SHOULD incorporate `runtimeContext` when constructing the prompt for that turn.
+- Agents MAY trim or omit some `runtimeContext` items if needed to avoid context-window or other prompt-construction constraints.
+- When practical, agents SHOULD preserve `runtimeContext` item order.
+- `runtimeContext` is not part of prompt history.
+- Agents MUST NOT replay prior `runtimeContext` values as conversation history during `session/load`.
+- `session/fork`, `session/load`, and `session/resume` do not implicitly recreate prior `runtimeContext` unless the client sends it again.
+- Clients MUST gate use on the advertised capability.
+
+A representative shape would be:
+
+```ts
+sessionCapabilities?: {
+  runtimeContext?: {}
+}
+```
+
+```ts
+type RuntimeContextItem = {
+  title?: string
+  text: string
+}
+
+session/prompt: {
+  sessionId: string
+  prompt: ContentBlock[]
+  runtimeContext?: RuntimeContextItem[]
+}
+```
+
+Using an array is intentional: it lets clients send separate pieces of runtime context with the framing they want the agent to see for that turn. Using `{ title?: string, text: string }` keeps the payload text-only while still letting clients distinguish between a short heading and the actual context content.
+
+This RFD intentionally does not prescribe exact prompt verbiage or an exact insertion strategy. The important requirement is that `runtimeContext` is available to the agent as sideband text input for that turn without becoming durable transcript content.
+
+In practice, implementations may choose different prompt-construction strategies. For example, an agent might collect the items into a dedicated "additional context" section placed before the transcript, or it might use another prompt-construction approach that keeps the runtime context separate from durable conversation history. This RFD does not require one exact prompt template.
+
+This proposal does not require every piece of IDE context to use `runtimeContext`. A useful rule of thumb is that full current file contents, workspace file trees, open tabs or open documents lists, diagnostics, and similar IDE-derived context should generally use `runtimeContext` when clients want to provide them freshly on many turns without durably recording them each time. Small hints like current selection or cursor location can remain a separate prompt-layer choice and are not the main focus of this proposal.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### Why is `session/prompt` not enough?
+
+Because this information is not fundamentally conversational content. Re-sending open files, diagnostics, workspace trees, or current editor contents on every turn wastes tokens, clutters transcripts, and gives stale IDE state the same status as user-authored conversation history.
+
+That said, not all IDE hints are equal. Tiny hints like a cursor location or current selection may still be reasonable to inline for a given turn. The gap this RFD is focused on is richer IDE context like open documents, diagnostics, workspace structure, and current editor contents that clients may want to provide freshly on many turns, but that should stay out of durable history by default because repeatedly snapshotting it is too expensive or too low-value.
+
+### Why not use `_meta`?
+
+`_meta` is appropriate for implementation-specific extensions, not for an interoperable protocol feature that many clients and agents are likely to need.
+
+### Why not design this as an "update session context" verb?
+
+Because the motivating context is tied to the specific head the user is actively interacting with, and because some of it changes too frequently to make a separate session-level update mechanism practical.
+
+First, this context should not roam across heads. If a user is interacting with the same agent through multiple heads such as an IDE and a CLI, they would not expect answers in the CLI to be influenced by tabs currently open in the IDE. The context is specific to the live head that is sending the next message, not something that should be written onto the session and then reused elsewhere.
+
+Second, some of the most useful inputs are highly dynamic. If a client wants to provide things like current editor contents, a separate "update session context" verb would push clients toward sending updates on every keystroke just to keep the session-level state fresh. Attaching `runtimeContext` directly to `session/prompt` keeps the freshness boundary aligned with the turn where the context is actually needed.
+
+### Why not treat this as part of session history?
+
+Because the motivating context is not just short-lived, it is also usually a poor fit for durable history. Folding things like open tabs, diagnostics, workspace trees, or full current editor contents into the conversation record makes replay noisy, increases cost, and preserves data that often has little value as durable transcript content.
+
+### Does this obsolete `cwd` and `additionalDirectories`?
+
+`cwd`, no. It has stronger semantic meaning to clients and agents than prompt-building context alone. It may affect UX, relative-path behavior, sandboxing, approvals, or other code-level behavior that is not just "make this visible to the LLM for the next turn."
+
+`additionalDirectories`, possibly in some cases, but that is not a goal of this RFD. The merged [Additional Workspace Roots for Session Lifecycle Requests](./additional-directories) RFD and its corresponding merged PR [#783](https://github.com/agentclientprotocol/agent-client-protocol/pull/783) standardize a specific piece of session metadata that agents can take code dependencies on.
+
+More generally, `cwd` and `additionalDirectories` schematize specific pieces of information with defined protocol semantics. The mechanism proposed by this RFD does not do that. It only creates a channel for clients to inject text context into agent prompt construction for a turn. It does not schematize specific IDE facts that the agent application can take a code dependency on.
+
+### Should this be push-based, pull-based, or both?
+
+This proposal should be push-based.
+
+Pull-based designs do not seem useful for this problem. If the agent has to issue tool calls to fetch the context, then the fetched context becomes part of turn history, which defeats the point of this RFD.
+
+One could imagine the client automatically fetching context during prompt construction without surfacing a tool call, but that adds complexity without clear benefit. If the concern is that the agent may not want to use some particular runtime context, it can simply ignore context that the client pushed for that turn.
+
+Efficiency is also not a strong argument for pull here. The motivating payloads are small enough that "too much data over stdio" is unlikely to be the bottleneck. LLM context limits will be a problem long before stdio transport volume is.
+
+### What should an agent do if `runtimeContext` is too large?
+
+This RFD does not propose protocol-level size restrictions for `runtimeContext`.
+
+Agents should use the same kind of judgment they already use for large prompt inputs in general. Support for `runtimeContext` means an agent should normally incorporate it into prompt construction for the turn, but it may trim or omit some items if including them would threaten context limits or otherwise make prompt construction impractical.
+
+When practical, an agent may also include a hint in the constructed prompt that some runtime context was trimmed or omitted due to size, but this RFD does not require a specific mechanism for doing so.
+
+### What should clients do if the agent does not support `runtimeContext`?
+
+They must not send it.
+
+Fallback behavior is intentionally out of scope for this RFD. Different clients may make different product choices, and this RFD should not be read as recommending that clients simply inline all such context into normal prompt history when support is absent.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+The main alternatives are:
+
+- continue embedding IDE state into `session/prompt`;
+- standardize a `_meta` convention; or
+- add narrowly scoped IDE-specific methods one at a time.
+
+This draft leans toward a general ephemeral context channel because it creates a cleaner separation between transcript content and host-owned IDE state, while still allowing the protocol to grow incrementally.
+
+## Revision history
+
+- Initial draft created March 29, 2026.
