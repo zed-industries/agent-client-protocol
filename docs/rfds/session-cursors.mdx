@@ -1,0 +1,131 @@
+---
+title: "Add session cursors"
+---
+
+Author(s): [@SteffenDE](https://github.com/SteffenDE)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Some agent operations need to be able to specify a specific position in the chat to operate,
+e.g., a `session/fork` at a specific message. While we have message IDs, those are not guaranteed
+to be valid for such operations. An agent might only allow forking at user messages, not agent
+messages. A generic mechanism that allows agents to hand out opaque "cursors" that clients can
+use in different operations solves those problems.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+The [session-fork RFD](./session-fork.mdx) introduced `session/fork` to duplicate an entire session.
+It already anticipated extending this with a message ID. The corresponding RFD discussion showed that
+using message IDs for this purpose is not ideal. There is currently no mechanism like this.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Allow agents to send a new `sessionUpdate` type: `"cursor"`. A client can then use this cursor
+to perform its stated operation. A cursor is an opaque string with a corresponding list of
+operations that can be performed with it. A cursor identifies a boundary in the session, optionally
+anchored immediately before or after a specific message. Without an explicit anchor, it refers to
+the boundary at its position in the session update stream. Session methods like `session/load`,
+`session/resume` and `session/fork` are extended to accept an optional `"cursor"` parameter.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+Clients can use provided cursors to perform actions like
+
+- forking a chat at a specific message
+- rewinding chats to a specific point in time
+- specify a cursor to skip replaying messages when resuming a session
+- and probably more
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+The agent can send a new `sessionUpdate` when a cursor becomes available:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "update": {
+      "sessionUpdate": "cursor",
+      "cursor": "opaque_string_12345",
+      "validFor": ["session/fork"],
+      "beforeMessageId": "msg_user_2"
+    }
+  }
+}
+```
+
+Cursor updates accept two optional anchor fields:
+
+- `beforeMessageId` identifies the boundary immediately before the referenced message. Forking at
+  this cursor excludes that message and all subsequent history.
+- `afterMessageId` identifies the boundary immediately after the referenced message. Forking at
+  this cursor includes history through that message and excludes subsequent history.
+
+Both fields are optional, non-null strings. A cursor update **MUST NOT** include both fields.
+Referenced messages **MUST** belong to the same session. An explicit anchor determines the boundary
+regardless of when the cursor update arrives, allowing agents to announce cursors for earlier
+messages once those boundaries become available for an operation.
+
+If neither field is present, the cursor identifies the boundary at its position in the session update
+stream and includes all preceding history when used for forking. This allows agents that cannot
+provide message IDs to advertise cursors too.
+
+Clients can use a cursor before a user message to edit that message by forking and submitting a
+replacement. A cursor after a user message can provide the fork point for regenerating its response.
+Agents advertise whichever boundaries they support. Clients **MUST** pass the opaque `cursor` token
+to the operation and **MUST NOT** substitute the anchor's message ID.
+
+In this example, the client can fork the session immediately before `msg_user_2` by passing the
+provided `cursor` to the `session/fork` method:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "session/fork",
+  "params": {
+    "sessionId": "sess_abc123def456",
+    "cursor": "opaque_string_12345",
+    "cwd": "/home/user/project",
+    "mcpServers": []
+  }
+}
+```
+
+The client discovers support for forking at a specific cursor by observing a `"cursor"` update with a
+corresponding `"validFor"` entry. If a client sends a cursor that is not valid for the requested operation,
+the agent **MUST** respond with an error. Agents using an SDK that recognizes cursor parameters **MUST**
+also respond with an error if a cursor is passed but the agent does not support cursors.
+
+Agents using older SDKs may silently ignore an unrecognized cursor parameter. However, agents that
+do not support cursors never send a `"cursor"` update, so their sessions should not contain any cursors
+for clients to pass back. Clients **MUST** only send cursors advertised for the same session and the
+requested operation. It is up to the client to properly track cursors.
+
+Cursors **SHOULD** be re-sent when replaying session history.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+- Should cursors be assumed valid or invalid after a `session/resume`?
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+A fork specific `forkPoint` was considered for the fork use case in [a previous PR](https://github.com/agentclientprotocol/agent-client-protocol/pull/629).
+
+## Revision history
+
+- 2026-09-07: Initial draft
