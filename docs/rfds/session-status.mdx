@@ -1,0 +1,124 @@
+---
+title: "Session liveness check"
+---
+
+Author(s): [@chazcb](https://github.com/chazcb)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Add a `session/status` method that checks whether an agent is currently handling a specific session. Unlike `session/load`, which forces the agent to start handling a session, `session/status` is a read-only query: "are you currently handling this session?"
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+ACP has no way to check if an agent is currently handling a session without side effects.
+
+The existing methods that operate on sessions all change state:
+
+- `session/load` forces the agent to load and start handling the session.
+- `session/prompt` sends work to the session.
+- `session/cancel` cancels work in the session.
+
+There is no read-only query. If a client wants to know whether a session is live before interacting with it, it has no option — it must commit to a `session/load` (which may be expensive: loading from storage, replaying history, allocating resources) or send a `session/prompt` and hope for the best.
+
+This is a problem when:
+
+- **A client reconnects** after a page reload or network drop. It has a `sessionId` but doesn't know if the agent is still handling that session. Calling `session/load` forces a reload even if the session is already live.
+- **A routing layer needs to probe an agent.** In multi-pod deployments, the routing layer needs to ask "are you handling this session?" before forwarding requests. Without a lightweight probe, it must send `session/load` — which forces the session onto that pod even if it shouldn't be there.
+- **The agent crashed and restarted.** The session is no longer being handled but the client doesn't know. It sends requests to a dead session and gets timeouts or errors instead of a clear "not found."
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Add `session/status` — a read-only method with no side effects. The agent checks whether it is currently handling the requested session and responds immediately.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "session/status",
+  "params": {
+    "sessionId": "sess_abc123"
+  }
+}
+```
+
+Response when the session is currently loaded:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": "live"
+  }
+}
+```
+
+Response when the session is not loaded:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": "not_found"
+  }
+}
+```
+
+- `"live"` — The agent is currently handling this session. Other session methods (`session/prompt`, `session/cancel`, etc.) will work as expected.
+- `"not_found"` — The agent is not handling this session. It was never created here, has been closed, or was lost to a crash/restart. The client should use `session/load` to start handling it.
+
+No response (timeout) means the agent itself is unresponsive.
+
+### Contract
+
+- `session/status` must be side-effect-free. It must not load, create, or modify the session.
+- It must be cheap. The agent should be able to answer immediately without expensive lookups.
+- It may be called frequently (e.g., as a health probe by a routing layer).
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+- Clients check `session/status` before deciding whether to call `session/load` (expensive) or go straight to `session/prompt` (the session is already live).
+- Routing layers use `session/status` as a lightweight probe to locate which pod is handling a session, without forcing a load on the wrong pod.
+- UIs can show session availability immediately on reconnect instead of waiting for a timeout.
+- If an agent responds `"live"`, the client can trust that `session/prompt`, `session/cancel`, and other session methods will work.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+Agents declare support via capabilities:
+
+```json
+{
+  "sessionCapabilities": {
+    "status": {}
+  }
+}
+```
+
+## Frequently asked questions
+
+### Why not just call session/load?
+
+`session/load` forces the agent to start handling the session. If the session is already being handled on another pod, calling `session/load` on the wrong pod creates a duplicate. `session/status` is the read-only probe that tells you where the session actually is.
+
+### Why not use session/attach or session/resume?
+
+Both `session/attach` ([RFD](https://github.com/agentclientprotocol/agent-client-protocol/pull/533)) and `session/resume` mutate state — they cause the agent to start handling the session. They are not suitable for probing. A routing layer that calls `session/attach` to check if a session exists will accidentally attach to it. `session/status` is the read-only primitive that these methods are missing.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+Transport-level heartbeats and side-channel ping/pong protocols. These operate outside ACP — the agent can't participate, leading to false positives (transport says "alive" but the session is gone). `session/status` puts the agent in control of reporting its own session state.
+
+## Revision history
+
+2026-04-15: Initial draft
