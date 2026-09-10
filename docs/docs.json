@@ -210,6 +210,7 @@
                 "root": "rfds/v2/overview",
                 "pages": [
                   "rfds/v2/prompt",
+                  "rfds/v2/session-inject",
                   "rfds/v2/enum-variant-extension",
                   "rfds/v2/required-session-methods",
                   "rfds/v2/session-resume-replay",
