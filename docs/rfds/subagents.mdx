@@ -1,0 +1,513 @@
+---
+title: "Subagent Discovery, Delegation, and Child Sessions"
+---
+
+- Author(s): [egor-baranov](https://github.com/egor-baranov)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+ACP currently has sessions, tool calls, and session lifecycle work that are close to what subagents need, but it does not define a standard way to:
+
+  * expose which subagents are available for a session;
+  * request delegation for a prompt turn;
+  * identify that a tool call represents subagent delegation; or
+  * relate that delegated run to a child session that clients can inspect and manage.
+
+This RFD proposes:
+
+  * an optional capability:
+
+        sessionCapabilities.subagents?: {
+          promptDelegation?: boolean
+          background?: boolean
+        }
+
+  * an optional field on `NewSessionResponse`, `LoadSessionResponse`, `ResumeSessionResponse`, and `ForkSessionResponse`:
+
+        availableSubagents?: SubagentInfo[]
+
+  * a new `SessionUpdate` variant:
+
+        available_subagents_update
+
+  * an optional field on `PromptRequest`:
+
+        delegation?: PromptDelegation
+
+  * a new `ToolKind` variant:
+
+        "subagent"
+
+  * an optional field on `ToolCall` and `ToolCallUpdate`:
+
+        subagent?: SubagentRunInfo
+
+  * optional hierarchy fields on `SessionInfo`:
+
+        parentSessionId?: string
+        parentToolCallId?: string
+        subagentId?: string
+
+Subagents are modeled as child ACP sessions. This proposal standardizes runtime interoperability only. It does not define an on-disk subagent manifest format, directory layout, or vendor-specific prompt syntax.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+ACP already provides a solid runtime model for sessions, prompt turns, tool calls, streamed session updates, and session enumeration. That is enough to represent much of subagent execution, but the protocol still lacks a typed subagent runtime surface.
+
+Without standardized fields, implementations must surface subagent information through implementation-specific `_meta`, ad hoc raw payloads, titles, or prompt syntax conventions. This causes several interoperability problems:
+
+  * clients cannot reliably discover what subagents are available for a session;
+  * clients cannot portably request “use this specialist” or “do not delegate this turn” behavior;
+  * clients cannot reliably distinguish ordinary tool calls from subagent runs; and
+  * clients cannot reconstruct or manage parent/child relationships for delegated work without vendor-specific logic.
+
+Existing implementations already converge on the same broad runtime model: a delegated specialist run has its own context, its own execution history, and often its own configurable instructions or tool restrictions. What differs across implementations is mostly authoring format, storage, and product-specific UI.
+
+ACP should standardize the runtime surface that interoperable clients need, while remaining agnostic to subagent definition files, naming conventions, and product-specific authoring workflows.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Standardize a session-scoped subagent catalog, per-prompt delegation hints, and explicit linkage between a subagent tool call and a child session.
+
+The proposal is scoped to runtime interoperability only:
+
+  * no new top-level `subagent/*` RPC methods are added;
+  * ACP sessions remain the lifecycle primitive for subagent work;
+  * ACP remains agnostic to subagent manifest files, directory locations, and configuration formats; and
+  * ACP does not define vendor-specific prompt syntax such as `@reviewer` or similar affordances.
+
+Agents advertise support with `sessionCapabilities.subagents`. Clients MUST gate subagent-specific request fields on that capability.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+Clients can render delegated specialist work in a standard way, expose a portable “choose subagent” UX when supported, and manage delegated runs through the existing ACP session lifecycle.
+
+Agents can continue to implement local, remote, built-in, project-defined, or otherwise custom subagent systems, while exposing a single interoperable runtime surface to ACP clients.
+
+Security and permissions remain explicit. A child subagent session does not create a new privilege model; approvals, sandboxing, and filesystem or tool access continue to be governed by the existing implementation.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### Goals / Non-goals
+
+#### Goals
+
+  * Standardize session-scoped discovery of available subagents.
+  * Standardize per-prompt delegation hints without standardizing prompt syntax.
+  * Standardize how a subagent run is represented in parent session tool-call updates.
+  * Reuse ACP sessions as the lifecycle primitive for subagent execution.
+  * Enable clients to inspect, resume, cancel, close, and list delegated work using the existing ACP session APIs.
+  * Keep the proposal additive and capability-gated.
+  * Keep ACP agnostic to subagent authoring formats and storage locations.
+
+#### Non-goals
+
+  * Defining any required on-disk manifest format for subagents.
+  * Defining any required directory names such as `.agents/`, `.claude/agents/`, `.codex/agents/`, or similar.
+  * Defining vendor-specific prompt syntax for selecting subagents.
+  * Adding a separate `subagent/list`, `subagent/run`, `subagent/resume`, or `subagent/close` RPC family.
+  * Defining how a subagent is internally implemented, including whether it is local, remote, or backed by another protocol.
+  * Defining any new privilege model for delegated runs.
+  * Requiring recursive delegation or standardizing delegation-depth limits.
+
+### Schema changes
+
+The following optional capability is added to `SessionCapabilities`:
+
+    subagents?: {
+      promptDelegation?: boolean
+      background?: boolean
+    }
+
+The following optional property is added to `NewSessionResponse`, `LoadSessionResponse`, `ResumeSessionResponse`, and `ForkSessionResponse`:
+
+    availableSubagents?: SubagentInfo[]
+
+The following `SessionUpdate` variant is added:
+
+    {
+      "sessionUpdate": "available_subagents_update",
+      "availableSubagents": SubagentInfo[]
+    }
+
+The following optional property is added to `PromptRequest`:
+
+    delegation?: PromptDelegation
+
+The following `ToolKind` variant is added:
+
+    "subagent"
+
+The following optional property is added to `ToolCall` and `ToolCallUpdate`:
+
+    subagent?: SubagentRunInfo
+
+The following optional properties are added to `SessionInfo`:
+
+    parentSessionId?: string
+    parentToolCallId?: string
+    subagentId?: string
+
+Clients MUST send `delegation` only when `sessionCapabilities.subagents.promptDelegation` is present and `true`.
+
+Clients MUST request `runMode: "background"` only when `sessionCapabilities.subagents.background` is present and `true`.
+
+### Capability advertisement example
+
+    {
+      "jsonrpc": "2.0",
+      "id": 0,
+      "result": {
+        "protocolVersion": 1,
+        "agentCapabilities": {
+          "sessionCapabilities": {
+            "subagents": {
+              "promptDelegation": true,
+              "background": true
+            }
+          }
+        }
+      }
+    }
+
+### Field definitions
+
+#### `SubagentInfo`
+
+`SubagentInfo` has the following properties:
+
+  * `id` MUST be a non-empty string.
+  * `title` MUST be a non-empty string.
+  * `description` MAY be omitted. If present, it MUST be a string.
+
+The proposed shape is:
+
+    type SubagentInfo = {
+      id: string
+      title: string
+      description?: string
+    }
+
+`id` identifies a selectable subagent within the current session.
+
+`availableSubagents` has the following properties:
+
+  * The field MUST be an array of `SubagentInfo` values when present.
+  * `id` values MUST be unique within a single `availableSubagents` list.
+  * The list is a full replacement list, not a delta.
+  * Clients SHOULD preserve list order for display.
+
+#### `PromptDelegation`
+
+The proposed shape is:
+
+    type PromptDelegation = {
+      policy: "auto" | "disable" | "prefer" | "require"
+      subagentId?: string
+      runMode?: "foreground" | "background"
+    }
+
+`PromptDelegation` has the following properties:
+
+  * `policy` MUST be one of `"auto"`, `"disable"`, `"prefer"`, or `"require"`.
+  * `subagentId` MUST be present for `"prefer"` and `"require"`.
+  * `subagentId` MUST be omitted for `"auto"` and `"disable"`.
+  * `runMode` MAY be present only for `"prefer"` and `"require"`.
+  * If `runMode` is omitted, the agent chooses the execution mode.
+
+#### `SubagentRunInfo`
+
+The proposed shape is:
+
+    type SubagentRunInfo = {
+      childSessionId: string
+      subagentId?: string
+      runMode?: "foreground" | "background"
+      displayName?: string
+    }
+
+`SubagentRunInfo` has the following properties:
+
+  * `childSessionId` MUST be a session id string and MUST be present.
+  * `subagentId` SHOULD be present when the run corresponds to an entry in `availableSubagents`.
+  * `runMode` MAY be omitted. If present, it MUST be `"foreground"` or `"background"`.
+  * `displayName` MAY be omitted. If present, it MUST be a string.
+
+#### `SessionInfo` hierarchy fields
+
+The proposed additions are:
+
+    parentSessionId?: string
+    parentToolCallId?: string
+    subagentId?: string
+
+These fields have the following properties:
+
+  * `parentSessionId` identifies the parent session that delegated to the child subagent session.
+  * `parentToolCallId` identifies the parent session tool call that created the child subagent session.
+  * `subagentId` SHOULD match the selected `SubagentInfo.id` when the child session corresponds to a catalog entry.
+
+### Semantics
+
+ACP models a subagent run as:
+
+  * a parent-session tool call with `kind: "subagent"`; and
+  * a child ACP session identified by `subagent.childSessionId`.
+
+This means delegated specialist work is managed through the existing ACP session lifecycle rather than through a separate subagent-specific lifecycle.
+
+`availableSubagents` is session-scoped. Different sessions MAY expose different subagent catalogs because available specialists may depend on the active workspace, configuration, permissions, or implementation state.
+
+`delegation` controls per-prompt delegation behavior:
+
+  * `policy: "auto"` means the agent chooses whether to delegate.
+  * `policy: "disable"` means the agent MUST NOT spawn a new subagent run for that prompt turn. If the implementation cannot honor that constraint, it MUST reject the request.
+  * `policy: "prefer"` means the agent SHOULD use the named subagent when it is available and appropriate, but fallback behavior is allowed.
+  * `policy: "require"` means the agent MUST use the named subagent or fail the request.
+
+`ToolKind: "subagent"` identifies a parent-session tool call that represents delegated work. It does not change how ordinary tool calls inside the child session are represented.
+
+`available_subagents_update` communicates the current full replacement catalog for the session.
+
+### Request-specific behavior
+
+For `NewSessionResponse`, `LoadSessionResponse`, `ResumeSessionResponse`, and `ForkSessionResponse`:
+
+  * when `availableSubagents` is present, it is the full initial catalog for the resulting active session;
+  * when omitted, the client MUST treat the catalog as unknown until an `available_subagents_update` is received or until the session ends.
+
+Agents that advertise `sessionCapabilities.subagents` SHOULD include `availableSubagents` on session lifecycle responses whenever they can determine the catalog at that time. Agents MAY send `available_subagents_update` later if the catalog changes or becomes known after session creation.
+
+This RFD does not redefine the semantics of `session/fork`. A forked session MAY expose its own `availableSubagents` independent of the source session.
+
+### Agent behavior expectations
+
+When an agent spawns a subagent run, it MUST:
+
+  * create a child session identifier for the delegated run;
+  * emit a parent-session `tool_call` or `tool_call_update` with `kind: "subagent"`;
+  * include `subagent.childSessionId` on that parent-session tool call payload; and
+  * expose the child session through the normal ACP session lifecycle.
+
+The parent-session tool call update that includes `childSessionId` MUST be sent before any `session/update` notifications for that child session.
+
+When a child session is exposed through `SessionInfo`, the agent SHOULD include `parentSessionId`, `parentToolCallId`, and `subagentId` whenever those values are known.
+
+Foreground and background behavior follows these expectations:
+
+  * foreground child sessions are tied to the originating prompt turn;
+  * if the originating turn is cancelled, the agent SHOULD cancel foreground child sessions created solely for that turn; and
+  * background child sessions MAY continue after the originating turn completes.
+
+ACP does not require or forbid recursive delegation. A child session MAY itself advertise `availableSubagents`, subject to implementation policy.
+
+### Validation and error handling
+
+An agent receiving `delegation` on `PromptRequest` MUST validate the field before acting on it.
+
+The agent MUST reject the request if:
+
+  * `delegation` is not an object;
+  * `policy` is missing or invalid;
+  * `subagentId` is missing for `"prefer"` or `"require"`;
+  * `subagentId` is present for `"auto"` or `"disable"`;
+  * `runMode` is present with `"auto"` or `"disable"`;
+  * `runMode` is invalid; or
+  * `runMode: "background"` is requested without `sessionCapabilities.subagents.background` support.
+
+`invalid_params` is the RECOMMENDED error class for malformed values.
+
+If `policy: "require"` names an unknown or unavailable subagent, the agent MUST fail the request with an appropriate error. The agent MUST NOT silently fall back.
+
+If `policy: "prefer"` names an unknown or unavailable subagent, the agent MAY fall back to normal behavior.
+
+Agents that advertise `sessionCapabilities.subagents` MUST NOT emit `ToolKind: "subagent"` tool calls without a `subagent.childSessionId`.
+
+### Client responsibilities
+
+A client that supports this feature:
+
+  * MUST gate `delegation` on `sessionCapabilities.subagents.promptDelegation`;
+  * MUST gate `runMode: "background"` on `sessionCapabilities.subagents.background`;
+  * SHOULD preserve `availableSubagents` ordering in user-facing UI;
+  * SHOULD treat `available_subagents_update` as a full replacement list;
+  * SHOULD use `parentSessionId`, `parentToolCallId`, and `subagentId` when reconstructing session hierarchies; and
+  * MUST NOT assume any vendor-specific manifest format, file location, or prompt syntax from this protocol feature.
+
+A client that manages sessions through `session/list`, `session/resume`, `session/close`, or `session/cancel` SHOULD treat child subagent sessions like any other ACP session, using the hierarchy fields only for presentation and navigation.
+
+### Examples
+
+#### `session/new` response
+
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "sessionId": "sess_parent_1",
+        "availableSubagents": [
+          {
+            "id": "code-reviewer",
+            "title": "Code Reviewer",
+            "description": "Reviews correctness, security, and missing tests"
+          },
+          {
+            "id": "explorer",
+            "title": "Explorer",
+            "description": "Read-heavy codebase exploration specialist"
+          }
+        ]
+      }
+    }
+
+#### `available_subagents_update`
+
+    {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "sess_parent_1",
+        "update": {
+          "sessionUpdate": "available_subagents_update",
+          "availableSubagents": [
+            {
+              "id": "code-reviewer",
+              "title": "Code Reviewer"
+            },
+            {
+              "id": "explorer",
+              "title": "Explorer"
+            }
+          ]
+        }
+      }
+    }
+
+#### `session/prompt`
+
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "session/prompt",
+      "params": {
+        "sessionId": "sess_parent_1",
+        "prompt": [
+          {
+            "type": "text",
+            "text": "Review the auth diff for security issues"
+          }
+        ],
+        "delegation": {
+          "policy": "require",
+          "subagentId": "code-reviewer",
+          "runMode": "foreground"
+        }
+      }
+    }
+
+#### Parent session tool-call update for delegated work
+
+    {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "sess_parent_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "tool_123",
+          "title": "Code Reviewer",
+          "kind": "subagent",
+          "status": "in_progress",
+          "subagent": {
+            "childSessionId": "sess_child_7",
+            "subagentId": "code-reviewer",
+            "runMode": "foreground",
+            "displayName": "Atlas"
+          }
+        }
+      }
+    }
+
+#### Child session info
+
+    {
+      "sessionId": "sess_child_7",
+      "cwd": "/repo",
+      "title": "Code Reviewer · auth diff",
+      "parentSessionId": "sess_parent_1",
+      "parentToolCallId": "tool_123",
+      "subagentId": "code-reviewer"
+    }
+
+### Security considerations
+
+Subagents can increase autonomy, concurrency, and the duration of work that continues beyond a single prompt turn. This can increase the impact of user error, client misconfiguration, or insufficient sandboxing.
+
+Clients SHOULD make delegated execution visible to users, especially when the selected run mode is background or when a child session may continue after the parent turn completes.
+
+This proposal does not create a new privilege model. All existing permission prompts, approval flows, sandbox controls, filesystem boundaries, and tool access restrictions continue to apply.
+
+A child session MUST NOT be treated as implicitly more trusted than its parent. Delegation is not equivalent to trust elevation.
+
+### Backward compatibility
+
+This proposal is additive at the schema level. Existing prompts and sessions behave exactly as they do today when the new fields are omitted.
+
+Updated agents MUST continue to accept `PromptRequest` objects that do not include `delegation`.
+
+Older implementations may ignore or reject unknown fields. Clients therefore MUST gate request-side usage on `sessionCapabilities.subagents` and its nested flags.
+
+Older clients can continue to ignore `availableSubagents`, `available_subagents_update`, `ToolKind: "subagent"`, `subagent`, and the new `SessionInfo` hierarchy fields.
+
+This RFD does not add new RPC methods and does not change the meaning of existing session lifecycle operations.
+
+### Drawbacks
+
+  * It adds more session and tool-call surface area that clients and agents need to test.
+  * Some implementations may need to expose child session identifiers where they previously used only internal bookkeeping.
+  * It standardizes runtime interoperability, not authoring, so product-specific subagent-definition workflows will still differ.
+  * The available subagent catalog may change over time, which adds some client-state complexity.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### Why not just add `ToolKind: "subagent"`?
+
+That helps with rendering, but it does not solve discovery, explicit delegation requests, or portable management of delegated work. `ToolKind: "subagent"` is useful, but it is not sufficient on its own.
+
+### Why not add a dedicated `subagent/*` RPC family?
+
+ACP already has sessions as its lifecycle primitive. Reusing the existing session lifecycle keeps the model coherent and avoids duplicating concepts such as listing, resuming, cancelling, and closing work.
+
+### Why not standardize subagent manifest files too?
+
+Subagent packaging and storage are product-specific. ACP is the runtime interoperability layer between client and agent. This proposal keeps ACP focused on runtime behavior.
+
+### How should clients handle agents that support delegated runs but do not expose a catalog?
+
+If `availableSubagents` is omitted, the client should treat the catalog as unknown rather than assuming no subagents exist. Clients can still render delegated runs when `ToolKind: "subagent"` appears.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+Alternatives considered:
+
+  * relying on `_meta` or implementation-specific raw payloads;
+  * adding a separate `subagent/*` lifecycle RPC family; and
+  * standardizing on-disk manifest formats across implementations.
+
+This proposal is preferred because it is additive, session-native, capability-gated, and focused on the smallest runtime surface that interoperable clients need.
+
+## Revision history
+
+  * 2026-03-23: Initial draft.
