@@ -1,0 +1,135 @@
+---
+title: "Agent Skills List"
+---
+
+- Author(s): [@ignatov](https://github.com/ignatov)
+
+## Elevator pitch
+
+Add a mechanism for agents to advertise available [Agent Skills](https://agentskills.io/specification) to clients. Skills are reusable, composable capabilities that agents can expose, allowing clients to discover what an agent can do beyond basic prompting. This RFD proposes:
+
+1. A canonical `AvailableSkill` type describing skill schema aligned with the [Agent Skills Specification](https://agentskills.io/specification)
+2. An `AvailableSkillsUpdate` session notification for streaming skill availability to clients
+
+## Status quo
+
+Currently, the ACP protocol provides `AvailableCommand` and `AvailableCommandsUpdate` for agents to advertise executable commands. However, commands are designed for user-invoked actions within a session (e.g., `/create_plan`, `/research_codebase`), not for describing higher-level agent capabilities that:
+
+- Have licensing or compatibility requirements
+- Need pre-approved tool access for security
+- Represent modular, composable functionality
+- Require rich metadata for discovery and filtering
+
+This creates several problems:
+
+- **Limited capability discovery** - Clients cannot understand what specialized skills an agent offers
+- **No licensing visibility** - Users cannot see license terms for specific agent capabilities
+- **Missing compatibility info** - No way to indicate if a skill requires specific environments, network access, or system packages
+- **Security blind spots** - No pre-declaration of tools a skill might use, making trust decisions difficult
+- **Poor extensibility** - Commands lack a metadata mechanism for custom integrations
+
+## What we propose to do about it
+
+Add a new `AvailableSkill` type and `AvailableSkillsUpdate` notification following the existing pattern for `AvailableCommand` and `AvailableCommandsUpdate`. The schema aligns with the [Agent Skills Specification](https://agentskills.io/specification).
+
+### AvailableSkill Schema
+
+| Field           | Required | Constraints                                                                                                                   |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | Yes      | Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen. No consecutive hyphens. |
+| `description`   | Yes      | Max 1024 characters. Non-empty. Describes what the skill does and when to use it.                                             |
+| `license`       | No       | License name or reference to a bundled license file (e.g., `MIT`, `Apache-2.0`, `./licenses/my-license.txt`).                 |
+| `compatibility` | No       | Max 500 characters. Indicates environment requirements (intended product, system packages, network access, etc.).             |
+| `metadata`      | No       | Arbitrary string key-value mapping for additional properties.                                                                 |
+| `allowedTools`  | No       | Array of pre-approved tools the skill may use (Experimental).                                                                 |
+
+```md
+---
+name: pdf-processing
+description: Extract text and tables from PDF files, fill forms, merge documents.
+license: Apache-2.0
+metadata:
+  author: example-org
+  version: "1.0"
+---
+```
+
+### Session Notification
+
+The `AvailableSkillsUpdate` notification allows agents to stream skill availability during a session:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_abc123",
+    "sessionUpdate": "available_skills_update",
+    "availableSkills": [
+      {
+        "name": "code-review",
+        "description": "Performs automated code review on staged changes..."
+      },
+      {
+        "name": "test-generator",
+        "description": "Generates unit tests for the specified code...",
+        "allowedTools": ["Bash", "Read", "Write"]
+      }
+    ]
+  }
+}
+```
+
+## Shiny future
+
+Once this feature exists:
+
+1. **Rich skill discovery** - Clients can browse available skills with detailed metadata, enabling better agent selection and capability understanding
+2. **License compliance** - Organizations can filter or highlight skills based on licensing requirements
+3. **Environment matching** - Clients can warn users when skills may not work in their environment (e.g., missing git, no network access)
+4. **Security pre-approval** - Users can review and pre-approve tool access for skills, reducing permission fatigue
+5. **Extensible integrations** - The `metadata` field enables custom integrations without protocol changes
+6. **Skill marketplaces** - Future tooling could aggregate skills across agents for discovery and comparison
+
+Clients could implement:
+
+- Skill browser/selector UI
+- Automatic environment compatibility checking
+- License filtering for enterprise compliance
+- Skill-based agent recommendations
+
+## Implementation details and plan
+
+### Phase 1: Schema Updates
+
+1. **Add `AvailableSkill` type** to schema:
+   - `name`: Required string with validation pattern `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`, max 64 chars
+   - `description`: Required string, max 1024 chars, minLength 1
+   - `license`: Optional string
+   - `compatibility`: Optional string, max 500 chars
+   - `allowedTools`: Optional array of strings
+   - `_meta`: Standard extensibility field, we can put metadata from the skills spec
+
+2. **Add `AvailableSkillsUpdate` type**:
+   - `availableSkills`: Required array of `AvailableSkill`
+   - `_meta`: Standard extensibility field
+
+3. **Update `SessionUpdate` enum** to include `available_skills_update` variant
+
+### Phase 2: SDK Updates
+
+4. **Update Rust SDK** (`src/`):
+   - Add `AvailableSkill` struct with serde validation
+   - Add `AvailableSkillsUpdate` struct
+   - Update `SessionUpdate` enum
+
+### Phase 3: Documentation
+
+5. **Update protocol documentation**:
+   - Document the new types
+   - Provide usage examples
+   - Link to [Agent Skills Specification](https://agentskills.io/specification) for skill authoring guidance
+
+## Revision history
+
+- **2025-01-10**: Initial draft proposal
