@@ -1,0 +1,441 @@
+---
+title: "HITL Editing: Interactive File Write Feedback"
+---
+
+Author(s): [@luminger](https://github.com/luminger)
+
+## Elevator pitch
+
+Agentic coding tools today are stuck in a binary accept/reject model when it comes to editing files. Whether the agent writes files through ACP's `fs/write_text_file` or performs writes on its own (shell commands, MCP tools, direct filesystem access), the limitation is the same: the user can only accept or reject what the agent came up with. Even when the agent's proposal is close to the desired change, the user is left with less than ideal options:
+
+ - Reject the change and explain what was wrong in chat, then wait for another attempt by the agent
+ - Accept the change and manually clean up after the agent is done
+ - Accept the change and iterate on the file in chat about what's still desired
+ 
+This quite often leads to frustrating, multi-turn ping-pong before converging on the desired result.
+
+To make matters worse, some editors already allow users to edit the proposed diff before accepting — but the agent is never informed about these edits. The file is saved with the user's modifications, yet the agent's context still contains its original proposal. This causes the agent to make subsequent changes based on an outdated understanding of the file, appearing to "undo" the user's edits or ignore their intent.
+
+We propose adopting a workflow pioneered by the Cline family of harnesses (Cline and its fork Roo Code) that implements **HITL (Human-in-the-Loop) editing** — a pattern that eliminates these problems:
+
+1. The agent proposes a change
+2. The user sees the diff in their editor and can **edit the proposal directly** before accepting
+3. When the user accepts, any modifications they made are **immediately reported back to the agent as a unified diff**
+4. The user can also add a message explaining their changes or, on rejection, explaining why
+
+This creates a tight HITL feedback loop within a single conversation. The user's edits close the last gap in the agent's proposal, or a rejection with a clarifying comment immediately realigns the agent by actively steering it where the user wants it to be.
+
+We propose extending the `WriteTextFileResponse` with optional fields that allow clients to report user modifications and feedback back to the agent.
+
+## Status quo
+
+### Scope: The `fs/write_text_file` Path
+
+ACP supports two ways for an agent to write files:
+
+1. **Agent-side write** (agent writes directly): The agent writes the file itself by whatever means it chooses (local filesystem, MCP tool, shell command, etc.). ACP only specifies the optional `session/request_permission` handshake the agent *may* use to ask the user for approval before doing so — the actual write is entirely unspecified by the protocol and invisible to the client. This is the default and fallback path.
+
+2. **`fs/write_text_file`** (client-delegated write): The agent sends the file content to the client, which writes it to disk and responds with `WriteTextFileResponse`. This path is only available when the client advertises `clientCapabilities.fs.writeTextFile: true` in the `initialize` request.
+
+**This proposal only covers path 2 (`fs/write_text_file`).** Path 1 is currently unspecified by ACP: after the client responds to `session/request_permission`, the protocol says nothing about how the agent performs the write. The client has no ACP mechanism to intercept it or return modified content.
+
+### Current `fs/write_text_file` Interface
+
+The current `WriteTextFileRequest` sends full file content:
+
+```json
+{
+  "WriteTextFileRequest": {
+    "properties": {
+      "sessionId": { "type": "SessionId" },
+      "path": { "type": "string" },
+      "content": { "type": "string" }
+    },
+    "required": ["sessionId", "path", "content"]
+  }
+}
+```
+
+The response is essentially empty — a bare acknowledgement with no room for feedback:
+
+```json
+{
+  "WriteTextFileResponse": {
+    "properties": {
+      "_meta": { "type": ["object", "null"] }
+    }
+  }
+}
+```
+
+## What we propose to do about it
+
+### Capability: `agentCapabilities.fs.hitlEditing`
+
+Agents that understand the extended response fields advertise this during `initialize`. Clients MUST only include the new fields when the agent advertises this capability.
+
+### Introduce a `ContentDiff` Type
+
+ACP currently lacks a dedicated, reusable type for representing diffs. The existing `Diff` type in `ToolCallContent` carries full `oldText`/`newText` content pairs and is scoped to tool call display — it cannot represent a compact unified diff patch, and it includes a `path` field that would be redundant in contexts where the path is already known.
+
+We propose a new `ContentDiff` type that can serve as a shared primitive across the protocol that can meet the needs to represent content changes in a generalized form:
+
+```json
+{
+  "ContentDiff": {
+    "description": "A diff representing changes to content. The format is discriminated by the 'format' field.",
+    "discriminator": { "propertyName": "format" },
+    "oneOf": [
+      {
+        "description": "Unified diff patch. Compact and human/LLM-readable.",
+        "properties": {
+          "format": { "const": "unified" },
+          "patch": {
+            "description": "A unified diff string (e.g., output of `diff -u`).",
+            "type": "string"
+          }
+        },
+        "required": ["format", "patch"]
+      },
+      {
+        "description": "Full before/after content. Easiest for clients to produce; largest payload.",
+        "properties": {
+          "format": { "const": "full" },
+          "oldText": {
+            "description": "The original content. Omitted for new files.",
+            "type": "string"
+          },
+          "newText": {
+            "description": "The new content after modification.",
+            "type": "string"
+          }
+        },
+        "required": ["format", "newText"]
+      }
+    ]
+  }
+}
+```
+
+The `format` discriminator lets producers choose the representation they can generate:
+- **`unified`**: A compact unified diff patch string — the format Cline and Roo Code already generate, and well-understood by LLMs
+- **`full`**: Full before/after content — the easiest format for clients that cannot generate unified diffs
+
+This design is extensible: new formats (e.g., V4A-style patches) can be added as new `oneOf` variants without breaking existing consumers.
+
+### Extend `WriteTextFileResponse` with Outcome-Based Feedback
+
+When the agent advertises `agentCapabilities.fs.hitlEditing`, the `WriteTextFileResponse` gains a discriminated `action` field that reports the user's decision (see [why an outcome-based response instead of a JSON-RPC error](#why-use-an-outcome-based-response-instead-of-a-json-rpc-error-for-rejection)).
+
+**Current response (unchanged for basic clients):**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": null
+}
+```
+
+**Extended response — user accepted without changes:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "accept"
+    }
+  }
+}
+```
+
+**Extended response — user accepted with modifications:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "accept",
+      "userModification": {
+        "diff": {
+          "format": "unified",
+          "patch": "@@ -1,4 +1,5 @@\n..."
+        },
+        "finalContent": "..."
+      }
+    },
+    "feedback": "I changed X because Y"
+  }
+}
+```
+
+**Extended response — user rejected:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "reject"
+    },
+    "feedback": "This approach is wrong. The issue is not the timeout but the API endpoint."
+  }
+}
+```
+
+**Extended response — cancelled (prompt turn was cancelled):**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "cancel"
+    }
+  }
+}
+```
+
+**Schema addition to `WriteTextFileResponse`:**
+```json
+{
+  "WriteTextFileResponse": {
+    "description": "Response to fs/write_text_file",
+    "properties": {
+      "_meta": { "type": ["object", "null"] },
+      "action": {
+        "description": "The user's decision. Discriminated by the 'action' field. Absent when the agent does not advertise agentCapabilities.fs.hitlEditing.",
+        "discriminator": { "propertyName": "action" },
+        "oneOf": [
+          {
+            "description": "The user accepted the write, possibly with modifications.",
+            "properties": {
+              "action": { "const": "accept" },
+              "userModification": {
+                "description": "Present when the user modified the agent's proposal before accepting. Omitted if the user accepted without changes.",
+                "type": "object",
+                "properties": {
+                  "diff": {
+                    "$ref": "#/definitions/ContentDiff",
+                    "description": "A diff from the agent's original content to the user's final version."
+                  },
+                  "finalContent": {
+                    "description": "The actual content that was written to the file, so the agent knows the exact final state.",
+                    "type": "string"
+                  }
+                },
+                "required": ["diff", "finalContent"]
+              }
+            },
+            "required": ["action"]
+          },
+          {
+            "description": "The user rejected the write. The file was not modified.",
+            "properties": {
+              "action": { "const": "reject" }
+            },
+            "required": ["action"]
+          },
+          {
+            "description": "The prompt turn was cancelled before the user responded.",
+            "properties": {
+              "action": { "const": "cancel" }
+            },
+            "required": ["action"]
+          }
+        ]
+      },
+      "feedback": {
+        "description": "Optional message from the user explaining their changes, rejection reason, or other context. Omitted when the user did not provide feedback.",
+        "type": "string"
+      }
+    }
+  }
+}
+```
+
+The approach is backward compatible: existing clients continue returning `null` or `{}`, and agents that don't advertise `agentCapabilities.fs.hitlEditing` never see the new fields.
+
+Clients can implement varying levels of support:
+- **No support**: Return `null` (current behavior)
+- **Feedback only**: Return `action` with `accept` or `reject`, plus `feedback` when the user provides a comment
+- **Full support**: Return `action` with `accept` including `userModification` (`diff` and `finalContent`), plus optional `feedback`
+
+## Shiny future
+
+### The "80/20 Collaboration" Workflow (HITL Editing in Practice)
+
+With HITL editing, the typical interaction becomes:
+
+1. Agent proposes a change
+2. User sees the proposed changes in a diff view
+3. User makes small corrections directly in the diff view
+4. User accepts with an optional comment
+5. Agent receives the diff of user's corrections and can immediately correct its behavior towards the desired outcome
+
+**Example: Increasing multiple timeouts**
+
+User asks: "The API calls are timing out, can you increase the timeouts everywhere?"
+
+Agent proposes changing `config.ts`:
+```typescript
+export const config = {
+  timeout: 30000,  // Increased from 5000ms
+  retryAttempts: 3,
+};
+```
+
+The change itself is correct, but the agent left a comment describing what the value *used to be*. The user removes the comment entirely:
+```typescript
+export const config = {
+  timeout: 30000,
+  retryAttempts: 3,
+};
+```
+
+The user also types feedback explaining the preference:
+
+> "Don't add comments that describe what changed. If a comment is needed, explain why the value is what it is."
+
+The user accepts, and the agent receives a `WriteTextFileResponse`:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "accept",
+      "userModification": {
+        "diff": {
+          "format": "unified",
+          "patch": "@@ -1,4 +1,4 @@\n export const config = {\n-  timeout: 30000,  // Increased from 5000ms\n+  timeout: 30000,\n   retryAttempts: 3,\n };"
+        },
+        "finalContent": "export const config = {\n  timeout: 30000,\n  retryAttempts: 3,\n};"
+      }
+    },
+    "feedback": "Don't add comments that describe what changed. If a comment is needed, explain why the value is what it is."
+  }
+}
+```
+
+With HITL editing, a single correction on the first file steers all subsequent changes for the rest of the conversation. The user corrects once, not ten times — a convenient and cost-efficient way to align the agent's behavior. Without this feedback, the agent would keep adding "Increased from X" comments to every file it touches, and the user would have to correct it every single time manually or engage in a multi-turn discussion with the agent.
+
+### Rejection with Guidance
+
+When users reject, they can explain why. The current ACP spec does not define what happens when a user rejects an `fs/write_text_file` request. The `action` field introduced above models rejection as a normal response rather than a JSON-RPC error (see [why an outcome-based response](#why-use-an-outcome-based-response-instead-of-a-json-rpc-error-for-rejection)).
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "action": {
+      "action": "reject"
+    },
+    "feedback": "This approach is wrong. The issue is not the timeout but the API endpoint. Check the apiUrl instead."
+  }
+}
+```
+
+The file is **not** written to disk when the user rejects. The agent receives the rejection as a normal response and can use the optional `feedback` to understand why and adjust its approach.
+
+### Future: HITL for the Agent-Side Write Path
+
+The agent-side write path (path 1) is currently unspecified by ACP — the protocol only governs the `session/request_permission` handshake, not what the agent does afterward. This means there is currently no ACP mechanism for a client to intercept an agent-side write and return modified content.
+
+A future RFD could bring this path under protocol governance, for example by requiring agents to report the final written content back to the client via a `session/update` notification after completing the write. Once the write is visible to the protocol, a HITL extension for that path becomes possible. This proposal intentionally leaves room for that future work by not making any assumptions about how agent-side writes are performed.
+
+## Implementation details and plan
+
+### Phase 1: Schema Update
+
+1. Add `agentCapabilities.fs.hitlEditing` capability for agents to advertise support
+2. Add `ContentDiff` type with `unified` and `full` format variants
+3. Add discriminated `action` field (`accept | reject | cancel`) and optional `feedback` field to `WriteTextFileResponse`
+4. Add optional `userModification` object (with `diff` as `ContentDiff` and `finalContent`) to the `accept` action variant
+5. Update protocol documentation to describe the new fields, type, and capability
+
+### Phase 2: SDK Updates
+
+1. Update the ACP SDKs to include the new response fields and types
+2. Add helper methods for generating unified diffs
+
+### Client Implementation Guidelines
+
+Clients that want to support interactive feedback should:
+
+1. Display the proposed changes to the user (diff view recommended)
+2. Allow user editing of the proposed changes before accepting
+3. Detect user modifications by comparing the agent's proposal to the final content
+4. Generate a unified diff of user modifications
+5. Support feedback input on both accept and reject paths
+6. Return the new fields in the response
+7. Optionally offer a user-facing setting to fall back to a read-only diff view for users who prefer the existing workflow
+
+### Backward Compatibility
+
+- `WriteTextFileRequest` is unchanged
+- `WriteTextFileResponse` gains optional fields, gated by `agentCapabilities.fs.hitlEditing`
+- Existing clients continue returning `null` or `{}`
+- Agents that don't advertise the capability never see the new fields
+
+## Frequently asked questions
+
+### Why use an outcome-based response instead of a JSON-RPC error for rejection?
+
+ACP consistently models user decisions as normal responses, not protocol errors:
+
+- `RequestPermissionOutcome` uses `Selected | Cancelled` — rejection is a selected option with `kind: "reject_once"`, not an error
+- `ElicitationAction` uses `Accept | Decline | Cancel` — declining is a first-class action variant, not an error
+
+A user rejecting a file write is a normal workflow event, not an exceptional condition. Using a JSON-RPC error would break this established pattern and force agents to handle the same semantic concept (user said no) through two different code paths depending on the method.
+
+This proposal also surfaces a broader observation: `fs/write_text_file` is currently the only client-facing method with no defined rejection path at all. The `action` field we introduce here follows the same discriminated-union pattern as `ElicitationAction`, making it straightforward to adopt the same approach for any future client-facing methods that need user decision handling.
+
+### How does this compare to Cline's and Roo Code's implementations?
+
+This proposal is directly inspired by the HITL editing workflow present in the Cline family of harnesses. Both implementations share the same core pattern, which this proposal abstracts for the broader ACP ecosystem:
+
+- **Diff view as a gate**: The agent's proposed content is shown to the user in a side-by-side diff editor *before* being written to disk. Nothing is written until the user explicitly accepts — the diff view acts as a gate that ensures the user always has the final say
+- **User edit detection**: On accept, the tool compares the agent's proposed content to the user's (potentially modified) content in the diff editor; if they differ, a unified diff is generated
+- **Feedback reporting**: The unified diff and final content (and optionally a user message) are returned to the agent so it can update its understanding of the file state. In both Cline and Roo Code, the user can type feedback directly into the chatbox; on accept or reject, the text in the chatbox is sent along as feedback to the model without the need for an additional input box or modal
+
+The two implementations differ slightly in how they surface the result to the agent — Cline uses a prose response while Roo Code uses structured JSON — but the underlying mechanism is identical. The ACP proposal standardizes this pattern as optional fields on `WriteTextFileResponse`, making it implementation-agnostic.
+
+### What if the client has limited UI capabilities?
+
+Clients can implement varying levels of support:
+- **Full support**: Rich diff view with editing, syntax highlighting, linting, user can modify before accepting
+- **Basic support**: Show diff, allow accept/reject, return `feedback` but no `userModification`
+- **Read-only diff**: Display the proposed changes in a read-only diff view, allow accept/reject — no user editing of the proposal (status quo)
+- **No support**: Return `null` or `{}` (current behavior)
+
+The protocol does not mandate any specific UI features.
+
+### Why are `diff` and `finalContent` grouped in a `userModification` object?
+
+They are semantically coupled: a diff without the final content (or vice versa) would leave the agent with an incomplete picture. Grouping them in a single object means they are either both present or both absent — the schema enforces this structurally via `required: ["diff", "finalContent"]`, so clients cannot accidentally provide one without the other.
+
+### Why introduce a new `ContentDiff` type instead of using a plain string or ACP's existing `Diff` type?
+
+A plain unified diff string would have been sufficient for the HITL editing use case alone. However, while designing this proposal we identified that ACP lacks a general-purpose type for representing diffs — the existing `Diff` type in `ToolCallContent` is scoped to tool call display, carries full `oldText`/`newText` content pairs, and includes a `path` field that would be redundant in many contexts.
+
+Rather than introduce a one-off string field that future extensions would need to reinvent, we designed `ContentDiff` as a reusable primitive that can serve multiple protocol needs:
+
+- **HITL editing** (this proposal): `userModification.diff` uses `ContentDiff` to report user changes
+- **Existing `ToolCallContent.Diff`**: Could migrate to `ContentDiff` with `format: "full"` in a future version
+- **Any future extension** that needs to represent content changes (including potential binary diff formats)
+
+The `format` discriminator also addresses a practical concern raised in the ACP community: generating unified diffs can be difficult for some clients. By supporting both `"unified"` (compact patch) and `"full"` (before/after content), `ContentDiff` lets each client choose the format it can produce while leaving room to introduce new formats in the future without breaking changes.
+
+The name `ContentDiff` was chosen to avoid a naming clash with the existing `Diff` type in `ToolCallContent`, and to signal that the type is not inherently limited to plaintext — future `format` variants could support binary patches or other content types.
+
+### What about users who prefer the existing accept/reject workflow?
+
+We recognize that not every user wants to edit proposals inline — some prefer a read-only diff view, and others use auto-approve workflows where the agent writes without waiting for confirmation. HITL editing is an opt-in enhancement, not a replacement for these workflows. Clients may choose to make the editing behavior configurable — for example by offering a setting to fall back to a read-only diff or auto-approve — but they are not required to. While we believe HITL editing produces better outcomes — a single inline correction is faster and more precise than a multi-turn chat exchange — the protocol does not mandate it. The `agentCapabilities.fs.hitlEditing` capability only enables the richer response fields; how (or whether) the client exposes editing UI is entirely up to the client.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+We considered introducing a new method (e.g. `fs/write_text_file_interactive`) but rejected it. The agent is performing the same operation — writing a file. HITL editing doesn't change what the agent *asks for*, only what the client *reports back*. A separate method would create two methods with the same request shape, forcing agents to implement both and select the right one based on discovered capabilities. Extending the response keeps the protocol surface small: one method, one capability flag, richer responses when both sides support it.
+
