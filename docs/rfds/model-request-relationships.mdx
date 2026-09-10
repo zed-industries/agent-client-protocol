@@ -1,0 +1,257 @@
+---
+title: "Model Request Relationships"
+---
+
+- Author(s): [@hallerite](https://github.com/hallerite)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Allow an Agent to publish a small, typed directed graph over its logical model
+requests. Each relationship identifies a source request, a target request, and
+an open semantic type such as `compaction`, `subagent_call`, or
+`subagent_return`.
+
+This lets a Client preserve causal execution structure that cannot be recovered
+from the visible ACP transcript or request timing alone. Training systems can
+assign costs to concurrent work correctly, trace viewers can show delegation
+and compaction boundaries, and debugging tools can explain which model request
+caused another one.
+
+The proposal does not expose model prompts or responses through ACP and does not
+turn the relationship graph into conversation history. It only standardizes
+identity and causality metadata.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+ACP describes the interaction between a Client and an Agent, but an Agent can
+make many internal model requests during one prompt. It can compact one context,
+spawn several subagents concurrently, and later consume multiple child results
+in one parent request. These relationships are semantic facts known by the
+Agent, not facts a Client can reliably infer from timestamps or repeated message
+prefixes.
+
+The [Session Compaction RFD](/rfds/session-compaction) addresses a related but
+different problem. A `compaction_update` records a user-displayable lifecycle
+entity in the ACP session timeline and may expose the retained summary. It does
+not identify the model request that produced that summary or the first request
+that consumed the compacted context.
+
+Visible ACP message IDs are also insufficient as graph identities. Internal
+summary requests and subagent requests may never become visible ACP messages,
+and a parent request can have several semantic parents even though its visible
+output is one message.
+
+The proposed
+[Subagent Sessions RFD](https://github.com/agentclientprotocol/agent-client-protocol/pull/1992)
+would expose child session streams, tasks, and lifecycle to the Client. That is
+complementary: it identifies which worker produced visible session activity,
+while model-request relationships identify the exact request that spawned work
+and the later request that consumed its result. The latter is needed for
+request-level attribution and fan-in even when the child session is visible.
+
+Implementations therefore either omit the structure, infer it heuristically, or
+use private extensions. Prime Intellect currently uses the namespaced
+`ai.prime.acp/semantic-edges-v1` `_meta` extension plus one logical request ID on
+each request sent through its Client-provided model endpoint. This has been used
+end to end in
+[nano-RLM](https://github.com/PrimeIntellect-ai/nano-rlm/pull/153),
+[Verifiers](https://github.com/PrimeIntellect-ai/verifiers/pull/2449), and the
+[prime-rl trace viewer](https://github.com/PrimeIntellect-ai/prime-rl/pull/3455)
+to reconstruct compactions and concurrent subagent fan-out/fan-in.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Define an optional model-request relationship stream. Its data model has only
+two concepts:
+
+- `ModelRequestId`: an opaque, Agent-owned string identifying one logical model
+  request within an ACP session. Provider retries of that same logical request
+  reuse the ID.
+- `ModelRequestRelationship`: a directed edge with `sourceModelRequestId`,
+  `targetModelRequestId`, and `type`.
+
+An Agent publishes a complete snapshot of the relationships it knows at a safe
+turn boundary:
+
+```json
+{
+  "sessionUpdate": "model_request_relationships_update",
+  "relationships": [
+    {
+      "sourceModelRequestId": "parent-request",
+      "targetModelRequestId": "child-first-request",
+      "type": "subagent_call"
+    },
+    {
+      "sourceModelRequestId": "child-last-request",
+      "targetModelRequestId": "parent-consuming-request",
+      "type": "subagent_return"
+    },
+    {
+      "sourceModelRequestId": "summary-request",
+      "targetModelRequestId": "resumed-request",
+      "type": "compaction"
+    }
+  ]
+}
+```
+
+The snapshot is cumulative within the session. Receiving the same snapshot more
+than once is harmless. A later snapshot replaces the previously materialized
+relationship set. This avoids sequence numbers, acknowledgements, and
+missing-delta recovery while the graphs remain small relative to model traffic.
+
+Relationships only refer to completed logical requests. A failed or cancelled
+compaction is represented by `compaction_update`; because no resumed context was
+successfully created, it does not create a `compaction` relationship.
+
+### Relationship semantics
+
+Initial well-known relationship types are:
+
+- `compaction`: the target request consumes a compacted context produced by the
+  source request.
+- `subagent_call`: the source request caused the target request's subagent work
+  to begin.
+- `subagent_return`: the target request consumes the result of subagent work
+  ending at the source request.
+- `continuation`: the target is the next logical request in the same execution
+  context when that relationship is not otherwise recoverable.
+
+The type is an open string so the mechanism is not limited to compaction and
+subagents. Following ACP's enum-extension convention, `_`-prefixed values are
+available to implementations and unknown values must be preserved without
+inventing semantics for them.
+
+The graph must be acyclic. Multiple incoming relationships are valid and
+important: for example, a parent request may consume the results of two
+concurrent subagents.
+
+### Correlating with observed model traffic
+
+The relationship stream is useful by itself for topology. A Client that also
+observes model traffic needs the same `ModelRequestId` on that traffic to attach
+prompts, responses, token usage, and timing to graph nodes.
+
+How that ID is carried depends on the model transport. For an HTTP endpoint
+configured by the Client, the Agent can attach a negotiated dynamic correlation
+header that the Client's endpoint consumes and removes before forwarding the
+request upstream. An in-process model runtime can expose the ID directly. This
+RFD proposes the ACP identity and relationship semantics first; the exact
+cross-transport correlation mechanism should be designed with the
+[Configurable LLM Providers RFD](/rfds/custom-llm-endpoint) rather than assuming
+that every model request is HTTP.
+
+### Capability and compatibility
+
+In ACP v1, a Client advertises support before an Agent sends the new session
+update. Clients that do not advertise it continue to behave exactly as before.
+In ACP v2, the update follows the protocol's unknown-variant preservation and
+replay rules.
+
+The existing namespaced `_meta` representation remains a valid experimental
+deployment path while this RFD is discussed. Standardizing the concept does not
+require Agents that lack model-request visibility to synthesize it.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+An ACP Client can show a transcript, a chronological timeline, and a semantic
+execution view without guessing from timing. It can distinguish sequential work
+from concurrent subagent work, retain compaction boundaries across replay, and
+attribute tokens and cost to the correct execution context.
+
+Agents with no internal model graph remain fully conformant. Agents that expose
+only compaction can emit only `compaction` relationships. More capable Agents
+can add delegation, review, handoff, or other implementation-specific
+relationships through the same small primitive.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+1. Keep the existing namespaced `_meta` experiment running across nano-RLM,
+   Verifiers, and prime-rl and collect interoperability feedback.
+2. Settle the v1 capability and v2 session-update wire shape with ACP
+   maintainers.
+3. Add unstable schema types and replay tests for cumulative, idempotent
+   snapshots and unknown relationship labels.
+4. Define model-transport correlation alongside configurable Client-provided
+   model endpoints.
+5. Add an example Agent that emits a compaction relationship and an example
+   Client that materializes it.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### Why not attach relationships to ACP messages?
+
+A semantic boundary is not necessarily a visible message edge. A compaction can
+replace the prior prompt with a summary, and a subagent can run an independent
+prompt that the parent Client never sees. Model requests are the common entities
+that exist in all of these cases.
+
+### Why is this separate from `compaction_update`?
+
+They answer different questions. `compaction_update` says that compaction
+started, completed, failed, or was cancelled and may contain a displayable
+summary. A `compaction` relationship says which successful model request
+produced the replacement context and which later request consumed it. A viewer
+may use both.
+
+### Why is this separate from subagent sessions?
+
+Subagent sessions expose the child as a user-visible ACP activity stream with a
+task and lifecycle. Request relationships refine that session-level tree into
+model-request causality: which parent request spawned the child, where the
+child's model work ended, and which later parent request consumed the result.
+Neither representation substitutes for the other, and Agents can implement
+either capability independently.
+
+### Why not use timing or OpenTelemetry spans?
+
+Time overlap does not prove causality, and tracing spans do not define the
+domain semantics of compaction or subagent return. Implementations may project
+these relationships into OpenTelemetry, but the relationships must first come
+from the Agent that knows what occurred.
+
+### Why a relationship set instead of one parent field?
+
+A request can have multiple semantic parents with different meanings. A parent
+can consume two subagent results and a compacted context at once. A separate set
+also allows the Agent to publish a relationship only after the target request
+exists, without mutating an earlier model request.
+
+### Why send cumulative snapshots rather than deltas?
+
+Snapshots are idempotent and self-healing. Deltas require ordering, sequence
+numbers, acknowledgements, and recovery when an update is missed. The
+relationship data is tiny compared with the associated model prompts and
+responses; a future revision can add chunking if real workloads demonstrate a
+need.
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+- **A second Agent/session/conversation hierarchy:** rejected because ACP
+  already owns session structure and consumers already own their physical
+  transcript or training graph. Only the missing semantic edges are needed.
+- **Relationships only between ACP messages:** rejected because internal model
+  work need not produce visible messages.
+- **One full metadata envelope on every model request:** rejected because only
+  a stable correlation ID is needed on model traffic; the semantic graph belongs
+  on ACP.
+- **Compaction-specific request fields:** rejected because the same causal
+  primitive covers delegation, fan-in, handoff, review, and future semantics.
+
+## Revision history
+
+- 2026-09-03: Initial proposal based on the deployed Prime Intellect semantic
+  edge experiment.
