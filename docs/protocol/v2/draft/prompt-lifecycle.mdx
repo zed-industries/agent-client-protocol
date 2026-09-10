@@ -158,6 +158,13 @@ When foreground work starts or resumes, the Agent **MUST** send a `state_update`
 
 The language model **MAY** respond with text content, tool calls, or both.
 
+<Note>
+  This walkthrough covers the `session/update` variants most common in a prompt
+  turn. It is not the full set: [Session Update
+  Variants](#session-update-variants) lists every variant the schema defines in
+  this version.
+</Note>
+
 The Agent reports the model's output to the Client via `session/update` notifications. This may include the Agent's plan for accomplishing the task:
 
 ```json expandable
@@ -521,6 +528,32 @@ When the tool completes, the Agent sends another update with the final status an
 The Agent sends the tool results back to the language model as another request.
 
 The cycle returns to [step 3](#3-agent-reports-output), continuing until the language model completes its response without requesting additional tool calls or foreground work is stopped by the Agent or cancelled by the Client.
+
+## Session Update Variants
+
+The `SessionUpdate` union defines the following variants in this version. The walkthrough above covers the ones most common in a prompt turn; the rest report session activity that is not tied to model output and can arrive whenever the underlying state changes, including before or between prompts.
+
+| `sessionUpdate`             | Reports                                                                                            | Key fields                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `user_message`              | A user message created or updated; upsert keyed by `messageId`                                     | `messageId`, optional `content`                                 |
+| `user_message_chunk`        | A chunk of a user message being streamed                                                           | `messageId`, `content`                                          |
+| `agent_message`             | An agent message created or updated; upsert keyed by `messageId`                                   | `messageId`, optional `content`                                 |
+| `agent_message_chunk`       | A chunk of the Agent's response being streamed                                                     | `messageId`, `content`                                          |
+| `agent_thought`             | An agent thought created or updated; upsert keyed by `messageId`                                   | `messageId`, optional `content`                                 |
+| `agent_thought_chunk`       | A chunk of internal reasoning being streamed                                                       | `messageId`, `content`                                          |
+| `state_update`              | The Agent's foreground-work [state](#session-states) changed                                       | `state`; `stopReason`, `usage` when `idle`                      |
+| `plan_update`               | A content update for a [plan](/protocol/v2/draft/agent-plan)                                       | `plan`                                                          |
+| `plan_removed`              | A [plan](/protocol/v2/draft/agent-plan#removing-plans) removed by ID (draft unstable schema)       | `planId`                                                        |
+| `tool_call_update`          | A [tool call](/protocol/v2/draft/tool-calls) created or updated                                    | `toolCallId`, patch fields such as `status` and `content`       |
+| `tool_call_content_chunk`   | A chunk of [tool-call content](/protocol/v2/draft/tool-calls#streaming-content) being streamed     | `toolCallId`, `content`                                         |
+| `terminal_update`           | An agent-owned [terminal](/protocol/v2/draft/tool-calls#display-only-terminals) created or updated | `terminalId`, optional `command`, `cwd`, `output`, `exitStatus` |
+| `terminal_output_chunk`     | A chunk of bytes appended to an agent-owned terminal's output                                      | `terminalId`, `data`                                            |
+| `available_commands_update` | [Available commands](/protocol/v2/draft/slash-commands) ready or changed                           | `availableCommands`                                             |
+| `config_option_update`      | [Session config options](/protocol/v2/draft/session-config-options#from-the-agent) updated         | `configOptions`                                                 |
+| `session_info_update`       | [Session metadata](/protocol/v2/draft/session-list#updating-session-metadata) updated              | optional `title`, `updatedAt`                                   |
+| `usage_update`              | [Context window and cost](#session-usage-updates) update                                           | `used`, `size`, optional `cost`                                 |
+
+Variants with `sessionUpdate` values beginning with `_` are implementation-specific extensions, and unknown non-underscore values are reserved for future ACP variants. Receivers that do not recognize a variant preserve its raw payload when storing, replaying, proxying, or forwarding session history, and otherwise ignore it or display it generically. See [Enum and Tagged-Union Variants](/protocol/v2/draft/extensibility#enum-and-tagged-union-variants) and the [`SessionUpdate`](/protocol/v2/draft/schema#sessionupdate) schema reference for full payload definitions.
 
 ## Stop Reasons
 
