@@ -17,6 +17,9 @@ use super::{
     ClientCapabilities, ContentBlock, ExtNotification, ExtRequest, ExtResponse, Meta, SessionId,
 };
 
+#[cfg(feature = "unstable_subagents")]
+use super::SubagentCapabilities;
+
 #[cfg(feature = "unstable_mcp_over_acp")]
 use super::mcp::{
     MCP_MESSAGE_METHOD_NAME, MessageMcpNotification, MessageMcpRequest, MessageMcpResponse,
@@ -4071,6 +4074,20 @@ pub struct SessionCapabilities {
     #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
     #[serde(default)]
     pub close: Option<SessionCloseCapabilities>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Whether the agent may expose agent-created subagents.
+    ///
+    /// Optional and non-nullable. Omission means the agent does not advertise support.
+    /// Supplying `{}` means the agent may send subagent session updates when the client also
+    /// advertises support.
+    #[cfg(feature = "unstable_subagents")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(with = "SubagentCapabilities", extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    pub subagents: Option<SubagentCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
     /// these keys.
@@ -4156,6 +4173,18 @@ impl SessionCapabilities {
     #[must_use]
     pub fn close(mut self, close: impl IntoOption<SessionCloseCapabilities>) -> Self {
         self.close = close.into_option();
+        self
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Whether the agent may expose agent-created subagents.
+    #[cfg(feature = "unstable_subagents")]
+    #[must_use]
+    pub fn subagents(mut self, subagents: impl IntoOption<SubagentCapabilities>) -> Self {
+        self.subagents = subagents.into_option();
         self
     }
 
@@ -5211,6 +5240,23 @@ impl CancelNotification {
 mod test_serialization {
     use super::*;
     use serde_json::json;
+
+    #[cfg(feature = "unstable_subagents")]
+    #[test]
+    fn test_subagent_capability_serialization() {
+        let capabilities = SessionCapabilities::new().subagents(SubagentCapabilities::new());
+        assert_eq!(
+            serde_json::to_value(capabilities).unwrap(),
+            json!({ "subagents": {} })
+        );
+
+        let omitted: SessionCapabilities = serde_json::from_value(json!({})).unwrap();
+        assert!(omitted.subagents.is_none());
+
+        let null: SessionCapabilities =
+            serde_json::from_value(json!({ "subagents": null })).unwrap();
+        assert!(null.subagents.is_none());
+    }
 
     fn test_meta() -> Meta {
         json!({ "source": "test" }).as_object().unwrap().clone()

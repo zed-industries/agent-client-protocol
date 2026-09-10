@@ -197,7 +197,8 @@
               "rfds/tool-call-name",
               "rfds/get-auth-state",
               "rfds/session-compaction",
-              "rfds/session-notices"
+              "rfds/session-notices",
+              "rfds/subagents"
             ]
           },
           {

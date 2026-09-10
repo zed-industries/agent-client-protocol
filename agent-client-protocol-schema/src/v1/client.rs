@@ -166,6 +166,20 @@ pub enum SessionUpdate {
     /// [`ClientSessionCapabilities::compaction`].
     #[cfg(feature = "unstable_session_compaction")]
     CompactionSummaryChunk(CompactionSummaryChunk),
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Notification that the session spawned a subagent.
+    #[cfg(feature = "unstable_subagents")]
+    SubagentSpawned(SubagentSpawnedUpdate),
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// Notification that a subagent reached a terminal state.
+    #[cfg(feature = "unstable_subagents")]
+    SubagentStateUpdate(SubagentStateUpdate),
 }
 
 /// **UNSTABLE**
@@ -437,6 +451,203 @@ impl CompactionSummaryChunk {
         self.meta = meta.into_option();
         self
     }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Notification that a session spawned a subagent.
+#[cfg(feature = "unstable_subagents")]
+#[serde_as]
+#[skip_serializing_none]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SubagentSpawnedUpdate {
+    /// The opaque session ID used by all subsequent updates for the child.
+    pub subagent_session_id: SessionId,
+    /// A short, human-readable label for the subagent.
+    pub name: String,
+    /// A human-readable summary of the work delegated to the subagent.
+    pub task: String,
+    /// Client-to-agent operations permitted for this subagent session.
+    pub capabilities: SubagentSessionCapabilities,
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    ///
+    /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    #[serde(rename = "_meta")]
+    pub meta: Option<Meta>,
+}
+
+#[cfg(feature = "unstable_subagents")]
+impl SubagentSpawnedUpdate {
+    /// Builds a subagent spawn update with all required fields set.
+    #[must_use]
+    pub fn new(
+        subagent_session_id: impl Into<SessionId>,
+        name: impl Into<String>,
+        task: impl Into<String>,
+        capabilities: SubagentSessionCapabilities,
+    ) -> Self {
+        Self {
+            subagent_session_id: subagent_session_id.into(),
+            name: name.into(),
+            task: task.into(),
+            capabilities,
+            meta: None,
+        }
+    }
+
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[must_use]
+    pub fn meta(mut self, meta: impl IntoOption<Meta>) -> Self {
+        self.meta = meta.into_option();
+        self
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Client-to-agent operations permitted for a specific subagent session.
+#[cfg(feature = "unstable_subagents")]
+#[serde_as]
+#[skip_serializing_none]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SubagentSessionCapabilities {
+    /// Whether the client may cancel this subagent. Omission is equivalent to `false`.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub cancel: bool,
+    /// Whether the client may close this subagent. Omission is equivalent to `false`.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub close: bool,
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    #[serde(rename = "_meta")]
+    pub meta: Option<Meta>,
+}
+
+#[cfg(feature = "unstable_subagents")]
+impl SubagentSessionCapabilities {
+    /// Builds an empty capability set; cancellation and close are disabled.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Whether the client may cancel this subagent.
+    #[must_use]
+    pub fn cancel(mut self, cancel: bool) -> Self {
+        self.cancel = cancel;
+        self
+    }
+
+    /// Whether the client may close this subagent.
+    #[must_use]
+    pub fn close(mut self, close: bool) -> Self {
+        self.close = close;
+        self
+    }
+
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[must_use]
+    pub fn meta(mut self, meta: impl IntoOption<Meta>) -> Self {
+        self.meta = meta.into_option();
+        self
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Notification that a subagent reached a terminal state.
+///
+/// Sent on the immediate parent session after all child session updates and
+/// after every pending permission or elicitation request issued for the child
+/// has resolved.
+#[cfg(feature = "unstable_subagents")]
+#[serde_as]
+#[skip_serializing_none]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct SubagentStateUpdate {
+    /// The session ID of the subagent whose state changed.
+    pub subagent_session_id: SessionId,
+    /// The terminal state reached by the subagent.
+    pub state: SubagentState,
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    #[serde(rename = "_meta")]
+    pub meta: Option<Meta>,
+}
+
+#[cfg(feature = "unstable_subagents")]
+impl SubagentStateUpdate {
+    /// Builds a terminal state update with all required fields set.
+    #[must_use]
+    pub fn new(subagent_session_id: impl Into<SessionId>, state: SubagentState) -> Self {
+        Self {
+            subagent_session_id: subagent_session_id.into(),
+            state,
+            meta: None,
+        }
+    }
+
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[must_use]
+    pub fn meta(mut self, meta: impl IntoOption<Meta>) -> Self {
+        self.meta = meta.into_option();
+        self
+    }
+}
+
+/// Terminal state of an announced subagent.
+#[cfg(feature = "unstable_subagents")]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SubagentState {
+    /// The subagent completed its task successfully.
+    Completed,
+    /// The subagent failed to complete its task.
+    Failed,
+    /// The subagent was cancelled.
+    Cancelled,
+    /// The Agent lost the child runtime and cannot determine its task outcome.
+    Disconnected,
 }
 
 /// The current mode of the session has changed
@@ -2087,6 +2298,20 @@ pub struct ClientCapabilities {
     ///
     /// This capability is not part of the spec yet, and may be removed or changed at any point.
     ///
+    /// Whether the client understands exposed subagent sessions.
+    ///
+    /// Optional and non-nullable. Omission means the client does not advertise support.
+    /// Supplying `{}` means the client understands subagent lifecycle updates and restricted
+    /// session semantics.
+    #[cfg(feature = "unstable_subagents")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(with = "SubagentCapabilities", extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    pub subagents: Option<SubagentCapabilities>,
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
     /// Whether the client supports `plan_update` and `plan_removed` session updates.
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise support.
@@ -2181,6 +2406,18 @@ impl ClientCapabilities {
     ///
     /// This capability is not part of the spec yet, and may be removed or changed at any point.
     ///
+    /// Whether the client understands exposed subagent sessions.
+    #[cfg(feature = "unstable_subagents")]
+    #[must_use]
+    pub fn subagents(mut self, subagents: impl IntoOption<SubagentCapabilities>) -> Self {
+        self.subagents = subagents.into_option();
+        self
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
     /// Whether the client supports `plan_update` and `plan_removed` session updates.
     ///
     /// Omitted or `null` both mean the client does not advertise support.
@@ -2234,6 +2471,50 @@ impl ClientCapabilities {
     /// these keys.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    #[must_use]
+    pub fn meta(mut self, meta: impl IntoOption<Meta>) -> Self {
+        self.meta = meta.into_option();
+        self
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Capability marker for exposing subagents as restricted ACP sessions.
+///
+/// Supplying `{}` advertises support for subagent lifecycle updates and restricted-session
+/// semantics. Both the client and agent must advertise this capability before the agent sends
+/// subagent updates.
+#[cfg(feature = "unstable_subagents")]
+#[serde_as]
+#[skip_serializing_none]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct SubagentCapabilities {
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
+    #[serde(default)]
+    #[serde(rename = "_meta")]
+    pub meta: Option<Meta>,
+}
+
+#[cfg(feature = "unstable_subagents")]
+impl SubagentCapabilities {
+    /// Builds an empty capability marker.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The _meta property is reserved by ACP to allow clients and agents to attach additional
+    /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
+    /// these keys.
     #[must_use]
     pub fn meta(mut self, meta: impl IntoOption<Meta>) -> Self {
         self.meta = meta.into_option();
@@ -3085,6 +3366,85 @@ mod tests {
             serde_json::from_value(json!({ "compaction": null })).unwrap();
         assert!(absent.compaction.is_none());
         assert!(null.compaction.is_none());
+    }
+
+    #[cfg(feature = "unstable_subagents")]
+    #[test]
+    fn test_subagent_updates_serialization() {
+        use serde_json::json;
+
+        let spawned = SessionUpdate::SubagentSpawned(SubagentSpawnedUpdate::new(
+            "sess_child_1",
+            "test-investigator",
+            "Find the cause of the failing integration tests",
+            SubagentSessionCapabilities::new().cancel(true).close(true),
+        ));
+        assert_eq!(
+            serde_json::to_value(spawned).unwrap(),
+            json!({
+                "sessionUpdate": "subagent_spawned",
+                "subagentSessionId": "sess_child_1",
+                "name": "test-investigator",
+                "task": "Find the cause of the failing integration tests",
+                "capabilities": {
+                    "cancel": true,
+                    "close": true
+                }
+            })
+        );
+
+        let state = SessionUpdate::SubagentStateUpdate(SubagentStateUpdate::new(
+            "sess_child_1",
+            SubagentState::Completed,
+        ));
+        assert_eq!(
+            serde_json::to_value(state).unwrap(),
+            json!({
+                "sessionUpdate": "subagent_state_update",
+                "subagentSessionId": "sess_child_1",
+                "state": "completed"
+            })
+        );
+
+        let disconnected = SessionUpdate::SubagentStateUpdate(SubagentStateUpdate::new(
+            "sess_child_2",
+            SubagentState::Disconnected,
+        ));
+        assert_eq!(
+            serde_json::to_value(disconnected).unwrap(),
+            json!({
+                "sessionUpdate": "subagent_state_update",
+                "subagentSessionId": "sess_child_2",
+                "state": "disconnected"
+            })
+        );
+    }
+
+    #[cfg(feature = "unstable_subagents")]
+    #[test]
+    fn test_subagent_capability_semantics() {
+        use serde_json::json;
+
+        let capabilities =
+            serde_json::to_value(ClientCapabilities::new().subagents(SubagentCapabilities::new()))
+                .unwrap();
+        assert_eq!(capabilities["subagents"], json!({}));
+
+        let omitted: ClientCapabilities = serde_json::from_value(json!({})).unwrap();
+        assert!(omitted.subagents.is_none());
+
+        let null: ClientCapabilities =
+            serde_json::from_value(json!({ "subagents": null })).unwrap();
+        assert!(null.subagents.is_none());
+
+        let child_capabilities: SubagentSessionCapabilities = serde_json::from_value(json!({
+            "cancel": null,
+            "close": "yes"
+        }))
+        .unwrap();
+        assert!(!child_capabilities.cancel);
+        assert!(!child_capabilities.close);
+        assert_eq!(serde_json::to_value(child_capabilities).unwrap(), json!({}));
     }
 
     #[test]

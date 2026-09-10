@@ -33,6 +33,7 @@ unstable = [
     "unstable_nes",
     "unstable_plan_operations",
     "unstable_session_fork",
+    "unstable_subagents",
     "unstable_session_compaction",
     "unstable_session_notices",
     "unstable_end_turn_token_usage",
@@ -49,6 +50,7 @@ unstable_plan_operations = []
 unstable_session_fork = []
 unstable_session_compaction = []
 unstable_session_notices = []
+unstable_subagents = []
 unstable_end_turn_token_usage = []
 unstable_tool_call_name = []
 
