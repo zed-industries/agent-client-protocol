@@ -1,0 +1,167 @@
+---
+title: "Remote Session Support"
+---
+
+- Author(s): [@anna239](https://github.com/anna239)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Add first-class support for remote agent execution by extending `session/new` request and response with git repository information. This enables agents to execute work on remote servers, make changes to the codebase, and return a branch reference that clients can fetch and merge.
+
+## Scope
+
+This RFD focuses exclusively on the **data types and schema changes** required for remote session support.
+
+**Explicitly out of scope:**
+
+- Authentication mechanisms (OAuth, tokens, API keys, etc.)
+- Transport protocols (WebSocket vs HTTP)
+- Connection management and lifecycle
+- Server-side implementation details
+
+These concerns will be addressed in separate RFDs.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+Currently, ACP sessions assume the agent runs locally alongside the client, with direct filesystem access. The agent can read and write files in the user's working directory.
+
+## Shiny future
+
+> How will things play out once this feature exists?
+
+Clients will be able to send repository context when creating sessions, and agents will return branch references when work is complete. This enables:
+
+1. **Cloud-hosted agents** that clone repositories, do work, and push results
+2. **IDE integration** where the client fetches the result branch and presents merge options
+
+The typical flow becomes:
+
+1. Client sends `session/new` with `remote` containing repository URL, branch, and revision
+2. Agent clones/fetches the repo, checks out the revision
+3. Agent performs requested work
+4. Agent pushes changes to a new branch
+5. Agent returns `session/prompt` response with `target` containing the result branch info
+6. Client fetches the branch and allows user to review/merge
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### New Types
+
+#### RemoteRef
+
+A discriminated union type representing a reference to remote storage. The `type` field determines the variant:
+
+```typescript
+type RemoteRef = GitRemoteRef; // Future: | SomeOtherRemoteRef | ...
+```
+
+#### GitRemoteRef
+
+A git-based remote reference. This is currently the only implementation of `RemoteRef`:
+
+```typescript
+interface GitRemoteRef {
+  /** Discriminator for the remote type */
+  type: "git";
+
+  /** Git remote URL (SSH or HTTPS format) */
+  url: string;
+
+  /** Branch name (e.g., "main", "feature/xyz") */
+  branch: string;
+
+  /** Full commit SHA */
+  revision: string;
+}
+```
+
+### Schema Changes
+
+#### NewSessionRequest
+
+Add optional `remote` field to `NewSessionRequest`:
+
+```typescript
+interface NewSessionRequest {
+  /** Current working directory (existing) */
+  cwd: string;
+
+  /** MCP servers to connect (existing) */
+  mcpServers: McpServer[];
+
+  /**
+   * Remote storage reference for remote execution.
+   * When present, indicates the client wants the agent to work on
+   * this remote source rather than using local filesystem access.
+   */
+  remote?: RemoteRef;
+
+  /** Extension metadata (existing) */
+  _meta?: Record<string, unknown>;
+}
+```
+
+#### PromptResponse
+
+Add optional `target` field to `SessionPromptResponse`:
+
+```typescript
+interface PromptResponse {
+  target?: RemoteRef;
+
+  stopReason: StopReason;
+
+  /** Extension metadata (existing) */
+  _meta?: Record<string, unknown>;
+}
+```
+
+### JSON Schema Additions
+
+```json
+{
+  "$defs": {
+    "RemoteRef": {
+      "description": "A reference to remote storage. Discriminated by the 'type' field.",
+      "oneOf": [{ "$ref": "#/$defs/GitRemoteRef" }]
+    },
+    "GitRemoteRef": {
+      "description": "A git-based remote reference.",
+      "properties": {
+        "type": {
+          "const": "git",
+          "description": "Discriminator indicating this is a git reference"
+        },
+        "url": {
+          "type": "string",
+          "description": "Git remote URL"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch name"
+        },
+        "revision": {
+          "type": "string",
+          "description": "Full commit SHA (40 character hex string)"
+        }
+      },
+      "required": ["type", "url", "branch", "revision"],
+      "type": "object"
+    }
+  }
+}
+```
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document?
+
+## Revision history
+
+- 2026-02-02: Initial draft
