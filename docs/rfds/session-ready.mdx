@@ -1,0 +1,280 @@
+---
+title: "Session Ready Signal"
+---
+
+- Author(s): [@yordis](https://github.com/yordis)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+We propose adding a `session/ready` notification that **Clients send to Agents** after receiving a `session/new` or `session/load` response. This signals that the Client is ready to receive session notifications.
+
+This is useful for **anything that requires the session to exist on the Client side**.
+
+This is the only reliable mechanism to prevent race conditions in distributed Agent architectures.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+After a Client sends `session/new`, the Agent responds with a `sessionId`. The Agent (or its backend systems) may then want to send notifications like `available_commands_update`.
+
+**The problem**: The Agent doesn't know when the Client has actually received the response.
+
+### Why Agent-side solutions don't work
+
+Consider an Agent architecture with a backend (via message bus, HTTP, or any async transport):
+
+```
+┌────────┐         ┌─────────┐         ┌─────────────┐
+│ Client │◀───────▶│  Agent  │◀───────▶│   Backend   │
+│        │  stdio  │         │   bus   │             │
+└────────┘         └─────────┘         └─────────────┘
+```
+
+1. Client sends `session/new`
+2. Agent forwards to Backend
+3. Backend creates session, returns response
+4. Agent writes response to Client (stdio)
+5. Backend wants to send `available_commands_update`
+
+**Race condition**: The Backend sends the notification immediately after step 3. The notification travels through the bus, through the Agent, and may arrive at the Client **before** the response from step 4.
+
+This is not theoretical - this has been the actual observed behavior in production implementations. 
+
+We also observed that Clients would silently ignore notifications that arrived before the session was established. This makes sense - the Client doesn't know about the session yet, so it has no context to handle session-scoped notifications. The notifications are effectively lost.
+
+#### Why can't the Agent solve this?
+
+The Agent can try to signal "I wrote the response" to the Backend. But:
+
+- **"Wrote to buffer"** ≠ "Client received it" (OS buffering, transport latency)
+- **"Flushed to transport"** ≠ "Client received it" (network latency, pipe buffers)
+- **Tracking write completion** is complex, transport-specific, and still doesn't guarantee delivery
+
+**The fundamental issue**: The Agent cannot observe when the Client has received data. Only the Client knows this.
+
+#### Real-world example: Async work isn't enough
+
+We attempted to solve this in a Rust-based Agent by spawning async work after the handler returns:
+
+```rust
+async fn new_session(&self, args: NewSessionRequest) -> Result<NewSessionResponse> {
+    let response = backend.create_session(args).await?;
+    
+    // Spawn async task to signal backend AFTER handler returns
+    let session_id = response.session_id.clone();
+    tokio::task::spawn_local(async move {
+        // Handler has returned, SDK will now write response...
+        // Signal backend that it's safe to send notifications
+        bus.publish("session.ready", session_id).await;
+    });
+    
+    response // Handler returns, SDK writes to stdout
+}
+```
+
+**The assumption**: By the time the spawned task runs and publishes to the message bus, the SDK would have written the response to stdout.
+
+**The reality**: The message bus was **faster** than stdio. The notification roundtrip (Agent → Bus → Backend → Bus → Agent → stdout) completed before the original response was fully written to the Client.
+
+```
+Timeline:
+─────────────────────────────────────────────────────────────────▶ time
+
+Handler returns                    Response finally written
+      │                                      │
+      ▼                                      ▼
+      ├──────────────────────────────────────┤
+      │         SDK writing to stdout        │
+      │                                      │
+      │    ┌─────────────────────────────────┼───────┐
+      │    │ spawn_local runs                │       │
+      │    │      │                          │       │
+      │    │      ▼                          │       │
+      │    │  publish to bus                 │       │
+      │    │      │                          │       │
+      │    │      ▼                          │       │
+      │    │  backend receives               │       │
+      │    │      │                          │       │
+      │    │      ▼                          │       │
+      │    │  backend sends notification     │       │
+      │    │      │                          │       │
+      │    │      ▼                          │       │
+      │    │  notification arrives at Agent  │       │
+      │    │      │                          │       │
+      │    │      ▼                          │       │
+      │    │  Agent writes notification ◀────┼───────┤ RACE!
+      │    │                                 │       │
+      └────┴─────────────────────────────────┴───────┘
+                                                     
+      Notification written BEFORE response! ❌
+```
+
+Even yielding to the async runtime (`tokio::task::yield_now()`) wasn't sufficient - the bus roundtrip was occasionally faster than the SDK's stdio write path, especially in local pub/sub scenarios. The race condition was unpredictable, making it impossible to rely on timing assumptions. The only reliable solution is for the Client to signal back.
+
+### Current workarounds
+
+Implementers use unreliable workarounds:
+
+| Workaround | Problem |
+|------------|---------|
+| Fixed delays (100-500ms) | Unreliable, adds latency, wastes time |
+| Skip notifications entirely | Poor user experience |
+| Complex IO tracking | Fragile, transport-specific, still not guaranteed |
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Add a `session/ready` notification that **Clients send to Agents**:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/ready",
+  "params": {
+    "sessionId": "abc123"
+  }
+}
+```
+
+**Flow:**
+
+```
+Client                          Agent                          Backend
+  │                               │                               │
+  │──session/new─────────────────▶│                               │
+  │                               │──────────────────────────────▶│
+  │                               │◀─────────response─────────────│
+  │◀──response────────────────────│                               │
+  │                               │                               │
+  │──session/ready───────────────▶│──session/ready───────────────▶│
+  │                               │                               │
+  │                               │◀────available_commands_update─│
+  │◀──available_commands_update───│                               │
+```
+
+The Client sends `session/ready` **after** it has received and processed the `session/new` response. This is the **only** point in the system that has certainty about message delivery.
+
+### Why Client → Agent is the only reliable direction
+
+| Direction | Certainty |
+|-----------|-----------|
+| Agent → Client | Agent doesn't know if Client received it |
+| Client → Agent | Client knows it received the response before sending |
+
+The Client is the **only** participant that can reliably signal "I have received the response." Any Agent-side solution is fundamentally racing against transport latency.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+1. **Reliable ordering**: Notifications arrive after responses, guaranteed
+2. **No delays**: Remove arbitrary timeouts
+3. **Simple implementation**: Clients send one notification, Agents wait for it
+4. **Transport agnostic**: Works regardless of underlying transport
+5. **Future-proof**: As ACP evolves beyond stdio to support transports with higher concurrency (HTTP/2, WebSockets, QUIC), this explicit signal becomes even more important. Concurrent request handling makes timing assumptions even less reliable.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### Schema Addition
+
+```json
+{
+  "SessionReadyNotification": {
+    "type": "object", 
+    "properties": {
+      "sessionId": {
+        "$ref": "#/$defs/SessionId"
+      }
+    },
+    "required": ["sessionId"]
+  }
+}
+```
+
+### Client SDK Behavior
+
+Client SDKs should automatically send `session/ready` after receiving `session/new` or `session/load` responses:
+
+```typescript
+// Client SDK (automatic)
+const response = await agent.request('session/new', params);
+await agent.notify('session/ready', { sessionId: response.sessionId });
+return response;
+```
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### Why can't the Agent just wait for the write to complete?
+
+"Write complete" means different things at different layers:
+
+1. **Application buffer** → Data copied to OS
+2. **OS buffer** → Data sent to transport
+3. **Transport** → Data in flight
+4. **Client OS buffer** → Data received by OS
+5. **Client application** → Data read by Client
+
+The Agent can only observe up to step 2. Steps 3-5 are invisible to the Agent. Only the Client can confirm step 5.
+
+### How do Clients know if the Agent expects `session/ready`?
+
+Agents advertise support via a capability in the `initialize` response:
+
+```json
+{
+  "capabilities": {
+    "session": {
+      "ready": true
+    }
+  }
+}
+```
+
+If the Agent advertises `session.ready: true`, the Client MUST send `session/ready` after `session/new` or `session/load` responses.
+
+### What if the Client doesn't send `session/ready`?
+
+If the Agent advertises the capability but the Client doesn't send the notification, the Agent MAY:
+- Wait indefinitely (Client is non-compliant)
+- Implement a timeout fallback for robustness
+
+However, compliant Clients MUST send `session/ready` when the Agent advertises the capability.
+
+### Should this be automatic in Client SDKs?
+
+Yes. Client SDKs should automatically send `session/ready` after `session/new` and `session/load`. This ensures correct behavior by default.
+
+### Does this add latency?
+
+One additional message, but it **removes** the need for arbitrary delays. Net result is often faster because backends no longer wait 100-500ms "just in case."
+
+### What about notifications during `session/prompt`?
+
+This RFD focuses on session initialization. Prompt-turn notifications have different timing characteristics and don't suffer from this race condition (the prompt is already in progress).
+
+### What alternative approaches did you consider, and why did you settle on this one?
+
+| Approach | Why rejected |
+|----------|--------------|
+| Agent sends ready signal | Agent can't observe Client reception |
+| Fixed delays | Unreliable, adds latency |
+| Complex IO tracking | Fragile, transport-specific, still not guaranteed |
+| Include notifications in response | Not all notifications known at response time |
+
+The Client → Agent direction is the only approach that provides **certainty** rather than probability.
+
+## References
+
+- [Discussion #170: Add availableCommands to New Session](https://github.com/orgs/agentclientprotocol/discussions/170) - Original discussion where this timing issue was identified
+
+## Revision history
+
+- 2026-01-27: Initial draft
