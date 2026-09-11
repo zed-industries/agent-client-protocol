@@ -1,0 +1,488 @@
+---
+title: "Embedded Views"
+---
+
+Author(s): [jkaster](https://github.com/jkaster)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Add a negotiated ACP capability that lets an Agent offer an immutable web
+resource and lets a Client render it in a Client-owned, opaque-origin sandbox.
+The proposal standardizes resource integrity, sandbox policy, lifecycle,
+message-bridge selection, allowlisted actions, cancellation, localization, and
+accessibility without making the view a second source of session truth.
+
+Embedded views are additive presentation. Agents continue to emit the complete
+ACP-native text, plan, progress, tool-call, permission, diff, cancellation,
+metadata, handoff, and resume information required by the negotiated protocol.
+A missing capability, rejected resource, crashed view, or closed view degrades
+to those native projections and does not fail the ACP session.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+ACP gives Clients rich native primitives for conversations and agent work, but
+it has no portable way to host an Agent-provided interactive view. Integrations
+that want a graph, evidence explorer, notebook, preview, or other bounded web UI
+must currently choose one of several non-portable approaches:
+
+- identify a particular Client and call a private method;
+- open an external origin, losing the ACP lifecycle and local security boundary;
+- ship Client-specific plugin code that knows one Agent's resource format;
+- overload `_meta` with an undocumented capability and message bridge; or
+- omit the richer view even when both peers could support it safely.
+
+These approaches fragment the ecosystem and make security properties difficult
+to review. A Client cannot determine from ACP negotiation which resource
+schemes, media types, integrity algorithms, bridge protocols, sandbox
+restrictions, or action semantics an Agent expects. An Agent cannot determine
+whether a Client will enforce an opaque origin, block network access, verify
+bytes before execution, forward cancellation, or preserve native fallback.
+
+The absence of a generic contract also encourages product-name branches. Those
+branches are not capabilities: they become stale when a product changes its
+embedded runtime and they prevent independent implementations from
+interoperating.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Define `embeddedViews` as an object-shaped capability exchanged during
+initialization. The Client advertises the hosting policies it can enforce. The
+Agent advertises the immutable resources and interaction profiles it can offer.
+The intersection selects one exact profile for a view; absence or an empty
+intersection means embedded views are unsupported.
+
+For ACP v1, the role-specific capability objects are placed in
+`clientCapabilities.embeddedViews` and `agentCapabilities.embeddedViews`. For
+ACP v2, the same role-specific semantic objects are placed in each peer's
+role-neutral `capabilities.embeddedViews` field. The v1 and v2 wire shapes are
+separately versioned profiles; support for one does not imply support for the
+other.
+
+The initial method family is:
+
+| Method                      | Direction                   | Purpose                                                                        |
+| --------------------------- | --------------------------- | ------------------------------------------------------------------------------ |
+| `embeddedView/open`         | Agent → Client request      | Negotiate and create one sandbox for an immutable resource.                    |
+| `embeddedView/read`         | Client → Agent request      | Read the declared immutable bytes exactly once for verification and rendering. |
+| `embeddedView/action`       | Client → Agent request      | Request one manifest-allowlisted action on behalf of a bound view.             |
+| `embeddedView/cancelAction` | Client → Agent notification | Forward cancellation for an in-flight action.                                  |
+| `embeddedView/close`        | Agent → Client request      | Ask the Client to close and dispose a view.                                    |
+| `embeddedView/closed`       | Client → Agent notification | Report user close, policy rejection, crash, teardown, or replacement.          |
+
+The methods are unavailable unless initialization selected a compatible
+capability profile. They are generic: no method, capability, or branch contains
+an Agent or Client product name.
+
+### Design principles
+
+1. **Native ACP remains canonical.** A view may summarize or visualize state,
+   but it does not replace required ACP session updates or own durable workflow
+   state.
+2. **The Client owns containment.** The Client creates and destroys the sandbox,
+   enforces platform permissions, and remains the user-consent surface.
+3. **The Agent owns resources and actions.** The Agent declares immutable bytes
+   and revalidates every action against current session state and authorization.
+4. **Bytes are verified before execution.** The Client renders only the exact
+   bytes covered by the descriptor's length, media type, and digests.
+5. **Capabilities, not identities.** Runtime behavior depends only on negotiated
+   protocol data and local policy, never `clientInfo.name`, process paths, user
+   agents, plugin IDs, or registration IDs.
+6. **Failure reduces presentation richness only.** Embedded-view failures close
+   the view and leave the ACP session usable.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+An ACP Client that embeds a browser runtime can advertise the exact sandbox and
+resource profile it supports. Any conforming Agent can offer an immutable view.
+The Client verifies the resource, opens it without network or same-origin
+authority, and bridges only declared actions. The same Agent continues sending
+normal ACP messages, so another Client with no browser runtime receives a
+complete experience at a lower presentation tier.
+
+An independently implemented Client and Agent can run the same conformance
+fixtures. A production host can qualify itself using its normal released build,
+not a test-only compatibility shim. When an implementation tightens a sandbox,
+changes a bridge revision, or drops a media type, capability intersection makes
+the result explicit and deterministic.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+### Capability model
+
+Capability markers are objects rather than booleans so support can be
+intersected and extended without ambiguous truthy values. The examples below
+are illustrative JSON; the RFD's implementation PR will add authoritative Rust,
+JSON Schema, and generated SDK types.
+
+Client (host) capability:
+
+```json
+{
+  "embeddedViews": {
+    "revisions": ["2026-08-draft"],
+    "resources": {
+      "schemes": ["ui"],
+      "contentTypes": ["text/html;profile=mcp-app"],
+      "readModes": ["complete"],
+      "integrityAlgorithms": ["sha-256", "sha256-v1"],
+      "maxBytes": 8388608
+    },
+    "sandbox": {
+      "opaqueOrigin": {},
+      "scripts": {},
+      "network": null,
+      "sameOrigin": null,
+      "forms": null,
+      "popups": null,
+      "downloads": null
+    },
+    "bridges": ["mcp-apps/2026-01-26"],
+    "lifecycle": { "close": {}, "crashReporting": {} },
+    "actions": { "request": {}, "cancellation": {} },
+    "localization": { "documentLanguage": {}, "direction": {} },
+    "accessibility": {
+      "platformTree": {},
+      "keyboard": {},
+      "reducedMotion": {},
+      "forcedColors": {}
+    }
+  }
+}
+```
+
+Agent capability:
+
+```json
+{
+  "embeddedViews": {
+    "revisions": ["2026-08-draft"],
+    "resources": {
+      "schemes": ["ui"],
+      "contentTypes": ["text/html;profile=mcp-app"],
+      "readModes": ["complete"],
+      "integrityAlgorithms": ["sha-256", "sha256-v1"],
+      "maxBytes": 4194304
+    },
+    "bridges": ["mcp-apps/2026-01-26"],
+    "lifecycle": { "close": {}, "crashReporting": {} },
+    "actions": { "request": {}, "cancellation": {} }
+  }
+}
+```
+
+`null`, omission, and an empty revisions array advertise no support for that
+facet. Unknown fields are retained by intermediaries where ACP normally
+requires retention and otherwise ignored. Unknown revisions, media types,
+schemes, integrity algorithms, read modes, bridges, or required sandbox facets
+do not match.
+
+Malformed `embeddedViews` data makes only this optional feature unsupported;
+it does not invalidate an otherwise valid initialization exchange. Senders MUST
+NOT invoke an embedded-view method when the capability intersection is empty.
+Receivers return the normal method-not-supported error if they nevertheless
+receive one.
+
+### Deterministic intersection
+
+For each view, both peers compute the same profile from the initialization
+snapshot and the resource offer:
+
+1. select the first Client-preferred revision also offered by the Agent;
+2. select an exact URI scheme and media type common to both peers;
+3. require `complete` read mode for the initial profile;
+4. require exact support for the entry and closure integrity algorithms;
+5. choose the smaller non-zero byte limit and reject a descriptor above it;
+6. require an opaque origin and every sandbox restriction declared required by
+   the Agent; a Client may enforce additional restrictions only when they do
+   not break the selected bridge contract;
+7. select the first Client-preferred bridge also offered by the Agent;
+8. intersect lifecycle and action features; and
+9. hash the canonical selected profile into `profileDigest`.
+
+Arrays are ordered preference lists. Duplicates are invalid. Implementations
+MUST compare registered identifiers exactly after validating their syntax; they
+MUST NOT normalize media-type parameters, guess aliases, or select by product
+identity.
+
+If no profile matches, the Agent does not call `embeddedView/open`. If a
+previously open view loses eligibility because the session is replaced or
+renegotiated, the Client closes it before accepting more messages or actions.
+
+### Immutable resource descriptor
+
+`embeddedView/open` contains a resource descriptor and the selected profile:
+
+```json
+{
+  "sessionId": "sess_abc123",
+  "viewId": "view_01J...",
+  "profileDigest": "sha256:...",
+  "resource": {
+    "uri": "ui://example/evidence/en-US/sha256-v1-...",
+    "contentType": "text/html;profile=mcp-app",
+    "encoding": "utf-8",
+    "byteLength": 731204,
+    "entryDigest": "sha256:...",
+    "bundleDigest": "sha256-v1-...",
+    "closureManifest": {
+      "format": "inline-rendered-files/v1",
+      "entryPath": "report/index.html",
+      "entryDigest": "sha256:...",
+      "identity": {},
+      "closure": []
+    }
+  },
+  "locale": {
+    "tag": "en-US",
+    "direction": "ltr",
+    "catalogId": "evidence"
+  },
+  "bridge": { "protocol": "mcp-apps/2026-01-26" },
+  "manifestDigest": "sha256:...",
+  "actions": []
+}
+```
+
+The URI is canonical and immutable. It MUST NOT contain session credentials or
+private workspace evidence. `contentType` and `encoding` are exact negotiated
+values; content sniffing is forbidden.
+
+The initial profile distinguishes two digest domains:
+
+- `entryDigest` is SHA-256 over the exact final UTF-8 response bytes.
+- `bundleDigest` is a versioned content ID over the canonical closure manifest,
+  which includes the entry path and digest plus the asset and renderer identity.
+
+The RFD implementation will specify canonical JSON serialization and the exact
+`sha256-v1` domain separator in conformance vectors. A future revision may add
+streaming or another integrity algorithm; it cannot silently change this
+revision's complete-read semantics.
+
+### Resource read and verification
+
+After accepting `embeddedView/open`, the Client calls `embeddedView/read` with
+the bound `sessionId`, `viewId`, URI, `profileDigest`, and `manifestDigest`. The
+Agent returns the complete bytes as base64 plus the descriptor identities. The
+response MUST NOT redirect, alias, compress, recode, or substitute a locale.
+
+The Client performs these steps before creating an executable document:
+
+1. verify the response identities equal the accepted open descriptor;
+2. base64-decode incrementally while enforcing the negotiated byte limit;
+3. require the declared and actual byte lengths to match;
+4. hash the raw bytes and compare `entryDigest`;
+5. verify the entry digest in the canonical closure manifest;
+6. recompute `bundleDigest` and require it to match the URI; and
+7. cache only by canonical URI, media type, encoding, length, entry digest,
+   bundle digest, and manifest digest.
+
+Timeout, cancellation, duplicate chunks in a future streaming profile,
+truncation, oversize data, digest mismatch, stale cache, alternate-locale data,
+or mutation between verification and render closes the attempted view. The
+Client MUST NOT execute partially verified data.
+
+### Sandbox and CSP boundary
+
+The Client creates a fresh sandbox with an opaque origin. The initial profile
+allows scripts only when negotiated and denies same-origin authority, network,
+forms, popups, downloads, top navigation, storage, service workers, external
+protocol handlers, and ambient filesystem/process access. The resource carries
+a restrictive CSP whose inline script and style hashes match the verified
+bytes. The Client MAY add a stricter outer policy.
+
+The view receives no ACP transport object, session credential, filesystem
+handle, environment variable, or native host object. Native permission and diff
+UI remain Client-owned ACP surfaces outside the sandbox.
+
+The bridge uses a dedicated channel bound to `sessionId`, `viewId`,
+`profileDigest`, resource URI, `manifestDigest`, and a fresh nonce. The Client
+validates the window/source or equivalent platform identity on every message.
+Because the document has an opaque origin, origin strings alone are not an
+authentication mechanism. Messages with an unexpected source, channel,
+resource, sequence, size, schema, or lifecycle state are rejected.
+
+### Manifest-derived actions
+
+The open descriptor carries an ordered action manifest. Every entry contains a
+stable action ID, title, input schema and digest, result schema and digest, and
+whether the action can lead to a Client permission request. Duplicate or
+reordered entries invalidate `manifestDigest`.
+
+The sandbox may request only an action in the verified manifest. The Client
+validates membership and input shape, then calls `embeddedView/action` with the
+bound view identities, an idempotency key, and current state revisions supplied
+by the Agent's native projection. The Agent MUST independently revalidate:
+
+- manifest membership and schema digests;
+- session, view, principal, and resource binding;
+- idempotency and replay state;
+- current workflow, evidence, and authorization revisions; and
+- all normal permission and policy requirements.
+
+The view never grants authority. An action that needs consent uses the Client's
+normal ACP permission surface. Any proposed edit uses the normal ACP diff/tool
+call projection. Durable progress, cancellation, handoff, and resume stay in
+the Agent's canonical execution state and native ACP messages.
+
+`embeddedView/cancelAction` is advisory cancellation for the identified action.
+The Agent reports the authoritative terminal result through the action response
+and native ACP updates. A cancelled or disconnected Client cannot assume the
+underlying operation stopped unless the Agent confirms it.
+
+### Lifecycle and downgrade behavior
+
+`embeddedView/open` returns only after the Client has either created the view or
+rejected it with a typed reason. The Client reports user close, policy denial,
+verification failure, bridge failure, renderer crash, session replacement, and
+normal disposal through `embeddedView/closed`.
+
+After close begins, both peers reject new actions. They cancel or resolve
+in-flight requests according to normal ACP cancellation rules, detach bridge
+listeners, destroy the sandbox, and discard private ephemeral view state. Cache
+entries may retain only immutable public resource bytes under Client policy.
+
+The following all mean “no embedded view; continue natively” rather than a
+failed ACP session:
+
+- either capability is absent, malformed, or has an unknown revision;
+- the intersection has no common resource, bridge, integrity, or sandbox
+  profile;
+- local Client policy denies the view;
+- resource verification or localization fails;
+- the view crashes or violates the bridge; or
+- a resumed/replaced session does not renegotiate the same capability.
+
+Clients and Agents MUST keep semantically required native ACP information
+complete whether a view is open or not. A view close cannot retract or
+invalidate native history.
+
+### Localization and accessibility
+
+The resource descriptor declares a BCP 47 language tag and `ltr` or `rtl`
+direction. Those identities are covered by the manifest. A Client MUST NOT
+silently substitute a different localized resource. If it cannot render the
+declared locale safely, it rejects the view and continues natively.
+
+The Client remains responsible for platform focus traversal, zoom, assistive
+technology exposure, reduced motion, forced colors, and escape/close controls.
+The Agent resource is responsible for semantic markup, document language and
+direction, labeled controls, live-region behavior, reflow, contrast, and
+keyboard operation inside the document. Conformance includes LTR, RTL, long
+translated text, 200% zoom, 320 CSS-pixel reflow, keyboard-only use, screen
+reader naming, reduced motion, forced colors, and focus restoration after a
+permission dialog.
+
+### Security and hostile-state conformance
+
+Shared conformance fixtures cover at least:
+
+- absent, malformed, duplicate, unknown, and incompatible capabilities;
+- unsupported media type, content sniffing, oversize, timeout, cancellation,
+  truncation, digest mismatch, manifest mismatch, cache poisoning, redirect,
+  recoding, compression, locale substitution, and post-verification mutation;
+- script injection, external fetch, navigation, popup, download, storage,
+  service worker, same-origin escalation, and native-object access;
+- forged source/channel/view/session/resource identities, replay, reordering,
+  oversized messages, malformed schemas, stale revisions, post-close actions,
+  and cross-view or cross-session actions;
+- permission denial, diff rejection, action cancellation, disconnect, renderer
+  crash, Agent restart, session resume, and capability downgrade; and
+- localization and accessibility scenarios described above.
+
+The reference harness records negotiation, resource, lifecycle, and action
+transcripts without recording private resource payloads or credentials.
+Synthetic peers are sufficient for protocol conformance but not for a product's
+claim that a released production Client supports embedded views.
+
+### Adoption and stabilization plan
+
+1. Merge this document as Draft after an ACP core-team champion accepts the
+   problem and general direction.
+2. Add unstable role-specific capability and method types, generated JSON
+   Schema/SDK projections, canonical integrity vectors, and shared hostile
+   fixtures for one ACP generation.
+3. Demonstrate interoperability between an Agent and an independently owned
+   Client implementation using released or normally distributable builds.
+4. Move the RFD to Active while implementations and conformance vectors are
+   maintained together.
+5. Move to Preview only after the complete resource, sandbox, lifecycle,
+   action, cancellation, downgrade, localization, and accessibility paths are
+   implemented.
+6. Move to Completed, or land equivalent stable protocol schema, before
+   implementations make an unqualified public support claim.
+
+Draft or Active status permits experiments behind the RFD's unstable feature
+gate. It does not authorize a private stable namespace. If maintainers select a
+different namespace, bridge, lifecycle, or integrity model, implementations
+must replace the draft shape rather than preserve a compatibility branch.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+### Why not send HTML in a normal session update?
+
+Session updates are canonical conversation and work state. Executable HTML has
+additional byte-integrity, containment, lifecycle, and action requirements.
+Giving it a negotiated resource boundary keeps those requirements explicit and
+lets Clients decline without losing session semantics.
+
+### Why is the initial resource profile complete-read only?
+
+It gives the first revision one unambiguous verification order and prevents a
+Client from executing bytes before final integrity is known. Streaming can be a
+future negotiated read mode with chunk identities and a mandatory final digest.
+
+### Why include `text/html;profile=mcp-app` and an MCP Apps bridge?
+
+There are already useful immutable applications authored for that media type
+and bridge. Reusing the registered media type makes adoption practical. The ACP
+contract still owns negotiation, resource transport, sandbox enforcement,
+lifecycle, and action authorization; it does not tunnel an MCP session or make
+MCP a prerequisite for future media types and bridges.
+
+### Why not use `_meta` until the RFD stabilizes?
+
+Experiments may use ACP's normal unstable feature machinery, but production
+interoperability needs one reviewed namespace and schema. A private `_meta`
+contract would reproduce the client-name branching this proposal is intended to
+remove.
+
+### Can a view replace native plan, progress, permission, or diff UI?
+
+No. The view is additive. Native ACP projections remain the interoperable and
+authoritative record, and the Client retains native permission and diff control.
+
+### How does a product claim support?
+
+The protocol does not define marketing language, but an implementation should
+not claim production support solely from synthetic fixtures or a Draft RFD. A
+credible claim identifies an accepted wire profile, a normally released Client
+and Agent build, direct conformance evidence, and current resource/sandbox/
+action/accessibility results.
+
+### What alternative approaches did you consider?
+
+- **Client-specific plugins and methods:** capable, but not portable and prone
+  to product-name branches.
+- **External browser URLs:** useful for intentionally external workflows, but
+  not an offline, ACP-bound sandbox and resource lifecycle.
+- **Static images or Markdown only:** safe fallbacks that remain important, but
+  insufficient for bounded interaction and exploration.
+- **A general remote-webview API:** too permissive for the initial profile. This
+  proposal starts with immutable, self-contained, content-addressed resources
+  and no network authority.
+
+## Revision history
+
+- 2026-08-01: Initial proposal.
