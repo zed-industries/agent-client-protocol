@@ -1,6 +1,6 @@
 [package]
 name = "agent-client-protocol-json-schema-v1"
-version = "1.21.0"
+version = "1.22.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Version marker for ACP v1 JSON Schema GitHub releases"
