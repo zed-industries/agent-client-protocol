@@ -163,7 +163,7 @@ The Client responds with the user's decision:
 }
 ```
 
-Clients **MAY** automatically allow or reject permission requests according to the user settings.
+Clients **MAY** automatically allow or reject permission requests according to the user settings. When making a permission decision, Clients **SHOULD** treat the supplied `toolCall` details as the context being approved, not just the tool identity. If a permission policy or UI depends on `rawInput` and that field is absent or unavailable, the Client should avoid presenting the request as if argument details were known; it should either show that the arguments are unavailable or apply a stricter policy such as requiring explicit user confirmation.
 
 If the current prompt turn gets [cancelled](/protocol/v1/prompt-turn#cancellation), the Client **MUST** respond with the `"cancelled"` outcome:
 
