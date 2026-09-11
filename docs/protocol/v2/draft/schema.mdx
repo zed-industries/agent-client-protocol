@@ -9709,37 +9709,37 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 </ResponseField>
 <ResponseField name="cachedReadTokens" type={"integer | null"} >
-  Total cache read tokens.
+  Cache read token count, if reported by the agent.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="cachedWriteTokens" type={"integer | null"} >
-  Total cache write tokens.
+  Cache write token count, if reported by the agent.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="inputTokens" type={"uint64"} required>
-  Total input tokens.
+  Input token count according to the final accounting semantics.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="outputTokens" type={"uint64"} required>
-  Total output tokens.
+  Output token count according to the final accounting semantics.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="thoughtTokens" type={"integer | null"} >
-  Total thought/reasoning tokens
+  Thought/reasoning token count, if reported by the agent.
 
     - Minimum: `0`
 
 </ResponseField>
 <ResponseField name="totalTokens" type={"uint64"} required>
-  Sum of all token types across session.
+  Sum of all reported token categories according to the final accounting semantics.
 
     - Minimum: `0`
 

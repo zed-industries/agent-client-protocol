@@ -83,7 +83,7 @@ This shape is not ready for Preview. The RFD should resolve the open design ques
 
 - `usage` (object, optional, nullable) - Token usage reported for the completed prompt turn
   - If `usage` is omitted or `null`, the agent is not reporting token usage for this turn.
-- `totalTokens` (number, required, non-null) - Total token count according to the final accounting semantics
+- `totalTokens` (number, required, non-null) - Sum of all reported token categories according to the final accounting semantics
 - `inputTokens` (number, required, non-null) - Input token count according to the final accounting semantics
 - `outputTokens` (number, required, non-null) - Output token count according to the final accounting semantics
 - `thoughtTokens` (number, optional, nullable) - Thought or reasoning tokens, if the model exposes them

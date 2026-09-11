@@ -4372,39 +4372,39 @@
       "type": "object",
       "properties": {
         "totalTokens": {
-          "description": "Sum of all token types across session.",
+          "description": "Sum of all reported token categories according to the final accounting semantics.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0
         },
         "inputTokens": {
-          "description": "Total input tokens across all turns.",
+          "description": "Input token count according to the final accounting semantics.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0
         },
         "outputTokens": {
-          "description": "Total output tokens across all turns.",
+          "description": "Output token count according to the final accounting semantics.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0
         },
         "thoughtTokens": {
-          "description": "Total thought/reasoning tokens",
+          "description": "Thought/reasoning token count, if reported by the agent.",
           "type": ["integer", "null"],
           "format": "uint64",
           "minimum": 0,
           "x-deserialize-default-on-error": true
         },
         "cachedReadTokens": {
-          "description": "Total cache read tokens.",
+          "description": "Cache read token count, if reported by the agent.",
           "type": ["integer", "null"],
           "format": "uint64",
           "minimum": 0,
           "x-deserialize-default-on-error": true
         },
         "cachedWriteTokens": {
-          "description": "Total cache write tokens.",
+          "description": "Cache write token count, if reported by the agent.",
           "type": ["integer", "null"],
           "format": "uint64",
           "minimum": 0,

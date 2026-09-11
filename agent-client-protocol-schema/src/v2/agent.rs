@@ -3314,23 +3314,23 @@ pub enum StopReason {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct Usage {
-    /// Sum of all token types across session.
+    /// Sum of all reported token categories according to the final accounting semantics.
     pub total_tokens: u64,
-    /// Total input tokens.
+    /// Input token count according to the final accounting semantics.
     pub input_tokens: u64,
-    /// Total output tokens.
+    /// Output token count according to the final accounting semantics.
     pub output_tokens: u64,
-    /// Total thought/reasoning tokens
+    /// Thought/reasoning token count, if reported by the agent.
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
     #[serde(default)]
     pub thought_tokens: Option<u64>,
-    /// Total cache read tokens.
+    /// Cache read token count, if reported by the agent.
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
     #[serde(default)]
     pub cached_read_tokens: Option<u64>,
-    /// Total cache write tokens.
+    /// Cache write token count, if reported by the agent.
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[cfg_attr(feature = "schemars", schemars(extend("x-deserialize-default-on-error" = true)))]
     #[serde(default)]
@@ -3363,21 +3363,21 @@ impl Usage {
         }
     }
 
-    /// Total thought/reasoning tokens
+    /// Thought/reasoning token count, if reported by the agent.
     #[must_use]
     pub fn thought_tokens(mut self, thought_tokens: impl IntoOption<u64>) -> Self {
         self.thought_tokens = thought_tokens.into_option();
         self
     }
 
-    /// Total cache read tokens.
+    /// Cache read token count, if reported by the agent.
     #[must_use]
     pub fn cached_read_tokens(mut self, cached_read_tokens: impl IntoOption<u64>) -> Self {
         self.cached_read_tokens = cached_read_tokens.into_option();
         self
     }
 
-    /// Total cache write tokens.
+    /// Cache write token count, if reported by the agent.
     #[must_use]
     pub fn cached_write_tokens(mut self, cached_write_tokens: impl IntoOption<u64>) -> Self {
         self.cached_write_tokens = cached_write_tokens.into_option();
